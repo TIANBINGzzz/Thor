@@ -171,7 +171,7 @@ npm start -- "/professional-report 为管理层撰写本项目技术能力与上
 npm run ui
 ```
 
-默认打开 http://localhost:3000/ 。`app/ui.mjs` 会生成进程内 `SCRIBE_TOKEN`，同时启动 `app/server.mjs` 和 `web/`；浏览器不接触后端密钥。需要单独启动时可分别使用 `npm run ui:backend` 和 `npm run web`。
+默认打开 http://localhost:3000/ 。`npm run ui` 会先构建 Web，再以生产模式同时启动 `app/server.mjs` 和 Next.js，避免开发编译期间页面已经显示但事件尚未绑定。`app/ui.mjs` 会生成进程内 `SCRIBE_TOKEN`，浏览器不接触后端密钥。需要热更新时使用 `npm run ui:dev`；需要单独启动时可使用 `npm run ui:backend`、`npm run web` 或 `npm run web:start`。
 
 TypeScript runner：
 

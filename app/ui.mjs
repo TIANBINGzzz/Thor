@@ -14,9 +14,10 @@ const env = {
 };
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error("请通过 npm run ui 启动界面");
+const frontendScript = process.argv.includes("--dev") ? "dev" : "start";
 
 const backend = spawn(process.execPath, ["app/server.mjs"], { env, stdio: "inherit" });
-const frontend = spawn(process.execPath, [npmCli, "--prefix", "web", "run", "dev"], { env, stdio: "inherit" });
+const frontend = spawn(process.execPath, [npmCli, "--prefix", "web", "run", frontendScript], { env, stdio: "inherit" });
 const children = [backend, frontend];
 let closing = false;
 

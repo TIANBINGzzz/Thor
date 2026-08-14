@@ -14,6 +14,8 @@ Luma 是 Thor 唯一的对话前端，使用 React 和标准 Next.js App Router 
 npm run ui
 ```
 
+该命令使用生产模式运行 Next.js。需要前端热更新时使用根目录的 `npm run ui:dev`。
+
 单独验证 Web：
 
 ```powershell
