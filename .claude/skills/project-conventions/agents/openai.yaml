@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Conventions"
+  short_description: "Apply this repository coding and verification conventions"
+  default_prompt: "Follow the project conventions while completing this task."

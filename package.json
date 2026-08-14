@@ -1,0 +1,30 @@
+{
+  "name": "thor",
+  "version": "1.0.0",
+  "description": "Claude Agent SDK runner with an Anthropic-compatible model endpoint",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "agent": "tsx src/agent.ts",
+    "check": "tsx src/agent.ts --check",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck"
+  },
+  "keywords": [
+    "claude-agent-sdk",
+    "qwen"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.231",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}

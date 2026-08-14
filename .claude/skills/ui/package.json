@@ -1,0 +1,33 @@
+{
+  "name": "@theylovlj/ui-skill",
+  "version": "2.3.0",
+  "description": "Premium /ui design skill for Claude Code. Visual-thinking framework, 17 photoreal device mockups, seamless marquees, responsive sizing, 41 animations, 28 recipes, device-frame mockups, decoration safe-zone. Drops AI-tell defaults; competes with award-winning sites.",
+  "bin": {
+    "ui-skill": "bin/install.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "tokens.md",
+    "anti-slop.md",
+    "review.md",
+    "architecture.md",
+    "redesign.md",
+    "image-generation.md",
+    "visual-thinking.md",
+    "recipes/",
+    "assets/",
+    "bin/"
+  ],
+  "scripts": {
+    "test": "node bin/install.mjs --dry-run"
+  },
+  "keywords": ["claude-code", "skill", "ui", "design", "premium", "framer-motion", "tailwind", "react", "animations", "mockups", "visual-thinking"],
+  "author": "theylovlj",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theylovlj/ui-skill.git"
+  },
+  "homepage": "https://github.com/theylovlj/ui-skill",
+  "type": "module"
+}
