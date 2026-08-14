@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash",
+      "WebSearch",
+      "WebFetch",
+      "mcp__db__*"
+    ],
+    "deny": []
+  },
+  "workflowSizeGuideline": "small"
+}

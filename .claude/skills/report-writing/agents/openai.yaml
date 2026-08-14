@@ -1,0 +1,4 @@
+interface:
+  display_name: "专业报告撰写"
+  short_description: "Turn verified research and data into a professional report"
+  default_prompt: "Use $report-writing to draft a professional report grounded in verified evidence."

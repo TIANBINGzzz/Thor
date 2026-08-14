@@ -1,9 +1,11 @@
 node_modules/
 .env
-.idea/
-.claude/settings.local.json
-.claude/*.log
 *.log
+.claude/settings.local.json
+.tmp/
+.idea/
+.scribe-sessions/
+.claude/*.log
 *.tgz
 .sdk-extract-*/
 *.incomplete/

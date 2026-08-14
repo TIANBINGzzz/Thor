@@ -1,0 +1,4 @@
+interface:
+  display_name: "Êı¾İ·ÖÎö"
+  short_description: "Inspect database structures and produce evidence-based analysis"
+  default_prompt: "Use $data-analysis to inspect the available data and produce a verified analysis."
