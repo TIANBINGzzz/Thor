@@ -1,6 +1,6 @@
 # Thor / CCSDKScribe
 
-一个基于 Claude Agent SDK 的 Node.js Agent 与对话应用项目。项目通过 Anthropic 兼容接口调用 Qwen，加载 Claude Code 的工具、项目指令、Skills、Subagents 和 Commands，并通过 MCP 接入数据库。仓库同时保留远程 Thor 的 TypeScript runner 和 Luma Web 页面。
+一个基于 Claude Agent SDK 的本地 Node.js Agent 与对话应用。项目通过 Anthropic 兼容接口调用 Qwen，加载 Claude Code 的工具、项目指令、Skills、Subagents 和 Commands，并通过 MCP 接入数据库。`web/` 是唯一前端，保留远程 Thor 的 Luma 组件、样式和布局，并接入本地 Agent 全部运行时能力。
 
 ## CC SDK 是什么语言
 
@@ -45,20 +45,16 @@ CCSDKScribe/
 │   ├── session-files.test.mjs         # 会话文件单元测试
 │   ├── references.mjs                 # 引用语法解析与候选集分页搜索
 │   ├── references.test.mjs            # 引用语法单元测试
-│   ├── public/                        # 无构建步骤的对话前端
-│   │   ├── index.html
-│   │   ├── app.css
-│   │   └── app.js
+│   ├── ui.mjs                          # 一次启动 Agent 后端与 Next.js 前端
 │   ├── database.mjs                   # 动态挂载 DBHub MCP
 │   └── db-demo.mjs                    # DBHub 内存数据库演示
 ├── src/
 │   └── agent.ts                       # Thor TypeScript Agent runner
-├── web/                               # Luma React/vinext/Cloudflare Web 应用
-│   ├── app/                           # 页面、组件和 API routes
-│   ├── db/                            # Drizzle 数据访问层
-│   ├── drizzle/                       # D1 数据库迁移
-│   ├── worker/                        # Cloudflare Worker 入口
-│   └── tests/                         # Web 构建渲染测试
+├── web/                               # Luma React / Next.js 唯一前端
+│   ├── app/                           # 页面、组件、样式和本地 API 代理
+│   ├── public/                        # 静态图标资源
+│   └── tests/                         # Next.js 构建与渲染测试
+├── .scribe-sessions/                  # 本机会话、上传文件和模型产物（不提交）
 ├── .env.example
 ├── package.json
 ├── backlog.md                          # 已判明原因但未实施的问题
@@ -75,12 +71,13 @@ CCSDKScribe/
 - 已补齐项目指令、三个 Skills、三个 Subagents 和专业报告 Command。
 - 已增加 JavaScript Dynamic Workflow，用于编排研究、数据核验和写作三个阶段；Qwen 网关兼容性待验证。
 - DBHub 演示数据库工具链已验证；真实数据库仍需配置 `DATABASE_URL` 后测试。
-- 已加入本机对话前端（`npm run ui`）：SSE 流式输出、Markdown 渲染、工具调用折叠、子代理分流、思考过程开关、会话续接、成本统计。
-- 前端整链路已跑通：静态服务、token / Origin / Host 校验、SSE 事件流、错误传递、流式文本、思考过程、工具调用与结果配对、成本统计均实测正常。共 33 项单元测试（翻译层 9、会话文件 5、引用语法 19）。
+- 已加入本机对话前端（`npm run ui`）：Next.js 同源 API 代理、SSE 流式输出、Markdown 渲染、工具调用折叠、子代理分流、思考过程、会话续接和成本统计。
+- 前端整链路已跑通：token / Origin / Host 校验、SSE 事件流、错误传递、流式文本、思考过程、工具调用与结果配对、文件与引用、成本统计均已覆盖。根项目共 34 项单元测试，Web 有 2 项生产构建与渲染测试。
 - 已加入 `@` 引用选择器：大数据量候选集在服务端分页，模型只收到 `@type:value` 短标记（见"引用语法与大候选集"）。
-- 配色与圆角改用 [Beautiful UI](https://www.beautifului.dev/)（MIT）的 token 体系，含深色模式；组件按原生 JS 重写，未引入 React 或 Tailwind。
+- `web/` 保留远程 Luma 的 React 组件、配色、圆角、布局和响应式规则；只替换数据与交互实现，没有引入 assistant-ui，也没有保留旧 `app/public/` 页面。
 - 已加入应用会话文件：多文件上传、中文文件名正确显示、模型写入会话目录的产物自动出现在清单，Markdown / 文本 / 图片可在对话区预览，任意类型可下载。
 - 已合并 Thor 的 TypeScript runner 与 Luma Web；远程页面组件、设计、风格和布局保持原样，原有 `app/` 功能实现继续作为可运行的 Agent 主实现。
+- 运行架构已完全本地化：标准 Next.js 前端、Node Agent 后端和 `.scribe-sessions/` 文件存储，不使用 Cloudflare、D1、R2、vinext 或外部托管服务。
 - 项目 Skills 已取并集，数据分析、RAG、报告写作与远程 UI/项目约定能力同时保留。
 - 已强制简体中文输出，并移除在当前网关上会伪造成功的 `WebSearch`。
 - `WebFetch` 已通过 `.env` 代理变量实测可用（`claude.exe` 不读 Windows 系统代理，见"WebFetch 与代理"）。
@@ -174,21 +171,7 @@ npm start -- "/professional-report 为管理层撰写本项目技术能力与上
 npm run ui
 ```
 
-然后打开 http://127.0.0.1:4310/ 。
-
-Luma Web：
-
-```powershell
-cd web
-npm install
-npm run dev
-```
-
-或在根目录运行：
-
-```powershell
-npm run web
-```
+默认打开 http://localhost:3000/ 。`app/ui.mjs` 会生成进程内 `SCRIBE_TOKEN`，同时启动 `app/server.mjs` 和 `web/`；浏览器不接触后端密钥。需要单独启动时可分别使用 `npm run ui:backend` 和 `npm run web`。
 
 TypeScript runner：
 
@@ -210,7 +193,7 @@ npm test
 
 ## 对话前端
 
-前端是自建的薄层，不是现成产品的 fork。调研过三条路线后选了这条：
+运行时适配层是自建薄层，不是 assistant-ui。远程 Luma 页面负责 UI，根目录 Node 服务负责 Agent：
 
 - **AG-UI + CopilotKit / assistant-ui**：`@ag-ui/claude-agent-sdk` 是半官方适配器，但只处理 6 种 SDK 消息类型（`assistant` / `user` / `result` / `system` / `stream_event` / `thinking`），`task_*`、`hook_*`、`tool_progress` 全部丢弃，本项目的子代理和 workflow 进度会看不见；代码里也没有 `canUseTool`，接不上后续的写操作审批。它的 peer 依赖锁在 `^0.2.58`，与项目的 0.3.223 硬冲突。
 - **现成 Claude Code WebUI**（cui、claudecode_webui、yepanywhere 等）：定位是"给 Claude Code 套远程壳"的编码助手，agent 配置注入权在它们手里，塞进按租户动态挂 MCP 的需求只能长期 fork。它们仍是交互设计的参考。
@@ -220,10 +203,10 @@ npm test
 
 - `app/agent-options.mjs`：CLI 和 HTTP 共用一份 `query()` 配置，避免两处行为漂移。
 - `app/sse-events.mjs`：把 SDK 消息流翻译成紧凑 UI 事件。不做白名单——未识别类型降级成 `activity`，所以 SDK 新增消息类型不会被静默丢弃。文本只从 `stream_event` 增量取，按 `message.id` 跳过 `assistant` 里的同一段 text，避免重复渲染。
-- `app/server.mjs`：Node 内置 `http`，无 Web 框架。SSE 走 POST + `fetch` 流式读取（`EventSource` 只支持 GET，发不了 prompt）。
+- `app/server.mjs`：Node 内置 `http` 的 API-only 后端。SSE 走 POST + `fetch` 流式读取（`EventSource` 只支持 GET，发不了 prompt）。
 - `app/session-files.mjs`：每个页面会话对应 `.scribe-sessions/<id>/` 一个目录，通过 `additionalDirectories` 授权给模型。上传走 `busboy`，产物靠读目录发现。
 - `app/references.mjs`：引用语法的解析、候选集分页搜索和服务端复核。数据源注册在这里，前端不参与判定。
-- `app/public/`：无构建步骤，`marked` 和 `dompurify` 从 `node_modules` 的浏览器 ESM 构建直接提供，不依赖 CDN。
+- `web/app/`：唯一前端及同源 API 代理。页面不持有 Agent token，所有状态落在本机 `.scribe-sessions/`。
 
 子代理输出靠非空 `parent_tool_use_id` 分流到独立气泡，`subagent_type` 和 `task_description` 显示身份。会话续接用 `result.session_id` 回传给下一轮的 `resume`。
 
@@ -263,7 +246,7 @@ npm test
 - **中文标点要显式排除**。`value` 用"非空白"匹配的话，`@file:a.md，然后` 会把中文逗号和后面的字吞进路径。中文里标点紧贴词尾，这是主场景而非边角情况。
 - **`@` 要百分号编码**。作用域包名本身以 `@` 开头，不编码时 `@pkg:@anthropic-ai/sdk` 会在第二个 `@` 处截断。编成 `%40` 后 chip 和展开都显示解码后的原名。
 
-前后端各有一份同样的正则和编解码函数（`app/references.mjs` 与 `app/public/app.js`）。因为前端无构建步骤，没法共享模块，改一处必须同步另一处。
+后端 `app/references.mjs` 负责可信解析和复核，前端只负责识别光标附近的引用触发区间并插入服务端返回的引用文本。最终送给模型的引用始终由后端重新验证。
 
 ### 安全约束
 
@@ -317,14 +300,11 @@ Codex 的 `[model_providers.<name>]` 是 Codex 自己的配置，Claude Agent SD
 
 ## 后续执行计划
 
-1. 将 `app/` 的真实 Agent SSE、会话续接、引用选择、Skills/Subagents 事件与 Luma Web 接通，保持 `web/` 现有组件结构和视觉布局。
-2. 统一本机会话文件与 Luma 的 D1/R2 会话模型，明确本机 Node 和 Cloudflare 部署各自的存储边界。
-3. 配置并验证真实 `DATABASE_URL`，确认网络、TLS、schema 和只读账号权限。
-4. 在现有服务层上加入 `tenantId`、`userId` 和请求级工作目录（当前只有 `sessionId`）。
-5. 为每个租户独立创建 SDK 会话、MCP 进程、数据库凭证和文件空间，禁止跨租户复用可变上下文。
-6. 关闭全局 `bypassPermissions`，先用容器/沙箱限定可写目录（`Bash` 是绕过文件工具校验的逃生舱，必须先定它的策略，见 `backlog.md` 第 1 项），再用 `canUseTool` 把工具审批接到前端，补上工具 allowlist、文件目录边界、只读 SQL 校验和结果行数/超时限制。
-7. 用 `Query.interrupt()` 替换当前"断连即中止"的停止方式，让会话状态可控。
-8. 增加会话持久化、审计日志、敏感信息脱敏、并发限制、成本统计和自动化测试。
-9. 接入独立搜索 MCP 替代不可用的 `WebSearch`（该工具会伪造成功，见"已知网关限制"；`WebFetch` 是客户端工具，不能替代服务端搜索），并补齐 Subagents、Skills、slash commands 和 Dynamic Workflows 的网关支持矩阵。
-10. 增加报告模板、业务指标字典、数据源说明和端到端报告质量评测。
-11. 补上模型主动请求选择的通道（`canUseTool` + `updatedInput`，见 `backlog.md` 第 4 项）；它和第 6 项的工具审批共用同一条双向通道。
+1. 配置并验证真实 `DATABASE_URL`，确认网络、TLS、schema 和只读账号权限。
+2. 关闭全局 `bypassPermissions`，先用容器或沙箱限定可写目录，再用 `canUseTool` 把工具审批接入现有 Web 组件，并补上工具 allowlist、文件目录边界、只读 SQL 校验及结果行数和超时限制。
+3. 用 `Query.interrupt()` 替换当前“断连即中止”的停止方式，让会话状态可控。
+4. 增加会话索引恢复、审计日志、敏感信息脱敏、并发限制和更完整的端到端测试。
+5. 在确有多用户部署需求后，再加入 `tenantId`、`userId` 和请求级工作目录，为每个租户隔离 SDK 会话、MCP 进程、数据库凭证和文件空间。
+6. 接入独立搜索 MCP 替代不可用的 `WebSearch`，并补齐 Subagents、Skills、slash commands 和 Dynamic Workflows 的网关支持矩阵。
+7. 增加报告模板、业务指标字典、数据源说明和端到端报告质量评测。
+8. 补上模型主动请求选择的通道（`canUseTool` + `updatedInput`）；它与工具审批共用同一条双向通道。

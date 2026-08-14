@@ -4,13 +4,18 @@ import { Readable } from "node:stream";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  appendSessionTurn,
   cleanupSession,
   createSession,
+  decodeFileId,
+  listSessions,
   listSessionFiles,
   parseUpload,
   resolveSessionFile,
+  sessionStats,
   sessionDirectory,
   sessionPromptContext,
+  webSession,
 } from "./session-files.mjs";
 
 const BOUNDARY = "----ScribeTestBoundary";
@@ -114,4 +119,42 @@ test("下载解析拒绝越界路径，并保留原始文件名", async (t) => {
     () => resolveSessionFile(appSessionId, "../../package.json"),
     /文件不存在|不在会话目录内/,
   );
+});
+
+test("远程 Web 所需的会话、消息、事件和文件使用同一份本地状态", async (t) => {
+  const created = await createSession({ model: "test-model" });
+  t.after(() => cleanupSession(created.appSessionId));
+
+  await parseUpload(
+    uploadRequest([["输入资料.md", "# 数据"]]),
+    created.appSessionId,
+  );
+  await appendSessionTurn(created.appSessionId, {
+    prompt: "生成摘要",
+    model: "test-model",
+    agentSessionId: "agent-session",
+    events: [
+      { type: "init", tools: 3, skills: ["report-writing"], agents: [] },
+      { type: "text", scope: "main", text: "摘要完成" },
+      { type: "result", inputTokens: 10, outputTokens: 5, costUsd: 0.01 },
+    ],
+  });
+
+  const data = await webSession(created.appSessionId);
+  assert.equal(data.session.title, "生成摘要");
+  assert.equal(data.messages[0].role, "user");
+  assert.equal(data.messages[1].content, "摘要完成");
+  assert.equal(data.messages[1].tokens, 15);
+  assert.equal(data.files[0].name, "输入资料.md");
+  assert.deepEqual(decodeFileId(data.files[0].id), {
+    sessionId: created.appSessionId,
+    name: (await listSessionFiles(created.appSessionId)).files[0].name,
+  });
+
+  const listed = await listSessions();
+  assert.ok(listed.some((session) => session.id === created.appSessionId));
+  const stats = await sessionStats();
+  const model = stats.models.find((item) => item.modelId === "test-model");
+  assert.equal(model?.responses, 1);
+  assert.equal(model?.tokens, 15);
 });

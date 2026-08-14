@@ -1,8 +1,5 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { dirname, join, normalize } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { buildAgentOptions, missingEnvironment } from "./agent-options.mjs";
 import { createTranslator } from "./sse-events.mjs";
@@ -10,13 +7,18 @@ import { createReadStream } from "node:fs";
 import {
   createSession,
   appendSessionTurn,
+  cleanupSession,
+  decodeFileId,
   getSession,
-  listSessionFiles,
+  listSessions,
   parseUpload,
   resolveSessionFile,
+  sessionStats,
   sessionDirectory,
   sessionPromptContext,
+  updateSession,
   updateSessionModel,
+  webSession,
 } from "./session-files.mjs";
 import {
   isSource,
@@ -39,23 +41,6 @@ const MODELS = [...new Set(
 // 未显式配置时每次启动随机生成，避免出现固定的默认口令。
 const TOKEN = process.env.SCRIBE_TOKEN || randomBytes(24).toString("hex");
 
-const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "public");
-const ALLOWED_ORIGINS = new Set([
-  `http://${HOST}:${PORT}`,
-  `http://localhost:${PORT}`,
-]);
-
-const STATIC_FILES = {
-  "/": { file: "index.html", type: "text/html; charset=utf-8", inject: true },
-  "/app.css": { file: "app.css", type: "text/css; charset=utf-8" },
-  "/app.js": { file: "app.js", type: "text/javascript; charset=utf-8" },
-};
-
-const VENDOR_FILES = {
-  "/vendor/marked.js": "marked",
-  "/vendor/purify.js": "dompurify",
-};
-
 const invalidVariables = missingEnvironment();
 
 if (invalidVariables.length > 0) {
@@ -72,12 +57,10 @@ function hostAllowed(request) {
 }
 
 /**
- * 浏览器发起跨站请求时一定会带 Origin。缺失 Origin 的情况只可能来自
- * 同源导航或非浏览器客户端，此时由 token 兜底。
+ * 后端只接受 Web 服务的同机代理请求。浏览器不能绕过 Web 层直连 Agent。
  */
 function originAllowed(request) {
-  const origin = request.headers.origin;
-  return !origin || ALLOWED_ORIGINS.has(origin);
+  return !request.headers.origin;
 }
 
 function tokenValid(request) {
@@ -112,31 +95,7 @@ async function readBody(request) {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-async function serveStatic(response, entry) {
-  const path = normalize(join(PUBLIC_DIR, entry.file));
-
-  if (!path.startsWith(PUBLIC_DIR)) {
-    send(response, 403, "禁止访问");
-    return;
-  }
-
-  let body = await readFile(path, "utf8");
-
-  if (entry.inject) {
-    // token 只注入到同源页面，不出现在任何静态构建产物里。
-    body = body.replace("__SCRIBE_TOKEN__", TOKEN);
-  }
-
-  send(response, 200, body, entry.type);
-}
-
-async function serveVendor(response, specifier) {
-  const path = fileURLToPath(import.meta.resolve(specifier));
-  const body = await readFile(path, "utf8");
-  send(response, 200, body, "text/javascript; charset=utf-8");
-}
-
-async function handleChat(request, response) {
+async function handleChat(request, response, appSessionId) {
   const raw = await readBody(request);
   let payload;
 
@@ -148,18 +107,11 @@ async function handleChat(request, response) {
   }
 
   const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
-  const appSessionId =
-    typeof payload.appSessionId === "string" ? payload.appSessionId : "";
 
   if (!prompt) {
     send(response, 400, "prompt 不能为空");
     return;
   }
-  if (!appSessionId) {
-    send(response, 400, "appSessionId 不能为空");
-    return;
-  }
-
   let filesContext;
   let uploadDirectory;
   let savedSession;
@@ -172,7 +124,11 @@ async function handleChat(request, response) {
     return;
   }
 
-  const requestedModel = typeof payload.model === "string" ? payload.model.trim() : "";
+  const requestedModel = typeof payload.modelId === "string"
+    ? payload.modelId.trim()
+    : typeof payload.model === "string"
+      ? payload.model.trim()
+      : "";
   const model = requestedModel || savedSession.model || MODELS[0];
   if (!model || !MODELS.includes(model)) {
     send(response, 400, "model 不在允许列表中");
@@ -259,12 +215,29 @@ async function handleCreateSession(request, response) {
     send(response, 413, "请求体过大");
     return;
   }
-  sendJson(response, 201, await createSession());
+  const raw = await readBody(request);
+  const payload = raw ? JSON.parse(raw) : {};
+  const model = typeof payload.modelId === "string" ? payload.modelId.trim() : "";
+  if (model && !MODELS.includes(model)) {
+    send(response, 400, "模型未配置");
+    return;
+  }
+  const created = await createSession({ model: model || MODELS[0] });
+  sendJson(response, 201, { session: {
+    id: created.id,
+    title: created.title,
+    modelId: created.modelId,
+    createdAt: created.createdAt,
+    updatedAt: created.updatedAt,
+  } });
 }
 
 async function handleUpload(request, response, appSessionId) {
   try {
-    sendJson(response, 201, await parseUpload(request, appSessionId));
+    await parseUpload(request, appSessionId);
+    const data = await webSession(appSessionId);
+    const file = [...data.files].sort((a, b) => b.createdAt - a.createdAt)[0];
+    sendJson(response, 201, { file });
   } catch (error) {
     send(response, 400, error instanceof Error ? error.message : String(error));
   }
@@ -272,16 +245,21 @@ async function handleUpload(request, response, appSessionId) {
 
 async function handleSession(request, response, appSessionId) {
   try {
-    sendJson(response, 200, await getSession(appSessionId));
+    sendJson(response, 200, await webSession(appSessionId));
   } catch (error) {
     send(response, 404, error instanceof Error ? error.message : String(error));
   }
 }
 
-async function handleDownload(request, response, appSessionId, name) {
+async function handleDownload(request, response, fileId) {
+  const decoded = decodeFileId(fileId);
+  if (!decoded) {
+    send(response, 404, "文件不存在");
+    return;
+  }
   let file;
   try {
-    file = await resolveSessionFile(appSessionId, decodeURIComponent(name));
+    file = await resolveSessionFile(decoded.sessionId, decoded.name);
   } catch (error) {
     send(response, 404, error instanceof Error ? error.message : String(error));
     return;
@@ -312,47 +290,28 @@ const server = createServer(async (request, response) => {
 
     const url = new URL(request.url, `http://${request.headers.host}`);
 
-    if (request.method === "GET") {
-      const entry = STATIC_FILES[url.pathname];
+    if (request.method === "GET" && url.pathname === "/health") {
+      sendJson(response, 200, { ok: true });
+      return;
+    }
 
-      if (entry) {
-        await serveStatic(response, entry);
-        return;
-      }
-
-      const vendor = VENDOR_FILES[url.pathname];
-
-      if (vendor) {
-        await serveVendor(response, vendor);
-        return;
-      }
+    if (!originAllowed(request) || !tokenValid(request)) {
+      send(response, 403, "校验失败");
+      return;
     }
 
     if (request.method === "GET" && url.pathname === "/api/models") {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
       sendJson(response, 200, { models: MODELS });
       return;
     }
 
     if (request.method === "GET" && url.pathname === "/api/sources") {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
       sendJson(response, 200, { sources: listSources() });
       return;
     }
 
     // 候选集只在这里分页返回，绝不进模型 context——这是引用方案的关键。
     if (request.method === "GET" && url.pathname === "/api/options") {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
-
       const type = url.searchParams.get("source") || "";
 
       if (!isSource(type)) {
@@ -368,59 +327,60 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "POST" && url.pathname === "/api/session") {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
+    if (request.method === "GET" && url.pathname === "/api/sessions") {
+      sendJson(response, 200, { sessions: await listSessions() });
+      return;
+    }
 
+    if (request.method === "POST" && url.pathname === "/api/sessions") {
       await handleCreateSession(request, response);
       return;
     }
 
-    const uploadMatch = url.pathname.match(/^\/api\/session\/([a-f0-9]{48})\/files$/);
+    const uploadMatch = url.pathname.match(/^\/api\/sessions\/([a-zA-Z0-9_-]{12,80})\/files$/);
     if (request.method === "POST" && uploadMatch) {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
-
       await handleUpload(request, response, uploadMatch[1]);
       return;
     }
 
-    const sessionMatch = url.pathname.match(/^\/api\/session\/([a-f0-9]{48})$/);
-    if (request.method === "GET" && sessionMatch) {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
+    const chatMatch = url.pathname.match(/^\/api\/sessions\/([a-zA-Z0-9_-]{12,80})\/chat$/);
+    if (request.method === "POST" && chatMatch) {
+      await handleChat(request, response, chatMatch[1]);
+      return;
+    }
 
+    const sessionMatch = url.pathname.match(/^\/api\/sessions\/([a-zA-Z0-9_-]{12,80})$/);
+    if (request.method === "GET" && sessionMatch) {
       await handleSession(request, response, sessionMatch[1]);
       return;
     }
 
-    const downloadMatch = url.pathname.match(
-      /^\/api\/session\/([a-f0-9]{48})\/files\/([^/]+)$/,
-    );
-    if (request.method === "GET" && downloadMatch) {
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
+    if (request.method === "PATCH" && sessionMatch) {
+      const payload = JSON.parse(await readBody(request));
+      const model = typeof payload.modelId === "string" ? payload.modelId.trim() : "";
+      if (model && !MODELS.includes(model)) {
+        send(response, 400, "模型未配置");
         return;
       }
-
-      await handleDownload(request, response, downloadMatch[1], downloadMatch[2]);
+      await updateSession(sessionMatch[1], { title: payload.title, model });
+      sendJson(response, 200, { ok: true });
       return;
     }
 
-    if (request.method === "POST" && url.pathname === "/api/chat") {
-      // 自定义头强制触发预检；不回 CORS 头，跨站请求无法读取响应。
-      if (!originAllowed(request) || !tokenValid(request)) {
-        send(response, 403, "校验失败");
-        return;
-      }
+    if (request.method === "DELETE" && sessionMatch) {
+      const removed = await cleanupSession(sessionMatch[1]);
+      sendJson(response, removed ? 200 : 404, removed ? { ok: true } : { error: "会话不存在" });
+      return;
+    }
 
-      await handleChat(request, response);
+    const downloadMatch = url.pathname.match(/^\/api\/files\/([a-zA-Z0-9_-]+)$/);
+    if (request.method === "GET" && downloadMatch) {
+      await handleDownload(request, response, downloadMatch[1]);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/stats") {
+      sendJson(response, 200, await sessionStats());
       return;
     }
 
@@ -437,10 +397,10 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Scribe UI: http://${HOST}:${PORT}/`);
+  console.log(`Agent API: http://${HOST}:${PORT}`);
   console.log(`模型: ${process.env.ANTHROPIC_MODEL}`);
 
   if (!process.env.SCRIBE_TOKEN) {
-    console.log("本次会话随机 token 已注入页面；如需固定请设置 SCRIBE_TOKEN。");
+    console.log("当前使用随机后端 token；请通过 npm run ui 启动完整界面。");
   }
 });

@@ -1,30 +1,57 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import net from "node:net";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-async function render() {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
+const webRoot = fileURLToPath(new URL("..", import.meta.url));
+const nextBin = fileURLToPath(new URL("../node_modules/next/dist/bin/next", import.meta.url));
 
-  return worker.fetch(
-    new Request("http://localhost/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+async function freePort() {
+  const server = net.createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+  await new Promise((resolve) => server.close(resolve));
+  return port;
 }
 
-test("server-renders the Luma chat shell", async () => {
-  const response = await render();
+async function startNext(t) {
+  const port = await freePort();
+  let output = "";
+  const child = spawn(process.execPath, [nextBin, "start", "-H", "127.0.0.1", "-p", String(port)], {
+    cwd: webRoot,
+    env: {
+      ...process.env,
+      AGENT_SERVICE_URL: "http://127.0.0.1:1",
+      SCRIBE_TOKEN: "render-test-token",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  child.stdout.on("data", (chunk) => { output += chunk; });
+  child.stderr.on("data", (chunk) => { output += chunk; });
+  t.after(() => child.kill());
+
+  const url = `http://127.0.0.1:${port}/`;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (child.exitCode !== null) throw new Error(`Next.js failed to start:\n${output}`);
+    try {
+      const response = await fetch(url, { headers: { accept: "text/html" } });
+      if (response.ok) return response;
+    } catch {
+      // The server is still starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timed out waiting for Next.js:\n${output}`);
+}
+
+test("server-renders the Luma chat shell", async (t) => {
+  const response = await startNext(t);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -38,11 +65,13 @@ test("server-renders the Luma chat shell", async () => {
 });
 
 test("keeps the chat and statistics entry points", async () => {
-  const [home, chat, stats, models] = await Promise.all([
+  const [home, chat, stats, models, chatRoute, statsRoute] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/chat/[sessionId]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/stats/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/models.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/sessions/[id]/chat/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/stats/route.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(home, /<ChatWorkspace \/>/);
@@ -50,4 +79,6 @@ test("keeps the chat and statistics entry points", async () => {
   assert.match(stats, /<StatsWorkspace \/>/);
   assert.match(models, /deepseek-v4-flash/);
   assert.match(models, /qwen3\.8-max/);
+  assert.match(chatRoute, /proxyAgent/);
+  assert.match(statsRoute, /proxyAgent/);
 });

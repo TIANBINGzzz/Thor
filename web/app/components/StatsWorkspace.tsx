@@ -61,7 +61,7 @@ export function StatsWorkspace() {
 
         {error ? <div className="stats-error" role="alert">{error}</div> : !stats ? <div className="stats-loading" aria-label="正在读取统计"><i /><i /><i /></div> : <>
           <section className="usage-scorecard" aria-label="累计用量">
-            <div className="cost-total"><span>累计实际费用</span><strong><small>¥</small>{stats.totals.actualCost.toFixed(4)}</strong><em>{stats.totals.billedResponses} 条回复含实际账单</em></div>
+            <div className="cost-total"><span>累计实际费用</span><strong><small>$</small>{stats.totals.actualCost.toFixed(4)}</strong><em>{stats.totals.billedResponses} 条回复含实际账单</em></div>
             <div className="usage-metric"><span>实际 tokens</span><strong>{number(stats.totals.tokens)}</strong></div>
             <div className="usage-metric"><span>模型回复</span><strong>{number(stats.totals.responses)}</strong></div>
             <div className="usage-metric"><span>历史会话</span><strong>{number(stats.totals.sessions)}</strong></div>
@@ -70,7 +70,7 @@ export function StatsWorkspace() {
           <section className="model-usage">
             <header><div><h2>按模型</h2><p>每个会话使用的具体模型 ID</p></div><span>{stats.models.length} MODELS</span></header>
             <div className="model-usage-head"><span>模型</span><span>会话</span><span>回复</span><span>tokens</span><span>实际费用</span></div>
-            {stats.models.length === 0 ? <p className="stats-empty">开始一段对话后，这里会显示真实用量。</p> : stats.models.map((model) => <div className="model-usage-row" key={model.modelId}><strong>{model.modelId}</strong><span>{number(model.sessions)}</span><span>{number(model.responses)}</span><span>{number(model.tokens)}</span><span>¥{model.actualCost.toFixed(4)}</span></div>)}
+            {stats.models.length === 0 ? <p className="stats-empty">开始一段对话后，这里会显示真实用量。</p> : stats.models.map((model) => <div className="model-usage-row" key={model.modelId}><strong>{model.modelId}</strong><span>{number(model.sessions)}</span><span>{number(model.responses)}</span><span>{number(model.tokens)}</span><span>${model.actualCost.toFixed(4)}</span></div>)}
           </section>
         </>}
       </section>

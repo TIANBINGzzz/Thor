@@ -15,7 +15,6 @@
 
 # next.js
 /.next/
-/.vinext/
 /out/
 
 # misc
@@ -34,11 +33,11 @@ yarn-error.log*
 # vercel
 .vercel
 
-/dist/
-/.wrangler/
 devserver.log
 devserver-error.log
 /outputs/
 /work/
-/.sites-package-*/
-/*.tar.gz
+
+# Next.js development generates editor-agent hints locally.
+/AGENTS.md
+/CLAUDE.md

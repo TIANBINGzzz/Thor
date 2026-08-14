@@ -18,15 +18,20 @@ async function persistSession(session) {
     join(session.dir, SESSION_META),
     JSON.stringify({
       id: session.id,
+      title: session.title,
+      ownerId: session.ownerId,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
       bytes: session.bytes,
       model: session.model,
       agentSessionId: session.agentSessionId,
-      files: session.files.map(({ name, originalName, bytes, mimeType, source }) => ({
+      files: session.files.map(({ name, originalName, bytes, mimeType, source, createdAt }) => ({
         name,
         originalName,
         bytes,
         mimeType,
         source,
+        createdAt,
       })),
       history: session.history,
     }),
@@ -39,7 +44,8 @@ export async function loadSession(id) {
   if (existing) return existing;
 
   const dir = join(SESSION_ROOT, id);
-  const raw = await readFile(join(dir, SESSION_META), "utf8").catch(() => null);
+  const metaPath = join(dir, SESSION_META);
+  const raw = await readFile(metaPath, "utf8").catch(() => null);
   if (!raw) {
     throw new Error("会话不存在或已过期");
   }
@@ -59,9 +65,19 @@ export async function loadSession(id) {
     throw new Error("会话数据损坏");
   }
 
+  const meta = await stat(metaPath).catch(() => null);
+  const createdAt = Number(saved.createdAt) || meta?.birthtimeMs || meta?.mtimeMs || Date.now();
+  const updatedAt = Number(saved.updatedAt) || meta?.mtimeMs || createdAt;
+  const firstPrompt = saved.history.find((turn) => typeof turn?.prompt === "string")?.prompt || "";
   const session = {
     id,
     dir,
+    title: typeof saved.title === "string" && saved.title.trim()
+      ? saved.title.trim().slice(0, 80)
+      : firstPrompt.trim().slice(0, 26) || "新对话",
+    ownerId: typeof saved.ownerId === "string" ? saved.ownerId : null,
+    createdAt,
+    updatedAt,
     bytes: Number(saved.bytes) || 0,
     model: typeof saved.model === "string" ? saved.model : null,
     agentSessionId:
@@ -69,6 +85,7 @@ export async function loadSession(id) {
     files: saved.files.map((file) => ({
       ...file,
       path: join(dir, file.name),
+      createdAt: Number(file.createdAt) || createdAt,
     })),
     history: saved.history,
   };
@@ -85,21 +102,27 @@ function safeDisplayName(value) {
   return cleaned || "未命名文件";
 }
 
-export async function createSession() {
+export async function createSession({ id: requestedId, model, ownerId } = {}) {
   await mkdir(SESSION_ROOT, { recursive: true });
-  let id;
-  let dir;
-  do {
-    id = randomBytes(24).toString("hex");
-    dir = join(SESSION_ROOT, id);
-  } while (sessions.has(id));
-
-  await mkdir(dir, { recursive: true });
+  const id = requestedId || randomBytes(24).toString("hex");
+  if (!/^[a-zA-Z0-9_-]{12,80}$/.test(id)) {
+    throw new Error("会话 ID 格式无效");
+  }
+  if (sessions.has(id)) {
+    throw new Error("会话已存在");
+  }
+  const dir = join(SESSION_ROOT, id);
+  await mkdir(dir, { recursive: false });
+  const now = Date.now();
   const session = {
     id,
     dir,
+    title: "新对话",
+    ownerId: typeof ownerId === "string" ? ownerId : null,
+    createdAt: now,
+    updatedAt: now,
     bytes: 0,
-    model: process.env.ANTHROPIC_MODEL || null,
+    model: model || process.env.ANTHROPIC_MODEL || null,
     agentSessionId: null,
     files: [],
     history: [],
@@ -124,10 +147,16 @@ export async function appendSessionTurn(id, { prompt, events, agentSessionId, mo
   if (typeof agentSessionId === "string" && agentSessionId) {
     session.agentSessionId = agentSessionId;
   }
+  const normalizedPrompt = String(prompt || "");
   session.history.push({
-    prompt: String(prompt || ""),
+    prompt: normalizedPrompt,
     events: Array.isArray(events) ? events.slice(-500) : [],
+    createdAt: Date.now(),
   });
+  if (session.title === "新对话" && normalizedPrompt.trim()) {
+    session.title = normalizedPrompt.trim().slice(0, 26);
+  }
+  session.updatedAt = Date.now();
   if (session.history.length > 50) session.history = session.history.slice(-50);
   await persistSession(session);
 }
@@ -135,7 +164,21 @@ export async function appendSessionTurn(id, { prompt, events, agentSessionId, mo
 export async function updateSessionModel(id, model) {
   const session = await loadSession(id);
   session.model = model;
+  session.updatedAt = Date.now();
   await persistSession(session);
+}
+
+export async function updateSession(id, { title, model }) {
+  const session = await loadSession(id);
+  if (typeof title === "string" && title.trim()) {
+    session.title = title.trim().slice(0, 80);
+  }
+  if (typeof model === "string" && model.trim()) {
+    session.model = model.trim();
+  }
+  session.updatedAt = Date.now();
+  await persistSession(session);
+  return publicSession(session);
 }
 
 const MIME_BY_EXTENSION = new Map([
@@ -166,14 +209,20 @@ function mimeForName(name) {
 function publicSession(session, { includeHistory = false } = {}) {
   const result = {
     appSessionId: session.id,
+    id: session.id,
+    title: session.title,
+    modelId: session.model,
     model: session.model,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
     agentSessionId: session.agentSessionId,
-    files: session.files.map(({ name, originalName, bytes, mimeType, source }) => ({
+    files: session.files.map(({ name, originalName, bytes, mimeType, source, createdAt }) => ({
       name,
       originalName,
       bytes,
       mimeType,
       source,
+      createdAt,
     })),
   };
   if (includeHistory) result.history = session.history;
@@ -203,8 +252,10 @@ export async function listSessionFiles(id) {
 
     const path = join(session.dir, entry.name);
     let bytes = 0;
+    let fileStat;
     try {
-      bytes = (await stat(path)).size;
+      fileStat = await stat(path);
+      bytes = fileStat.size;
     } catch {
       continue;
     }
@@ -216,17 +267,19 @@ export async function listSessionFiles(id) {
       bytes,
       mimeType: mimeForName(entry.name),
       source: "generated",
+      createdAt: fileStat.mtimeMs,
     });
   }
 
   return {
     appSessionId: session.id,
-    files: merged.map(({ name, originalName, bytes, mimeType, source }) => ({
+    files: merged.map(({ name, originalName, bytes, mimeType, source, createdAt }) => ({
       name,
       originalName,
       bytes,
       mimeType,
       source: source || "upload",
+      createdAt: Number(createdAt) || session.createdAt,
     })),
   };
 }
@@ -359,6 +412,7 @@ export async function parseUpload(request, id) {
               bytes: buffer.length,
               mimeType: info.mimeType || mimeForName(originalName),
               source: "upload",
+              createdAt: Date.now(),
             });
           } catch (error) {
             parsingError = error;
@@ -388,15 +442,139 @@ export async function parseUpload(request, id) {
 
   session.files.push(...created);
   session.bytes += created.reduce((sum, file) => sum + file.bytes, 0);
+  session.updatedAt = Date.now();
   await persistSession(session);
   return listSessionFiles(id);
 }
 
 export async function cleanupSession(id) {
-  const session = sessions.get(id);
-  if (!session) return;
+  const session = sessions.get(id) || await loadSession(id).catch(() => null);
+  if (!session) return false;
   sessions.delete(id);
   await rm(session.dir, { recursive: true, force: true });
+  return true;
+}
+
+function messageEvents(events) {
+  return events.filter((event) => [
+    "init",
+    "thinking",
+    "subagent",
+    "tool_use",
+    "tool_progress",
+    "tool_result",
+    "activity",
+    "error",
+  ].includes(event?.type));
+}
+
+function messagesFor(session) {
+  return session.history.flatMap((turn, index) => {
+    const events = Array.isArray(turn.events) ? turn.events : [];
+    const result = [...events].reverse().find((event) => event?.type === "result");
+    const content = events
+      .filter((event) => event?.type === "text" && (!event.scope || event.scope === "main"))
+      .map((event) => event.text || "")
+      .join("");
+    const createdAt = Number(turn.createdAt) || session.createdAt + index * 2;
+    return [
+      {
+        id: `${session.id}-${index}-user`,
+        role: "user",
+        content: String(turn.prompt || ""),
+        createdAt,
+      },
+      {
+        id: `${session.id}-${index}-assistant`,
+        role: "assistant",
+        content,
+        events: messageEvents(events),
+        tokens: result ? Number(result.inputTokens || 0) + Number(result.outputTokens || 0) : null,
+        cost: result && Number.isFinite(Number(result.costUsd)) ? Number(result.costUsd) : null,
+        createdAt: createdAt + 1,
+      },
+    ];
+  });
+}
+
+export async function listSessions({ limit = 80 } = {}) {
+  await mkdir(SESSION_ROOT, { recursive: true });
+  const entries = await readdir(SESSION_ROOT, { withFileTypes: true });
+  const loaded = await Promise.all(entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => loadSession(entry.name).catch(() => null)));
+  return loaded
+    .filter(Boolean)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, Math.max(1, Number(limit) || 80))
+    .map((session) => publicSession(session));
+}
+
+function encodeFileId(sessionId, name) {
+  return Buffer.from(JSON.stringify([sessionId, name]), "utf8").toString("base64url");
+}
+
+export function decodeFileId(id) {
+  try {
+    const [sessionId, name] = JSON.parse(Buffer.from(id, "base64url").toString("utf8"));
+    if (typeof sessionId !== "string" || typeof name !== "string") return null;
+    return { sessionId, name };
+  } catch {
+    return null;
+  }
+}
+
+export async function webSession(id) {
+  const session = await loadSession(id);
+  const { files } = await listSessionFiles(id);
+  return {
+    session: publicSession(session),
+    messages: messagesFor(session),
+    files: files.map((file) => ({
+      id: encodeFileId(id, file.name),
+      sessionId: id,
+      name: file.originalName,
+      contentType: file.mimeType,
+      size: file.bytes,
+      createdAt: file.createdAt,
+      source: file.source,
+      url: `/api/files/${encodeFileId(id, file.name)}`,
+    })),
+  };
+}
+
+export async function sessionStats() {
+  const all = await listSessions({ limit: Number.MAX_SAFE_INTEGER });
+  const models = new Map();
+  let responses = 0;
+  let tokens = 0;
+  let actualCost = 0;
+  let billedResponses = 0;
+
+  for (const item of all) {
+    const session = await loadSession(item.id);
+    const messages = messagesFor(session).filter((message) => message.role === "assistant");
+    const modelId = session.model || "unknown";
+    const current = models.get(modelId) || { modelId, sessions: 0, responses: 0, tokens: 0, actualCost: 0 };
+    current.sessions += 1;
+    for (const message of messages) {
+      responses += 1;
+      current.responses += 1;
+      tokens += Number(message.tokens || 0);
+      current.tokens += Number(message.tokens || 0);
+      if (message.cost != null) {
+        actualCost += Number(message.cost);
+        current.actualCost += Number(message.cost);
+        billedResponses += 1;
+      }
+    }
+    models.set(modelId, current);
+  }
+
+  return {
+    totals: { sessions: all.length, responses, tokens, actualCost, billedResponses },
+    models: [...models.values()].sort((a, b) => b.actualCost - a.actualCost || b.responses - a.responses),
+  };
 }
 
 export async function sessionRootStats() {
