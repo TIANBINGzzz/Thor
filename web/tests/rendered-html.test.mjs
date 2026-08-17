@@ -50,17 +50,17 @@ async function startNext(t) {
   throw new Error(`Timed out waiting for Next.js:\n${output}`);
 }
 
-test("server-renders the Luma chat shell", async (t) => {
+test("server-renders the Thor chat shell", async (t) => {
   const response = await startNext(t);
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<html lang="zh-CN">/);
-  assert.match(html, /<title>Luma — 清晰地对话<\/title>/);
+  assert.match(html, /<title>Thor AI — AI 对话助手<\/title>/);
   assert.match(html, /历史会话/);
   assert.match(html, /deepseek-v4-flash/);
-  assert.match(html, /文件最大 10 MB/);
+  assert.doesNotMatch(html, /文件最大 10 MB/);
   assert.doesNotMatch(html, /codex-preview|Building your site|Starter Project/i);
 });
 

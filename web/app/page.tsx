@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { ChatWorkspace } from "./components/ChatWorkspace";
+import { BRAND } from "./lib/brand";
 
 export const metadata: Metadata = {
-  title: "Luma — 清晰地对话",
-  description: "一个专注、透明的 AI 对话界面。",
+  title: `${BRAND.displayName} — ${BRAND.tagline}`,
+  description: BRAND.description,
 };
 
 export default function Home() {

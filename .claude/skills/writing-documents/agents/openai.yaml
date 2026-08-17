@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Documents"
+  short_description: "Create, edit, and validate long-form documents and DOCX files"
+  default_prompt: "Use $writing-documents to complete a long-form document or DOCX writing task."

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, StatsIcon } from "./icons";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Stats = {
-  totals: { sessions: number; responses: number; tokens: number; actualCost: number; billedResponses: number };
+  totals: { sessions: number; responses: number; tokens: number; actualCost: number };
   models: Array<{ modelId: string; sessions: number; responses: number; tokens: number; actualCost: number }>;
 };
 
@@ -52,16 +53,11 @@ export function StatsWorkspace() {
         <button onClick={() => router.push("/")} aria-label="返回对话"><ArrowLeftIcon /></button>
         <div><span className="model-orb"><StatsIcon /></span><span>用量统计</span></div>
       </header>
+      <ThemeToggle />
       <section className="stats-content">
-        <div className="stats-intro">
-          <p>ACTUAL USAGE</p>
-          <h1>只记录已经产生的费用。</h1>
-          <span>本页不包含预估。费用与 token 仅在服务端返回实际用量后计入。</span>
-        </div>
-
         {error ? <div className="stats-error" role="alert">{error}</div> : !stats ? <div className="stats-loading" aria-label="正在读取统计"><i /><i /><i /></div> : <>
           <section className="usage-scorecard" aria-label="累计用量">
-            <div className="cost-total"><span>累计实际费用</span><strong><small>$</small>{stats.totals.actualCost.toFixed(4)}</strong><em>{stats.totals.billedResponses} 条回复含实际账单</em></div>
+            <div className="cost-total"><span>累计实际费用</span><strong><small>$</small>{stats.totals.actualCost.toFixed(4)}</strong></div>
             <div className="usage-metric"><span>实际 tokens</span><strong>{number(stats.totals.tokens)}</strong></div>
             <div className="usage-metric"><span>模型回复</span><strong>{number(stats.totals.responses)}</strong></div>
             <div className="usage-metric"><span>历史会话</span><strong>{number(stats.totals.sessions)}</strong></div>

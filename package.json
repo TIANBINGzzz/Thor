@@ -6,8 +6,6 @@
   "scripts": {
     "start": "node app/index.mjs",
     "agent": "node app/index.mjs",
-    "agent:ts": "tsx src/agent.ts",
-    "agent:check": "tsx src/agent.ts --check",
     "ui": "npm run web:build && node app/ui.mjs",
     "ui:dev": "node app/ui.mjs --dev",
     "ui:backend": "node app/server.mjs",
@@ -17,9 +15,8 @@
     "web:test": "npm --prefix web test",
     "db:demo": "node app/db-demo.mjs",
     "check:app": "node --check app/index.mjs && node --check app/database.mjs && node --check app/db-demo.mjs && node --check app/agent-options.mjs && node --check app/sse-events.mjs && node --check app/session-files.mjs && node --check app/references.mjs && node --check app/server.mjs && node --check app/ui.mjs",
-    "typecheck": "tsc --noEmit",
-    "check": "npm run check:app && npm run typecheck",
-    "test": "npm run check && node --test app/*.test.mjs"
+    "test": "npm run check:app && node --test app/*.test.mjs",
+    "create-skill": "node scripts/create-skill.mjs"
   },
   "keywords": [
     "claude-agent-sdk",
@@ -37,11 +34,6 @@
     "busboy": "1.6.0",
     "dotenv": "^17.4.2",
     "marked": "18.0.9"
-  },
-  "devDependencies": {
-    "@types/node": "^26.2.0",
-    "tsx": "^4.23.12",
-    "typescript": "^5.9.3"
   },
   "overrides": {
     "@modelcontextprotocol/node": {

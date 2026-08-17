@@ -141,24 +141,64 @@ const loadPackages = cached(async () => {
   return names.map((name) => ({ value: name, label: name }));
 });
 
+const loadSkills = cached(async () => {
+  const skillsDir = join(PROJECT_ROOT, ".claude", "skills");
+  let entries;
+  try {
+    entries = await readdir(skillsDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const skills = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+
+    const skillFile = join(skillsDir, entry.name, "SKILL.md");
+    try {
+      const content = await readFile(skillFile, "utf8");
+      const match = content.match(/^---\s*\nname:\s*(.+?)\s*\ndescription:\s*(.+?)\s*\n---/s);
+      if (match) {
+        skills.push({
+          value: entry.name,
+          label: match[1].trim(),
+          description: match[2].trim(),
+        });
+      } else {
+        skills.push({
+          value: entry.name,
+          label: entry.name,
+          description: "",
+        });
+      }
+    } catch {
+      // 没有 SKILL.md 或解析失败，跳过
+      continue;
+    }
+  }
+
+  skills.sort((a, b) => a.label.localeCompare(b.label));
+  return skills;
+});
+
 /**
  * 数据源注册表。search 只返回一页，resolve 负责把引用还原成模型可读的描述——
  * 服务端一律重新解析，绝不相信前端传来的标签。
  */
 const SOURCES = {
-  file: {
-    label: "项目文件",
-    hint: "按路径搜索项目内文件",
-    list: loadProjectFiles,
+  skill: {
+    label: "技能",
+    hint: "按名称搜索可用的 Skill",
+    list: loadSkills,
     async resolve(value) {
-      const files = await loadProjectFiles();
-      if (!files.some((item) => item.value === value)) return null;
+      const skills = await loadSkills();
+      const skill = skills.find((item) => item.value === value);
+      if (!skill) return null;
 
-      const full = join(PROJECT_ROOT, value);
-      const info = await stat(full).catch(() => null);
-      if (!info?.isFile()) return null;
-
-      return { label: value, detail: `${info.size} 字节` };
+      return {
+        label: skill.label,
+        detail: skill.description || "无描述",
+      };
     },
   },
   pkg: {
@@ -266,6 +306,6 @@ export async function referencePromptContext(prompt) {
   return [
     "用户在提问中使用了引用标记，对应的真实对象如下（由服务端解析，可信）：",
     ...lines,
-    "引用 @file: 时按该路径读取文件本身，不要凭标记猜测内容。",
+    "引用 @skill: 时遵循该 Skill 的工作流程和规则。",
   ].join("\n");
 }
