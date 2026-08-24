@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-
 export interface ReferenceChip {
-  type: "skill" | "pkg";
+  type: "skill" | "pkg" | "file";
   value: string;
   label: string;
   start: number;
@@ -10,14 +8,20 @@ export interface ReferenceChip {
 
 export function parseReferences(text: string): ReferenceChip[] {
   const chips: ReferenceChip[] = [];
-  const pattern = /@(skill|pkg):([^\s@，。、；：！？""''（）《》【】…—～]+)/g;
+  const pattern = /@([a-z][a-z0-9_]*):([^\s@，。、；：！？""''（）《》【】…—～]+)/g;
 
   let match;
   while ((match = pattern.exec(text)) !== null) {
+    let value = match[2];
+    try {
+      value = decodeURIComponent(value);
+    } catch {
+      // Keep a partially typed reference visible until it becomes valid.
+    }
     chips.push({
-      type: match[1] as "skill" | "pkg",
-      value: match[2],
-      label: match[2],
+      type: match[1] as ReferenceChip["type"],
+      value,
+      label: value,
       start: match.index,
       end: match.index + match[0].length,
     });
@@ -45,7 +49,7 @@ export function ReferenceChipDisplay({ text, onRemoveChip }: ReferenceChipDispla
           title={`${chip.type}: ${chip.value}`}
         >
           <span className="chip-icon">
-            {chip.type === "skill" ? "⚡" : "📦"}
+            {chip.type === "skill" ? "⚡" : chip.type === "file" ? "📄" : "📦"}
           </span>
           <span className="chip-label">{chip.label}</span>
           {onRemoveChip && (

@@ -19,6 +19,8 @@ export const MenuIcon = (props: IconProps) => <Icon {...props}><line x1="4" y1="
 export const SunIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2M12 19.5v2M4.58 4.58l1.42 1.42M18 18l1.42 1.42M2.5 12h2M19.5 12h2M4.58 19.42 6 18M18 6l1.42-1.42" /></Icon>;
 export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M20 15.2A7.8 7.8 0 0 1 8.8 4 7.8 7.8 0 1 0 20 15.2Z" /></Icon>;
 export const DownloadIcon = (props: IconProps) => <Icon {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>;
+export const PaperclipIcon = (props: IconProps) => <Icon {...props}><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5" /></Icon>;
+export const CloseIcon = (props: IconProps) => <Icon {...props}><path d="m7 7 10 10M17 7 7 17" /></Icon>;
 export const ArrowLeftIcon = (props: IconProps) => <Icon {...props}><path d="m15 18-6-6 6-6" /><path d="M9 12h10" /></Icon>;
 export const MoreHorizontalIcon = (props: IconProps) => <Icon {...props}><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></Icon>;
 export const PencilIcon = (props: IconProps) => <Icon {...props}><path d="m4 16.5-.8 3.3 3.3-.8L18 7.5a2.1 2.1 0 0 0-3-3L4 16.5Z" /><path d="m13.5 6.5 3 3" /></Icon>;

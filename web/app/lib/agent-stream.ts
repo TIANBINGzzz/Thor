@@ -22,6 +22,15 @@ export type AgentEvent = {
   costUsd?: number;
 };
 
+/** 解析一个 SSE data 帧；兼容 LF/CRLF，并忽略注释和空帧。 */
+export function parseSseFrame(frame: string): AgentEvent | null {
+  const line = frame
+    .split(/\r?\n/)
+    .find((part) => part.startsWith("data: "));
+  if (!line) return null;
+  return JSON.parse(line.slice(6)) as AgentEvent;
+}
+
 export async function readAgentStream(
   response: Response,
   onEvent: (event: AgentEvent) => void,
@@ -34,12 +43,16 @@ export async function readAgentStream(
   for (;;) {
     const { value, done } = await reader.read();
     buffer += decoder.decode(value, { stream: !done });
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() || "";
+    const frames = buffer.split(/\r?\n\r?\n/);
+    buffer = done ? "" : frames.pop() || "";
     for (const frame of frames) {
-      const line = frame.split("\n").find((part) => part.startsWith("data: "));
-      if (line) onEvent(JSON.parse(line.slice(6)) as AgentEvent);
+      const event = parseSseFrame(frame);
+      if (event) onEvent(event);
     }
     if (done) break;
   }
+
+  // 流结束时服务端可能没有再补一个空行，不能丢掉最后的 data 帧。
+  const finalEvent = parseSseFrame(buffer);
+  if (finalEvent) onEvent(finalEvent);
 }

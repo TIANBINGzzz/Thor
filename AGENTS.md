@@ -37,7 +37,30 @@ const data = await agent("统计用户数", { agentType: "data-analyst" });
 const report = await agent("撰写技术报告", { agentType: "writer" });
 ```
 
-或通过 Command 触发（如 `/report` 会自动编排这些代理）。
+
+## 文档管理规范
+
+**原则**：尽量不写冗长文档，只做简单记录。
+
+### ADR（架构决策记录）
+
+所有架构决策记录使用 ADR 格式，放在 `docs/ADR/` 目录：
+
+- **格式**：参考 `docs/ADR/template.md`
+- **长度**：20-30 行，不超过 50 行
+- **内容**：背景、决策、后果（好处/代价/风险）
+- **命名**：`NNN-kebab-case-title.md`
+
+❌ **禁止创建**：
+- 超过 100 行的详细教程文档
+- 实现细节和完整代码示例文档
+- 使用指南、troubleshooting 长文档
+- 在 `docs/` 根目录放置冗长 MD 文件
+
+✅ **正确做法**：
+- 只有重要架构决策才写 ADR
+- 代码即文档，依赖 README 和代码注释
+- 临时笔记用 scratch/ 目录，不提交 Git
 
 ## 架构约束
 

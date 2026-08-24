@@ -6,11 +6,12 @@ import { createTranslator } from "./sse-events.mjs";
 import { createReadStream } from "node:fs";
 import {
   createSession,
-  appendSessionTurn,
+  upsertSessionTurn,
   cleanupSession,
   decodeFileId,
   getSession,
   listSessions,
+  listSessionFiles,
   parseUpload,
   resolveSessionFile,
   sessionStats,
@@ -139,6 +140,24 @@ async function handleChat(request, response, appSessionId) {
   }
 
   const resume = savedSession.agentSessionId || undefined;
+  const turnStartedAt = Date.now();
+  const filesBefore = new Map(
+    (await listSessionFiles(appSessionId)).files.map((file) => [
+      file.name,
+      `${file.bytes}:${file.createdAt}`,
+    ]),
+  );
+  const associatedFiles = new Set(
+    savedSession.history.flatMap((turn) => [
+      ...(Array.isArray(turn?.files) ? turn.files : []),
+      ...(Array.isArray(turn?.inputFiles) ? turn.inputFiles : []),
+    ]),
+  );
+  const lastTurnCreatedAt = Number(savedSession.history.at(-1)?.createdAt) || 0;
+  const inputFiles = savedSession.files
+    .filter((file) => file.source !== "generated" && !associatedFiles.has(file.name))
+    .filter((file) => savedSession.history.length === 0 || file.createdAt >= lastTurnCreatedAt)
+    .map((file) => file.name);
 
   response.writeHead(200, {
     "content-type": "text/event-stream; charset=utf-8",
@@ -146,37 +165,97 @@ async function handleChat(request, response, appSessionId) {
     connection: "keep-alive",
     "x-accel-buffering": "no",
   });
+  // 让首个 SSE 帧立即到达代理和浏览器，不等待内部缓冲区填满。
+  response.flushHeaders?.();
 
-  // 客户端断开（关闭页面或点停止）时中止 query，避免继续烧 token。
+  // IncomingMessage 的 close 在请求体正常读完后也可能触发，不能用它
+  // 判断客户端是否断开；aborted 才表示请求连接被异常中止。
   const abortController = new AbortController();
-  request.on("close", () => abortController.abort());
-
-  // 引用一律在服务端重新解析：前端传来的标签不可信，模型只该看到核对过的对象。
-  const referencesContext = await referencePromptContext(prompt);
-
-  const options = buildAgentOptions({
-    maxTurns: MAX_TURNS,
-    resume,
-    model,
-    includePartialMessages: true,
-    abortController,
-    additionalDirectories: [uploadDirectory],
-  });
+  const abortIfDisconnected = () => {
+    if (!response.writableEnded && !response.writableFinished) {
+      abortController.abort();
+    }
+  };
+  request.once("aborted", abortIfDisconnected);
+  response.once("close", abortIfDisconnected);
 
   const translate = createTranslator();
   const events = [];
   let agentSessionId = savedSession.agentSessionId;
+  const turnId = randomBytes(12).toString("hex");
+  let lastPersistedEventCount = 0;
+  let lastPersistedAt = 0;
+  let persistTail = Promise.resolve();
+  let persistenceDisabled = false;
+  let turnFiles = [];
+
+  const queuePersist = (force = false) => {
+    if (persistenceDisabled) return;
+    const now = Date.now();
+    if (
+      !force
+      && events.length !== 1
+      && events.length - lastPersistedEventCount < 24
+      && now - lastPersistedAt < 750
+    ) {
+      return;
+    }
+    lastPersistedEventCount = events.length;
+    lastPersistedAt = now;
+    const snapshot = events.slice(-500);
+    persistTail = persistTail
+      .then(() => upsertSessionTurn(appSessionId, {
+        turnId,
+        prompt,
+        events: snapshot,
+        agentSessionId,
+        model,
+        files: turnFiles,
+        inputFiles,
+      }))
+      .catch((error) => {
+        // 后续快照仍应继续写入，不能因为一次磁盘错误让整条流停止。
+        if (error instanceof Error && error.message === "会话不存在或已过期") {
+          persistenceDisabled = true;
+          return;
+        }
+        console.error("保存会话流事件失败", error);
+      });
+  };
+
   const emit = (event) => {
     events.push(event);
-    if (event.type === "result" && event.sessionId) {
+    if ((event.type === "init" || event.type === "result") && event.sessionId) {
       agentSessionId = event.sessionId;
     }
-    if (!response.writableEnded) {
+    queuePersist();
+    if (!response.writableEnded && !response.destroyed) {
       response.write(`data: ${JSON.stringify(event)}\n\n`);
     }
   };
 
   try {
+    // 先落盘用户消息；这样处理中途刷新也至少能恢复这条对话。
+    await upsertSessionTurn(appSessionId, {
+      turnId,
+      prompt,
+      events,
+      agentSessionId,
+      model,
+      inputFiles,
+    });
+
+    // 引用一律在服务端重新解析：前端传来的标签不可信，模型只该看到核对过的对象。
+    const referencesContext = await referencePromptContext(prompt);
+    const options = buildAgentOptions({
+      maxTurns: MAX_TURNS,
+      resume,
+      model,
+      includePartialMessages: true,
+      abortController,
+      additionalDirectories: [uploadDirectory],
+    });
+
     const fullPrompt = [
       filesContext,
       referencesContext,
@@ -197,13 +276,26 @@ async function handleChat(request, response, appSessionId) {
       });
     }
   } finally {
-    await appendSessionTurn(appSessionId, {
-      prompt,
-      events,
-      agentSessionId,
-      model,
-    });
-    if (!response.writableEnded) {
+    try {
+      const filesAfter = await listSessionFiles(appSessionId);
+      turnFiles = filesAfter.files
+        .filter((file) => {
+          if (file.source !== "generated") return false;
+          const before = filesBefore.get(file.name);
+          const current = `${file.bytes}:${file.createdAt}`;
+          return before === undefined
+            || before !== current
+            || file.createdAt >= turnStartedAt;
+        })
+        .map((file) => file.name);
+    } catch (error) {
+      if (!(error instanceof Error && error.message === "会话不存在或已过期")) {
+        console.error("读取会话生成文件失败", error);
+      }
+    }
+    queuePersist(true);
+    await persistTail;
+    if (!response.writableEnded && !response.destroyed) {
       response.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
       response.end();
     }
@@ -234,9 +326,17 @@ async function handleCreateSession(request, response) {
 
 async function handleUpload(request, response, appSessionId) {
   try {
-    await parseUpload(request, appSessionId);
+    const uploaded = await parseUpload(request, appSessionId);
     const data = await webSession(appSessionId);
-    const file = [...data.files].sort((a, b) => b.createdAt - a.createdAt)[0];
+    const uploadedNames = new Set(Array.isArray(uploaded.uploaded) ? uploaded.uploaded : []);
+    const file = data.files.find((item) => {
+      const decoded = decodeFileId(item.id);
+      return decoded && uploadedNames.has(decoded.name);
+    });
+    if (!file) {
+      send(response, 500, "上传完成但文件记录不存在");
+      return;
+    }
     sendJson(response, 201, { file });
   } catch (error) {
     send(response, 400, error instanceof Error ? error.message : String(error));

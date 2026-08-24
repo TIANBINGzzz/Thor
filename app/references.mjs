@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from "node:fs/promises";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -186,6 +186,28 @@ const loadSkills = cached(async () => {
  * 服务端一律重新解析，绝不相信前端传来的标签。
  */
 const SOURCES = {
+  file: {
+    label: "项目文件",
+    hint: "按路径搜索项目中的文件",
+    list: loadProjectFiles,
+    async resolve(value) {
+      const files = await loadProjectFiles();
+      const file = files.find((item) => item.value === value);
+      if (!file) return null;
+
+      const path = resolve(PROJECT_ROOT, value);
+      const root = resolve(PROJECT_ROOT);
+      if (path !== root && !path.startsWith(`${root}${sep}`)) return null;
+
+      const info = await stat(path).catch(() => null);
+      if (!info?.isFile()) return null;
+
+      return {
+        label: file.label,
+        detail: `路径：${path}；${info.size} 字节`,
+      };
+    },
+  },
   skill: {
     label: "技能",
     hint: "按名称搜索可用的 Skill",
@@ -229,11 +251,13 @@ const SOURCES = {
 };
 
 export function listSources() {
-  return Object.entries(SOURCES).map(([type, source]) => ({
-    type,
-    label: source.label,
-    hint: source.hint,
-  }));
+  return ["skill", "pkg", "file"]
+    .filter((type) => Object.hasOwn(SOURCES, type))
+    .map((type) => ({
+      type,
+      label: SOURCES[type].label,
+      hint: SOURCES[type].hint,
+    }));
 }
 
 export function isSource(type) {

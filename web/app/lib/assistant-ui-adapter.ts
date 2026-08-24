@@ -5,7 +5,7 @@ import type {
   ThreadAssistantMessagePart,
   ThreadMessageLike,
 } from "@assistant-ui/react";
-import type { AgentEvent } from "./agent-stream";
+import { parseSseFrame, type AgentEvent } from "./agent-stream";
 
 type AdapterConfig = {
   sessionId: string | null;
@@ -21,7 +21,19 @@ export type PersistedMessage = {
   role: "user" | "assistant";
   content: string;
   events?: AgentEvent[];
+  files?: PersistedFile[];
   createdAt?: number;
+};
+
+export type PersistedFile = {
+  id: string;
+  sessionId: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: number;
+  source?: string;
+  url: string;
 };
 
 type RuntimeEventResult = {
@@ -34,6 +46,8 @@ type RuntimeEventResult = {
 type RuntimeParts = {
   parts: ThreadAssistantMessagePart[];
   toolIndexes: Map<string, number>;
+  toolArgs: Map<string, string>;
+  toolProgress: Map<string, number>;
   lastThinkingScope: string | null;
   sequence: number;
 };
@@ -77,6 +91,7 @@ function applyEvent(state: RuntimeParts, event: AgentEvent) {
     state.sequence += 1;
     const toolCallId = event.id || `tool-${state.sequence}`;
     state.toolIndexes.set(toolCallId, state.parts.length);
+    state.toolArgs.set(toolCallId, event.input || "");
     state.parts.push({
       type: "tool-call",
       toolCallId,
@@ -95,6 +110,7 @@ function applyEvent(state: RuntimeParts, event: AgentEvent) {
       if (part?.type === "tool-call") {
         state.parts[index] = {
           ...part,
+          argsText: state.toolArgs.get(event.id || "") || part.argsText,
           result: event.text || (event.isError ? "工具执行失败" : "工具执行完成"),
           isError: event.isError,
         };
@@ -111,8 +127,32 @@ function applyEvent(state: RuntimeParts, event: AgentEvent) {
         isError: event.isError,
       });
     }
+    if (event.id) {
+      state.toolProgress.delete(event.id);
+      state.toolArgs.delete(event.id);
+    }
     state.lastThinkingScope = null;
     return true;
+  }
+
+  if (event.type === "tool_progress") {
+    const toolId = event.id;
+    if (!toolId) return false;
+    const index = state.toolIndexes.get(toolId);
+    if (index !== undefined) {
+      const part = state.parts[index];
+      const seconds = Number(event.seconds || 0);
+      if (part?.type === "tool-call" && state.toolProgress.get(toolId) !== seconds) {
+        const baseArgs = state.toolArgs.get(toolId) || part.argsText || "";
+        state.toolProgress.set(toolId, seconds);
+        state.parts[index] = {
+          ...part,
+          argsText: `${baseArgs}${baseArgs ? "\n\n" : ""}运行中 · ${seconds} 秒`,
+        };
+        return true;
+      }
+    }
+    return false;
   }
 
   if (event.type === "subagent") {
@@ -157,6 +197,8 @@ function createRuntimeParts(events: AgentEvent[] = []) {
   const state: RuntimeParts = {
     parts: [],
     toolIndexes: new Map(),
+    toolArgs: new Map(),
+    toolProgress: new Map(),
     lastThinkingScope: null,
     sequence: 0,
   };
@@ -243,32 +285,41 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
         let textContent = "";
         let buffer = "";
 
+        const processFrame = (frame: string) => {
+          const event = parseSseFrame(frame);
+          if (!event) return;
+
+          let changed = false;
+          if (event.type === "text" && (!event.scope || event.scope === "main")) {
+            textContent += event.text || "";
+            changed = true;
+          } else {
+            changed = applyEvent(runtime, event);
+          }
+
+          if (changed) {
+            pendingResults.push({ content: contentSnapshot(runtime.parts, textContent) });
+          }
+        };
+        const pendingResults: ChatModelRunResult[] = [];
+
         try {
           for (;;) {
             const { done, value } = await reader.read();
             buffer += decoder.decode(value, { stream: !done });
-            const frames = buffer.split("\n\n");
-            buffer = frames.pop() || "";
+            const frames = buffer.split(/\r?\n\r?\n/);
+            buffer = done ? "" : frames.pop() || "";
 
             for (const frame of frames) {
-              const line = frame.split("\n").find((part) => part.startsWith("data: "));
-              if (!line) continue;
-              const event = JSON.parse(line.slice(6)) as AgentEvent;
-
-              let changed = false;
-              if (event.type === "text" && (!event.scope || event.scope === "main")) {
-                textContent += event.text || "";
-                changed = true;
-              } else {
-                changed = applyEvent(runtime, event);
-              }
-
-              if (changed) {
-                yield { content: contentSnapshot(runtime.parts, textContent) };
-              }
+              processFrame(frame);
+              while (pendingResults.length) yield pendingResults.shift()!;
             }
             if (done) break;
           }
+
+          // 服务端正常结束时最后一帧不一定以空行结尾。
+          processFrame(buffer);
+          while (pendingResults.length) yield pendingResults.shift()!;
         } finally {
           reader.releaseLock();
         }

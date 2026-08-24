@@ -19,9 +19,10 @@ import {
   isRuntimeEventResult,
   isRuntimeToolName,
   persistedMessagesToThreadMessages,
+  type PersistedFile,
   type PersistedMessage,
 } from "../lib/assistant-ui-adapter";
-import { CheckIcon, ChevronIcon, DownloadIcon, MenuIcon, MoreHorizontalIcon, MultimodalIcon, PencilIcon, PlusIcon, SendIcon, SparkIcon, StatsIcon, TextModelIcon, TrashIcon } from "./icons";
+import { CheckIcon, ChevronIcon, CloseIcon, DownloadIcon, MenuIcon, MoreHorizontalIcon, MultimodalIcon, PaperclipIcon, PencilIcon, PlusIcon, SendIcon, SparkIcon, StatsIcon, TextModelIcon, TrashIcon } from "./icons";
 import { BRAND } from "../lib/brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -30,8 +31,8 @@ import { SkillCreator } from "./SkillCreator";
 import { parseReferences } from "./ReferenceChips";
 
 type Session = { id: string; title: string; modelId: string; createdAt: number; updatedAt: number };
-type SessionFile = { id: string; sessionId: string; name: string; contentType: string; size: number; createdAt: number; source?: string; url: string };
-type Preview = { file: SessionFile; text?: string };
+type SessionFile = PersistedFile;
+type Preview = { file: SessionFile; text?: string; url?: string };
 type ReferenceSource = { type: string; label: string; hint: string };
 type ReferenceItem = { value: string; label: string; reference: string };
 type ReferenceTrigger = { anchor: number; end: number; source: string; query: string };
@@ -132,6 +133,62 @@ function CustomMessage() {
   );
 }
 
+function messageFilesMap(messages: PersistedMessage[]) {
+  return messages.reduce<Record<number, SessionFile[]>>((result, message, index) => {
+    if (Array.isArray(message.files) && message.files.length > 0) {
+      result[index] = message.files;
+    }
+    return result;
+  }, {});
+}
+
+function MessageFiles({
+  files,
+  label,
+  onPreview,
+}: {
+  files: SessionFile[];
+  label: string;
+  onPreview: (file: SessionFile) => void;
+}) {
+  if (files.length === 0) return null;
+  return (
+    <section className="message-files" aria-label={label}>
+      <div className="file-section-head">
+        <span>{label}</span>
+        <b>{files.length}</b>
+      </div>
+      <div className="file-grid">
+        {files.map((file) => (
+          <div key={file.id} className="file-card-wrapper">
+            <button
+              type="button"
+              className="file-card"
+              onClick={() => onPreview(file)}
+              aria-label={`预览 ${file.name}`}
+            >
+              <span className="file-type">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
+              <span className="file-info">
+                <strong>{file.name}</strong>
+                <small>{formatBytes(file.size)}</small>
+              </span>
+            </button>
+            <a
+              href={file.url}
+              download={file.name}
+              className="file-download-btn"
+              title={`下载 ${file.name}`}
+              aria-label={`下载 ${file.name}`}
+            >
+              <DownloadIcon />
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // Custom composer with reference picker
 function CustomComposer({
   referenceSources,
@@ -144,7 +201,7 @@ function CustomComposer({
 }: {
   referenceSources: ReferenceSource[];
   clientId: string;
-  onFileUpload: (file: File) => void;
+  onFileUpload: (file: File) => Promise<boolean>;
   uploading: boolean;
   modelOptions: ModelOption[];
   selectedModel: ModelOption;
@@ -165,6 +222,9 @@ function CustomComposer({
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const modelTriggerRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sendButtonRef = useRef<HTMLButtonElement>(null);
+  const submittingRef = useRef(false);
+  const [preparingSend, setPreparingSend] = useState(false);
 
   const refreshReferences = useCallback(
     (trigger: ReferenceTrigger) => {
@@ -184,28 +244,6 @@ function CustomComposer({
     },
     [clientId]
   );
-
-  // 监听消息发送，清空输入框
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    // 监听表单提交事件
-    const form = textarea.closest('form');
-    if (!form) return;
-
-    const handleSubmit = () => {
-      // 延迟清空，确保消息已发送
-      setTimeout(() => {
-        setInputValue('');
-        setReferenceTrigger(null);
-        setReferenceItems([]);
-      }, 50);
-    };
-
-    form.addEventListener('submit', handleSubmit);
-    return () => form.removeEventListener('submit', handleSubmit);
-  }, []);
 
   // 监听粘贴事件上传文件
   useEffect(() => {
@@ -232,27 +270,60 @@ function CustomComposer({
     return () => textarea.removeEventListener("paste", handlePaste);
   }, []);
 
-  // 发送消息前上传待处理文件
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+  const clearInputAfterSend = useCallback(() => {
+    // ComposerPrimitive clears its internal value; mirror that in our controlled input.
+    setTimeout(() => {
+      setInputValue("");
+      setReferenceTrigger(null);
+      setReferenceItems([]);
+    }, 50);
+  }, []);
 
-    const form = textarea.closest('form');
-    if (!form) return;
+  const uploadPendingAndSend = useCallback(async (filesToUpload: File[]) => {
+    submittingRef.current = true;
+    setPreparingSend(true);
 
-    const handleSubmit = async () => {
-      if (pendingFiles.length > 0) {
-        // 上传所有待处理文件
-        for (const file of pendingFiles) {
-          await onFileUpload(file);
+    const uploadedFiles: File[] = [];
+    try {
+      for (const file of filesToUpload) {
+        if (!(await onFileUpload(file))) {
+          setPendingFiles((current) => current.filter((item) => !uploadedFiles.includes(item)));
+          return;
         }
-        setPendingFiles([]);
+        uploadedFiles.push(file);
+        setPendingFiles((current) => current.filter((item) => item !== file));
       }
-    };
 
-    form.addEventListener('submit', handleSubmit);
-    return () => form.removeEventListener('submit', handleSubmit);
-  }, [pendingFiles, onFileUpload]);
+      setPendingFiles([]);
+      setPreparingSend(false);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      sendButtonRef.current?.click();
+      clearInputAfterSend();
+    } finally {
+      submittingRef.current = false;
+      setPreparingSend(false);
+    }
+  }, [clearInputAfterSend, onFileUpload]);
+
+  const handleComposerSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    if (pendingFiles.length === 0) {
+      clearInputAfterSend();
+      return;
+    }
+
+    event.preventDefault();
+    if (!submittingRef.current) void uploadPendingAndSend([...pendingFiles]);
+  }, [clearInputAfterSend, pendingFiles, uploadPendingAndSend]);
+
+  const handleComposerSendClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (pendingFiles.length === 0) {
+      clearInputAfterSend();
+      return;
+    }
+
+    event.preventDefault();
+    if (!submittingRef.current) void uploadPendingAndSend([...pendingFiles]);
+  }, [clearInputAfterSend, pendingFiles, uploadPendingAndSend]);
 
   const syncReferences = useCallback(
     (value: string, caret: number) => {
@@ -283,30 +354,6 @@ function CustomComposer({
       });
     },
     [referenceTrigger, inputValue]
-  );
-
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (referenceTrigger && referenceItems.length) {
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-          event.preventDefault();
-          setReferenceIndex((current) => (current + (event.key === "ArrowDown" ? 1 : -1) + referenceItems.length) % referenceItems.length);
-          return;
-        }
-        if (event.key === "Enter" || event.key === "Tab") {
-          event.preventDefault();
-          insertReference(referenceItems[referenceIndex]);
-          return;
-        }
-        if (event.key === "Escape") {
-          event.preventDefault();
-          setReferenceTrigger(null);
-          setReferenceItems([]);
-          return;
-        }
-      }
-    },
-    [referenceTrigger, referenceItems, referenceIndex, insertReference]
   );
 
   // Click outside to close reference menu
@@ -449,13 +496,13 @@ function CustomComposer({
           </div>
         </div>
       )}
-      <ComposerPrimitive.Root>
+      <ComposerPrimitive.Root onSubmit={handleComposerSubmit}>
         {/* 待上传文件预览 */}
         {pendingFiles.length > 0 && (
           <div className="pending-files">
             {pendingFiles.map((file, index) => (
               <div key={`${file.name}-${index}`} className="pending-file">
-                <span className="pending-file-icon">📎</span>
+                <span className="pending-file-icon" aria-hidden="true"><PaperclipIcon /></span>
                 <span className="pending-file-name">{file.name}</span>
                 <span className="pending-file-size">({formatBytes(file.size)})</span>
                 <button
@@ -464,8 +511,24 @@ function CustomComposer({
                   onClick={() => setPendingFiles((files) => files.filter((_, i) => i !== index))}
                   aria-label={`移除 ${file.name}`}
                 >
-                  ×
+                  <CloseIcon />
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* 引用标签显示 */}
+        {inputValue && parseReferences(inputValue).length > 0 && (
+          <div className="reference-tags">
+            {parseReferences(inputValue).map((chip, index) => (
+              <div
+                key={`${chip.type}-${chip.value}-${index}`}
+                className={`reference-tag reference-tag-${chip.type}`}
+              >
+                <span className="tag-icon">
+                  {chip.type === "skill" ? "⚡" : chip.type === "file" ? "📄" : "📦"}
+                </span>
+                <span className="tag-label">{chip.label}</span>
               </div>
             ))}
           </div>
@@ -514,13 +577,12 @@ function CustomComposer({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               hidden
               onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  setPendingFiles((current) => [...current, file]);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }
+                const selected = Array.from(event.target.files || []);
+                if (selected.length) setPendingFiles((current) => [...current, ...selected]);
+                if (fileInputRef.current) fileInputRef.current.value = "";
               }}
             />
             <div className="composer-add-menu-wrapper">
@@ -617,7 +679,13 @@ function CustomComposer({
               )}
             </div>
           </div>
-          <ComposerPrimitive.Send className="send-button" aria-label="发送消息">
+          <ComposerPrimitive.Send
+            ref={sendButtonRef}
+            className="send-button"
+            aria-label="发送消息"
+            disabled={uploading || preparingSend}
+            onClick={handleComposerSendClick}
+          >
             <SendIcon />
           </ComposerPrimitive.Send>
         </div>
@@ -827,8 +895,10 @@ function HistoryList({
 export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: string | null }) {
   const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
+  const sessionIdRef = useRef<string | null>(initialSessionId);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [files, setFiles] = useState<SessionFile[]>([]);
+  const [messageFiles, setMessageFiles] = useState<Record<number, SessionFile[]>>({});
   const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODELS);
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -839,6 +909,10 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
   const [referenceSources, setReferenceSources] = useState<ReferenceSource[]>([]);
   const [clientId] = useState(() => typeof window === "undefined" ? "" : getClientId());
   const [confirmDelete, setConfirmDelete] = useState<Session | null>(null);
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   const refreshSessions = useCallback(async () => {
     if (!clientId) return;
@@ -857,8 +931,9 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
     try {
       const data = await fetch(`/api/sessions/${id}`, {
         headers: { "x-luma-client-id": clientId },
-      }).then((r) => r.json()) as { files?: SessionFile[] };
+      }).then((r) => r.json()) as { files?: SessionFile[]; messages?: PersistedMessage[] };
       setFiles(Array.isArray(data.files) ? data.files : []);
+      setMessageFiles(Array.isArray(data.messages) ? messageFilesMap(data.messages) : {});
     } catch {
       // Generated files can be picked up on the next session load.
     }
@@ -924,12 +999,15 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
     let cancelled = false;
     queueMicrotask(async () => {
       if (!initialSessionId) {
+        sessionIdRef.current = null;
         setSessionId(null);
         setFiles([]);
+        setMessageFiles({});
         runtimeRef.current.thread.reset([]);
         return;
       }
 
+      sessionIdRef.current = initialSessionId;
       setSessionId(initialSessionId);
       setError(null);
       try {
@@ -938,6 +1016,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
         }).then((r) => r.json()) as { session: Session; messages: PersistedMessage[]; files: SessionFile[] };
         if (cancelled) return;
         setFiles(data.files);
+        setMessageFiles(messageFilesMap(data.messages));
         setSelectedModel(
           MODELS.find((model) => model.id === data.session.modelId)
           || { id: data.session.modelId, modality: "text" }
@@ -946,6 +1025,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
       } catch (caught) {
         if (cancelled) return;
         setFiles([]);
+        setMessageFiles({});
         runtimeRef.current.thread.reset([]);
         setError(caught instanceof Error ? caught.message : "无法载入会话");
       }
@@ -954,17 +1034,22 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
   }, [clientId, initialSessionId]);
 
   useEffect(() => {
-    if (!preview) return;
+    const objectUrl = preview?.url;
     function handlePreviewKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setPreview(null);
     }
-    document.addEventListener("keydown", handlePreviewKeyDown);
-    return () => document.removeEventListener("keydown", handlePreviewKeyDown);
+    if (preview) document.addEventListener("keydown", handlePreviewKeyDown);
+    return () => {
+      if (preview) document.removeEventListener("keydown", handlePreviewKeyDown);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [preview]);
 
   async function resetChat() {
+    sessionIdRef.current = null;
     setSessionId(null);
     setFiles([]);
+    setMessageFiles({});
     setError(null);
     runtime.thread.reset([]);
     router.push("/");
@@ -1003,8 +1088,10 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
       if (!response.ok) throw new Error("删除失败");
       setSessions((current) => current.filter((item) => item.id !== confirmDelete.id));
       if (confirmDelete.id === sessionId) {
+        sessionIdRef.current = null;
         setSessionId(null);
         setFiles([]);
+        setMessageFiles({});
         runtimeRef.current.thread.reset([]);
         router.push("/");
       }
@@ -1034,15 +1121,15 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
     }
   }
 
-  async function uploadFile(upload: File) {
+  async function uploadFile(upload: File): Promise<boolean> {
     if (upload.size > 10 * 1024 * 1024) {
       setError("单个文件不能超过 10 MB");
-      return;
+      return false;
     }
     setUploading(true);
     setError(null);
     try {
-      let activeId = sessionId;
+      let activeId = sessionIdRef.current;
       if (!activeId) {
         const response = await fetch("/api/sessions", {
           method: "POST",
@@ -1052,8 +1139,14 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
           },
           body: JSON.stringify({ modelId: selectedModel.id }),
         });
-        const data = await response.json() as { session: Session };
+        const body = await response.text();
+        let data: { session?: Session; error?: string } = {};
+        try { data = JSON.parse(body) as typeof data; } catch { /* use the plain response below */ }
+        if (!response.ok || !data.session?.id) {
+          throw new Error(data.error || body || `创建会话失败 (${response.status})`);
+        }
         activeId = data.session.id;
+        sessionIdRef.current = activeId;
         setSessionId(activeId);
         window.history.replaceState(null, "", `/chat/${activeId}`);
         await refreshSessions();
@@ -1061,14 +1154,23 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
 
       const form = new FormData();
       form.append("file", upload);
-      const data = await fetch(`/api/sessions/${activeId}/files`, {
+      const response = await fetch(`/api/sessions/${activeId}/files`, {
         method: "POST",
         headers: { "x-luma-client-id": clientId },
         body: form,
-      }).then((r) => r.json()) as { file: SessionFile };
-      setFiles((current) => [...current, data.file]);
+      });
+      const body = await response.text();
+      let data: { file?: SessionFile; error?: string } = {};
+      try { data = JSON.parse(body) as typeof data; } catch { /* use the plain response below */ }
+      if (!response.ok || !data.file?.id) {
+        throw new Error(data.error || body || `上传失败 (${response.status})`);
+      }
+      const uploadedFile = data.file;
+      setFiles((current) => [...current, uploadedFile]);
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "上传失败");
+      return false;
     } finally {
       setUploading(false);
     }
@@ -1080,15 +1182,14 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
       || file.contentType === "application/javascript"
       || /\.(md|markdown|json|csv|log|txt|xml|yaml|yml|ts|tsx|js|jsx|css|html)$/i.test(file.name);
 
-    if (!textLike) {
-      setPreview({ file });
-      return;
-    }
-
     try {
       const response = await fetch(file.url);
       if (!response.ok) throw new Error("文件读取失败");
-      setPreview({ file, text: await response.text() });
+      if (textLike) {
+        setPreview({ file, text: await response.text() });
+      } else {
+        setPreview({ file, url: URL.createObjectURL(await response.blob()) });
+      }
     } catch {
       setError("文件预览失败");
     }
@@ -1159,42 +1260,6 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
           </header>
 
           <div className="conversation" aria-live="polite">
-            {files.length > 0 && (
-              <section className="session-files" aria-label="会话文件">
-                <div className="file-section-head">
-                  <span>会话文件</span>
-                  <b>{files.length}</b>
-                </div>
-                <div className="file-grid">
-                  {files.map((file) => (
-                    <div key={file.id} className="file-card-wrapper">
-                      <button
-                        type="button"
-                        className="file-card"
-                        onClick={() => void openPreview(file)}
-                        aria-label={`预览 ${file.name}`}
-                      >
-                        <span className="file-type">{file.name.split(".").pop()?.slice(0, 4).toUpperCase() || "FILE"}</span>
-                        <span className="file-info">
-                          <strong>{file.name}</strong>
-                          <small>{formatBytes(file.size)}</small>
-                        </span>
-                      </button>
-                      <a
-                        href={file.url}
-                        download={file.name}
-                        className="file-download-btn"
-                        title={`下载 ${file.name}`}
-                        aria-label={`下载 ${file.name}`}
-                      >
-                        <DownloadIcon />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
             {!sessionId && files.length === 0 && (
               <section className="empty-state" aria-label="新会话">
                 <span className="empty-track" aria-hidden="true" />
@@ -1205,21 +1270,35 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
             <ThreadPrimitive.Root>
               <ThreadPrimitive.Viewport>
                 <ThreadPrimitive.Messages
-                  components={{
-                    UserMessage: () => (
-                      <article className="message message-user">
-                        <div className="message-label">你</div>
-                        <CustomMessage />
-                      </article>
-                    ),
-                    AssistantMessage: () => (
+                >
+                  {({ message }) => {
+                    if (message.role === "user") {
+                      return (
+                        <article className="message message-user">
+                          <div className="message-label">你</div>
+                          <CustomMessage />
+                          <MessageFiles
+                            files={messageFiles[message.index] || []}
+                            label="附件"
+                            onPreview={(file) => void openPreview(file)}
+                          />
+                        </article>
+                      );
+                    }
+
+                    return (
                       <article className="message message-assistant">
                         <div className="message-label">{selectedModel.id}</div>
                         <CustomMessage />
+                        <MessageFiles
+                          files={messageFiles[message.index] || []}
+                          label="此回复生成的文件"
+                          onPreview={(file) => void openPreview(file)}
+                        />
                       </article>
-                    ),
+                    );
                   }}
-                />
+                </ThreadPrimitive.Messages>
               </ThreadPrimitive.Viewport>
             </ThreadPrimitive.Root>
           </div>
@@ -1272,9 +1351,9 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
               </header>
               <div className="preview-content">
                 {preview.file.contentType.startsWith("image/") ? (
-                  <object data={preview.file.url} type={preview.file.contentType} aria-label={preview.file.name} />
+                  <object data={preview.url || preview.file.url} type={preview.file.contentType} aria-label={preview.file.name} />
                 ) : preview.file.contentType === "application/pdf" ? (
-                  <iframe src={preview.file.url} title={preview.file.name} />
+                  <iframe src={preview.url || preview.file.url} title={preview.file.name} />
                 ) : preview.text !== undefined ? (
                   <pre>{preview.text}</pre>
                 ) : (

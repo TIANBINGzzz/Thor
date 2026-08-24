@@ -1186,8 +1186,9 @@ a:focus-visible {
   font-size: 11px;
 }
 
-.session-files {
-  margin-bottom: 44px;
+.message-files {
+  margin-top: 18px;
+  margin-bottom: 4px;
 }
 
 .file-section-head {
@@ -2890,33 +2891,78 @@ a:focus-visible {
   }
 }
 
-/* 输入框内引用高亮 */
-.custom-composer textarea {
-  line-height: 1.5;
+/* 引用标签显示 */
+.reference-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-1);
 }
 
-.custom-composer textarea::placeholder {
-  color: var(--text-tertiary);
+.reference-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.reference-tag-skill {
+  background: rgba(121, 167, 255, 0.12);
+  border: 1px solid rgba(121, 167, 255, 0.25);
+  color: var(--accent);
+}
+
+.reference-tag-pkg {
+  background: rgba(104, 214, 174, 0.12);
+  border: 1px solid rgba(104, 214, 174, 0.25);
+  color: var(--mint);
+}
+
+.reference-tag-file {
+  background: rgba(236, 184, 92, 0.12);
+  border: 1px solid rgba(236, 184, 92, 0.25);
+  color: var(--amber);
+}
+
+.tag-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.tag-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: -0.01em;
 }
 
 /* 待上传文件预览 */
 .pending-files {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-top: 1px solid var(--border-subtle);
+  gap: 6px;
+  padding: 0 1px 7px;
 }
 
 .pending-file {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  gap: 9px;
+  padding: 0 11px;
   border-radius: 8px;
   background: var(--surface-2);
   border: 1px solid var(--border-default);
-  transition: all 150ms var(--ease);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: background 150ms var(--ease), border-color 150ms var(--ease);
 }
 
 .pending-file:hover {
@@ -2925,37 +2971,57 @@ a:focus-visible {
 }
 
 .pending-file-icon {
-  font-size: 16px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 20px;
   flex: none;
+  color: var(--text-tertiary);
+}
+
+.pending-file-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
 }
 
 .pending-file-name {
-  flex: 1;
-  font-size: 13px;
-  color: var(--text-primary);
-  font-weight: 500;
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .pending-file-size {
-  font-size: 11px;
-  color: var(--text-tertiary);
   flex: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .pending-file-remove {
-  width: 20px;
-  height: 20px;
-  flex: none;
   display: grid;
   place-items: center;
-  border-radius: 4px;
-  font-size: 18px;
-  line-height: 1;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  border-radius: 5px;
   color: var(--text-tertiary);
-  transition: all 150ms var(--ease);
+  transition: color 150ms var(--ease), background 150ms var(--ease);
+}
+
+.pending-file-remove svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
 }
 
 .pending-file-remove:hover {
@@ -2963,4 +3029,20 @@ a:focus-visible {
   color: var(--danger);
 }
 
+.pending-file-remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 
+@media (max-width: 560px) {
+  .pending-file {
+    gap: 7px;
+    padding-inline: 9px;
+  }
+
+  .pending-file-size {
+    max-width: 74px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

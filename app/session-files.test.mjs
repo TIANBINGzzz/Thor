@@ -5,6 +5,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   appendSessionTurn,
+  upsertSessionTurn,
   cleanupSession,
   createSession,
   decodeFileId,
@@ -58,6 +59,8 @@ test("中文文件名按 UTF-8 解码，不产生乱码", async (t) => {
   assert.equal(result.files.length, 1);
   assert.equal(result.files[0].originalName, "季度经营分析 报告-v2.md");
   assert.equal(result.files[0].source, "upload");
+  assert.equal(result.uploaded.length, 1);
+  assert.equal(result.uploaded[0], result.files[0].name);
 });
 
 test("模型写进会话目录的文件会出现在清单里", async (t) => {
@@ -81,14 +84,86 @@ test("模型写进会话目录的文件会出现在清单里", async (t) => {
   assert.match(files[0].mimeType, /^text\/markdown/);
 });
 
+test("模型生成的文件也会进入后续对话上下文", async (t) => {
+  const { appSessionId } = await createSession();
+  t.after(() => cleanupSession(appSessionId));
+
+  await writeFile(
+    join(sessionDirectory(appSessionId), "后续报告.md"),
+    "# 报告\n",
+    "utf8",
+  );
+
+  const context = await sessionPromptContext(appSessionId);
+  assert.match(context, /后续报告\.md/);
+  assert.match(context, /模型生成/);
+});
+
 test("没有上传文件时也告知会话目录，避免产物写到项目根", async (t) => {
   const { appSessionId } = await createSession();
   t.after(() => cleanupSession(appSessionId));
 
   const context = await sessionPromptContext(appSessionId);
-  assert.match(context, /当前会话没有上传文件/);
+  assert.match(context, /当前会话没有文件/);
   assert.ok(context.includes(sessionDirectory(appSessionId)));
   assert.match(context, /必须写在该目录内/);
+  assert.match(context, /最终交付物必须是有效且可打开的 \.docx 文件/);
+});
+
+test("流式会话更新同一个 turn，刷新时保留用户消息和已收到事件", async (t) => {
+  const { appSessionId } = await createSession({ model: "test-model" });
+  t.after(() => cleanupSession(appSessionId));
+
+  await upsertSessionTurn(appSessionId, {
+    turnId: "stream-turn",
+    prompt: "处理这个文档",
+    model: "test-model",
+    events: [],
+  });
+  await upsertSessionTurn(appSessionId, {
+    turnId: "stream-turn",
+    prompt: "处理这个文档",
+    model: "test-model",
+    agentSessionId: "agent-session",
+    events: [
+      { type: "thinking", text: "读取文件" },
+      { type: "text", scope: "main", text: "处理中" },
+    ],
+  });
+
+  const data = await webSession(appSessionId);
+  assert.equal(data.messages.length, 2);
+  assert.equal(data.messages[0].content, "处理这个文档");
+  assert.equal(data.messages[1].content, "处理中");
+  assert.equal(data.session.agentSessionId, "agent-session");
+});
+
+test("生成文件只挂到产生它的 assistant turn", async (t) => {
+  const created = await createSession({ model: "test-model" });
+  t.after(() => cleanupSession(created.appSessionId));
+
+  const firstFile = join(sessionDirectory(created.appSessionId), "第一轮.docx");
+  const secondFile = join(sessionDirectory(created.appSessionId), "第二轮.docx");
+  await writeFile(firstFile, "first", "utf8");
+  await appendSessionTurn(created.appSessionId, {
+    turnId: "turn-one",
+    prompt: "生成第一份文件",
+    model: "test-model",
+    events: [{ type: "text", scope: "main", text: "第一轮完成" }],
+    files: ["第一轮.docx"],
+  });
+  await writeFile(secondFile, "second", "utf8");
+  await appendSessionTurn(created.appSessionId, {
+    turnId: "turn-two",
+    prompt: "生成第二份文件",
+    model: "test-model",
+    events: [{ type: "text", scope: "main", text: "第二轮完成" }],
+    files: ["第二轮.docx"],
+  });
+
+  const data = await webSession(created.appSessionId);
+  assert.deepEqual(data.messages[1].files.map((file) => file.name), ["第一轮.docx"]);
+  assert.deepEqual(data.messages[3].files.map((file) => file.name), ["第二轮.docx"]);
 });
 
 test("不存在的文件名解析失败", async (t) => {

@@ -42,6 +42,10 @@ export async function proxyAgent(request: Request, path: string) {
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete("connection");
     responseHeaders.delete("content-length");
+    if (responseHeaders.get("content-type")?.startsWith("text/event-stream")) {
+      responseHeaders.set("cache-control", "no-cache, no-transform");
+      responseHeaders.set("x-accel-buffering", "no");
+    }
     return new Response(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
