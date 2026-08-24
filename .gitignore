@@ -3,6 +3,9 @@ node_modules/
 *.log
 .claude/settings.local.json
 .tmp/
+.venv/
+__pycache__/
+*.pyc
 .idea/
 .scribe-sessions/
 .claude/*.log

@@ -1,5 +1,5 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { buildAgentOptions, missingEnvironment } from "./agent-options.mjs";
+import { runPythonAgent } from "./python-agent.mjs";
 
 const invalidVariables = missingEnvironment();
 
@@ -14,19 +14,23 @@ const prompt = process.argv.slice(2).join(" ") || "你好，请用一句话介�
 const options = buildAgentOptions({ maxTurns: 10 });
 
 try {
-  for await (const message of query({ prompt, options })) {
-    if (message.type === "assistant") {
-      for (const block of message.message.content) {
-        if (block.type === "text") {
-          process.stdout.write(`${block.text}\n`);
-        }
+  let agentError;
+  await runPythonAgent({
+    prompt,
+    model: options.model,
+    max_turns: options.maxTurns,
+    mcp_servers: options.mcpServers,
+    allowed_tools: options.allowedTools,
+    system_prompt_append: options.systemPrompt?.append || "",
+  }, {
+    onEvent: (event) => {
+      if (event.type === "text" && (!event.scope || event.scope === "main")) {
+        process.stdout.write(`${event.text}\n`);
       }
-    }
-
-    if (message.type === "result" && message.subtype !== "success") {
-      throw new Error(message.errors?.join("; ") || `调用失败：${message.subtype}`);
-    }
-  }
+      if (event.type === "error") agentError = event.message || "调用失败";
+    },
+  });
+  if (agentError) throw new Error(agentError);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;

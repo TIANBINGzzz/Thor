@@ -1,6 +1,6 @@
 # CCSDKScribe
 
-基于 Claude Agent SDK 的本地 Agent 与对话应用。通过 Anthropic 兼容接口调用 Qwen，加载 Claude Code 工具、Skills、Subagents 和 Commands，并通过 MCP 接入数据库。
+基于 Python Claude Agent SDK 的本地 Agent 与对话应用。通过 Anthropic 兼容接口调用 Qwen，加载 Claude Code 工具、Skills、Subagents 和 Commands，并通过 MCP 接入数据库。Node.js 仅负责现有 HTTP/SSE、会话、文件和 Web 代理，不再直接承载 Agent SDK。
 
 ## 快速开始
 
@@ -11,6 +11,9 @@ cp .env.example .env
 
 # 对话界面
 npm run ui
+
+# 首次安装 Python Agent SDK（Python 3.10+）
+python -m pip install -r requirements.txt
 
 # 命令行问答
 npm start -- "分析这个项目当前具备哪些能力"
@@ -32,7 +35,8 @@ CCSDKScribe/
 ├── app/                    # 应用代码
 │   ├── index.mjs          # CLI 入口
 │   ├── server.mjs         # HTTP + SSE 服务
-│   ├── agent-options.mjs  # Agent 配置
+│   ├── agent-options.mjs  # Agent worker 配置
+│   ├── python-agent.mjs   # Node 到 Python worker 的 JSONL 桥接
 │   ├── database.mjs       # 动态挂载 MCP
 │   └── *.test.mjs         # 单元测试
 ├── .claude/               # Claude 配置
@@ -41,6 +45,7 @@ CCSDKScribe/
 │   ├── workflows/         # 多代理编排
 │   └── commands/          # /report 命令
 ├── web/                   # Next.js 前端
+├── python/                # Python Claude Agent SDK worker
 ├── docs/ADR/              # 架构决策记录
 ├── CLAUDE.md              # 项目指令
 └── backlog.md             # 已知问题与待办
@@ -106,10 +111,11 @@ NO_PROXY=localhost,127.0.0.1,.aliyuncs.com
 
 ## 技术栈
 
-- **Agent**: `@anthropic-ai/claude-agent-sdk@0.3.231`
+- **Agent**: `claude-agent-sdk==0.2.144`（Python）
 - **数据库**: `@bytebase/dbhub@1.2.0`
 - **前端**: Next.js + `@assistant-ui/react`
-- **运行时**: Node.js 22+, TypeScript 5.9
+- **桥接运行时**: Node.js 22+
+- **Agent 运行时**: Python 3.10+
 
 ## 后续计划
 
@@ -122,6 +128,20 @@ NO_PROXY=localhost,127.0.0.1,.aliyuncs.com
 5. 多租户隔离（tenantId、工作目录、MCP 实例）
 6. 接入独立搜索 MCP
 7. 报告质量评测
+
+## Python SDK 迁移状态（2026-08-24）
+
+- 已在 `python-sdk` 分支将 Agent 执行从 Node/TypeScript SDK 切换到 `claude-agent-sdk==0.2.144`。
+- 浏览器 SSE、会话落盘、文件上传和前端事件协议保持不变；Node 通过 `app/python-agent.mjs` 启动 Python worker 并转发标准化事件。
+- Python worker 支持 `resume`、Skills、MCP、部分消息流、工具调用、子代理事件和结果计量。
+- Python SDK 当前只支持单个 `--add-dir` 额外目录参数；会话上传目录已作为该目录传入，后续多目录需求应改为容器挂载或独立工作目录。
+
+### 下一步执行计划
+
+1. 在干净 Python 3.10+ 环境安装依赖并跑通真实 Qwen/Claude 兼容网关调用。
+2. 增加 Python worker 的消息翻译单元测试和 Node-Python 桥接集成测试。
+3. 验证 Windows/Linux 下 Python 命令、MCP dbhub、停止生成和会话恢复。
+4. 将当前 `bypassPermissions` 改为容器隔离后再面向多租户开放。
 
 ## 许可
 

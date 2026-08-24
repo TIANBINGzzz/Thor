@@ -1,8 +1,7 @@
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
-import { query } from "@anthropic-ai/claude-agent-sdk";
 import { buildAgentOptions, missingEnvironment } from "./agent-options.mjs";
-import { createTranslator } from "./sse-events.mjs";
+import { runPythonAgent } from "./python-agent.mjs";
 import { createReadStream } from "node:fs";
 import {
   createSession,
@@ -179,7 +178,6 @@ async function handleChat(request, response, appSessionId) {
   request.once("aborted", abortIfDisconnected);
   response.once("close", abortIfDisconnected);
 
-  const translate = createTranslator();
   const events = [];
   let agentSessionId = savedSession.agentSessionId;
   const turnId = randomBytes(12).toString("hex");
@@ -263,11 +261,21 @@ async function handleChat(request, response, appSessionId) {
     ]
       .filter(Boolean)
       .join("\n\n");
-    for await (const message of query({ prompt: fullPrompt, options })) {
-      for (const event of translate(message)) {
-        emit(event);
-      }
-    }
+    await runPythonAgent({
+      prompt: fullPrompt,
+      model: options.model,
+      resume: options.resume,
+      max_turns: options.maxTurns,
+      include_partial_messages: options.includePartialMessages,
+      cwd: process.cwd(),
+      additional_directories: options.additionalDirectories,
+      mcp_servers: options.mcpServers,
+      allowed_tools: options.allowedTools,
+      system_prompt_append: options.systemPrompt?.append || "",
+    }, {
+      signal: abortController.signal,
+      onEvent: emit,
+    });
   } catch (error) {
     if (!abortController.signal.aborted) {
       emit({

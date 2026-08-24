@@ -49,8 +49,8 @@ export function missingEnvironment() {
 }
 
 /**
- * 构造 query() 的 options。CLI 入口和 HTTP 服务共用同一套配置，
- * 避免两处行为漂移。
+ * 构造 Python Agent worker 的请求配置。CLI 入口和 HTTP 服务共用同一套
+ * 配置，避免两处行为漂移。
  */
 export function buildAgentOptions({
   maxTurns = 10,

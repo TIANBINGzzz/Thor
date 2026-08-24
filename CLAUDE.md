@@ -41,7 +41,7 @@
 
 ## 技术约定
 
-- 运行时使用 Node.js，源码采用 ECMAScript Modules（`.mjs` / `import` / `export`）
+- HTTP/SSE、会话和 Web 代理运行时使用 Node.js，源码采用 ECMAScript Modules（`.mjs` / `import` / `export`）；Agent 执行使用 Python `claude-agent-sdk`
 - 应用代码放在 `app/`，项目级能力配置放在 `.claude/`
 - 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；workflow 脚本只负责协调，具体文件、命令和 MCP 操作由子代理执行
 - 密钥和数据库连接只放在 `.env`，不得写入代码、Skills、Agents、日志或报告
