@@ -200,13 +200,6 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
     }
     mcp_servers = payload.get("mcp_servers") or {}
     allowed_tools = payload.get("allowed_tools") or []
-    extra_args: dict[str, str | None] = {}
-    for directory in payload.get("additional_directories") or []:
-        extra_args.setdefault("add-dir", directory)
-
-    # The SDK's extra_args is a mapping, while --add-dir is repeatable. The
-    # common case has one upload directory; additional paths are included in
-    # the prompt and the first path is passed to the CLI.
     return ClaudeAgentOptions(
         model=payload.get("model"),
         cwd=payload.get("cwd") or Path.cwd(),
@@ -220,7 +213,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
         allowed_tools=allowed_tools,
         permission_mode="bypassPermissions",
         mcp_servers=mcp_servers,
-        extra_args=extra_args,
+        add_dirs=payload.get("additional_directories") or [],
         env=dict(os.environ),
     )
 

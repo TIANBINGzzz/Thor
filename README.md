@@ -111,7 +111,7 @@ NO_PROXY=localhost,127.0.0.1,.aliyuncs.com
 
 ## 技术栈
 
-- **Agent**: `claude-agent-sdk==0.2.144`（Python）
+- **Agent**: `claude-agent-sdk==0.2.143`（Python，安装包包含 Claude CLI）
 - **数据库**: `@bytebase/dbhub@1.2.0`
 - **前端**: Next.js + `@assistant-ui/react`
 - **桥接运行时**: Node.js 22+
@@ -131,10 +131,10 @@ NO_PROXY=localhost,127.0.0.1,.aliyuncs.com
 
 ## Python SDK 迁移状态（2026-08-24）
 
-- 已在 `python-sdk` 分支将 Agent 执行从 Node/TypeScript SDK 切换到 `claude-agent-sdk==0.2.144`。
+- 已在 `python-sdk` 分支将 Agent 执行从 Node/TypeScript SDK 切换到 `claude-agent-sdk==0.2.143`。
 - 浏览器 SSE、会话落盘、文件上传和前端事件协议保持不变；Node 通过 `app/python-agent.mjs` 启动 Python worker 并转发标准化事件。
 - Python worker 支持 `resume`、Skills、MCP、部分消息流、工具调用、子代理事件和结果计量。
-- Python SDK 当前只支持单个 `--add-dir` 额外目录参数；会话上传目录已作为该目录传入，后续多目录需求应改为容器挂载或独立工作目录。
+- 会话上传目录通过 Python SDK 的 `add_dirs` 传入；后续多租户场景仍应改为容器挂载和独立工作目录。
 
 ### 下一步执行计划
 
