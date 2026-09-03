@@ -1,4 +1,0 @@
-interface:
-  display_name: "¼ìË÷ÔöÇ¿»Ø´ğ"
-  short_description: "Retrieve traceable evidence before answering complex questions"
-  default_prompt: "Use $rag-answer to answer the question with traceable evidence from available sources."

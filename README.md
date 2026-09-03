@@ -1,24 +1,22 @@
 # CCSDKScribe
 
-基于 Python Claude Agent SDK 的本地 Agent 与对话应用。通过 Anthropic 兼容接口调用 Qwen，加载 Claude Code 工具、Skills、Subagents 和 Commands，并通过 MCP 接入数据库。Node.js 仅负责现有 HTTP/SSE、会话、文件和 Web 代理，不再直接承载 Agent SDK。
+CCSDKScribe 是一个基于 Python Claude Agent SDK 的 Agent Runtime 和本地对话应用。项目支持普通对话、数据库问数、Skill/Workflow、MCP、文件处理和流式事件；模型可通过 Anthropic 兼容网关连接 Qwen 等提供方。
+
+Python FastAPI 负责 Runtime、HTTP/SSE、本地会话、文件引用和 Agent 进程；Next.js 负责本地 Web UI；Node.js 仅用于前端、DBHub 和现有脚本。接入企业系统时，Java 应作为唯一业务控制面，浏览器不直接访问 Python、Claude SDK 或 MCP。
 
 ## 快速开始
 
 ```bash
-# 配置环境变量
 cp .env.example .env
-# 编辑 .env，填入 ANTHROPIC_AUTH_TOKEN、ANTHROPIC_BASE_URL、ANTHROPIC_MODEL
+# 编辑 .env，填写 ANTHROPIC_AUTH_TOKEN、ANTHROPIC_BASE_URL、ANTHROPIC_MODEL
 
-# 对话界面
+python -m pip install -r requirements.txt
 npm run ui
 
-# 首次安装 Python Agent SDK（Python 3.10+）
-python -m pip install -r requirements.txt
-
-# 命令行问答
+# CLI 普通对话
 npm start -- "分析这个项目当前具备哪些能力"
 
-# 专业报告
+# CLI 报告
 npm start -- "/report 为管理层撰写本项目技术能力与上线风险报告"
 
 # 数据库演示
@@ -28,177 +26,144 @@ npm run db:demo -- "查询员工表字段，并统计员工人数"
 npm test
 ```
 
+本地 UI 默认由统一启动器提供前端和 Python 服务；生产部署不要把本地 UI 接口当作 Java 多租户接口。
+
+## 架构
+
+```text
+浏览器
+   |
+   v
+Java 控制面（生产）
+身份/租户/会话/消息/文件 ACL/能力注册/Run/统一 SSE
+   |
+   +--> DifyRuntimeAdapter ------> Dify API/SSE
+   |
+   +--> ClaudeRuntimeAdapter ----> Python Runtime
+                                      |
+                                      +--> query()：普通对话、问数、一次性任务
+                                      |
+                                      +--> SessionManager
+                                                -> SessionActor（单一 asyncio Task）
+                                                   -> ClaudeSDKClient：撰写、长任务、交互式 Skill
+                                      |
+                                      +--> ObservationRecorder -> 私有观测 Journal/Collector
+```
+
+Python Runtime 内部还会按能力配置加载 Workflow、Skill、MCP 和工作目录。`query()` 是一次独立 Run；`ClaudeSDKClient` 是由单个 SessionActor 独占的持久 Runtime。`ObservationRecorder` 在同一次 SDK 消息消费中读取原始消息，再分别生成私有详细观测和公共脱敏事件，不会通过第二次模型或工具调用补采集。Conversation、Claude Session、Agent Run、Client Runtime、观测流、asyncio Task 和浏览器连接的生命周期必须分开管理。
+
+详细的接口、字段、鉴权、Token 透传、文件、重连、Workflow/Skill 和 Java 改造要求见：
+
+[CCSDK Runtime 接口与字段规范](docs/specs/ccsdk-runtime-interface.md)
+
+[Java 控制面接入方案](docs/specs/java-control-plane.md)
+
 ## 项目结构
 
 ```text
 CCSDKScribe/
-├── app/                    # 应用代码
-│   ├── index.mjs          # CLI 入口
-│   ├── server.mjs         # HTTP + SSE 服务
-│   ├── agent-options.mjs  # Agent worker 配置
-│   ├── python-agent.mjs   # Node 到 Python worker 的 JSONL 桥接
-│   ├── database.mjs       # 动态挂载 MCP
-│   └── *.test.mjs         # 单元测试
-├── .claude/               # Claude 配置
-│   ├── skills/            # 数据分析、RAG、报告写作
-│   ├── agents/            # 研究员、分析师、撰稿人
-│   ├── workflows/         # 多代理编排
-│   └── commands/          # /report 命令
-├── web/                   # Next.js 前端
-├── python/                # Python Claude Agent SDK worker
-├── docs/ADR/              # 架构决策记录
-├── CLAUDE.md              # 项目指令
-└── backlog.md             # 已知问题与待办
+├── .claude/
+│   ├── skills/              # Skill 定义
+│   ├── agents/              # Agent/Subagent 定义
+│   ├── workflows/           # Workflow profile 和编排脚本
+│   └── commands/            # 命令入口
+├── python/
+│   ├── server.py            # FastAPI、SSE 和 Runtime API
+│   ├── ui.py                # 本地 UI 启动编排
+│   ├── agent_worker.py     # Claude SDK 消息/事件适配
+│   ├── runtime/             # 协议、鉴权、RunStore、进程和配置编译
+│   ├── tools/               # DOCX、artifact 等工具
+│   └── local/               # 本地 UI 专用会话和文件服务
+├── web/                     # Next.js + assistant-ui 前端
+├── docs/
+│   ├── specs/               # 接口和字段规范
+│   └── ADR/                 # 架构决策记录
+├── CLAUDE.md
+├── AGENTS.md
+└── backlog.md
 ```
 
 ## 配置
 
-### Qwen（百炼）
+模型网关：
 
 ```dotenv
-ANTHROPIC_AUTH_TOKEN=你的百炼_API_KEY
-ANTHROPIC_BASE_URL=https://你的_WORKSPACE_ID.cn-beijing.maas.aliyuncs.com/apps/anthropic
-ANTHROPIC_MODEL=qwen3.7-max
+ANTHROPIC_AUTH_TOKEN=你的网关密钥
+ANTHROPIC_BASE_URL=https://你的兼容网关地址/apps/anthropic
+ANTHROPIC_MODEL=qwen3.7-flash
+SCRIBE_MODELS=qwen3.7-flash,qwen3.7-plus
 ```
 
-### Qwen（Coding Plan）
+数据库问数配置位于 `.claude/workflows/database-qa/`。实际数据库账号放在被 Git 忽略的 `workflow.env`，使用只读账号，不要把密码、业务 Token 或真实数据写入 Skill、Workflow 文档和提交记录。
 
-```dotenv
-ANTHROPIC_AUTH_TOKEN=你的_CODING_PLAN_KEY
-ANTHROPIC_BASE_URL=https://coding.dashscope.aliyuncs.com/apps/anthropic
-ANTHROPIC_MODEL=qwen3.7-plus
+## 生产部署建议
+
+最小生产拓扑：
+
+| 组件 | 职责 |
+| --- | --- |
+| Java 服务 | 登录身份、租户和资源 ACL、业务会话/消息、能力注册、Run/Event 元数据、统一浏览器 SSE |
+| Python Runtime | 验证 Run JWT、执行 `query()` 或 SessionActor/`ClaudeSDKClient`、采集私有观测、翻译脱敏事件 |
+| 业务数据库 | 保存 Conversation、Message、Run、Event 索引、文件和 Artifact 元数据 |
+| Redis | 多实例下的 `jti` 防重放、事件流、活动 Run、租约和订阅协调 |
+| 对象存储 | 用户文件、Workspace 输入和生成 Artifact |
+| Transcript 持久卷 | Claude SDK transcript；仅用于 `runtimeSessionRef` 的上下文恢复 |
+| 私有观测 Journal/Collector | 加密保存受控的 SDK 详细观测；按租户、运维和审计权限读取，不接入浏览器 SSE |
+| Worker/容器 | 每 Run 或每 SessionActor 的进程、网络、文件系统和 MCP 隔离 |
+
+单机 PoC 可以使用 Java + Python sidecar、本地 SQLite 和本地卷。多实例生产建议使用 Docker Compose 或 Kubernetes，并将 Java 业务库、Redis、对象存储和 Runtime transcript 卷分开授权。浏览器断开只取消订阅，不应默认取消后台 Run；刷新后由 Java 按 `runId` 和事件序号重新订阅。
+
+## 安全边界
+
+- 浏览器只提交业务会话、文本、已登记文件 ID 和受控 `capabilityRef`。
+- Java 从登录上下文取得 `userId`、`tenantId`，校验会话、文件和能力权限，再签发短期 Run JWT。
+- Python 校验签名、`iss`、`aud`、`exp`、`jti`、`scope`，并确认 JWT 与请求的 `runId`/`capabilityRef` 一致。
+- 只有声明需要业务凭据的 MCP 才接收 `credentials.platformBearer`；Python 按 `MCP_AUTH_RULES` 注入 HTTP Header 或 stdio 环境变量。
+- 业务 Token、模型密钥和其他原始凭据不得写入任何观测或业务持久化；它们只在授权链路中短暂使用。完整思考内容、原始工具参数和工具结果不得进入浏览器事件、Prompt、Java 业务库或普通应用日志；经凭据脱敏、大小限制和权限隔离后，可进入独立的私有观测 Journal/Collector。
+- 私有观测不属于公共事件回放源，只允许受限的运维/审计身份读取，并按租户、用户、能力和保留期限授权。
+- 当前 `bypassPermissions` 和单进程状态只适合内网验证；开放代码执行、多租户或任意文件访问前必须增加容器/等价沙箱和外部状态存储。
+
+## 当前状态
+
+已具备：
+
+- Python Claude Agent SDK 的 `query()` Run
+- `agent-run/v1` 请求校验和 `agent-events/v1` 脱敏事件
+- Run 状态、事件序号回放、SSE 心跳和取消接口
+- Workflow profile、Skill、MCP 配置和按规则的 Token 注入
+- 本地会话、上传文件、DOCX 工具和 Next.js 对话界面
+- 项目 Skill 通过文件维护并支持 `@skill:` 引用；Web 工作区不再提供 Skill 创建向导或入口
+- Java 控制面接入所需的协议设计和适配器边界
+- 私有观测字段、公共事件分流和 `ccsdk-observation/v1` 目标契约（观测 Recorder/Journal 尚未实现）
+
+尚需补齐：
+
+- `SessionManager -> SessionActor -> ClaudeSDKClient` 的长连接实现
+- `ObservationRecorder`、私有 Journal/Collector、脱敏和观测查询授权
+- Java Run/Event 持久化、活动 Run 查询和刷新重连
+- File Broker、对象存储、Artifact 生命周期和跨租户 ACL
+- Redis 多实例调度、运行租约和生产级 replay cache
+- RS256/EdDSA、mTLS 和容器权限隔离
+- `professional-report.js` 的显式 Workflow Runner
+
+## 文档
+
+- [Runtime 接口与字段规范](docs/specs/ccsdk-runtime-interface.md)
+- [Java 控制面接入方案](docs/specs/java-control-plane.md)
+- [Python 应用后端 ADR](docs/ADR/011-python-application-backend.md)
+- [Provider-neutral Runtime ADR](docs/ADR/012-provider-neutral-agent-runtime.md)
+- [Java-Python Runtime Contract ADR](docs/ADR/013-java-python-runtime-contract.md)
+- [CCSDK Runtime MVP ADR](docs/ADR/014-ccsdk-runtime-mvp.md)
+- [Query 与 SDKClient 生命周期 ADR](docs/ADR/015-query-client-runtime-lifecycle.md)
+- [开发计划](backlog.md)
+
+## 测试
+
+```bash
+npm test
+python -m compileall python
 ```
-
-### 数据库
-
-```dotenv
-# PostgreSQL
-DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
-
-# MySQL
-DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/DATABASE
-
-# SQLite（Windows 绝对路径）
-DATABASE_URL=sqlite:///D:/path/to/database.db
-```
-
-### WebFetch 代理
-
-`claude.exe` 不读 Windows 系统代理，需要配置环境变量：
-
-```dotenv
-HTTPS_PROXY=http://127.0.0.1:7897
-HTTP_PROXY=http://127.0.0.1:7897
-NO_PROXY=localhost,127.0.0.1,.aliyuncs.com
-```
-
-`NO_PROXY` 必须排除百炼网关（`.aliyuncs.com`）。
-
-## 已知限制
-
-- **WebSearch 不可用**：当前 Qwen 兼容网关会伪造成功但不执行搜索。已通过 `disallowedTools` 禁用。
-- **权限隔离未实现**：当前启用 `bypassPermissions`，模型可以读写任意文件和执行命令。生产部署前必须实现容器隔离（见 `docs/ADR/003`）。
-- **环境变量优先级**：`.env` 使用 `override: true`，因为 cc-switch 等工具会向系统环境注入 `ANTHROPIC_BASE_URL`。
-
-## 架构决策
-
-重要决策记录在 `docs/ADR/`：
-
-- [001-no-backward-compatibility.md](docs/ADR/001-no-backward-compatibility.md)
-- [002-mcp-for-database.md](docs/ADR/002-mcp-for-database.md)
-- [003-container-isolation-for-security.md](docs/ADR/003-container-isolation-for-security.md)
-- [004-reference-syntax-for-large-datasets.md](docs/ADR/004-reference-syntax-for-large-datasets.md)
-
-## 技术栈
-
-- **Agent**: `claude-agent-sdk==0.2.143`（Python，安装包包含 Claude CLI）
-- **数据库**: `@bytebase/dbhub@1.2.0`
-- **前端**: Next.js + `@assistant-ui/react`
-- **桥接运行时**: Node.js 22+
-- **Agent 运行时**: Python 3.10+
-
-## 后续计划
-
-详见 `backlog.md`：
-
-1. 容器隔离与权限控制
-2. 工具审批 UI 与 `canUseTool` 集成
-3. 使用 `Query.interrupt()` 实现可控停止
-4. 会话索引恢复与审计日志
-5. 多租户隔离（tenantId、工作目录、MCP 实例）
-6. 接入独立搜索 MCP
-7. 报告质量评测
-
-## Python SDK 迁移状态（2026-08-24）
-
-- 已在 `python-sdk` 分支将 Agent 执行从 Node/TypeScript SDK 切换到 `claude-agent-sdk==0.2.143`。
-- 浏览器 SSE、会话落盘、文件上传和前端事件协议保持不变；Node 通过 `app/python-agent.mjs` 启动 Python worker 并转发标准化事件。
-- Python worker 支持 `resume`、Skills、MCP、部分消息流、工具调用、子代理事件和结果计量。
-- 会话上传目录通过 Python SDK 的 `add_dirs` 传入；后续多租户场景仍应改为容器挂载和独立工作目录。
-
-### 下一步执行计划
-
-1. 在干净 Python 3.10+ 环境安装依赖并跑通真实 Qwen/Claude 兼容网关调用。
-2. 增加 Python worker 的消息翻译单元测试和 Node-Python 桥接集成测试。
-3. 验证 Windows/Linux 下 Python 命令、MCP dbhub、停止生成和会话恢复。
-4. 将当前 `bypassPermissions` 改为容器隔离后再面向多租户开放。
 
 ## 许可
 
 MIT
-
-## 前端主题与对话框调整（2026-08-17）
-
-- 对话框桌面宽度统一为 780px，最小高度 132px，底部安全距离 30px；文本区、工具栏和发送按钮采用参考页的 54px / 34px / 36px 比例。
-- 主题切换按钮与参考页保持一致，采用 36px 图标按钮、毛玻璃背景、边框阴影和月亮/太阳图标切换，主题保存在 `thor-theme`。
-- 移动端保持工具栏单行布局，模型选择器限制在 150px 内，并将主题按钮移到对话框上方，避免遮挡。
-- Agent 服务暂不可用时，侧栏、模型和引用数据使用空数组兜底，页面仍可加载空白对话界面。
-
-### 下一步执行计划
-
-1. 启动 Agent 服务后，验证真实会话列表、模型切换和文件上传在新尺寸下的交互。
-2. 在浅色、深色、窄屏和键盘导航场景下补充截图回归。
-3. 完成会话选中态、快捷任务入口和错误提示的视觉统一。
-
-## 当前前端状态
-
-- Web 前端以 Next.js + `@assistant-ui/react` 为运行时基础，保留现有 Agent、SSE、文件、引用和 Skills 能力。
-- `@assistant-ui/react` 只负责 Thread、Message、Composer、流式状态和自动滚动；按钮、主题、布局、文件预览和弹层视觉仍由本地 HTML/CSS 控制。
-- 当前没有引入完整 UI 框架；模型菜单、引用选择器和文件预览先保持本地实现，待复杂交互边界稳定后再评估 Base UI 是否只用于 Popover/Dialog 等行为层。
-- 工作区默认使用深色主题，右下角按钮以月亮表示深色、太阳表示浅色；主题选择保存在浏览器本地，并在页面水合前应用以避免刷新闪烁。
-- 历史会话侧栏使用克制的中性背景标识当前会话，不叠加强调线、时间强调或额外阴影。
-- 统计页直接展示服务端返回的实际费用、token、回复和会话数据，不显示预估或账单说明文案。
-
-## 后续计划
-
-1. 完善主题令牌在统计页、文件面板和引用菜单中的一致性。
-2. 补齐主题首次加载、刷新恢复与历史会话选中态的桌面及移动端视觉回归测试。
-3. 为 Web 交互增加会话选择和 SSE 流式更新的回归测试。
-
-## Frontend interaction update (2026-08-17)
-
-- Removed the composer mouse-position React state and radial hover overlay so pointer movement no longer rerenders the conversation tree or causes message flicker.
-- Added GPT-style history actions: a hover/focus-visible three-dot menu with rename and delete actions, inline rename with Enter/Escape support, and delete confirmation backed by the existing session PATCH/DELETE APIs. Menu and rename state live in the isolated history-list component, while rail paint containment keeps hover animation repaints out of the conversation workspace.
-- Kept the history action affordance visible on narrow/mobile layouts where hover is unavailable.
-
-### Next frontend checks
-
-1. Verify history menu keyboard navigation and focus return after rename/delete.
-2. Add browser regression coverage for composer hover stability and session actions.
-3. Recheck history popup placement when the sidebar is collapsed or opened as a mobile drawer.
-
-## Model selector update (2026-08-17)
-
-- Increased the composer model label to 14px and strengthened its weight for faster scanning.
-- Reworked the model popover into a 300px selection panel with model capability labels, stable selection marks, larger hit targets, and responsive mobile sizing.
-- Added menu keyboard behavior for Arrow Up/Down, Home/End, Enter, and Escape while preserving click and outside-click handling.
-
-## Writing skill update (2026-08-17)
-
-- Added `.claude/skills/writing-documents/SKILL.md` for long-form document and DOCX workflows, including evidence collection, outline confirmation, template preservation, manuscript revision, consistency review, and final DOCX acceptance.
-- Kept the existing `report-writing` skill unchanged; use `writing-documents` for broader document/DOCX tasks and `report-writing` for decision-ready research reports.
-
-### Next skill checks
-
-1. Test the skill on a new long-form report and a template-based DOCX revision.
-2. Verify DOCX rendering and structure checks with the available document tooling.

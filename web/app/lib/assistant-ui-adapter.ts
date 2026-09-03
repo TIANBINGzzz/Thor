@@ -11,10 +11,16 @@ type AdapterConfig = {
   sessionId: string | null;
   modelId: string;
   clientId: string;
+  workflowName?: string | null;
+  onRunStart?: () => void;
+  onEvent?: (event: AgentEvent) => void;
+  onRunEnd?: () => void;
   onSessionCreated?: (sessionId: string) => void;
   onComplete?: (sessionId: string) => void | Promise<void>;
   onError?: (error: string) => void;
 };
+
+export type RunPhase = "idle" | "thinking" | "tool" | "reply";
 
 export type PersistedMessage = {
   id: string;
@@ -241,6 +247,14 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
 
       if (!prompt.trim()) return;
 
+      config.onRunStart?.();
+      let runEnded = false;
+      const endRun = () => {
+        if (runEnded) return;
+        runEnded = true;
+        config.onRunEnd?.();
+      };
+
       let activeSessionId = config.sessionId;
       if (!activeSessionId) {
         try {
@@ -257,6 +271,7 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
           activeSessionId = data.session.id;
           config.onSessionCreated?.(activeSessionId);
         } catch (error) {
+          endRun();
           config.onError?.(error instanceof Error ? error.message : "创建会话失败");
           return;
         }
@@ -269,7 +284,11 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
             "Content-Type": "application/json",
             "x-luma-client-id": config.clientId,
           },
-          body: JSON.stringify({ prompt, modelId: config.modelId }),
+          body: JSON.stringify({
+            prompt,
+            modelId: config.modelId,
+            ...(config.workflowName ? { workflow_name: config.workflowName } : {}),
+          }),
           signal: options.abortSignal,
         });
 
@@ -288,6 +307,7 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
         const processFrame = (frame: string) => {
           const event = parseSseFrame(frame);
           if (!event) return;
+          config.onEvent?.(event);
 
           let changed = false;
           if (event.type === "text" && (!event.scope || event.scope === "main")) {
@@ -333,6 +353,8 @@ export function createChatModelAdapter(config: AdapterConfig): ChatModelAdapter 
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           config.onError?.(error instanceof Error ? error.message : "发送失败");
         }
+      } finally {
+        endRun();
       }
     },
   };

@@ -1,0 +1,11 @@
+{
+  "name": "writing-docx",
+  "description": "Create or revise a document with the writing-documents Skill",
+  "execution": {
+    "mode": "agent"
+  },
+  "documents": {
+    "constraints": [],
+    "semantics": []
+  }
+}

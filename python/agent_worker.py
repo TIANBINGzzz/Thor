@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run one Claude Agent SDK query and emit normalized events as JSON Lines.
 
-The Node HTTP server owns authentication, sessions, files, and browser SSE.
+The FastAPI service owns authentication, sessions, files, and browser SSE.
 This process owns only the Python Agent SDK call. Keeping the boundary as JSONL
 lets the two runtimes evolve independently while preserving the existing UI
 event contract.
@@ -11,14 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sys
-from pathlib import Path
 from typing import Any
 
 from claude_agent_sdk import (
     AssistantMessage,
-    ClaudeAgentOptions,
     ResultMessage,
     StreamEvent,
     SystemMessage,
@@ -29,6 +26,19 @@ from claude_agent_sdk import (
     UserMessage,
     query,
 )
+from runtime.config import (
+    build_options,
+    isolated_sdk_environment,
+    load_runtime_environment,
+    missing_environment,
+)
+
+# Windows consoles default to GBK. The parent Python process always reads JSONL
+# as UTF-8, so force the process boundary to use one encoding end to end.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 TEXT_LIMIT = 2000
 NOISE = {
@@ -191,39 +201,27 @@ def message_events(message: Any, streaming: dict[str, str]) -> list[dict[str, An
     return []
 
 
-def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
-    append = payload.get("system_prompt_append") or ""
-    system_prompt: dict[str, str] = {
-        "type": "preset",
-        "preset": "claude_code",
-        "append": append,
-    }
-    mcp_servers = payload.get("mcp_servers") or {}
-    allowed_tools = payload.get("allowed_tools") or []
-    return ClaudeAgentOptions(
-        model=payload.get("model"),
-        cwd=payload.get("cwd") or Path.cwd(),
-        resume=payload.get("resume"),
-        max_turns=payload.get("max_turns", 30),
-        include_partial_messages=bool(payload.get("include_partial_messages")),
-        setting_sources=["project", "local"],
-        system_prompt=system_prompt,
-        tools={"type": "preset", "preset": "claude_code"},
-        disallowed_tools=["WebSearch"],
-        allowed_tools=allowed_tools,
-        permission_mode="bypassPermissions",
-        mcp_servers=mcp_servers,
-        add_dirs=payload.get("additional_directories") or [],
-        env=dict(os.environ),
-    )
+def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Do not advertise SDK-discovered abilities disabled by a direct profile."""
+    if event.get("type") != "init":
+        return event
+    return {**event, "skills": [], "agents": [], "commands": []}
 
 
 async def run(payload: dict[str, Any]) -> None:
+    load_runtime_environment(payload.get("workflow_name"))
+    missing = missing_environment()
+    if missing:
+        raise RuntimeError(f"请先在项目根目录的 .env 中配置：{', '.join(missing)}")
     options = build_options(payload)
+    direct_workflow = options.tools == [] and options.strict_mcp_config
     streaming: dict[str, str] = {}
-    async for message in query(prompt=payload["prompt"], options=options):
-        for event in message_events(message, streaming):
-            emit(event)
+    # The SDK merges ``options.env`` with the worker process environment.  Keep
+    # secrets loaded for configuration construction out of the provider CLI.
+    with isolated_sdk_environment():
+        async for message in query(prompt=payload["prompt"], options=options):
+            for event in message_events(message, streaming):
+                emit(direct_workflow_event(event) if direct_workflow else event)
 
 
 async def main() -> None:

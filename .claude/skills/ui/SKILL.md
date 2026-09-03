@@ -1,136 +1,137 @@
 ---
 name: ui
-description: Use when the user asks to build a landing page, hero section, marketing site, dashboard, mobile app screen, pricing page, or any frontend they want to feel premium and not look AI-generated. Triggers on phrases like "build me a UI", "design a landing page", "make a hero", "make this look premium", "create a dashboard", "build a marketing site", or when output needs to compete with award-winning sites (Awwwards, SiteInspire, SEESAW caliber).
+description: 当用户要求构建落地页、首屏、营销网站、仪表盘、移动应用界面、定价页，或希望任意前端具有高品质且不显得由 AI 套模板生成时使用。也适用于“构建 UI”“设计落地页”“制作首屏”“让界面更高级”“创建仪表盘”“构建营销网站”等请求，以及需要达到 Awwwards、SiteInspire、SEESAW 等优秀作品水准的界面任务。
 ---
 
-# /ui — Premium UI Build
+# /ui：高品质 UI 构建
 
-You are about to build production-grade UI that looks like an award-winning designer made it, not an AI. This skill enforces three rules and gives you ready-to-adapt component blocks. **You do not invent layouts from scratch — you adapt blocks from `recipes/` and apply the rules.**
-
----
-
-## CONFIGURATION (override per request)
-
-- **RESTRAINT** (1-10, default 8): How aggressive the cut-everything discipline is. 1 = packed dashboard, 10 = art gallery hero.
-- **MOTION** (1-10, default 7): How much animation. 1 = static, 10 = scroll-driven cinematic. **Default 7 = motion is mandatory, not optional.**
-
-These dials override individual rules where conflicts arise. The user can override in their prompt ("with motion=8" or "low restraint").
-
-### What MOTION = 7 means in practice
-
-- Every interactive element has a hover state (use `recipes/animations.md` patterns)
-- Every section has scroll-triggered entrance animation (`fade-up`, `stagger children`, `scale-up`)
-- Every button has `:active` press feedback
-- Headlines/numbers use `pop-in` or `word-by-word` reveal
-- Tab/dropdown/menu uses one of the swap animations from `recipes/animations.md`
-- Loading states use skeleton shimmer, never static placeholder
-- A page with NO motion is a failed build — animation is the difference between "AI demo" and "premium product"
+构建具备生产质量、接近优秀设计师作品而非 AI 默认模板的 UI。本 Skill 提供三条规则和可直接改造的组件方案。**不要从零发明布局；应改造 `recipes/` 中的方案并应用下列规则。**
 
 ---
 
-## THE THREE RULES (non-negotiable)
+## 配置（每次请求可覆盖）
 
-These came from analyzing 58 premium designs the owner manually curated. Every premium reference follows all three. Every AI-generated landing page violates them.
+- **RESTRAINT（克制程度）**（1-10，默认 8）：删减非必要元素的严格程度。1 表示信息密集的仪表盘，10 表示画廊式首屏。
+- **MOTION（动效程度）**（1-10，默认 7）：动效强度。1 表示静态，10 表示滚动驱动的电影感体验。**默认值 7 表示动效是必需项，不是可选项。**
 
-### Rule 1 — RESTRAINT IS THE SIGNAL
+发生冲突时，这两个参数优先于单项规则。用户可以在提示中覆盖，例如 `motion=8` 或“降低克制程度”。
 
-The most consistent finding across every premium reference. AI piles on; premium designers strip away.
+### MOTION = 7 的实际要求
 
-- **Hero copy ≤ 8 words.** Subtext explains. Hero just confirms.
-- **One accent color, used sparingly.** Only on CTAs, status dots, key emphasis.
-- **Backgrounds are off-white/cream, never `#ffffff`.** Use `#fafaf7`, `#f7f5f0`, or `oklch(98% 0.005 90)`.
-- **50%+ whitespace is the luxury signal.** Empty space is a feature, not a gap.
-- **Default components are AI tells.** No `<Loader2 />`. No "MOST POPULAR" pricing banners. No symmetric centered everything.
-
-> **Red flag:** If you're adding more, you're going wrong direction. Discipline is what you cut.
-
-### Rule 2 — TYPOGRAPHY IS THE DESIGN
-
-Headlines are the primary visual element. Build the page around them, not vice versa.
-
-- **Stack:** Bold grotesque sans (Inter Tight or Geist) + ONE italic-serif accent word per headline (Instrument Serif).
-- **Headline size:** 5xl to 7xl (~60-90px). No timid 32px headlines.
-- **One italic word for emphasis.** Inside the bold sans headline. Pick the word that carries meaning.
-- **Two-tone trick:** Muted-gray phrase + bold-black phrase ("Ideas to Results" / "AI-Powered Marketing.").
-- **No icons in headlines. No decorative flourishes.** The type does the work.
-
-See `tokens.md` for exact font stacks, sizes, and weights.
-
-### Rule 3 — MOTION VIA SHARED ELEMENTS
-
-Same surface morphs between states. Never hard cuts. Never separate components mounted/unmounted.
-
-- **Framer Motion `layout` + `layoutId` is the primary tool.** One persistent surface morphs between states.
-- **Springs over easings.** Never `cubic-bezier` for primary motion. Exact spring values in `tokens.md` § MOTION PRESETS.
-- **Sub-300ms transitions.** Snappy, not slow.
-- **Wild visuals always inside a calm container.** Mesh gradient inside a white card. Halftone over a steady serif headline. Containment is what makes it feel premium.
-- **Per-element stagger** via `AnimatePresence`, never bulk swap.
-- **Motion floor:** every build at MOTION ≥ 5 must satisfy Step 7's minimum motion checklist.
+- 每个交互元素都有悬停状态，使用 `recipes/animations.md` 中的模式。
+- 每个区块都有滚动触发的进入动效，例如 `fade-up`、`stagger children`、`scale-up`。
+- 每个按钮都有 `:active` 按压反馈。
+- 标题和数字使用 `pop-in` 或 `word-by-word` 揭示。
+- 标签页、下拉菜单和菜单使用 `recipes/animations.md` 中的切换动效。
+- 加载状态使用骨架屏流光，不使用静态占位符。
+- 完全没有动效的页面视为不合格；动效是“AI 演示稿”和“高品质产品”的重要差异。
 
 ---
 
-## THE PROCEDURE
+## 三条规则（不可妥协）
 
-Follow these steps **in order**. Do not skip steps.
+这些规则来自对 58 个精选高品质设计的分析。优秀参考普遍遵守这三条规则，而 AI 生成的落地页通常会违反它们。
 
-### Step 1 — IDENTIFY page type
+### 规则 1：克制本身就是品质信号
 
-Pick ONE primary type. Don't mix.
+AI 倾向不断堆叠元素，高品质设计则持续删减。
 
-| User says... | Page type | Hero recipe |
-|---|---|---|
-| "landing page", "marketing site", "SaaS site" | `saas` | `recipes/hero-saas.md` |
-| "agency", "studio", "portfolio" | `agency` | `recipes/hero-agency.md` |
-| "fintech", "currency", "money", "wallet" | `fintech` | `recipes/hero-fintech.md` |
-| "dashboard", "analytics", "admin" | `dashboard` | `recipes/dashboard-shell.md` |
-| "mobile app", "iOS", "onboarding" | `mobile` | `recipes/mobile-onboarding.md` |
+- **首屏标题不超过 8 个词。** 说明文字负责解释，标题只负责确认价值。
+- **只使用一个强调色，并保持克制。** 仅用于 CTA、状态点和关键强调。
+- **背景使用灰白或奶油白，不使用纯 `#ffffff`。** 可使用 `#fafaf7`、`#f7f5f0` 或 `oklch(98% 0.005 90)`。
+- **至少 50% 的留白是高级感信号。** 空白是设计的一部分，不是需要填满的缺口。
+- **默认组件会暴露 AI 模板感。** 不使用 `<Loader2 />`，不使用“最受欢迎”定价横幅，不要所有内容都对称居中。
 
-If unsure, **stop and ask** — picking wrong page type wastes the build.
+> **危险信号：** 如果正在不断添加元素，方向通常已经错了。设计纪律体现在删掉什么。
 
-### Step 1.5 — ROLL THE DICE (anti-repetition)
+### 规则 2：字体排版本身就是设计
 
-Before writing a single line, **silently pick ONE option from each menu below**. This forces variation across builds and prevents falling into the same default composition every time.
+标题是主要视觉元素。页面应围绕标题构建，而不是最后再把标题塞入布局。
 
-**Vibe (pick 1):**
-- Editorial Luxury — serif-led, generous whitespace, photo-driven
-- Soft Structuralism — grid-disciplined, mono-accents, brutalist-light
-- Ethereal Glass — translucent surfaces, soft glows, restrained Liquid Glass
+- **字体组合：** 粗体 grotesque 无衬线字体（Inter Tight 或 Geist）+ 每个标题中一个斜体衬线强调词（Instrument Serif）。
+- **标题字号：** 5xl 到 7xl，约 60-90px；不要使用缺乏力量的 32px 首屏标题。
+- **只斜体强调一个词。** 选择真正承载语义的词。
+- **双色处理：** 灰色弱化短语 + 黑色粗体短语，例如“从想法到结果 / AI 驱动营销”。
+- **标题中不放图标和装饰花纹。** 让字体承担视觉表达。
 
-**Hero alignment (pick 1):**
-- Centered (only if vibe = Editorial Luxury, otherwise SKIP)
-- Left-aligned text with right-side asset (mockup, image, or product shot)
-- 50/50 split (text + asset on equal columns, asymmetric content density)
+准确的字体栈、字号和字重见 `tokens.md`。
 
-**Decoration (pick 1):**
-- Photographic background (from `assets/backgrounds/`)
-- Scattered corner stickers (small marks at 2-3 corners, never in dead center)
-- Single contained accent (one shape, one glow, one element — bounded)
+### 规则 3：通过共享元素实现动效
 
-You do not show this menu to the user. You just pick and proceed.
+同一个表面应在状态之间自然变形，不要硬切换，也不要用两个分别挂载/卸载的组件假装连续。
 
-### Step 1.6 — DESIGN PLAN PREAMBLE (forces visual thinking)
+- **主要使用 Framer Motion 的 `layout` 和 `layoutId`。** 让同一个持续存在的表面在状态间变化。
+- **主要动效使用 spring，不使用 `cubic-bezier`。** 准确参数见 `tokens.md` 的动效预设。
+- **过渡时间低于 300ms。** 要干脆，不要迟缓。
+- **强视觉效果必须放在安静容器内。** 例如白色卡片中的网格渐变、稳定衬线标题上的半调纹理；容器的约束让视觉显得高级。
+- **通过 `AnimatePresence` 对单个元素做错峰动效，** 不要整块同时切换。
+- **动效下限：** 当 MOTION >= 5 时，必须满足步骤 7 的最低动效清单。
 
-Before writing a single line of code, READ `visual-thinking.md` and silently answer its 5-phase Question Gate (Composition, Light, Depth, Materiality, Polish) in your `<thinking>` block.
+---
 
-The owner has tested: every build that skipped this step shipped with floating decorations overlapping content, inconsistent light direction, no depth layering, and no "expensive moment". Answering these questions before code is what separates "good attempt" from "Awwwards-tier".
+## 执行流程
 
-**You do NOT show this thinking to the user.** It's an internal plan. But it MUST happen, and the answers MUST drive the code that follows.
+按顺序执行以下步骤，不要跳过。
 
-### Step 2 — READ the recipe + tokens
+### 步骤 1：确定页面类型
 
+只选择一个主要类型，不要混用。
+
+| 用户需求 | 页面类型 | 首屏方案 |
+| --- | --- | --- |
+| 落地页、营销网站、SaaS 网站 | `saas` | `recipes/hero-saas.md` |
+| 机构、工作室、作品集 | `agency` | `recipes/hero-agency.md` |
+| 金融科技、货币、资金、钱包 | `fintech` | `recipes/hero-fintech.md` |
+| 仪表盘、分析、管理后台 | `dashboard` | `recipes/dashboard-shell.md` |
+| 移动应用、iOS、新手引导 | `mobile` | `recipes/mobile-onboarding.md` |
+
+如果无法判断，应先询问用户。选错页面类型会让后续构建失去方向。
+
+### 步骤 1.5：随机选择视觉方向，避免重复
+
+写代码前，在下面每组中静默选择一个选项，强制不同任务产生变化，避免反复使用同一种默认构图。
+
+**氛围（选 1）：**
+
+- 编辑式奢华：衬线字体主导、充足留白、照片驱动。
+- 柔和结构主义：严格网格、等宽字体强调、轻量粗野主义。
+- 空灵玻璃质感：半透明表面、柔和辉光、克制的 Liquid Glass。
+
+**首屏对齐（选 1）：**
+
+- 居中：只在“编辑式奢华”氛围下使用。
+- 左侧文字 + 右侧素材：设备模型、图片或产品实拍。
+- 50/50 分栏：文字与素材各占一列，但内容密度保持不对称。
+
+**装饰（选 1）：**
+
+- 使用 `assets/backgrounds/` 中的照片背景。
+- 在 2-3 个角落放置小型贴纸式标记，不得放在画面正中心。
+- 使用一个受约束的强调元素：一个形状、一个辉光或一个其他元素。
+
+不要向用户展示该菜单，选择后直接继续。
+
+### 步骤 1.6：建立视觉设计计划
+
+写代码前阅读 `visual-thinking.md`，并在内部完成其中五个阶段的问题检查：构图、光线、深度、材质和打磨。答案必须影响后续代码，但不得向用户暴露内部思考过程。
+
+跳过这一步通常会导致装饰遮挡内容、光线方向不一致、缺少深度层次，以及没有明显的高品质视觉焦点。
+
+### 步骤 2：读取方案和设计令牌
+
+```text
+Read recipes/{hero}.md          # 首屏区块
+Read recipes/{features}.md      # features-bento、features-3step、features-tabs 三选一
+Read recipes/pricing-2col.md    # 需要定价时
+Read recipes/faq-pillrows.md    # 需要 FAQ 时
+Read recipes/footer-modern.md   # 始终读取
+Read tokens.md                  # 始终读取，不要自行发明颜色和字体
+Read anti-slop.md               # 始终读取，了解禁止模式
 ```
-Read recipes/{hero}.md          # hero block
-Read recipes/{features}.md      # one of: features-bento, features-3step, features-tabs
-Read recipes/pricing-2col.md    # if pricing needed
-Read recipes/faq-pillrows.md    # if FAQ needed
-Read recipes/footer-modern.md   # always
-Read tokens.md                  # always — don't invent colors/fonts
-Read anti-slop.md               # always — the patterns to NEVER use
-```
 
-Each recipe is a complete React component you adapt. **You don't write blocks from scratch. You adapt.**
+每个方案都是可改造的完整 React 组件。**不要从零编写区块，应在方案上改造。**
 
-### Step 3 — BUILD by composing recipes
+### 步骤 3：组合方案完成构建
 
 ```jsx
 <HeroSaas {...props} />
@@ -140,147 +141,145 @@ Each recipe is a complete React component you adapt. **You don't write blocks fr
 <FooterModern {...props} />
 ```
 
-Customizations allowed:
-- Copy (headline, subtext, CTA labels) — must be ≤8 word headlines
-- Accent color from tokens
-- Background image from `assets/backgrounds/` (see `recipes/backgrounds-catalog.md`)
+允许修改：
 
-Customizations forbidden:
-- Inventing new fonts (use stack from tokens)
-- Adding more colors (one accent only)
-- Removing whitespace
-- Breaking recipe structure to "improve" it — recipes are battle-tested
+- 文案，包括标题、说明和 CTA 标签；标题不得超过 8 个词。
+- 从令牌中选择强调色。
+- 从 `assets/backgrounds/` 选择背景图，参见 `recipes/backgrounds-catalog.md`。
 
-### Step 4 — REVIEW with checklist
+禁止修改：
 
-Run through `review.md` BEFORE shipping. If Playwright/browser available: take a screenshot, then verify against checklist. If anything fails — fix it, don't ship.
+- 自行引入新字体，必须使用令牌中的字体栈。
+- 增加更多颜色，只允许一个强调色。
+- 删除留白。
+- 以“改进”为由破坏经过验证的方案结构。
 
-### Step 5 — SHIP
+### 步骤 4：按清单审核
 
-Only after Step 4 passes every item. State which checklist items passed in your final message.
+交付前执行 `review.md` 中的检查。如果可以使用 Playwright 或浏览器，应截取页面并逐项检查；发现失败项必须先修复。
 
-### Step 6 — NO LAZY OUTPUT
+### 步骤 5：交付
 
-Premium builds are reproduced FULLY, not summarized. The following are BANNED in any code output:
+只有步骤 4 的全部相关检查通过后才能交付，并在最终说明中列出已完成的主要检查。
+
+### 步骤 6：禁止偷懒式输出
+
+高品质构建必须完整实现，不得在代码中使用：
 
 - `// ... rest of component`
 - `// TODO: implement`
 - `// implement here`
 - `{/* similar pattern repeated */}`
-- "for brevity..."
-- "I can provide more details on request"
-- Any ellipsis-style code skip
-- **Stripping motion code from a recipe** — `motion.div` becoming `div`, removing `AnimatePresence`, deleting `whileHover`/`whileInView`, dropping `layout`/`layoutId` props. This counts as compression and is BANNED.
-- **Omitting `recipes/animations.md` patterns** when the recipe references them. If a recipe says "use `t-fade-up` on entrance" and you ship plain divs without the class, you've stripped motion.
+- “为简洁起见”等省略表述
+- “需要时可以提供更多细节”等延后表述
+- 任何省略代码的写法
+- 删除方案中的动效代码，例如把 `motion.div` 改成 `div`、移除 `AnimatePresence`、`whileHover`、`whileInView`、`layout` 或 `layoutId`
+- 方案要求使用 `recipes/animations.md` 时，省略其中的动效模式
 
-If output approaches the token limit:
-1. Stop at a clean breakpoint (end of a component / end of a section)
-2. Output exactly: `[PAUSED — section X of Y complete. Send "continue" to resume from: <next section name>]`
-3. NEVER compress or summarize what you've already written — pause and wait
+如果一次输出容量不足，应在完整组件或完整区块结束处暂停，明确说明已经完成的部分以及下一部分名称；不得压缩或概括已经写出的代码。
 
-When adapting a recipe, reproduce it FULLY in the output. **Including all motion.** The recipe is the floor, not a sketch to abbreviate.
+改造方案时必须完整保留其必要结构和动效。方案是最低标准，不是可以随意省略的草图。
 
-### Step 7 — INJECT ANIMATIONS
+### 步骤 7：注入动效
 
-Every interactive element + every section must have animation. Pull from `recipes/animations.md` (41 patterns).
+每个交互元素和页面区块都必须有适当动效，从 `recipes/animations.md` 的 41 种模式中选择。
 
-**Minimum motion floor (for any build at MOTION ≥ 5):**
-- Hero: word-by-word reveal OR fade-up + stagger entrance for headline/subtext/CTA
-- Every CTA button: hover-glow OR shine-sweep OR magnetic, AND `:active` press-down
-- Every section: scroll-triggered fade-up entrance (intersection observer)
-- Every card: hover-tilt OR spotlight-border OR lift
-- Stats / numbers: number pop-in (animations #2 or #35)
-- Loading states: skeleton shimmer (animation #26), never static placeholder
-- Tab/dropdown/menu: use the matching swap animation from animations.md
+**当 MOTION >= 5 时的最低要求：**
 
-**If shipping a section with NO motion:** STOP. Re-read `recipes/animations.md`. Pick a pattern. Apply it. A static section is a failed section.
+- 首屏：标题逐词揭示，或标题、说明、CTA 使用 fade-up + stagger 进入。
+- 每个 CTA：使用 hover-glow、shine-sweep 或 magnetic，并包含 `:active` 按压反馈。
+- 每个区块：通过 Intersection Observer 触发 fade-up 进入。
+- 每张卡片：使用 hover-tilt、spotlight-border 或 lift。
+- 统计值和数字：使用编号 2 或 35 的数字弹入动效。
+- 加载状态：使用编号 26 的骨架屏流光，不得使用静态占位符。
+- 标签页、下拉菜单和菜单：使用对应的切换动效。
+
+如果某个区块完全没有动效，应停止并重新阅读 `recipes/animations.md`，选择合适模式后再继续。
 
 ---
 
-## QUICK REFERENCE — what the recipes contain
+## 方案速查
 
-| Recipe | When to use | Key technique |
-|---|---|---|
-| `hero-saas.md` | B2B SaaS landing | Universal hero skeleton: pill+headline+subtitle+dual-CTA+bleeding mockup |
-| `hero-agency.md` | Agency / studio | Centered editorial serif, asymmetric scattered decoration |
-| `hero-fintech.md` | Fintech / money apps | Split layout, dashboard mockup with glow underneath |
-| `features-bento.md` | Modern grid features | Mixed-size bento, rounded-3xl cards, color-matched shadows |
-| `features-3step.md` | "How it works" sections | 3 cards with sticky scroll-synced bracket tracker |
-| `features-tabs.md` | Product feature tour | Persistent stage tab system (image stays mounted, content swaps) |
-| `pricing-2col.md` | SaaS pricing | Basic vs Pro with "Currently Popular" pill + dot, gradient CTA |
-| `faq-pillrows.md` | FAQ section | Thin pill rows, never boxy accordions |
-| `footer-modern.md` | Site footer | Multi-column with giant ghost wordmark fade at bottom |
-| `dashboard-shell.md` | Admin dashboard | Page header + sidebar + content area, single-accent UI |
-| `mobile-onboarding.md` | Mobile flows | Single task per screen, vast whitespace, pill CTAs, cross-fade transitions |
-| `morphing-button.md` | Newsletter / signup CTA | Click-to-expand pill (200px → 420px) via Framer Motion `layout` |
-| `text-roll.md` | Brand-swap headline word | Vertical word-roll inside an inline pill that resizes per brand |
-| `mockups.md` | Product mockups in heroes (overview + decision tree) | Priority: bundled PNG > real screenshot > SVG frame > primitive |
-| `device-mockups-catalog.md` | **DEFAULT for product mockups** — 17 photoreal device PNGs | iPhone 16 Pro, MacBook Pro/Air, iPad Air, Apple Watch, iMac, Pixel 9, Dell XPS. Transparent WebP, ~14KB each. With screen-area coordinates. |
-| `backgrounds-catalog.md` | Hero backgrounds | 26 bundled WebP backgrounds with text-overlay strategy per category |
-| `animations.md` | **EVERY BUILD** — animation library | **41 CSS animations** (transitions.dev style). Hover, scroll-entrance, ambient, loading, text effects, toggle. Pull from this for every interactive moment. |
-| `visual-thinking.md` | EVERY BUILD — Step 1.6 forced reasoning | 5-phase Question Gate (composition / light / depth / materiality / polish), banned defaults, two-part shadow law, key-light inset, grain overlay, vignette, expensive-moment list, optical alignment notes, three pre-flight tests |
-
----
-
-## RED FLAGS — STOP and start over
-
-If you catch yourself doing any of these CATEGORIES, stop and re-open the referenced file for specifics.
-
-- ❌ **Skipping motion** — any section/button/page with zero animation. See Step 7 minimum motion floor + `recipes/animations.md`.
-- ❌ **AI-default visuals** — teal/purple accent, pure `#fff` background, purple→blue gradients, glassmorphism on cards. See `anti-slop.md` § COLOR + DECORATION.
-- ❌ **Default components** — `<Loader2 />`, "MOST POPULAR" pricing banner, checkmark feature lists, boxy `<Accordion>`, `rounded-md` shadcn buttons. See `anti-slop.md` § COMPONENT.
-- ❌ Faking a product dashboard / app screen inline with divs + gradients (use `recipes/mockups.md` device frames + primitives instead)
-- ❌ **Lazy composition** — building hero from scratch instead of adapting `recipes/hero-*.md`, centered everything, 3-equal-card features grid, empty/sparse "spacing" sections, mounting/unmounting instead of morphing.
-- ❌ **Mobile/perf killers** — `h-screen`, animating `top/left/width/height`, `useState` for continuous input, `cubic-bezier` for primary motion. See `anti-slop.md` § MOBILE + MOTION.
-- ❌ **Generic content** — emojis in UI, hero copy >8 words / >3 lines, "Jane Doe" names, "Acme" brands, filler verbs (Elevate/Unleash/Empower), round-fake numbers, Unsplash URLs. See `anti-slop.md` § CONTENT + TYPOGRAPHY.
-- ❌ **Stripping recipe motion** — removing `motion.div`, `whileHover`, `AnimatePresence`, `layout`/`layoutId`, or `t-*` classes from a recipe to "simplify".
-- ❌ **Floating decoration overlapping focal content** — sticker/note/badge `position: absolute` on top of H1/H2/big-number/CTA. See `anti-slop.md` § COMPONENT for SAFE-ZONE rule.
-- ❌ **Decorative stat-chip / metric-pill floats around mockups** — "P99 LATENCY · LIVE / 42ms" type chips dotted around the hero. Default = ZERO chips. Max 1 if it surfaces unique product info. See `anti-slop.md` § COMPONENT FLOATING-CHIP RULE.
-- ❌ **Marquee with visible loop seam (N-shape)** — items appear/restart mid-band. Track must duplicate content + animate `-50%` + use pixel-based edge mask. See `recipes/animations.md` § 25 Marquee + `anti-slop.md` § COMPONENT.
-- ❌ **Skipping responsive breakpoints** — desktop-only build that breaks at 375px / 390px / 768px. Test at all 5 breakpoints with Playwright `browser_resize`. See `tokens.md` § RESPONSIVE / FLUID SIZING.
-- ❌ **Skipping `review.md`** because "it looks fine".
-- ❌ **Skipping the `visual-thinking.md` Question Gate** (output ships visibly worse — flat depth, inconsistent light, no expensive moment).
-
-**All of these mean: STOP. Re-read the relevant rule. Adapt the right recipe.**
+| 方案 | 使用场景 | 核心技术 |
+| --- | --- | --- |
+| `hero-saas.md` | B2B SaaS 落地页 | 标签、标题、副标题、双 CTA 和出血式模型图组成的通用首屏 |
+| `hero-agency.md` | 机构或工作室 | 居中的编辑式衬线排版和不对称角落装饰 |
+| `hero-fintech.md` | 金融科技或资金应用 | 分栏布局和带底部辉光的仪表盘模型 |
+| `features-bento.md` | 现代功能网格 | 混合尺寸 Bento 网格、大圆角卡片和颜色匹配阴影 |
+| `features-3step.md` | “工作原理”区块 | 三张卡片和与滚动同步的粘性括号指示器 |
+| `features-tabs.md` | 产品功能导览 | 图片持续挂载、内容切换的阶段式标签系统 |
+| `pricing-2col.md` | SaaS 定价 | 基础版与专业版双列方案及克制的热门标记 |
+| `faq-pillrows.md` | FAQ | 细长胶囊行，不使用厚重手风琴卡片 |
+| `footer-modern.md` | 网站页脚 | 多列布局和底部渐隐的巨大文字标识 |
+| `dashboard-shell.md` | 管理后台 | 页面标题、侧边栏、内容区和单一强调色 |
+| `mobile-onboarding.md` | 移动端流程 | 每屏一个任务、大量留白、胶囊 CTA 和交叉淡入淡出 |
+| `morphing-button.md` | 订阅或注册 CTA | 通过 Framer Motion `layout` 将 200px 胶囊扩展到 420px |
+| `text-roll.md` | 标题中的品牌切换词 | 可根据文字调整尺寸的行内胶囊和垂直滚词 |
+| `mockups.md` | 首屏产品模型概览和选择树 | 优先级：内置 PNG > 真实截图 > SVG 设备框 > 基础图形 |
+| `device-mockups-catalog.md` | 产品模型默认入口 | 17 个写实透明 WebP 设备模型及屏幕区域坐标 |
+| `backgrounds-catalog.md` | 首屏背景 | 26 张内置 WebP 背景及各分类的文字叠加策略 |
+| `animations.md` | 每次构建 | 41 种 CSS 动效，包括悬停、滚动进入、环境、加载、文字和切换效果 |
+| `visual-thinking.md` | 每次构建的步骤 1.6 | 五阶段问题检查、禁止默认项、阴影规则、光线、颗粒、暗角和视觉焦点 |
 
 ---
 
-## COMMON MISTAKES
+## 危险信号：发现后停止并修正
 
-### "I'll just build the hero from scratch, the recipes are too restrictive."
+- **跳过动效：** 任一区块、按钮或页面完全没有动画。检查步骤 7 和 `recipes/animations.md`。
+- **AI 默认视觉：** 青色/紫色强调、纯白背景、紫蓝渐变、卡片玻璃拟态。检查 `anti-slop.md` 的颜色与装饰规则。
+- **默认组件：** `<Loader2 />`、“最受欢迎”横幅、勾选功能列表、厚重 Accordion、`rounded-md` shadcn 按钮。检查组件反模式。
+- 使用 div 和渐变伪造产品仪表盘或应用画面，应使用 `recipes/mockups.md` 中的设备框和基础组件。
+- **懒惰构图：** 不使用 `recipes/hero-*.md` 而从零构建首屏；所有内容居中；三个等宽功能卡；稀疏空洞区块；用挂载/卸载代替形变。
+- **移动端或性能问题：** `h-screen`、动画修改 `top/left/width/height`、连续输入使用 `useState`、主要动效使用 `cubic-bezier`。
+- **泛化内容：** UI 中使用 Emoji、首屏标题超过 8 个词或 3 行、Jane Doe、Acme、空泛动词、整齐的假数字、Unsplash URL。
+- **移除方案动效：** 删除 `motion.div`、`whileHover`、`AnimatePresence`、`layout`、`layoutId` 或 `t-*` 类。
+- **浮动装饰遮挡焦点内容：** 绝对定位的贴纸、便签或徽章覆盖 H1、H2、大数字或 CTA。遵守 SAFE-ZONE 规则。
+- **在模型图周围散布装饰性指标胶囊：** 默认数量为 0；只有展示独特产品信息时最多使用 1 个。
+- **跑马灯接缝可见：** 轨道必须复制内容、动画移动 `-50%`，并使用像素边缘遮罩。
+- **缺少响应式断点：** 必须检查 375px、390px、768px 等约定断点，优先使用 Playwright `browser_resize`。
+- 因“看起来没问题”而跳过 `review.md`。
+- 跳过 `visual-thinking.md` 的问题检查，导致深度扁平、光线冲突或缺乏高品质视觉焦点。
 
-You will produce AI-generated output. The recipes are the discipline that prevents that. **Adapt them. Don't replace them.**
-
-### "The user wants more than 8 words in the headline."
-
-Push back. Suggest moving extra context to subtext. If they insist, log a comment in the code: `// HERO COPY EXCEEDS RULE 1 — explicit user request`. Then comply.
-
-### "I need three accent colors for this brand."
-
-You don't. Pick one. The other "colors" come from photography, gradients, and the off-white background — not flat color fills.
-
-### "I need to add a section to fill space."
-
-Empty space is the design. Don't fill it. If the page legitimately needs more content, add a *real* section (testimonials, integrations, FAQ) — not a decorative one.
-
-### "Animation feels janky."
-
-You used `cubic-bezier` or you're swapping components instead of morphing. Switch to spring + `layoutId`. See `recipes/morphing-button.md`. Also confirm you're animating ONLY `transform` and `opacity` — never `top/left/width/height`.
+出现以上任一问题，都应重新阅读对应规则并改造正确的方案。
 
 ---
 
-## WHY THIS WORKS
+## 常见误区
 
-The patterns in these recipes were extracted from analyzing 58 premium designs the owner curated personally — every Awwwards-tier site, every viral X design tweet, every fintech that doesn't look like a template. Every one followed the three rules. Every AI-generated landing page violates them.
+### “方案限制太多，我直接从零构建首屏。”
 
-You do not have a creative choice here. You execute the discipline. The discipline is what looks expensive.
+这通常会产生明显的 AI 模板感。方案提供的纪律正是为了避免这一结果。应改造方案，而不是替换方案。
+
+### “用户要求标题超过 8 个词。”
+
+先建议将额外上下文移动到说明文字。如果用户坚持，则遵循用户要求，并在代码中注明：`// HERO COPY EXCEEDS RULE 1 — explicit user request`。
+
+### “品牌需要三种强调色。”
+
+仍然只选择一种平面强调色。其他颜色应来自照片、渐变和灰白背景，而不是增加更多纯色填充。
+
+### “我需要加一个区块填补空白。”
+
+留白就是设计，不要填满。确实需要更多内容时，应添加真实业务区块，例如客户证言、集成或 FAQ，而不是纯装饰区块。
+
+### “动画看起来卡顿。”
+
+通常是使用了 `cubic-bezier`，或切换组件而不是让共享元素形变。改用 spring + `layoutId`，并确认只动画化 `transform` 和 `opacity`，不要动画化 `top/left/width/height`。
 
 ---
 
-## REFERENCE FILES
+## 原理
 
-- `tokens.md` — colors, fonts, spacing, motion presets (read every build)
-- `anti-slop.md` — the AI-tell patterns to avoid in detail (read every build)
-- `review.md` — pre-ship checklist (read in Step 4)
-- `recipes/` — 14 ready-to-adapt component blocks
-- `assets/backgrounds/` — 26 bundled WebP background images
+这些方案来自对 58 个精选高品质设计的归纳，包括优秀网站、广泛传播的设计作品和不具模板感的金融科技产品。它们共同遵循上述三条规则，而 AI 默认落地页通常会违反这些规则。
+
+这里的重点不是随意发挥，而是执行设计纪律。高级感来自对选择的约束。
+
+---
+
+## 参考文件
+
+- `tokens.md`：颜色、字体、间距和动效预设；每次构建都要读取。
+- `anti-slop.md`：详细说明应避免的 AI 模板特征；每次构建都要读取。
+- `review.md`：交付前检查清单；步骤 4 读取。
+- `recipes/`：可直接改造的组件方案。
+- `assets/backgrounds/`：内置 WebP 背景图片。

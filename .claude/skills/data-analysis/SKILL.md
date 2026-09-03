@@ -1,28 +1,28 @@
 ---
 name: data-analysis
-description: Analyze structured data from databases or project files with verified queries, explicit metric definitions, and evidence-based conclusions. Use for schema inspection, SQL analysis, KPI calculations, comparisons, trends, anomalies, and any request whose answer depends on actual data.
+description: 基于数据库或项目文件中的真实数据进行可复现分析，并明确指标口径、查询范围和证据。适用于检查表结构、SQL 分析、KPI 计算、对比、趋势、异常，以及任何依赖实际数据才能回答的问题。
 ---
 
-# Data Analysis
+# 数据分析
 
-Produce reproducible analysis from real data. Never invent tables, fields, query results, or numerical conclusions.
+基于真实数据生成可复现的分析。不得虚构表、字段、查询结果或数值结论。
 
-## Workflow
+## 工作流程
 
-1. Restate the question as measurable outputs, including entity, metric, dimensions, filters, and time range.
-2. Inspect the available schema and sample only what is necessary. Do not assume field meanings from names alone when documentation is available.
-3. State the metric definition before querying. Resolve ambiguous definitions or clearly label the chosen assumption.
-4. Prefer read-only queries. Limit rows, select only needed columns, and aggregate in the database where practical.
-5. Check totals, nulls, duplicates, date boundaries, units, and obvious outliers before accepting a result.
-6. Present findings with the query scope, evidence, caveats, and a concise business interpretation.
+1. 将问题重述为可衡量的输出，明确分析对象、指标、维度、筛选条件和时间范围。
+2. 检查可用的数据结构，只抽样必要数据。有文档可查时，不得仅根据字段名称猜测含义。
+3. 查询前先说明指标口径。存在歧义时，应先消除歧义，或明确标注采用的假设。
+4. 优先执行只读查询。限制返回行数，只选择必要列，并尽可能在数据库中完成聚合。
+5. 接受结果前检查总数、空值、重复项、日期边界、单位和明显异常值。
+6. 输出查询范围、支撑证据、注意事项以及简洁的业务解读。
 
-## Database Rules
+## 数据库规则
 
-- Use the `db` MCP tools for database facts; inspect objects before executing SQL.
-- Do not execute INSERT, UPDATE, DELETE, DDL, administrative commands, or stored procedures unless the user explicitly requests and authorizes the exact write operation.
-- Never expose connection strings, credentials, secrets, or unrelated personal data.
-- If the database is unavailable, say which connection or permission is missing and stop short of fabricating an answer.
+- 数据库事实必须通过 `db` MCP 工具核实；执行 SQL 前先检查相关数据库对象。
+- 除非用户明确提出并授权具体写操作，否则不得执行 INSERT、UPDATE、DELETE、DDL、管理命令或存储过程。
+- 不得暴露连接串、凭据、密钥或与任务无关的个人数据。
+- 数据库不可用时，应说明缺少哪个连接或权限，不得编造答案。
 
-## Output
+## 输出要求
 
-Separate the answer into: metric definition, result, supporting evidence, interpretation, and limitations. Include SQL only when it helps review or reproduce the analysis.
+将答案分为：指标口径、结果、支撑证据、解读和限制。仅在有助于审核或复现分析时附上 SQL。

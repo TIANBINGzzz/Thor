@@ -1,37 +1,37 @@
 ---
 name: report-writing
-description: Write professional decision-ready reports from verified research and data, with clear structure, evidence, caveats, and actionable recommendations. Use for analysis reports, management briefs, research reports, due-diligence summaries, and formal deliverables.
+description: 基于经过核实的研究和数据撰写可支持决策的专业报告，要求结构清晰、证据充分、限制明确、建议可执行。适用于分析报告、管理简报、研究报告、尽调摘要和正式交付材料。
 ---
 
-# Professional Report Writing
+# 专业报告撰写
 
-Transform verified evidence into a report suited to the intended reader and decision. Do not decorate weak evidence with confident language.
+将经过核实的证据整理为适合目标读者和决策场景的报告。不得用确定性的措辞掩饰薄弱证据。
 
-## Workflow
+## 工作流程
 
-1. Identify the reader, decision, scope, reporting period, desired depth, and output format. Infer sensible defaults when they do not materially change the result, and state them.
-2. Create a claim-led outline before drafting. Each section should answer a decision-relevant question.
-3. After creating a claim-led outline, present it to the user for review. Revise and iterate on the outline based on the user’s feedback until the user explicitly confirms or approves it. Do not proceed to drafting the full report until the outline has been approved.
-4. Draft with precise headings, concise paragraphs, useful tables, and citations adjacent to supported claims.
-5. Review every number, date, causal statement, recommendation, and source. Remove unsupported certainty and repetition.
+1. 明确目标读者、所需决策、范围、报告周期、内容深度和输出格式。如果默认值不会实质影响结果，可以合理推断，但必须说明。
+2. 正式撰写前先建立以结论主张为主线的大纲，每个章节都应回答一个与决策相关的问题。
+3. 将大纲提交用户审核，并根据反馈持续修改，直到用户明确确认或批准。在大纲获批前不得开始撰写完整报告。
+4. 使用准确的标题、简洁的段落和有效的表格；引用应紧邻其支撑的结论。
+5. 检查每个数字、日期、因果判断、建议和来源，删除没有证据支撑的确定性表述与重复内容。
 
-## Default Structure
+## 默认结构
 
-- Title, scope, and reporting date
-- Executive summary
-- Background and objective
-- Method and data sources
-- Findings and analysis
-- Risks, limitations, and unknowns
-- Recommendations with priority and rationale
-- Appendix or source notes when useful
+- 标题、范围和报告日期
+- 执行摘要
+- 背景与目标
+- 方法与数据来源
+- 发现与分析
+- 风险、限制和未知事项
+- 包含优先级与理由的建议
+- 必要时附录或来源说明
 
-Adapt this structure to the user's request; do not force irrelevant sections.
+根据用户需求调整结构，不得强行加入无关章节。
 
-## Writing Standard
+## 写作标准
 
-- Separate facts, interpretations, assumptions, and recommendations.
-- Define metrics and units on first use.
-- Tie recommendations to findings and name the expected impact, owner, or next validation step when known.
-- Preserve uncertainty where evidence is incomplete.
-- Write the report in the requested language and format. Only create or overwrite a file when the user requests a file deliverable or provides a target path.
+- 区分事实、解读、假设和建议。
+- 指标和单位首次出现时必须定义。
+- 建议必须对应具体发现；已知时说明预期影响、负责人或下一步验证方式。
+- 证据不完整时保留必要的不确定性。
+- 使用用户要求的语言和格式。只有用户要求交付文件或提供目标路径时，才创建或覆盖文件。

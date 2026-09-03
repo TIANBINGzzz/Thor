@@ -1,14 +1,14 @@
 ---
 name: project-conventions
-description: Apply this repository's implementation and verification conventions. Use for coding, refactoring, debugging, testing, or reviewing changes in this project.
+description: 执行本仓库约定的实现和验证规范。适用于本项目中的编码、重构、调试、测试和代码审查任务。
 ---
 
-# Project Conventions
+# 项目约定
 
-Follow these conventions when the skill is invoked:
+调用本 Skill 时遵循以下约定：
 
-1. Inspect nearby code and configuration before changing files.
-2. Keep changes scoped to the requested task and preserve unrelated work.
-3. Prefer existing project patterns over introducing new dependencies.
-4. Run `npm run typecheck` after TypeScript changes.
-5. Report changed files, verification performed, and any remaining risk.
+1. 修改文件前，先检查相关代码和配置。
+2. 将改动限制在用户要求的范围内，并保留无关的已有修改。
+3. 优先复用项目现有模式，谨慎引入新依赖。
+4. 修改 TypeScript 后运行 `npm run typecheck`。
+5. 交付时说明修改的文件、执行的验证以及仍存在的风险。

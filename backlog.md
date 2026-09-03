@@ -44,7 +44,7 @@
 
 **背景**
 
-`app/session-files.mjs` 的 `sessionPromptContext()` 现在无条件下发会话目录和"产物必须写在该目录内"的约束，修好了此前"未上传文件时不告知目录、模型把报告写到项目根"的问题，并有回归测试覆盖。
+`python/local/sessions.py` 的 `session_prompt_context()` 现在无条件下发会话目录和"产物必须写在该目录内"的约束，修好了此前"未上传文件时不告知目录、模型把报告写到项目根"的问题，并有回归测试覆盖。
 
 但这是 **prompt 层的软约束**。在 `bypassPermissions` 下模型仍然可以写到任意位置，只是不再因为缺少信息而写错。
 
@@ -75,7 +75,7 @@
 
 `NO_PROXY` 必须排除百炼网关（`.aliyuncs.com`），否则国内直连流量会被绕出去。
 
-`app/agent-options.mjs` 的 system prompt 补充"WebFetch 可用但只能抓取已知 URL，不能用来搜索或发现网页，禁止猜测 URL"，避免模型重复 404 + 当成"查过了"的错误。
+Python worker 的 system prompt 补充"WebFetch 可用但只能抓取已知 URL，不能用来搜索或发现网页，禁止猜测 URL"，避免模型重复 404 + 当成"查过了"的错误。
 
 **不再需要**
 

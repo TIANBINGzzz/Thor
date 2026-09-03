@@ -19,23 +19,40 @@ import {
   isRuntimeEventResult,
   isRuntimeToolName,
   persistedMessagesToThreadMessages,
+  type RunPhase,
   type PersistedFile,
   type PersistedMessage,
 } from "../lib/assistant-ui-adapter";
-import { CheckIcon, ChevronIcon, CloseIcon, DownloadIcon, MenuIcon, MoreHorizontalIcon, MultimodalIcon, PaperclipIcon, PencilIcon, PlusIcon, SendIcon, SparkIcon, StatsIcon, TextModelIcon, TrashIcon } from "./icons";
+import { CheckIcon, ChevronIcon, CloseIcon, DatabaseIcon, DownloadIcon, MenuIcon, MoreHorizontalIcon, MultimodalIcon, PaperclipIcon, PencilIcon, PlusIcon, SendIcon, SparkIcon, StatsIcon, TextModelIcon, TrashIcon } from "./icons";
 import { BRAND } from "../lib/brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Portal } from "./Portal";
-import { SkillCreator } from "./SkillCreator";
 import { parseReferences } from "./ReferenceChips";
 
 type Session = { id: string; title: string; modelId: string; createdAt: number; updatedAt: number };
 type SessionFile = PersistedFile;
 type Preview = { file: SessionFile; text?: string; url?: string };
+type WorkflowOption = { name: string; label: string; description: string };
 type ReferenceSource = { type: string; label: string; hint: string };
 type ReferenceItem = { value: string; label: string; reference: string };
 type ReferenceTrigger = { anchor: number; end: number; source: string; query: string };
+
+const WORKFLOW_OPTIONS: WorkflowOption[] = [
+  {
+    name: "database-qa",
+    label: "双高问数",
+    description: "查询国双高项目、任务、资金和绩效",
+  },
+];
+const workflowSessionStorageKey = (sessionId: string) => `scribe-workflow:${sessionId}`;
+
+function rememberWorkflowForSession(sessionId: string, workflowName: string | null) {
+  if (typeof window === "undefined") return;
+  const key = workflowSessionStorageKey(sessionId);
+  if (workflowName) window.sessionStorage.setItem(key, workflowName);
+  else window.sessionStorage.removeItem(key);
+}
 
 function getClientId() {
   const key = "luma-client-id";
@@ -77,14 +94,18 @@ function detectReference(value: string, caret: number, sources: ReferenceSource[
 }
 
 function ReasoningPart({ text, status }: ReasoningMessagePartProps) {
-  if (!text) return null;
+  const running = status.type === "running";
+  if (!text && !running) return null;
   return (
-    <details className="runtime-detail reasoning-detail" open={status.type === "running"}>
+    <details className="runtime-detail reasoning-detail" data-running={running} open={running}>
       <summary>
-        <span>思考过程</span>
-        <small>{status.type === "running" ? "进行中" : "已完成"}</small>
+        <span className="runtime-summary-main">
+          {running && <i className="runtime-progress-dot" aria-hidden="true" />}
+          <span>{running ? "思考中" : "思考过程"}</span>
+        </span>
+        <small>{running ? "进行中" : "已完成"}</small>
       </summary>
-      <pre>{text}</pre>
+      {text && <pre>{text}</pre>}
     </details>
   );
 }
@@ -100,16 +121,36 @@ function ToolPart({ toolName, argsText, result, isError, status }: ToolCallMessa
   }
 
   const completed = result !== undefined;
+  const running = !completed && status.type === "running";
   const resultText = typeof result === "string" ? result : result === undefined ? "" : JSON.stringify(result, null, 2);
   return (
-    <details className={isError ? "runtime-detail tool-detail runtime-error" : "runtime-detail tool-detail"}>
+    <details
+      className={isError ? "runtime-detail tool-detail runtime-error" : "runtime-detail tool-detail"}
+      data-running={running}
+    >
       <summary>
-        <span>{toolName || "工具调用"}</span>
-        <small>{completed ? (isError ? "失败" : "完成") : status.type === "running" ? "运行中" : "等待结果"}</small>
+        <span className="runtime-summary-main">
+          {running && <i className="runtime-progress-dot" aria-hidden="true" />}
+          <span>{toolName || "工具调用"}</span>
+        </span>
+        <small>{completed ? (isError ? "失败" : "完成") : running ? "执行中" : "等待结果"}</small>
       </summary>
       {argsText && <pre>{argsText}</pre>}
       {resultText && <pre className="tool-result">{resultText}</pre>}
     </details>
+  );
+}
+
+function RunStatus({ phase, toolName }: { phase: RunPhase; toolName: string }) {
+  if (phase === "idle") return null;
+  const label = phase === "tool" ? "执行工具中" : phase === "reply" ? "生成回复" : "思考中";
+
+  return (
+    <div className="run-status" role="status" aria-live="polite">
+      <span className="run-status-pulse" aria-hidden="true" />
+      <span>{label}</span>
+      {phase === "tool" && toolName && <small>{toolName}</small>}
+    </div>
   );
 }
 
@@ -198,6 +239,9 @@ function CustomComposer({
   modelOptions,
   selectedModel,
   onModelSelect,
+  workflow,
+  onWorkflowSelect,
+  onWorkflowClear,
 }: {
   referenceSources: ReferenceSource[];
   clientId: string;
@@ -206,6 +250,9 @@ function CustomComposer({
   modelOptions: ModelOption[];
   selectedModel: ModelOption;
   onModelSelect: (model: ModelOption) => void;
+  workflow: WorkflowOption | null;
+  onWorkflowSelect: (workflowName: string) => void;
+  onWorkflowClear: () => void;
 }) {
   const [inputValue, setInputValue] = useState("");
   const [referenceTrigger, setReferenceTrigger] = useState<ReferenceTrigger | null>(null);
@@ -214,7 +261,6 @@ function CustomComposer({
   const [modelOpen, setModelOpen] = useState(false);
   const [modelIndex, setModelIndex] = useState(0);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [showSkillCreator, setShowSkillCreator] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const referenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -533,6 +579,16 @@ function CustomComposer({
             ))}
           </div>
         )}
+        {workflow && (
+          <div className="composer-workflow-chip" role="status" aria-label={`当前模式：${workflow.label}`}>
+            <DatabaseIcon />
+            <span>{workflow.label}</span>
+            <small>{workflow.description}</small>
+            <button type="button" onClick={onWorkflowClear} aria-label="退出双高问数模式">
+              <CloseIcon />
+            </button>
+          </div>
+        )}
         <ComposerPrimitive.Input
           ref={textareaRef}
           placeholder="输入消息…输入 @ 引用 Skill 或依赖"
@@ -610,12 +666,12 @@ function CustomComposer({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowSkillCreator(true);
+                      onWorkflowSelect("database-qa");
                       setAddMenuOpen(false);
                     }}
                   >
-                    <SparkIcon />
-                    <span>创建 Skill</span>
+                    <DatabaseIcon />
+                    <span>双高问数</span>
                   </button>
                 </div>
               )}
@@ -690,20 +746,6 @@ function CustomComposer({
           </ComposerPrimitive.Send>
         </div>
       </ComposerPrimitive.Root>
-      {showSkillCreator && (
-        <Portal>
-          <SkillCreator
-            onClose={() => setShowSkillCreator(false)}
-            onSubmit={(name, description, scenarios) => {
-              setShowSkillCreator(false);
-              // 插入一个提示消息，让用户通过对话创建
-              const message = `帮我创建一个 Skill：\n名称: ${name}\n描述: ${description}${scenarios ? `\n场景: ${scenarios}` : ""}`;
-              setInputValue(message);
-              textareaRef.current?.focus();
-            }}
-          />
-        </Portal>
-      )}
     </div>
   );
 }
@@ -901,18 +943,35 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
   const [messageFiles, setMessageFiles] = useState<Record<number, SessionFile[]>>({});
   const [modelOptions, setModelOptions] = useState<ModelOption[]>(MODELS);
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
+  const [selectedWorkflowName, setSelectedWorkflowName] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runPhase, setRunPhase] = useState<RunPhase>("idle");
+  const [activeToolName, setActiveToolName] = useState("");
+  const activeToolsRef = useRef(new Map<string, string>());
+  const toolSequenceRef = useRef(0);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [referenceSources, setReferenceSources] = useState<ReferenceSource[]>([]);
   const [clientId] = useState(() => typeof window === "undefined" ? "" : getClientId());
   const [confirmDelete, setConfirmDelete] = useState<Session | null>(null);
 
+  const selectedWorkflow = WORKFLOW_OPTIONS.find((workflow) => workflow.name === selectedWorkflowName) || null;
+
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
+
+  // A workflow launch can cross from /chat/:id back to the home route. Carry
+  // the selected mode through the route so the new page can initialize it
+  // before the first question is submitted.
+  useEffect(() => {
+    if (initialSessionId || typeof window === "undefined") return;
+    const workflowName = new URLSearchParams(window.location.search).get("workflow");
+    if (!workflowName || !WORKFLOW_OPTIONS.some((workflow) => workflow.name === workflowName)) return;
+    queueMicrotask(() => setSelectedWorkflowName(workflowName));
+  }, [initialSessionId]);
 
   const refreshSessions = useCallback(async () => {
     if (!clientId) return;
@@ -945,7 +1004,70 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
         sessionId,
         modelId: selectedModel.id,
         clientId,
+        workflowName: selectedWorkflowName,
+        onRunStart: () => {
+          activeToolsRef.current.clear();
+          toolSequenceRef.current = 0;
+          setRunPhase("thinking");
+          setActiveToolName("");
+        },
+        onEvent: (event) => {
+          const mainScope = !event.scope || event.scope === "main";
+          if (!mainScope) return;
+
+          if (event.type === "tool_use") {
+            toolSequenceRef.current += 1;
+            const toolId = event.id || `anonymous-${toolSequenceRef.current}`;
+            activeToolsRef.current.set(toolId, event.name || "工具");
+            setRunPhase("tool");
+            setActiveToolName(event.name || "工具");
+            return;
+          }
+
+          if (event.type === "tool_progress") {
+            if (activeToolsRef.current.size > 0) setRunPhase("tool");
+            return;
+          }
+
+          if (event.type === "tool_result") {
+            if (event.id && activeToolsRef.current.has(event.id)) {
+              activeToolsRef.current.delete(event.id);
+            } else if (activeToolsRef.current.size > 0) {
+              // Older/partial SDK events may omit tool_use_id; retire the oldest pending tool.
+              const first = activeToolsRef.current.keys().next().value;
+              if (first) activeToolsRef.current.delete(first);
+            }
+            if (activeToolsRef.current.size > 0) {
+              setRunPhase("tool");
+              const remaining = Array.from(activeToolsRef.current.values()).at(-1) || "工具";
+              setActiveToolName(remaining);
+            } else {
+              setRunPhase("thinking");
+              setActiveToolName("");
+            }
+            return;
+          }
+
+          if (event.type === "thinking" || event.type === "activity") {
+            if (activeToolsRef.current.size === 0) {
+              setRunPhase("thinking");
+              if (event.type === "thinking") setActiveToolName("");
+            }
+            return;
+          }
+
+          if (event.type === "text" && activeToolsRef.current.size === 0) {
+            setRunPhase("reply");
+            setActiveToolName("");
+          }
+        },
+        onRunEnd: () => {
+          activeToolsRef.current.clear();
+          setRunPhase("idle");
+          setActiveToolName("");
+        },
         onSessionCreated: (id) => {
+          rememberWorkflowForSession(id, selectedWorkflowName);
           setSessionId(id);
           window.history.replaceState(null, "", `/chat/${id}`);
         },
@@ -954,7 +1076,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
         },
         onError: (message) => setError(message),
       }),
-    [clientId, refreshSessionFiles, refreshSessions, sessionId, selectedModel.id]
+    [clientId, refreshSessionFiles, refreshSessions, selectedWorkflowName, sessionId, selectedModel.id]
   );
 
   const runtime = useLocalRuntime(adapter);
@@ -1009,6 +1131,14 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
 
       sessionIdRef.current = initialSessionId;
       setSessionId(initialSessionId);
+      const savedWorkflowName = typeof window === "undefined"
+        ? null
+        : window.sessionStorage.getItem(workflowSessionStorageKey(initialSessionId));
+      setSelectedWorkflowName(
+        savedWorkflowName && WORKFLOW_OPTIONS.some((workflow) => workflow.name === savedWorkflowName)
+          ? savedWorkflowName
+          : null,
+      );
       setError(null);
       try {
         const data = await fetch(`/api/sessions/${initialSessionId}`, {
@@ -1045,14 +1175,20 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
     };
   }, [preview]);
 
-  async function resetChat() {
+  async function resetChat(workflowName: string | null = null) {
     sessionIdRef.current = null;
     setSessionId(null);
+    setSelectedWorkflowName(workflowName);
     setFiles([]);
     setMessageFiles({});
     setError(null);
+    setHistoryOpen(false);
     runtime.thread.reset([]);
-    router.push("/");
+    router.push(workflowName ? `/?workflow=${encodeURIComponent(workflowName)}` : "/");
+  }
+
+  function selectWorkflow(workflowName: string) {
+    void resetChat(workflowName);
   }
 
   async function renameSession(session: Session, title: string) {
@@ -1086,6 +1222,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
         headers: { "x-luma-client-id": clientId },
       });
       if (!response.ok) throw new Error("删除失败");
+      rememberWorkflowForSession(confirmDelete.id, null);
       setSessions((current) => current.filter((item) => item.id !== confirmDelete.id));
       if (confirmDelete.id === sessionId) {
         sessionIdRef.current = null;
@@ -1122,8 +1259,8 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
   }
 
   async function uploadFile(upload: File): Promise<boolean> {
-    if (upload.size > 10 * 1024 * 1024) {
-      setError("单个文件不能超过 10 MB");
+    if (upload.size > 50 * 1024 * 1024) {
+      setError("单个文件不能超过 50 MB");
       return false;
     }
     setUploading(true);
@@ -1147,6 +1284,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
         }
         activeId = data.session.id;
         sessionIdRef.current = activeId;
+        rememberWorkflowForSession(activeId, selectedWorkflowName);
         setSessionId(activeId);
         window.history.replaceState(null, "", `/chat/${activeId}`);
         await refreshSessions();
@@ -1211,7 +1349,7 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
             </button>
             {!sidebarCollapsed && <div className="brand-copy"><strong>{BRAND.displayName}</strong></div>}
           </div>
-          <button className="rail-button" onClick={resetChat} aria-label="新建对话">
+          <button className="rail-button" onClick={() => void resetChat()} aria-label="新建对话">
             <PlusIcon />
             {!sidebarCollapsed && <span>新建会话</span>}
           </button>
@@ -1257,14 +1395,16 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
             <div className="topbar-context">
               <strong>{activeSession?.title || "新会话"}</strong>
             </div>
+            <RunStatus phase={runPhase} toolName={activeToolName} />
           </header>
 
           <div className="conversation" aria-live="polite">
             {!sessionId && files.length === 0 && (
               <section className="empty-state" aria-label="新会话">
                 <span className="empty-track" aria-hidden="true" />
-                <h1>今天要完成什么？</h1>
-              </section>
+                 <h1>{selectedWorkflow ? selectedWorkflow.label : "今天要完成什么？"}</h1>
+                 {selectedWorkflow && <p className="empty-state-workflow-note">已连接国双高只读数据源，直接输入你要核对的项目、任务、资金或绩效问题。</p>}
+               </section>
             )}
 
             <ThreadPrimitive.Root>
@@ -1319,6 +1459,9 @@ export function ChatWorkspace({ initialSessionId = null }: { initialSessionId?: 
                 modelOptions={modelOptions}
                 selectedModel={selectedModel}
                 onModelSelect={selectModel}
+                workflow={selectedWorkflow}
+                onWorkflowSelect={selectWorkflow}
+                onWorkflowClear={() => void resetChat()}
               />
             </div>
           </div>

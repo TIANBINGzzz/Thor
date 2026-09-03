@@ -1,5 +1,6 @@
 node_modules/
 .env
+**/workflow.env
 *.log
 .claude/settings.local.json
 .tmp/
@@ -8,6 +9,7 @@ __pycache__/
 *.pyc
 .idea/
 .scribe-sessions/
+.scribe-runs/
 .claude/*.log
 *.tgz
 .sdk-extract-*/

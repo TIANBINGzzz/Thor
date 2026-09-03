@@ -2,21 +2,19 @@
   "name": "thor",
   "version": "1.0.0",
   "description": "Claude Agent SDK runner and web workspace configured for Anthropic-compatible model endpoints",
-  "main": "app/index.mjs",
   "scripts": {
-    "start": "node app/index.mjs",
-    "agent": "node app/index.mjs",
-    "ui": "npm run web:build && node app/ui.mjs",
-    "ui:dev": "node app/ui.mjs --dev",
-    "ui:backend": "node app/server.mjs",
+    "start": "python python/cli.py",
+    "agent": "python python/cli.py",
+    "ui": "python python/ui.py",
+    "ui:dev": "python python/ui.py --dev",
+    "ui:backend": "python python/server.py",
     "web": "npm --prefix web run dev",
     "web:start": "npm --prefix web run start",
     "web:build": "npm --prefix web run build",
     "web:test": "npm --prefix web test",
-    "db:demo": "node app/db-demo.mjs",
-    "check:app": "node --check app/index.mjs && node --check app/database.mjs && node --check app/db-demo.mjs && node --check app/agent-options.mjs && node --check app/python-agent.mjs && node --check app/sse-events.mjs && node --check app/session-files.mjs && node --check app/references.mjs && node --check app/server.mjs && node --check app/ui.mjs && py -3 -m py_compile python/agent_worker.py python/test_agent_worker.py && py -3 -m unittest discover -s python -p \"test_*.py\"",
-    "test": "npm run check:app && node --test app/*.test.mjs",
-    "create-skill": "node scripts/create-skill.mjs"
+    "db:demo": "python python/cli.py --db-demo",
+    "check:app": "python -m compileall -q python && python -m unittest discover -s python/tests -t python -p \"test_*.py\"",
+    "test": "npm run check:app"
   },
   "keywords": [
     "claude-agent-sdk",
@@ -30,10 +28,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@bytebase/dbhub": "^1.2.0",
-    "busboy": "1.6.0",
-    "dotenv": "^17.4.2",
-    "marked": "18.0.9"
+    "@bytebase/dbhub": "^1.2.0"
   },
   "overrides": {
     "@modelcontextprotocol/node": {

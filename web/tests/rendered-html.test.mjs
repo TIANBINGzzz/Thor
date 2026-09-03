@@ -65,20 +65,33 @@ test("server-renders the Thor chat shell", async (t) => {
 });
 
 test("keeps the chat and statistics entry points", async () => {
-  const [home, chat, stats, models, chatRoute, statsRoute] = await Promise.all([
+  const [home, chat, stats, models, chatRoute, statsRoute, workspace, adapter] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/chat/[sessionId]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/stats/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/models.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/sessions/[id]/chat/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/stats/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ChatWorkspace.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/assistant-ui-adapter.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(home, /<ChatWorkspace \/>/);
   assert.match(chat, /initialSessionId=\{sessionId\}/);
   assert.match(stats, /<StatsWorkspace \/>/);
   assert.match(models, /deepseek-v4-flash/);
+  assert.match(models, /qwen3\.7-flash/);
+  assert.match(models, /qwen3\.7-plus/);
   assert.match(models, /qwen3\.8-max/);
   assert.match(chatRoute, /proxyAgent/);
   assert.match(statsRoute, /proxyAgent/);
+  assert.match(workspace, /双高问数/);
+  assert.match(workspace, /onWorkflowSelect\("database-qa"\)/);
+  assert.match(workspace, /onWorkflowSelect=\{selectWorkflow\}/);
+  assert.match(workspace, /退出双高问数模式/);
+  assert.match(workspace, /onWorkflowClear=\{\(\) => void resetChat\(\)\}/);
+  assert.doesNotMatch(workspace, /rail-workflow-button/);
+  assert.match(workspace, /workflowName: selectedWorkflowName/);
+  assert.match(workspace, /scribe-workflow:/);
+  assert.match(adapter, /workflow_name: config\.workflowName/);
 });

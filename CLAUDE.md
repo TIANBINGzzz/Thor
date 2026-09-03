@@ -41,21 +41,16 @@
 
 ## 技术约定
 
-- HTTP/SSE、会话和 Web 代理运行时使用 Node.js，源码采用 ECMAScript Modules（`.mjs` / `import` / `export`）；Agent 执行使用 Python `claude-agent-sdk`
-- 应用代码放在 `app/`，项目级能力配置放在 `.claude/`
-- 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；workflow 脚本只负责协调，具体文件、命令和 MCP 操作由子代理执行
-- 密钥和数据库连接只放在 `.env`，不得写入代码、Skills、Agents、日志或报告
+- HTTP/SSE、会话、文件、引用、启动编排和 Agent 子进程均使用 Python；HTTP 层采用 FastAPI，Agent 执行使用 `claude-agent-sdk`
+- 应用后端代码放在 `python/`，项目级能力配置放在 `.claude/`；Node.js 只用于 `web/` 的 Next.js 前端、DBHub 和仍为 Node 的项目脚本
+- 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；单 Agent 的确定性 workflow 使用同名目录中的 `workflow.json` 声明 `execution.mode=direct`，由 Python 直接启动受限 SDK Run，不再经过 Skill/Workflow/子代理
+- `python/` 放应用后端、Agent SDK worker 和可复用运行时方法；workflow 专属表范围、数据库名和 provider 模板不得放入 Python 目录
+- workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
+- workflow 的约束和语义 Markdown 必须在 `workflow.json` 的 `documents` 清单中显式登记；未登记的文件不会进入 prompt
+- `database-qa` 的语义来源维护在 DBProcessing 的 `docs/model_context`，接入时只提炼硬约束、业务口径和必要字段；`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照只作人工核验，不注入 prompt
+- `database-qa` 默认是国双高口径：项目/资金/绩效按有效项目标记，纯任务统计按任务标记；标记不一致必须披露，不能静默用另一种标记排除数据
+- 真实问数验证必须使用临时进程环境和只读 SQL，对照独立基准；不得把真实凭据、租户值、内部 ID 或结果明细写入仓库
 - 架构决策写入 `docs/ADR/`，实现细节写代码注释，项目结构变化同步更新 `README.md`
-
-## 工作方式
-
-- 回答项目事实前先读取相关文件，不凭空猜测
-- 数据分析优先使用 `data-analysis` Skill；检索问答使用 `rag-answer`；专业报告使用 `report-writing`
-- 复杂任务可分别委派给 `researcher`、`data-analyst` 和 `writer` 子代理，再由主代理汇总
-- 需要可重复的研究、数据核验和写作流水线时，可使用 `/professional-report` workflow；运行前关注模型调用数量和成本
-- 涉及数据库时先检查 schema，再执行查询。默认只读并限制结果规模；没有明确授权时不得写入、删除或修改结构
-- 外部时效性事实需要联网验证；如果当前模型或兼容网关不能执行 WebSearch/WebFetch，要明确说明限制，不得伪造搜索结果或引用
-- 报告必须区分事实、推断、建议和未知项，并说明数据口径、时间范围与来源
 
 ## 当前安全状态
 

@@ -15,6 +15,7 @@ export const RefreshIcon = (props: IconProps) => <Icon {...props}><path d="M20 7
 export const CheckIcon = (props: IconProps) => <Icon {...props}><path d="m5 12 4 4L19 6" /></Icon>;
 export const SparkIcon = (props: IconProps) => <Icon {...props}><path d="M12 3c.5 4.4 2.6 6.5 7 7-4.4.5-6.5 2.6-7 7-.5-4.4-2.6-6.5-7-7 4.4-.5 6.5-2.6 7-7Z" /></Icon>;
 export const StatsIcon = (props: IconProps) => <Icon {...props}><path d="M5 19V9M12 19V5M19 19v-7" /></Icon>;
+export const DatabaseIcon = (props: IconProps) => <Icon {...props}><ellipse cx="12" cy="5" rx="7" ry="3" /><path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5" /><path d="M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7" /></Icon>;
 export const MenuIcon = (props: IconProps) => <Icon {...props}><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" /></Icon>;
 export const SunIcon = (props: IconProps) => <Icon {...props}><circle cx="12" cy="12" r="3.5" /><path d="M12 2.5v2M12 19.5v2M4.58 4.58l1.42 1.42M18 18l1.42 1.42M2.5 12h2M19.5 12h2M4.58 19.42 6 18M18 6l1.42-1.42" /></Icon>;
 export const MoonIcon = (props: IconProps) => <Icon {...props}><path d="M20 15.2A7.8 7.8 0 0 1 8.8 4 7.8 7.8 0 1 0 20 15.2Z" /></Icon>;

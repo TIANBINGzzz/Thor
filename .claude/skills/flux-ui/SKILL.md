@@ -1,73 +1,73 @@
 ---
 name: flux-ui
-description: Design, redesign, or implement product interfaces using the Flux UI design language: dark-first minimal technology aesthetics, precise typography and spacing, restrained depth, one accent color, dense but calm information hierarchy, and purposeful high-quality motion. Use for dashboards, SaaS apps, AI tools, developer tools, data products, landing pages, component libraries, design-system work, or requests for a clean futuristic/technical UI.
+description: 使用 Flux UI 设计语言设计、改版或实现产品界面：深色优先的极简科技美学、准确的字体与间距、克制的层次、单一强调色、紧凑但安静的信息层级，以及有明确目的的高质量动效。适用于仪表盘、SaaS 应用、AI 工具、开发者工具、数据产品、落地页、组件库、设计系统，以及简洁、未来感或技术感界面需求。
 ---
 
 # Flux UI
 
-Build interfaces that feel precise, calm, technical, and alive.
+构建准确、安静、专业且富有生命力的界面。
 
-Flux UI is not cyberpunk. It avoids visual noise, decorative neon, excessive glassmorphism, random gradients, and motion without purpose.
+Flux UI 不是赛博朋克风格。避免视觉噪音、装饰性霓虹、过度玻璃拟态、随意渐变和没有目的的动效。
 
-## Core rules
+## 核心规则
 
-1. Use a dark-first neutral foundation with one primary accent.
-2. Create hierarchy with spacing, typography, borders, surface elevation, and motion before adding decoration.
-3. Keep geometry precise: consistent grid, radii, icon sizes, and alignment.
-4. Use sans-serif typography for interface text and mono typography selectively for data, status, identifiers, shortcuts, versions, and measurements.
-5. Motion should explain state, continuity, hierarchy, or causality.
-6. Prefer subtle local effects over large global effects.
-7. Preserve accessibility: visible focus states, sufficient contrast, keyboard behavior, and reduced-motion support.
-8. Reuse existing project primitives before introducing new abstractions or dependencies.
-9. Do not redesign unrelated areas unless the task requires it.
-10. Do not add placeholder copy, demo panels, explanatory banners, or decorative controls that the product does not need.
+1. 使用深色优先的中性色基础，并只设置一个主要强调色。
+2. 先通过间距、字体、边框、表面层级和动效建立信息层级，再考虑装饰。
+3. 保持几何规则准确：统一网格、圆角、图标尺寸和对齐方式。
+4. 界面文字使用无衬线字体；等宽字体只用于数据、状态、标识符、快捷键、版本和测量值。
+5. 动效必须用于解释状态、连续性、层级或因果关系。
+6. 优先使用细微的局部效果，避免大范围全局特效。
+7. 保证可访问性：焦点状态清晰、对比度充足、支持键盘操作和减少动态效果。
+8. 引入新抽象或依赖前，先复用项目已有基础组件。
+9. 除非任务需要，否则不要改版无关区域。
+10. 不要加入产品不需要的占位文案、演示面板、说明横幅或装饰性控件。
 
-## Workflow
+## 工作流程
 
-When asked to create or modify UI:
+创建或修改 UI 时：
 
-1. Inspect the existing stack, layout conventions, component primitives, design tokens, icon library, and animation library.
-2. Preserve the project's framework and architecture unless the user asks for a migration.
-3. Identify the primary user task and the dominant information hierarchy.
-4. Read the relevant Flux references below before implementing.
-5. Establish or map design tokens before styling many components.
-6. Build from primitives to composed patterns; avoid one-off values.
-7. Add motion after layout and states are correct.
-8. Implement responsive, hover, focus-visible, active, disabled, loading, empty, and error states where relevant.
-9. Respect `prefers-reduced-motion`.
-10. Review the result against the anti-patterns before finishing.
+1. 检查现有技术栈、布局约定、基础组件、设计令牌、图标库和动效库。
+2. 除非用户要求迁移，否则保留项目现有框架和架构。
+3. 确定用户的首要任务和主要信息层级。
+4. 实现前阅读下方相关的 Flux 参考资料。
+5. 在批量设置组件样式前，先建立或映射设计令牌。
+6. 从基础组件逐步组合为完整模式，避免一次性魔法值。
+7. 布局和状态正确后再添加动效。
+8. 根据需要实现响应式、悬停、焦点可见、按下、禁用、加载、空数据和错误状态。
+9. 遵守 `prefers-reduced-motion`。
+10. 完成前根据反模式清单审核结果。
 
-## Design priority
+## 设计优先级
 
-When tradeoffs arise, prioritize in this order:
+发生取舍时，按以下顺序决定：
 
-1. Usability and information clarity
-2. Consistency with the existing product
-3. Flux UI visual language
-4. Motion quality
-5. Decorative novelty
+1. 可用性和信息清晰度
+2. 与现有产品的一致性
+3. Flux UI 视觉语言
+4. 动效质量
+5. 装饰的新颖程度
 
-## Signature language
+## 标志性语言
 
-Use these motifs selectively, not everywhere:
+有选择地使用以下设计手法，不要铺满整个页面：
 
-- **Tracking Glow**: a faint pointer-following radial highlight on high-value interactive surfaces.
-- **Data Scan**: a thin scan/reveal treatment for technical loading or data arrival.
-- **Spatial Spring**: shared-position motion for active tabs, selections, segmented controls, and navigation indicators.
+- **Tracking Glow（跟随辉光）**：在高价值交互表面加入随指针移动的微弱径向高光。
+- **Data Scan（数据扫描）**：用于技术型加载或数据到达状态的细线扫描/揭示效果。
+- **Spatial Spring（空间弹簧）**：为活动标签、选择项、分段控件和导航指示器使用共享位置动效。
 
-A page normally needs zero to two signature motifs. Three is reserved for highly expressive surfaces such as a product landing hero.
+一个页面通常使用 0 到 2 种标志性手法。只有产品落地页首屏等高度表现型界面才可以使用 3 种。
 
-## Required references
+## 必读参考资料
 
-- Read [references/design-tokens.md](references/design-tokens.md) when choosing color, spacing, radius, type, border, shadow, or layout values.
-- Read [references/motion.md](references/motion.md) for transitions, springs, reveals, hover behavior, and reduced motion.
-- Read [references/components.md](references/components.md) when creating or restyling reusable UI components.
-- Read [references/patterns.md](references/patterns.md) for page-level composition.
-- Read [references/implementation.md](references/implementation.md) before adding dependencies or changing an existing frontend architecture.
-- Read [references/anti-patterns.md](references/anti-patterns.md) before final visual polish.
+- 选择颜色、间距、圆角、字体、边框、阴影或布局值时，阅读 [references/design-tokens.md](references/design-tokens.md)。
+- 处理过渡、弹簧、揭示、悬停行为和减少动态效果时，阅读 [references/motion.md](references/motion.md)。
+- 创建或重新设计可复用 UI 组件时，阅读 [references/components.md](references/components.md)。
+- 进行页面级构图时，阅读 [references/patterns.md](references/patterns.md)。
+- 添加依赖或修改现有前端架构前，阅读 [references/implementation.md](references/implementation.md)。
+- 进行最后的视觉打磨前，阅读 [references/anti-patterns.md](references/anti-patterns.md)。
 
-## Optional starter tokens
+## 可选的初始令牌
 
-For a new web project without an established token system, adapt [templates/flux-tokens.css](templates/flux-tokens.css).
+对于尚未建立令牌系统的新 Web 项目，可以改造 [templates/flux-tokens.css](templates/flux-tokens.css)。
 
-Do not blindly overwrite an existing design system. Map existing semantic tokens to Flux principles first.
+不得直接覆盖现有设计系统。应先将现有语义令牌映射到 Flux 原则。
