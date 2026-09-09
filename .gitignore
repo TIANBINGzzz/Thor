@@ -4,6 +4,7 @@ node_modules/
 *.log
 .claude/settings.local.json
 .tmp/
+scratch/
 .venv/
 __pycache__/
 *.pyc

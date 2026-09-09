@@ -1,18 +1,9 @@
 {
   "name": "thor",
   "version": "1.0.0",
-  "description": "Claude Agent SDK runner and web workspace configured for Anthropic-compatible model endpoints",
+  "description": "Java-facing Claude Agent SDK runtime",
   "scripts": {
-    "start": "python python/cli.py",
-    "agent": "python python/cli.py",
-    "ui": "python python/ui.py",
-    "ui:dev": "python python/ui.py --dev",
-    "ui:backend": "python python/server.py",
-    "web": "npm --prefix web run dev",
-    "web:start": "npm --prefix web run start",
-    "web:build": "npm --prefix web run build",
-    "web:test": "npm --prefix web test",
-    "db:demo": "python python/cli.py --db-demo",
+    "start": "python python/server.py",
     "check:app": "python -m compileall -q python && python -m unittest discover -s python/tests -t python -p \"test_*.py\"",
     "test": "npm run check:app"
   },

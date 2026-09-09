@@ -1,2 +1,0 @@
-Luma session file preview test.
-This file belongs only to the first session.

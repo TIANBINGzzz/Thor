@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from claude_agent_sdk import create_sdk_mcp_server, tool
+from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 
 
 def _resolved(path: str | Path) -> Path:
@@ -59,13 +59,16 @@ def publish_artifact(
 
     work = _resolved(work_directory)
     deliverables = _resolved(deliverables_directory)
-    session = _resolved(session_directory)
-    source_roots = [_resolved(work_directory), _resolved(session_directory), _resolved(deliverables_directory)]
+    # ``session_directory`` is retained as an explicit boundary argument, but
+    # the session root itself is never a readable/publishable tool root.  Only
+    # the current session's work and deliverables directories are eligible;
+    # this prevents historical Run inputs from becoming artifact sources.
+    _ = _resolved(session_directory)
+    source_roots = [_resolved(work_directory), _resolved(deliverables_directory)]
     source = _source_path(source_path, source_roots)
     target_name = _safe_name(file_name)
-    source_in_session_root = source.parent == session and source.name != ".session.json"
-    if not (_inside(source, [work, deliverables]) or source_in_session_root):
-        raise ValueError("只能发布当前会话目录中的文件")
+    if not _inside(source, [work, deliverables]):
+        raise ValueError("只能发布当前会话目录中的工作或交付文件")
     if not source.is_file():
         raise FileNotFoundError(f"文件不存在：{source.name}")
 
@@ -117,7 +120,7 @@ def create_artifact_server(
     work = _resolved(work_directory)
     deliverables = _resolved(deliverables_directory)
 
-    @tool(
+    @sdk_tool(
         "publish_file",
         "将当前会话中的最终文件发布到用户可见的交付目录。中间脚本、日志和临时文件不要发布。",
         {

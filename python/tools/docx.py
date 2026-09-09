@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from docx import Document
-from claude_agent_sdk import create_sdk_mcp_server, tool
+from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 
 
 def _roots(base_dir: str | Path, additional_dirs: list[str] | None) -> list[Path]:
@@ -127,7 +127,7 @@ def replace_document(
 def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None = None):
     roots = _roots(base_dir, additional_dirs)
 
-    @tool(
+    @sdk_tool(
         "docx_inspect",
         "检查 DOCX 的段落、表格和 {{placeholder}} 占位符，返回结构化摘要。",
         {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
@@ -135,7 +135,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
     async def inspect_docx(args: dict[str, Any]) -> dict[str, Any]:
         return _text_result(inspect_document(args.get("path", ""), roots[0], [str(root) for root in roots[1:]]))
 
-    @tool(
+    @sdk_tool(
         "docx_extract_text",
         "提取 DOCX 正文、表格、页眉和页脚的纯文本。",
         {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
@@ -143,7 +143,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
     async def extract_docx(args: dict[str, Any]) -> dict[str, Any]:
         return _text_result(extract_document(args.get("path", ""), roots[0], [str(root) for root in roots[1:]]))
 
-    @tool(
+    @sdk_tool(
         "docx_replace_text",
         "按映射替换 DOCX 中的 {{placeholder}} 或普通文本，并保存为新文件。",
         {

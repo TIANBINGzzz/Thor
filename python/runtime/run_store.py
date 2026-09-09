@@ -147,16 +147,12 @@ class RunStore:
         runtime_session_ref: str | None = None,
         request: Any | None = None,
     ) -> dict[str, Any]:
-        """Create an idempotent Run record and return its public representation."""
+        """Create an idempotent internal Run record with caller-verified ownership."""
         run_id = _validate_run_id(run_id)
         if status not in STATUSES:
             raise ValueError(f"unsupported run status: {status}")
         if request is not None:
             metadata = metadata or {}
-            if hasattr(request, "context"):
-                context = request.context
-                tenant_id = tenant_id or getattr(context, "tenant_id", None)
-                user_id = user_id or getattr(context, "user_id", None)
             business_session_id = business_session_id or getattr(request, "business_session_id", None)
             turn_id = turn_id or getattr(request, "turn_id", None)
             capability_ref = capability_ref or getattr(request, "capability_ref", None)

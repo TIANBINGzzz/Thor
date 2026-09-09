@@ -14,24 +14,21 @@ import json
 import sys
 from typing import Any
 
-from claude_agent_sdk import (
-    AssistantMessage,
-    ResultMessage,
-    StreamEvent,
-    SystemMessage,
-    TextBlock,
-    ThinkingBlock,
-    ToolResultBlock,
-    ToolUseBlock,
-    UserMessage,
-    query,
-)
 from runtime.config import (
     build_options,
     isolated_sdk_environment,
     load_runtime_environment,
     missing_environment,
 )
+from runtime.claude_sdk import (
+    ClientState,
+    ClaudeSDKClient,
+    SDKError,
+    SDKTimeoutError,
+    normalize_message,
+    stream_query,
+)
+DEFAULT_TIMEOUT_MS = 300_000
 
 # Windows consoles default to GBK. The parent Python process always reads JSONL
 # as UTF-8, so force the process boundary to use one encoding end to end.
@@ -60,7 +57,8 @@ def clip(value: Any) -> str:
 
 
 def scope_of(message: Any) -> str:
-    parent = getattr(message, "parent_tool_use_id", None)
+    normalized = normalize_message(message)
+    parent = normalized.parent_tool_use_id
     return f"sub:{parent}" if parent else "main"
 
 
@@ -69,10 +67,13 @@ def emit(event: dict[str, Any]) -> None:
     sys.stdout.flush()
 
 
-def event_from_stream(message: StreamEvent, streaming: dict[str, str]) -> list[dict[str, Any]]:
-    raw = message.event or {}
+def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
+    normalized = normalize_message(message)
+    if normalized.kind != "stream":
+        return []
+    raw = normalized.data.get("event") or {}
     event_type = raw.get("type")
-    scope = f"sub:{message.parent_tool_use_id}" if message.parent_tool_use_id else "main"
+    scope = f"sub:{normalized.parent_tool_use_id}" if normalized.parent_tool_use_id else "main"
 
     if event_type == "message_start":
         message_id = (raw.get("message") or {}).get("id")
@@ -92,45 +93,59 @@ def event_from_stream(message: StreamEvent, streaming: dict[str, str]) -> list[d
     return []
 
 
-def events_from_assistant(message: AssistantMessage, streaming: dict[str, str]) -> list[dict[str, Any]]:
+def events_from_assistant(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
+    normalized = normalize_message(message)
+    if normalized.kind != "assistant":
+        return []
     events: list[dict[str, Any]] = []
-    scope = scope_of(message)
-    for block in message.content:
-        if isinstance(block, TextBlock) and block.text and streaming.get(scope) != message.message_id:
-            events.append({"type": "text", "scope": scope, "text": block.text})
-        elif isinstance(block, ThinkingBlock) and block.thinking:
-            events.append({"type": "thinking", "scope": scope, "text": block.thinking})
-        elif isinstance(block, ToolUseBlock):
+    scope = scope_of(normalized)
+    message_id = normalized.data.get("message_id")
+    for block in normalized.data.get("content") or []:
+        if not isinstance(block, dict):
+            continue
+        block_type = block.get("type")
+        if block_type == "text" and block.get("text") and streaming.get(scope) != message_id:
+            events.append({"type": "text", "scope": scope, "text": block["text"]})
+        elif block_type == "thinking" and block.get("thinking"):
+            events.append({"type": "thinking", "scope": scope, "text": block["thinking"]})
+        elif block_type == "tool_use":
             events.append({
                 "type": "tool_use",
                 "scope": scope,
-                "id": block.id,
-                "name": block.name,
-                "input": clip(block.input),
+                "id": block.get("id"),
+                "name": block.get("name"),
+                "input": clip(block.get("input")),
             })
     return events
 
 
-def events_from_user(message: UserMessage) -> list[dict[str, Any]]:
+def events_from_user(message: Any) -> list[dict[str, Any]]:
+    normalized = normalize_message(message)
+    if normalized.kind != "user":
+        return []
     events: list[dict[str, Any]] = []
-    scope = scope_of(message)
-    if not isinstance(message.content, list):
+    scope = scope_of(normalized)
+    content = normalized.data.get("content")
+    if not isinstance(content, list):
         return events
-    for block in message.content:
-        if isinstance(block, ToolResultBlock):
+    for block in content:
+        if isinstance(block, dict) and block.get("type") == "tool_result":
             events.append({
                 "type": "tool_result",
                 "scope": scope,
-                "id": block.tool_use_id,
-                "isError": block.is_error is True,
-                "text": clip(block.content),
+                "id": block.get("tool_use_id"),
+                "isError": block.get("is_error") is True,
+                "text": clip(block.get("content")),
             })
     return events
 
 
-def events_from_system(message: SystemMessage) -> list[dict[str, Any]]:
-    subtype = message.subtype
-    data = message.data or {}
+def events_from_system(message: Any) -> list[dict[str, Any]]:
+    normalized = normalize_message(message)
+    if normalized.kind != "system":
+        return []
+    subtype = normalized.data.get("subtype")
+    data = normalized.data.get("data") or {}
     scope = f"sub:{data['parent_tool_use_id']}" if data.get("parent_tool_use_id") else "main"
 
     if subtype in NOISE:
@@ -153,7 +168,7 @@ def events_from_system(message: SystemMessage) -> list[dict[str, Any]]:
             "type": "activity",
             "scope": scope,
             "label": f"子代理启动 {data.get('subagent_type')}" if data.get("subagent_type") else "任务启动",
-            "detail": data.get("description") or data.get("workflow_name") or "",
+            "detail": data.get("description") or data.get("capability_ref") or "",
         }]
     if subtype == "task_progress":
         usage = data.get("usage") or {}
@@ -168,37 +183,236 @@ def events_from_system(message: SystemMessage) -> list[dict[str, Any]]:
     return [{"type": "activity", "scope": scope, "label": f"system/{subtype}", "detail": ""}]
 
 
-def events_from_result(message: ResultMessage) -> list[dict[str, Any]]:
-    usage = message.model_usage or {}
-    input_tokens = sum(int(item.get("inputTokens", 0)) for item in usage.values())
-    output_tokens = sum(int(item.get("outputTokens", 0)) for item in usage.values())
-    ok = message.subtype == "success" and not message.is_error
+def events_from_result(message: Any) -> list[dict[str, Any]]:
+    normalized = normalize_message(message)
+    if normalized.kind != "result":
+        return []
+    data = normalized.data
+    usage = data.get("model_usage") or {}
+    input_tokens = sum(int(item.get("inputTokens", item.get("input_tokens", 0))) for item in usage.values() if isinstance(item, dict))
+    output_tokens = sum(int(item.get("outputTokens", item.get("output_tokens", 0))) for item in usage.values() if isinstance(item, dict))
+    ok = data.get("subtype") == "success" and not data.get("is_error")
     return [{
         "type": "result",
         "ok": ok,
-        "subtype": message.subtype,
-        "sessionId": message.session_id,
-        "durationMs": message.duration_ms,
-        "turns": message.num_turns,
-        "costUsd": message.total_cost_usd,
+        "subtype": data.get("subtype"),
+        "sessionId": data.get("session_id"),
+        "durationMs": data.get("duration_ms"),
+        "turns": data.get("num_turns"),
+        "costUsd": data.get("total_cost_usd"),
         "inputTokens": input_tokens,
         "outputTokens": output_tokens,
-        "message": "" if ok else "; ".join(message.errors or []) or message.result or f"执行结束：{message.subtype}",
+        "message": "" if ok else "; ".join(data.get("errors") or []) or data.get("result") or f"执行结束：{data.get('subtype')}",
     }]
 
 
 def message_events(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
-    if isinstance(message, StreamEvent):
-        return event_from_stream(message, streaming)
-    if isinstance(message, AssistantMessage):
-        return events_from_assistant(message, streaming)
-    if isinstance(message, UserMessage):
-        return events_from_user(message)
-    if isinstance(message, SystemMessage):
-        return events_from_system(message)
-    if isinstance(message, ResultMessage):
-        return events_from_result(message)
+    normalized = normalize_message(message)
+    if normalized.kind == "stream":
+        return event_from_stream(normalized, streaming)
+    if normalized.kind == "assistant":
+        return events_from_assistant(normalized, streaming)
+    if normalized.kind == "user":
+        return events_from_user(normalized)
+    if normalized.kind == "system":
+        return events_from_system(normalized)
+    if normalized.kind == "result":
+        return events_from_result(normalized)
     return []
+
+
+class ClientRunCancelled(Exception):
+    """Internal signal used to retire a Client after an explicit cancellation."""
+
+
+async def _read_client_commands(queue: asyncio.Queue[dict[str, Any]]) -> None:
+    """Read the persistent worker stdin without blocking the event loop."""
+
+    while True:
+        line = await asyncio.to_thread(sys.stdin.readline)
+        if not line:
+            await queue.put({"type": "worker_stdin_closed"})
+            return
+        try:
+            value = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            await queue.put({"type": "invalid_command"})
+            continue
+        if isinstance(value, dict):
+            await queue.put(value)
+        else:
+            await queue.put({"type": "invalid_command"})
+
+
+def _client_command_run_id(command: dict[str, Any]) -> str:
+    value = command.get("run_id") or command.get("runId") or ""
+    return str(value)
+
+
+def _client_error_code(error: BaseException) -> str:
+    if isinstance(error, SDKError):
+        return error.code
+    if isinstance(error, asyncio.TimeoutError):
+        return "sdk_timeout"
+    return "sdk_execution_error"
+
+
+async def _receive_client_response(
+    client: ClaudeSDKClient,
+    command: dict[str, Any],
+    streaming: dict[str, str],
+    command_queue: asyncio.Queue[dict[str, Any]],
+    direct_workflow: bool,
+    deadline: float | None,
+) -> str | None:
+    """Receive one response while keeping the same owner task in control.
+
+    ``client.interrupt`` is intentionally called from this coroutine's owner
+    task.  The response ``__anext__`` runs as a child task only so stdin
+    commands can wake the owner; no provider lifecycle method is called from
+    that child task.
+    """
+
+    iterator = client.receive_response(timeout_ms=None if deadline is None else max(1, int((deadline - time.monotonic()) * 1000)))
+    next_task: asyncio.Task[Any] | None = None
+    command_task: asyncio.Task[Any] | None = None
+    completed = False
+    last_session_id: str | None = None
+    try:
+        next_task = asyncio.create_task(iterator.__anext__(), name="ccsdk-client-response")
+        command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
+        while True:
+            wait_set = {next_task, command_task}
+            done, _ = await asyncio.wait(wait_set, return_when=asyncio.FIRST_COMPLETED)
+            if next_task in done:
+                command_task.cancel()
+                await asyncio.gather(command_task, return_exceptions=True)
+                command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
+                try:
+                    message = next_task.result()
+                except StopAsyncIteration as error:
+                    raise SDKError("Claude SDK response stream 提前结束") from error
+                normalized = normalize_message(message)
+                if normalized.session_id:
+                    last_session_id = normalized.session_id
+                for event in message_events(normalized, streaming):
+                    emit(direct_workflow_event(event) if direct_workflow else event)
+                if normalized.kind == "result":
+                    completed = True
+                    return last_session_id
+                next_task = asyncio.create_task(iterator.__anext__(), name="ccsdk-client-response")
+                continue
+
+            command_value = command_task.result()
+            command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
+            command_type = command_value.get("type")
+            if command_type == "client_interrupt" and _client_command_run_id(command_value) == _client_command_run_id(command):
+                await client.interrupt()
+                emit({"type": "client_control_ack", "run_id": _client_command_run_id(command), "op": "interrupt"})
+            elif command_type == "client_cancel" and _client_command_run_id(command_value) == _client_command_run_id(command):
+                await client.interrupt()
+                raise ClientRunCancelled
+            elif command_type == "client_close":
+                await client.interrupt()
+                raise ClientRunCancelled
+            elif command_type in {"client_query", "client_interrupt", "client_cancel"}:
+                emit({
+                    "type": "client_error",
+                    "run_id": _client_command_run_id(command_value),
+                    "code": "client_busy",
+                })
+    finally:
+        if command_task is not None and not command_task.done():
+            command_task.cancel()
+        if next_task is not None and not next_task.done():
+            next_task.cancel()
+        pending = [task for task in (command_task, next_task) if task is not None]
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+        try:
+            await iterator.aclose()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            if completed:
+                raise
+
+
+async def run_client(initial: dict[str, Any]) -> None:
+    """Own one persistent SDK Client and serve sequential JSONL commands."""
+
+    load_runtime_environment(initial.get("workflow_name"))
+    missing = missing_environment()
+    if missing:
+        emit({"type": "client_error", "code": "configuration_error"})
+        return
+    options = build_options(initial)
+    direct_workflow = options.tools == [] and options.strict_mcp_config
+    client = ClaudeSDKClient(
+        options,
+        connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
+        query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
+        receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
+        disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
+    )
+    command_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+    reader_task = asyncio.create_task(_read_client_commands(command_queue), name="ccsdk-client-stdin")
+    client_closed = False
+    with isolated_sdk_environment():
+        try:
+            await client.connect()
+            emit({"type": "client_ready", "state": client.state.value})
+            while True:
+                command = await command_queue.get()
+                command_type = command.get("type")
+                if command_type == "client_close" or command_type == "worker_stdin_closed":
+                    if client.state not in {ClientState.CLOSED, ClientState.NEW, ClientState.FAILED}:
+                        await client.disconnect()
+                    client_closed = True
+                    emit({"type": "client_closed", "state": client.state.value})
+                    return
+                if command_type != "client_query":
+                    emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
+                    continue
+
+                run_id = _client_command_run_id(command)
+                prompt = command.get("prompt")
+                streaming: dict[str, str] = {}
+                timeout_value = command.get("timeout_ms", command.get("timeoutMs", DEFAULT_TIMEOUT_MS))
+                if isinstance(timeout_value, bool) or not isinstance(timeout_value, int) or timeout_value <= 0:
+                    emit({"type": "client_error", "run_id": run_id, "code": "configuration_error"})
+                    continue
+                try:
+                    deadline = time.monotonic() + timeout_value / 1000
+                    async with asyncio.timeout(timeout_value / 1000):
+                        await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
+                        session_id = await _receive_client_response(
+                            client, command, streaming, command_queue, direct_workflow, deadline,
+                        )
+                    emit({"type": "client_run_completed", "run_id": run_id, "session_id": session_id})
+                except ClientRunCancelled:
+                    emit({"type": "client_run_cancelled", "run_id": run_id})
+                    return
+                except (asyncio.TimeoutError, SDKTimeoutError):
+                    emit({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"})
+                    return
+                except asyncio.CancelledError:
+                    raise
+                except Exception as error:
+                    emit({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)})
+                    return
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            emit({"type": "client_error", "code": _client_error_code(error)})
+        finally:
+            if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW, ClientState.FAILED}:
+                try:
+                    await client.disconnect()
+                except Exception:
+                    emit({"type": "client_error", "code": "sdk_cleanup_error"})
+            reader_task.cancel()
+            await asyncio.gather(reader_task, return_exceptions=True)
 
 
 def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
@@ -218,21 +432,36 @@ async def run(payload: dict[str, Any]) -> None:
     streaming: dict[str, str] = {}
     # The SDK merges ``options.env`` with the worker process environment.  Keep
     # secrets loaded for configuration construction out of the provider CLI.
+    timeout_ms = payload.get("timeout_ms", payload.get("timeoutMs", DEFAULT_TIMEOUT_MS))
     with isolated_sdk_environment():
-        async for message in query(prompt=payload["prompt"], options=options):
+        async for message in stream_query(payload["prompt"], options, timeout_ms=timeout_ms):
+            normalized = normalize_message(message)
             for event in message_events(message, streaming):
                 emit(direct_workflow_event(event) if direct_workflow else event)
 
 
 async def main() -> None:
-    for line in sys.stdin:
-        if not line.strip():
-            continue
-        try:
+    first_line = await asyncio.to_thread(sys.stdin.readline)
+    if not first_line.strip():
+        return
+    try:
+        first_payload = json.loads(first_line)
+        if isinstance(first_payload, dict) and first_payload.get("mode") == "client":
+            await run_client(first_payload)
+            return
+        await run(first_payload)
+        emit({"type": "worker_done"})
+        for line in sys.stdin:
+            if not line.strip():
+                continue
             await run(json.loads(line))
             emit({"type": "worker_done"})
-        except Exception as error:  # the parent turns this into the UI error event
-            emit({"type": "worker_error", "message": str(error)})
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        # Never forward raw provider paths, command lines or credential-shaped
+        # details through the worker protocol.
+        emit({"type": "worker_error", "message": "Python Agent worker 执行失败"})
 
 
 if __name__ == "__main__":

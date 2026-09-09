@@ -1,13 +1,14 @@
-"""FastAPI HTTP/SSE service for sessions, files, references, and Agent runs."""
+"""Java-facing Runtime service for authenticated Agent runs and SSE."""
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import logging
 import os
-import secrets
+import shutil
 import time
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -15,37 +16,19 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
-from starlette.datastructures import UploadFile
 
-from local.references import is_source, list_sources, reference_prompt_context, search_source
-from local.sessions import (
-    MAX_FILE_BYTES,
-    cleanup_session,
-    create_session,
-    decode_file_id,
-    list_session_files,
-    list_sessions,
-    load_session,
-    resolve_session_file,
-    save_uploads,
-    session_deliverables_directory,
-    session_directory,
-    session_prompt_context,
-    session_stats,
-    session_work_directory,
-    update_session,
-    update_session_model,
-    upsert_session_turn,
-    web_session,
-)
-from runtime.config import load_runtime_environment, load_workflow_config
+from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for
 from runtime.auth import JWTError, verify_run_jwt
+from runtime.file_broker import FileBroker, FetchedFile
+from runtime.capabilities import CapabilityError, resolve_capability
 from runtime.protocol import AgentRunRequest, ProtocolError
-from runtime.process import prompt_without_workflow_prefix, stream_agent, workflow_name_from_prompt
+from runtime.process import stream_agent
 from runtime.run_store import RunStore
+from runtime.session_actor import SessionActorError, SessionManager
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOGGER = logging.getLogger("ccsdk.runtime")
 
 
 load_runtime_environment()
@@ -57,7 +40,6 @@ MODELS = list(dict.fromkeys(
     for model in (os.environ.get("SCRIBE_MODELS") or os.environ.get("ANTHROPIC_MODEL") or "").split(",")
     if model.strip()
 ))
-TOKEN = os.environ.get("SCRIBE_TOKEN") or secrets.token_hex(24)
 RUNTIME_JWT_SECRET = (
     os.environ.get("CCSDK_RUNTIME_JWT_SECRET")
     or os.environ.get("SCRIBE_RUNTIME_JWT_SECRET")
@@ -71,28 +53,52 @@ RUNTIME_JWT_ISSUER = os.environ.get(
     "CCSDK_RUNTIME_JWT_ISSUER", "string-ai-center-service"
 ).strip()
 RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe-runs" / "runs.sqlite3")))
-active_runs: dict[str, asyncio.Task[Any] | None] = {}
-active_runs_lock = asyncio.Lock()
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
 internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
+SESSION_MANAGER: SessionManager | None = None
+actor_snapshots: dict[str, dict[str, Any]] = {}
 INTERNAL_BODY_BYTES = 2 * 1024 * 1024
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = max(1.0, float(os.environ.get("CCSDK_SSE_HEARTBEAT_SECONDS", "15")))
+CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    global SESSION_MANAGER
+    SESSION_MANAGER = _create_session_manager()
     yield
-    tasks = [task for task in active_runs.values() if task is not None]
-    tasks.extend(internal_tasks.values())
+    manager = SESSION_MANAGER
+    if manager is not None:
+        try:
+            await asyncio.wait_for(manager.close_all(), timeout=10)
+        except asyncio.CancelledError:
+            raise
+        except asyncio.TimeoutError:
+            LOGGER.warning("SessionManager 关闭超时")
+        except Exception as error:
+            LOGGER.warning("SessionManager 关闭失败：%s", type(error).__name__)
+    tasks = list(internal_tasks.values())
     for task in tasks:
         task.cancel()
     if tasks:
         await asyncio.gather(*tasks, return_exceptions=True)
+    SESSION_MANAGER = None
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.middleware("http")
+async def secure_runtime_api(request: Request, call_next):
+    if request.url.path == "/health":
+        return await call_next(request)
+    if not request.url.path.startswith("/internal/v1/"):
+        return _plain("接口不存在", 404)
+    if request.headers.get("origin"):
+        return _plain("校验失败", 403)
+    return await call_next(request)
 
 
 def _plain(message: str, status: int) -> PlainTextResponse:
@@ -103,23 +109,6 @@ def _plain(message: str, status: int) -> PlainTextResponse:
     )
 
 
-@app.middleware("http")
-async def secure_local_api(request: Request, call_next):
-    if request.url.path == "/health":
-        return await call_next(request)
-    host = request.headers.get("host", "")
-    if host not in {f"{HOST}:{PORT}", f"localhost:{PORT}"}:
-        return _plain("Host 不被允许", 421)
-    # Internal Runtime calls authenticate with a short-lived Run JWT at the
-    # route, not with the browser's local x-scribe-token header.  Keep Origin
-    # blocked because this endpoint is Java-to-Python server traffic.
-    if request.url.path.startswith("/internal/v1/"):
-        if request.headers.get("origin"):
-            return _plain("校验失败", 403)
-        return await call_next(request)
-    if request.headers.get("origin") or request.headers.get("x-scribe-token") != TOKEN:
-        return _plain("校验失败", 403)
-    return await call_next(request)
 
 
 @app.get("/health")
@@ -127,26 +116,14 @@ async def health() -> dict[str, bool]:
     return {"ok": True}
 
 
-@app.get("/api/models")
-async def models() -> dict[str, list[str]]:
-    return {"models": MODELS}
 
 
-@app.get("/api/sources")
-async def sources() -> dict[str, Any]:
-    return {"sources": list_sources()}
 
 
-@app.get("/api/options")
-async def options(source: str = "", q: str = "", limit: str = "20", offset: str = "0"):
-    if not is_source(source):
-        return _plain("source 不在允许列表中", 400)
-    return search_source(source, q, limit=limit, offset=offset)
 
 
-@app.get("/api/sessions")
-async def sessions() -> dict[str, Any]:
-    return {"sessions": list_sessions()}
+
+
 
 
 async def _small_json(request: Request, maximum: int = MAX_PROMPT_BYTES) -> dict[str, Any]:
@@ -236,7 +213,7 @@ def _authorize_internal(
     return claims
 
 
-def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> dict[str, Any]:
+def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tuple[dict[str, Any], str]:
     if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
     capability = run_request.capability_ref or "conversation"
@@ -257,12 +234,10 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> di
     except JWTError as error:
         raise _InternalAuthError(str(error)) from error
     _require_claim_identity(claims)
-    context = run_request.context
-    if context.tenant_id is not None and claims.get("tenant") != context.tenant_id:
-        raise _InternalAuthError("租户不匹配")
-    if context.user_id is not None and claims.get("sub") != context.user_id:
-        raise _InternalAuthError("用户不匹配")
-    return claims
+    # Keep the raw Run JWT only in the in-memory task closure.  It is needed
+    # for the Java File Broker, but it must not enter RunStore or worker data
+    # that can be replayed as public events.
+    return claims, token
 
 
 def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
@@ -278,13 +253,20 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
             }
         return {"runId": run_id, "type": "phase", "payload": {"name": "response"}}
     if raw_type == "thinking":
-        return {"runId": run_id, "type": "phase", "payload": {"name": "thinking"}}
+        return {"runId": run_id, "type": "phase", "payload": {"name": "thinking", "visible": True}}
     if raw_type in {"tool_use", "tool_progress", "tool_result"}:
-        status = "finished" if raw_type == "tool_result" else "started"
+        status = {"tool_use": "started", "tool_progress": "running", "tool_result": "finished"}[raw_type]
+        payload: dict[str, Any] = {"status": status, "scope": raw.get("scope") or "main"}
+        if raw.get("id"):
+            payload["toolCallId"] = str(raw["id"])
+        if raw.get("name"):
+            payload["toolName"] = str(raw["name"])
+        if raw_type == "tool_result":
+            payload["isError"] = raw.get("isError") is True
         return {
             "runId": run_id,
-            "type": "tool.finished" if raw_type == "tool_result" else "tool.started",
-            "payload": {"status": status},
+            "type": {"tool_use": "tool.started", "tool_progress": "tool.progress", "tool_result": "tool.finished"}[raw_type],
+            "payload": payload,
         }
     if raw_type == "init":
         return {"runId": run_id, "type": "phase", "payload": {"name": "started"}}
@@ -298,57 +280,21 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
         return {
             "runId": run_id,
             "type": "run.completed" if ok else "run.failed",
-            "payload": usage,
+            "payload": usage if ok else {**usage, "code": "sdk_execution_error"},
         }
     if raw_type == "error":
         return {"runId": run_id, "type": "run.failed", "payload": {"code": "runtime_error"}}
     return {"runId": run_id, "type": "phase", "payload": {"name": "working"}}
 
 
-def _public_legacy_event(raw: dict[str, Any]) -> dict[str, Any]:
-    """Keep the old local UI event names while removing sensitive details."""
-    kind = str(raw.get("type") or "activity")
-    if kind == "text":
-        return {"type": "text", "scope": raw.get("scope", "main"), "text": str(raw.get("text") or "")}
-    if kind == "thinking":
-        return {"type": "thinking", "scope": raw.get("scope", "main")}
-    if kind == "tool_use":
-        return {
-            "type": "tool_use",
-            "scope": raw.get("scope", "main"),
-            "id": raw.get("id"),
-            "name": str(raw.get("name") or "tool")[:160],
-        }
-    if kind == "tool_result":
-        return {"type": "tool_result", "scope": raw.get("scope", "main"), "id": raw.get("id"), "isError": raw.get("isError") is True}
-    if kind == "init":
-        return {
-            "type": "init",
-            "model": raw.get("model"),
-            "tools": raw.get("tools", 0),
-            "skills": [],
-            "agents": [],
-            "commands": [],
-        }
-    if kind == "result":
-        return {
-            "type": "result",
-            "ok": raw.get("ok") is True,
-            "durationMs": raw.get("durationMs"),
-            "turns": raw.get("turns"),
-            "inputTokens": raw.get("inputTokens", 0),
-            "outputTokens": raw.get("outputTokens", 0),
-        }
-    if kind == "activity":
-        return {"type": "activity", "scope": raw.get("scope", "main"), "label": str(raw.get("label") or "working")[:160]}
-    if kind == "tool_progress":
-        return {"type": "tool_progress", "scope": raw.get("scope", "main")}
-    if kind == "error":
-        # Provider errors may contain URLs, command lines or credential
-        # fragments.  The local compatibility API has the same public
-        # boundary as the Java bridge, so expose only a stable message.
-        return {"type": "error", "message": "Agent 执行失败"}
-    return {"type": "activity", "scope": "main", "label": "working"}
+def _public_run(run: dict[str, Any]) -> dict[str, Any]:
+    """Keep storage and provider bookkeeping outside the Java response."""
+    result = {key: run[key] for key in ("runId", "status", "lastSequence")}
+    if run.get("error"):
+        result["error"] = run["error"]
+    return result
+
+
 
 
 async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any]:
@@ -361,43 +307,182 @@ async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[st
     return stored
 
 
-def _internal_worker_payload(run_request: AgentRunRequest, run_directory: Path) -> dict[str, Any]:
-    model = run_request.runtime.model or (MODELS[0] if MODELS else "")
+def _create_session_manager() -> SessionManager:
+    return SessionManager(
+        on_public_event=_handle_client_public_event,
+        on_state=_handle_actor_state,
+        idle_ttl_ms=max(1_000, int(os.environ.get("CCSDK_CLIENT_IDLE_TTL_MS", "300000"))),
+    )
+
+
+async def _handle_actor_state(snapshot: dict[str, Any]) -> None:
+    session_key = snapshot.get("sessionKey")
+    if isinstance(session_key, str) and session_key:
+        actor_snapshots[session_key] = dict(snapshot)
+async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
+    provider_session = raw.get("sessionId") or raw.get("session_id")
+    if provider_session:
+        try:
+            RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
+        except (KeyError, ValueError):
+            LOGGER.warning("无法保存 Client session 引用：run=%s", run_id)
+    public = _public_internal_event(run_id, raw)
+    await _publish_internal_event(run_id, public)
+    if public["type"] == "run.completed":
+        RUN_STORE.update_status(run_id, "succeeded")
+    elif public["type"] == "run.failed":
+        RUN_STORE.update_status(run_id, "failed", error=str(public.get("payload", {}).get("code") or "runtime_error"))
+
+
+def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) -> str:
+    tenant = claims["tenant"]
+    user = claims["sub"]
+    business = str(run_request.business_session_id or claims.get("businessSessionId") or run_request.run_id)
+    capability = str(run_request.capability_ref or "conversation")
+    return f"{tenant}:{user}:{business}:{capability}"
+
+
+def _client_session_directory(session_key: str) -> Path:
+    digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
+    directory = (CLIENT_SESSION_ROOT / digest).resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def _runtime_input_directory(
+    runtime_mode: str,
+    run_directory: Path,
+    session_directory: Path | None,
+) -> Path:
+    if runtime_mode == "client":
+        if session_directory is None:
+            raise ValueError("Client Runtime 缺少 Session Workspace")
+        return (session_directory / ".current-input").resolve()
+    return (run_directory / "input").resolve()
+
+
+def _clear_runtime_input(directory: Path) -> None:
+    """Remove only Runtime-owned temporary input entries and recreate the root."""
+
+    directory = directory.resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    for child in tuple(directory.iterdir()):
+        try:
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink(missing_ok=True)
+        except OSError:
+            LOGGER.warning("Runtime 临时输入清理失败：%s", child.name)
+
+
+def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
+    credentials = run_request.credentials.platform_bearer
+    credential_digest = hashlib.sha256(credentials.encode("utf-8")).hexdigest() if credentials else ""
+    stable = {
+        "capabilityRef": run_request.capability_ref or "conversation",
+        "workflow": payload.get("workflow_name"),
+        "model": payload.get("model"),
+        "skills": payload.get("skill_refs") or [],
+        "credentialDigest": credential_digest,
+    }
+    return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
+    capability = resolve_capability(run_request.capability_ref)
+    workflow_config = load_workflow_config(capability.workflow_ref)
+    mode = runtime_mode_for(run_request.capability_ref, workflow_config)
+    return mode
+
+
+def _remaining_timeout_ms(deadline: float) -> int:
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if remaining <= 0:
+        raise asyncio.TimeoutError
+    return remaining
+
+
+async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any], workspace: Path,
+                           runtime_bearer: str | None, deadline: float) -> tuple[FetchedFile, ...]:
+    if not run_request.input.attachment_refs:
+        return ()
+    return await FileBroker().fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
+        tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
+        bearer_token=runtime_bearer, timeout_ms=_remaining_timeout_ms(deadline))
+
+
+def _internal_worker_payload(
+    run_request: AgentRunRequest,
+    run_directory: Path,
+    *,
+    runtime_mode: str = "query",
+    session_directory: Path | None = None,
+    attachment_files: tuple[FetchedFile, ...] = (),
+) -> dict[str, Any]:
+    model = MODELS[0] if MODELS else ""
     if not model or model not in MODELS:
         raise ValueError("model 不在允许列表中")
-    work_directory = run_directory / ".work"
-    deliverables_directory = run_directory / ".deliverables"
+    if runtime_mode == "client":
+        # A persistent Client constructs its MCP servers only once.  Give it a
+        # stable session root; each Run still receives a separate directory for
+        # input/metadata and the root is the only path exposed to the Client.
+        session_directory = session_directory or run_directory
+        work_directory = session_directory / ".work"
+        deliverables_directory = session_directory / ".deliverables"
+        input_directory = session_directory / ".current-input"
+    else:
+        session_directory = session_directory or run_directory
+        work_directory = run_directory / ".work"
+        deliverables_directory = run_directory / ".deliverables"
+        input_directory = run_directory / "input"
     work_directory.mkdir(parents=True, exist_ok=True)
     deliverables_directory.mkdir(parents=True, exist_ok=True)
+    input_directory.mkdir(parents=True, exist_ok=True)
     prompt = run_request.input.text.strip()
     if not prompt and run_request.input.attachment_refs:
         prompt = "请处理本次请求中已授权的附件。"
     if not prompt:
         raise ValueError("input.text 不能为空")
-    workflow_name = (
-        run_request.execution.workflow_ref.id
-        if run_request.execution.kind == "workflow" and run_request.execution.workflow_ref
-        else None
-    )
+    if attachment_files:
+        # The SDK's DOCX tools resolve relative paths against their base cwd,
+        # so the model needs the already-authorized local handle. The absolute
+        manifest = "\n".join(
+            f"- {item.safe_name}（用途：{item.purpose}，受控路径：{item.path}）"
+            for item in attachment_files
+        )
+        prompt = (
+            f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
+        )
+    capability = resolve_capability(run_request.capability_ref)
+    workflow_name = capability.workflow_ref
     if workflow_name and load_workflow_config(workflow_name) is None:
-        raise ValueError(f"workflow 暂不支持 Python Runtime：{workflow_name}")
+        raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
     payload: dict[str, Any] = {
         "prompt": prompt,
+        "run_id": run_request.run_id,
+        "business_session_id": run_request.business_session_id,
+        "message_id": run_request.message_id,
         "workflow_name": workflow_name,
         # Keep the Java capability binding available to the worker even when
         # the capability is not backed by a directory workflow.  MCP auth and
         # other runtime policy are keyed by this stable reference.
         "capability_ref": run_request.capability_ref or "conversation",
         "model": model,
-        "resume": run_request.runtime.session_ref if run_request.runtime.continuity_policy == "resume" else None,
-        "max_turns": run_request.limits.max_turns,
+        "resume": None,
         "include_partial_messages": True,
         "cwd": str(PROJECT_ROOT),
-        "additional_directories": [str(run_directory), str(work_directory), str(deliverables_directory)],
-        "session_directory": str(run_directory),
+        "additional_directories": [
+            str(input_directory),
+            str(work_directory),
+            str(deliverables_directory),
+        ],
+        "session_directory": str(session_directory),
         "work_directory": str(work_directory),
         "deliverables_directory": str(deliverables_directory),
-        "skill_refs": [item.id for item in run_request.execution.skill_refs],
+        "skill_refs": (load_workflow_config(workflow_name) or {}).get("skills", []),
+        "runtime_mode": runtime_mode,
+        "timeout_ms": 300_000,
     }
     credentials = run_request.credentials.to_dict(include_secret=True)
     if credentials:
@@ -408,14 +493,69 @@ def _internal_worker_payload(run_request: AgentRunRequest, run_directory: Path) 
     return payload
 
 
-async def _execute_internal_run(run_request: AgentRunRequest) -> None:
+async def _execute_internal_run(
+    run_request: AgentRunRequest,
+    claims: dict[str, Any],
+    *,
+    runtime_bearer: str | None = None,
+) -> None:
     run_id = run_request.run_id
-    run_directory = (PROJECT_ROOT / ".scribe-runs" / "work" / run_id).resolve()
-    run_directory.mkdir(parents=True, exist_ok=True)
+    input_workspace: Path | None = None
+    runtime_mode: str | None = None
     try:
+        runtime_mode = _runtime_mode_for_request(run_request)
+        session_key = _client_session_key(run_request, claims) if runtime_mode == "client" else None
+        session_directory = _client_session_directory(session_key) if session_key else None
+        run_base = session_directory / "runs" if session_directory else PROJECT_ROOT / ".scribe-runs" / "work"
+        run_directory = (run_base / run_id).resolve()
+        run_directory.mkdir(parents=True, exist_ok=True)
+        input_workspace = _runtime_input_directory(runtime_mode, run_directory, session_directory)
         RUN_STORE.update_status(run_id, "running")
         await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
-        worker_payload = _internal_worker_payload(run_request, run_directory)
+        run_deadline = time.monotonic() + 300
+        attachment_files: tuple[FetchedFile, ...] = ()
+        if runtime_mode == "client":
+            # A persistent Client cannot change its SDK add_dirs after connect.
+            # Prepare the shared current-input directory inside the SessionActor,
+            # which serializes this step with the actual Client query.
+            worker_payload = _internal_worker_payload(
+                run_request,
+                run_directory,
+                runtime_mode=runtime_mode,
+                session_directory=session_directory,
+            )
+
+            async def prepare_client_run() -> dict[str, Any]:
+                _clear_runtime_input(input_workspace)
+                if not run_request.input.attachment_refs:
+                    prepared_files: tuple[FetchedFile, ...] = ()
+                else:
+                    prepared_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer, run_deadline)
+                prepared_payload = _internal_worker_payload(
+                    run_request,
+                    run_directory,
+                    runtime_mode=runtime_mode,
+                    session_directory=session_directory,
+                    attachment_files=prepared_files,
+                )
+                return {"prompt": prepared_payload["prompt"]}
+
+            async def cleanup_client_run() -> None:
+                # Accepted Client commands are cleaned inside the Actor. This
+                # keeps cleanup serialized with the next Run's preparation.
+                _clear_runtime_input(input_workspace)
+        else:
+            if run_request.input.attachment_refs:
+                attachment_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer, run_deadline)
+            worker_payload = _internal_worker_payload(
+                run_request,
+                run_directory,
+                runtime_mode=runtime_mode,
+                session_directory=session_directory,
+                attachment_files=attachment_files,
+            )
+        if runtime_mode == "client":
+            worker_payload["_credential_binding"] = _client_config_fingerprint(run_request, worker_payload)
         saw_terminal = False
 
         async def consume_agent() -> None:
@@ -426,7 +566,7 @@ async def _execute_internal_run(run_request: AgentRunRequest) -> None:
                     try:
                         RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
                     except (KeyError, ValueError):
-                        pass
+                        LOGGER.warning("无法保存 Query session 引用：run=%s", run_id)
                 public = _public_internal_event(run_id, raw)
                 await _publish_internal_event(run_id, public)
                 if public["type"] == "run.completed":
@@ -436,29 +576,75 @@ async def _execute_internal_run(run_request: AgentRunRequest) -> None:
                     saw_terminal = True
                     RUN_STORE.update_status(run_id, "failed")
 
-        # Cancelling this wait propagates through stream_agent and terminates
-        # the child worker process tree.
-        await asyncio.wait_for(consume_agent(), timeout=run_request.limits.timeout_ms / 1000)
+        if runtime_mode == "client":
+            manager = SESSION_MANAGER
+            if manager is None:
+                raise SessionActorError("Client SessionManager 未启动", code="session_manager_unavailable")
+            run_payload = {
+                "prompt": worker_payload["prompt"],
+                "run_id": run_id,
+                "business_session_id": run_request.business_session_id,
+                "message_id": run_request.message_id,
+                "capability_ref": run_request.capability_ref or "conversation",
+                "timeout_ms": _remaining_timeout_ms(run_deadline),
+            }
+            grace_ms = max(1_000, int(os.environ.get("CCSDK_CLIENT_CONTROL_GRACE_MS", "10000")))
+            outcome = await asyncio.wait_for(
+                manager.submit(
+                    session_key or run_id,
+                    worker_payload,
+                    run_id,
+                    run_payload,
+                    prepare=prepare_client_run,
+                    cleanup=cleanup_client_run,
+                ),
+                timeout=_remaining_timeout_ms(run_deadline) / 1000 + grace_ms / 1000,
+            )
+            if outcome.get("runtimeSessionRef"):
+                RUN_STORE.update_runtime_session_ref(run_id, str(outcome["runtimeSessionRef"]))
+            if outcome.get("status") == "cancelled":
+                current = RUN_STORE.get_run(run_id)
+                if current and current.get("status") not in TERMINAL_RUN_STATUSES:
+
+                    await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
+                    RUN_STORE.update_status(run_id, "cancelled")
+            elif (RUN_STORE.get_run(run_id) or {}).get("status") not in TERMINAL_RUN_STATUSES:
+                await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})
+                RUN_STORE.update_status(run_id, "succeeded")
+        else:
+            # Cancelling this wait propagates through stream_agent and terminates
+            # the child worker process tree.
+            await asyncio.wait_for(consume_agent(), timeout=_remaining_timeout_ms(run_deadline) / 1000)
         if not saw_terminal:
-            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})
-            RUN_STORE.update_status(run_id, "succeeded")
+            if runtime_mode == "query":
+                await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})
+                RUN_STORE.update_status(run_id, "succeeded")
     except asyncio.TimeoutError:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
+
             await _publish_internal_event(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": "timeout"}})
             RUN_STORE.update_status(run_id, "failed", error="timeout")
     except asyncio.CancelledError:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
+
             await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
             RUN_STORE.update_status(run_id, "cancelled")
         raise
-    except Exception:
+    except Exception as error:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
-            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": "runtime_error"}})
-            RUN_STORE.update_status(run_id, "failed", error="runtime_error")
+            code = getattr(error, "code", None) or "runtime_error"
+            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
+            RUN_STORE.update_status(run_id, "failed", error=code)
     finally:
+        # Query owns a private directory and can clean it here. Client's
+        # current-input directory is shared by the Session and is cleaned by
+        # the accepted Actor command; an outer task must never clear it while
+        # another queued/active Run may own it.
+        if input_workspace is not None and runtime_mode != "client":
+            _clear_runtime_input(input_workspace)
         async with internal_runs_lock:
             internal_tasks.pop(run_id, None)
 
@@ -468,7 +654,7 @@ async def internal_create_run(request: Request):
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
-        claims = _authorize_new_request(request, run_request)
+        claims, runtime_bearer = _authorize_new_request(request, run_request)
     except (ValueError, ProtocolError, _InternalAuthError) as error:
         status = 401 if isinstance(error, _InternalAuthError) else 400
         if isinstance(error, _InternalAuthError) and str(error) == "Runtime JWT 未配置":
@@ -477,32 +663,38 @@ async def internal_create_run(request: Request):
 
     capability = run_request.capability_ref or "conversation"
     try:
+        runtime_mode = _runtime_mode_for_request(run_request)
+        if run_request.input.attachment_refs and not resolve_capability(capability).supports_attachments:
+            return _plain("capability_does_not_support_attachments", 400)
         async with internal_runs_lock:
             existing = RUN_STORE.get_run(run_request.run_id)
             run = RUN_STORE.create_run(
                 run_request.run_id,
                 request=run_request,
-                tenant_id=(run_request.context.tenant_id or claims.get("tenant")),
-                user_id=(run_request.context.user_id or claims.get("sub")),
+                tenant_id=claims["tenant"],
+                user_id=claims["sub"],
                 business_session_id=(run_request.business_session_id or claims.get("businessSessionId")),
-                turn_id=(run_request.turn_id or claims.get("turnId")),
+
                 capability_ref=capability,
                 metadata={
-                    "requestId": run_request.request_id,
-                    "agentRef": run_request.agent_ref.id,
-                    "executionKind": run_request.execution.kind,
+                    "messageId": run_request.message_id,
+                    "runtimeMode": runtime_mode,
+                    "sessionKey": _client_session_key(run_request, claims) if runtime_mode == "client" else None,
                 },
             )
             # A process restart leaves a persisted queued/running record but
             # no asyncio task. Re-posting the same run from Java is the MVP
             # recovery handshake; it must not create a second task in-process.
             if run.get("status") not in TERMINAL_RUN_STATUSES and run_request.run_id not in internal_tasks:
-                internal_tasks[run_request.run_id] = asyncio.create_task(_execute_internal_run(run_request))
+                internal_tasks[run_request.run_id] = asyncio.create_task(
+                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer),
+                    name=f"ccsdk-run:{run_request.run_id}",
+                )
     except (KeyError, PermissionError, ValueError) as error:
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
     return JSONResponse(
         {
-            "run": run,
+            "run": _public_run(run),
             "eventsUrl": f"/internal/v1/runs/{run_request.run_id}/events",
         },
         status_code=202 if existing is None else 200,
@@ -518,7 +710,7 @@ async def internal_get_run(run_id: str, request: Request):
         _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
-    return {"run": run}
+    return {"run": _public_run(run)}
 
 
 @app.get("/internal/v1/runs/{run_id}/events")
@@ -595,285 +787,116 @@ async def internal_run_events(
     )
 
 
-@app.post("/internal/v1/runs/{run_id}/cancel")
-async def internal_cancel_run(run_id: str, request: Request):
+@app.get("/internal/v1/runs/{run_id}/artifacts")
+async def internal_artifacts(run_id: str, request: Request, name: str | None = None):
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
     try:
-        _authorize_internal(request, run, allowed_scopes={"run.cancel"}, consume_jti=True)
+        _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
+    except _InternalAuthError as error:
+        return _plain(str(error), 401)
+    metadata = run.get("metadata", {})
+    session_key = metadata.get("sessionKey")
+    root = (_client_session_directory(session_key) if session_key else PROJECT_ROOT / ".scribe-runs" / "work" / run_id) / ".deliverables"
+    if name is not None:
+        path = (root / name).resolve()
+        if path.parent != root.resolve() or path.is_symlink() or not path.is_file():
+            return _plain("文件不存在", 404)
+        return FileResponse(path, filename=path.name, headers={"x-content-type-options": "nosniff", "cache-control": "no-store"})
+    return {"files": [{"name": path.name, "size": path.stat().st_size}
+                      for path in root.iterdir() if path.is_file() and not path.is_symlink()] if root.is_dir() else []}
+
+
+async def _apply_internal_control(run_id: str, request: Request, option: str):
+    run = RUN_STORE.get_run(run_id)
+    if run is None:
+        return _plain("Run 不存在", 404)
+    try:
+        _authorize_internal(
+            request,
+            run,
+            allowed_scopes={"run.cancel", "run.control"},
+            consume_jti=True,
+        )
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
+    if option not in {"interrupt", "cancel"}:
+        return _plain("control.option 无效", 400)
     if run.get("status") in TERMINAL_RUN_STATUSES:
-        return {"run": run}
+        return {"run": _public_run(run)}
+    manager = SESSION_MANAGER
+    actor = manager.actor_for_run(run_id) if manager is not None else None
+    if actor is not None:
+        was_queued = actor.active_run_id != run_id
+        try:
+            command = manager.interrupt(run_id) if option == "interrupt" else manager.cancel(run_id)
+            await asyncio.wait_for(command, timeout=max(1, int(os.environ.get("CCSDK_CONTROL_TIMEOUT_MS", "5000"))) / 1000)
+        except SessionActorError as error:
+            return _plain(error.code, 409)
+        except asyncio.TimeoutError:
+            return _plain("Client 控制超时", 504)
+        if option == "interrupt":
+            return {"run": _public_run(RUN_STORE.get_run(run_id))}
+        if was_queued:
+
+            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
+            RUN_STORE.update_status(run_id, "cancelled")
+        task = internal_tasks.get(run_id)
+        if task is not None and not task.done():
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=5)
+            except asyncio.TimeoutError:
+                LOGGER.warning("Client cancel 后 Run 仍在收敛：%s", run_id)
+        return {"run": _public_run(RUN_STORE.get_run(run_id))}
     async with internal_runs_lock:
         task = internal_tasks.get(run_id)
-    if task is not None and not task.done():
+    if option == "interrupt" and task is not None and not task.done():
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    elif task is not None and not task.done():
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
     else:
-        RUN_STORE.update_status(run_id, "cancelled")
-        await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
-    return {"run": RUN_STORE.get_run(run_id)}
+        if option == "cancel":
+            RUN_STORE.update_status(run_id, "cancelled")
+            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
+    return {"run": _public_run(RUN_STORE.get_run(run_id))}
 
 
-@app.post("/api/sessions")
-async def create_session_route(request: Request):
+@app.post("/internal/v1/runs/{run_id}/control")
+async def internal_control_run(run_id: str, request: Request):
     try:
         payload = await _small_json(request, 1024)
-        model = str(payload.get("modelId") or "").strip()
-        if model and model not in MODELS:
-            return _plain("模型未配置", 400)
-        created = create_session(model=model or (MODELS[0] if MODELS else None))
-        return JSONResponse({"session": {
-            "id": created["id"],
-            "title": created["title"],
-            "modelId": created["modelId"],
-            "createdAt": created["createdAt"],
-            "updatedAt": created["updatedAt"],
-        }}, status_code=201)
-    except (ValueError, RuntimeError) as error:
-        return _plain(str(error), 400)
-
-
-@app.get("/api/sessions/{session_id}")
-async def session_route(session_id: str):
-    try:
-        return web_session(session_id)
-    except RuntimeError as error:
-        return _plain(str(error), 404)
-
-
-@app.patch("/api/sessions/{session_id}")
-async def update_session_route(session_id: str, request: Request):
-    try:
-        payload = await _small_json(request)
-        model = str(payload.get("modelId") or "").strip()
-        if model and model not in MODELS:
-            return _plain("模型未配置", 400)
-        update_session(session_id, title=payload.get("title"), model=model or None)
-        return {"ok": True}
+        if set(payload) != {"option"} or not isinstance(payload.get("option"), str):
+            return _plain("control requires option: interrupt or cancel", 400)
     except ValueError as error:
         return _plain(str(error), 400)
-    except RuntimeError as error:
-        return _plain(str(error), 404)
+    return await _apply_internal_control(run_id, request, str(payload.get("option") or ""))
 
 
-@app.delete("/api/sessions/{session_id}")
-async def delete_session_route(session_id: str):
-    removed = cleanup_session(session_id)
-    return JSONResponse({"ok": True} if removed else {"error": "会话不存在"}, status_code=200 if removed else 404)
+@app.post("/internal/v1/runs/{run_id}/cancel")
+async def internal_cancel_run(run_id: str, request: Request):
+    return await _apply_internal_control(run_id, request, "cancel")
 
 
-@app.post("/api/sessions/{session_id}/files")
-async def upload_route(session_id: str, request: Request):
-    try:
-        form = await request.form()
-        upload_files = [value for _, value in form.multi_items() if isinstance(value, UploadFile)]
-        if not upload_files:
-            return _plain("没有可上传的文件", 400)
-        uploads = []
-        for upload in upload_files:
-            try:
-                chunks = []
-                size = 0
-                while chunk := await upload.read(1024 * 1024):
-                    size += len(chunk)
-                    if size > MAX_FILE_BYTES:
-                        raise RuntimeError(f"文件 {upload.filename or '未命名文件'} 超过 {MAX_FILE_BYTES // 1024 // 1024} MB 限制")
-                    chunks.append(chunk)
-                uploads.append((upload.filename or "未命名文件", upload.content_type, b"".join(chunks)))
-            finally:
-                await upload.close()
-        saved = save_uploads(session_id, uploads)
-        data = web_session(session_id)
-        uploaded_names = set(saved.get("uploaded", []))
-        file = next((item for item in data["files"] if (decoded := decode_file_id(item["id"])) and decoded["name"] in uploaded_names), None)
-        if file is None:
-            return _plain("上传完成但文件记录不存在", 500)
-        return JSONResponse({"file": file}, status_code=201)
-    except RuntimeError as error:
-        return _plain(str(error), 400)
 
 
-@app.get("/api/files/{file_id}")
-async def download_route(file_id: str):
-    decoded = decode_file_id(file_id)
-    if decoded is None:
-        return _plain("文件不存在", 404)
-    try:
-        file = resolve_session_file(decoded["sessionId"], decoded["name"])
-    except RuntimeError as error:
-        return _plain(str(error), 404)
-    return FileResponse(
-        file["path"],
-        media_type=file["mimeType"],
-        filename=file["downloadName"],
-        headers={
-            "cache-control": "no-store",
-            "x-content-type-options": "nosniff",
-            "content-security-policy": "sandbox",
-        },
-    )
 
 
-@app.get("/api/stats")
-async def stats_route():
-    return session_stats()
 
 
-@app.post("/api/sessions/{session_id}/chat")
-async def chat_route(session_id: str, request: Request):
-    try:
-        payload = await _small_json(request)
-    except ValueError as error:
-        return _plain(str(error), 400)
-    prompt = str(payload.get("prompt") or "").strip()
-    if not prompt:
-        return _plain("prompt 不能为空", 400)
-    requested_workflow = str(payload.get("workflow_name") or payload.get("workflowName") or "").strip()
-    prefixed_workflow = workflow_name_from_prompt(prompt)
-    if requested_workflow and prefixed_workflow and requested_workflow != prefixed_workflow:
-        return _plain("workflow_name 与 prompt 前缀不一致", 400)
-    workflow_name = requested_workflow or prefixed_workflow
-    agent_prompt = prompt_without_workflow_prefix(prompt) if prefixed_workflow else prompt
-    if not agent_prompt:
-        return _plain("workflow 前缀后缺少问题", 400)
-    try:
-        files_context = session_prompt_context(session_id)
-        upload_directory = session_directory(session_id)
-        work_directory = session_work_directory(session_id)
-        deliverables_directory = session_deliverables_directory(session_id)
-        session = load_session(session_id)
-    except RuntimeError as error:
-        return _plain(str(error), 404)
-    requested_model = str(payload.get("modelId") or payload.get("model") or "").strip()
-    model = requested_model or session.get("model") or (MODELS[0] if MODELS else "")
-    if not model or model not in MODELS:
-        return _plain("model 不在允许列表中", 400)
-    async with active_runs_lock:
-        if session_id in active_runs:
-            return JSONResponse({"error": "该会话正在执行中，请等待当前任务结束", "code": "run_in_progress"}, status_code=409)
-        active_runs[session_id] = None
-    if requested_model and requested_model != session.get("model"):
-        update_session_model(session_id, requested_model)
 
-    resume = session.get("agentSessionId") or None
-    turn_started_at = int(time.time() * 1000)
-    files_before = {
-        file["name"]: f"{file['bytes']}:{file['createdAt']}"
-        for file in list_session_files(session_id)["files"]
-    }
-    associated = {
-        name
-        for turn in session["history"] if isinstance(turn, dict)
-        for field in ("files", "inputFiles")
-        for name in (turn.get(field) if isinstance(turn.get(field), list) else [])
-    }
-    last_created_at = int(session["history"][-1].get("createdAt") or 0) if session["history"] else 0
-    input_files = [
-        file["name"] for file in session["files"]
-        if file.get("source") != "generated"
-        and file["name"] not in associated
-        and (not session["history"] or int(file.get("createdAt") or 0) >= last_created_at)
-    ]
 
-    async def event_stream():
-        events: list[dict[str, Any]] = []
-        agent_session_id = resume
-        turn_id = secrets.token_hex(12)
-        turn_files: list[str] = []
-        last_persisted_count = 0
-        last_persisted_at = 0.0
-        current_task = asyncio.current_task()
-        active_runs[session_id] = current_task
 
-        def persist(force: bool = False) -> None:
-            nonlocal last_persisted_count, last_persisted_at
-            timestamp = time.monotonic()
-            if not force and len(events) != 1 and len(events) - last_persisted_count < 24 and timestamp - last_persisted_at < 0.75:
-                return
-            last_persisted_count = len(events)
-            last_persisted_at = timestamp
-            upsert_session_turn(
-                session_id,
-                turn_id=turn_id,
-                prompt=prompt,
-                events=events[-500:],
-                agent_session_id=agent_session_id,
-                model=model,
-                files=turn_files,
-                input_files=input_files,
-            )
 
-        try:
-            upsert_session_turn(
-                session_id,
-                turn_id=turn_id,
-                prompt=prompt,
-                events=[],
-                agent_session_id=agent_session_id,
-                model=model,
-                input_files=input_files,
-            )
-            references_context = reference_prompt_context(agent_prompt)
-            full_prompt = "\n\n".join(filter(None, [files_context, references_context, f"用户请求：\n{agent_prompt}"]))
-            worker_payload = {
-                "prompt": full_prompt,
-                "workflow_name": workflow_name,
-                "model": model,
-                "resume": resume,
-                "include_partial_messages": True,
-                "cwd": str(Path.cwd()),
-                "additional_directories": [upload_directory, work_directory, deliverables_directory],
-                "session_directory": upload_directory,
-                "work_directory": work_directory,
-                "deliverables_directory": deliverables_directory,
-            }
-            async for event in stream_agent(worker_payload):
-                # Keep provider session bookkeeping private, but persist and
-                # stream only the redacted compatibility event.  In
-                # particular, thinking text and tool input/result must never
-                # enter the session history.
-                if event.get("type") in {"init", "result"} and event.get("sessionId"):
-                    agent_session_id = str(event["sessionId"])
-                public_event = _public_legacy_event(event)
-                events.append(public_event)
-                persist()
-                yield f"data: {json.dumps(public_event, ensure_ascii=False)}\n\n"
-        except asyncio.CancelledError:
-            raise
-        except Exception as error:
-            event = _public_legacy_event({"type": "error", "message": str(error)})
-            events.append(event)
-            persist()
-            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-        finally:
-            try:
-                for file in list_session_files(session_id)["files"]:
-                    if file["source"] != "generated":
-                        continue
-                    before = files_before.get(file["name"])
-                    current = f"{file['bytes']}:{file['createdAt']}"
-                    if before is None or before != current or file["createdAt"] >= turn_started_at:
-                        turn_files.append(file["name"])
-                persist(force=True)
-            except RuntimeError:
-                pass
-            async with active_runs_lock:
-                active_runs.pop(session_id, None)
-        yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={"cache-control": "no-store", "x-accel-buffering": "no"},
-    )
+
+
+
 
 
 if __name__ == "__main__":
-    print(f"Agent API: http://{HOST}:{PORT}")
+    print(f"Runtime API: http://{HOST}:{PORT}")
     print(f"模型: {os.environ.get('ANTHROPIC_MODEL', '')}")
-    if not os.environ.get("SCRIBE_TOKEN"):
-        print("当前使用随机后端 token；请通过 npm run ui 启动完整界面。")
     uvicorn.run(app, host=HOST, port=PORT, log_level="warning")

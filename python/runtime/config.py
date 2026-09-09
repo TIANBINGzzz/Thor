@@ -15,12 +15,12 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from claude_agent_sdk import ClaudeAgentOptions
 from dotenv import load_dotenv
 
 from tools.artifacts import create_artifact_server
 from tools.docx import create_docx_server
 from runtime.mcp_auth import inject_mcp_authentication
+from runtime.claude_sdk import build_agent_options
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS_ROOT = PROJECT_ROOT / ".claude" / "workflows"
@@ -73,6 +73,7 @@ SDK_ENV_KEYS = {
 WORKER_CONFIG_ENV_KEYS = {
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
+    "CCSDK_CLIENT_CAPABILITIES",
     "DB_DEMO",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
@@ -240,6 +241,11 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
         raise RuntimeError(f"workflow execution 配置必须是对象：{config_path}")
     if execution.get("mode", "agent") not in {"agent", "direct"}:
         raise RuntimeError(f"workflow execution.mode 配置无效：{config_path}")
+    runtime = config.get("runtime", {})
+    if not isinstance(runtime, dict):
+        raise RuntimeError(f"workflow runtime 配置必须是对象：{config_path}")
+    if runtime.get("mode", "query") not in {"query", "client"}:
+        raise RuntimeError(f"workflow runtime.mode 配置无效：{config_path}")
     database = config.get("database")
     if database is not None:
         if not isinstance(database, dict):
@@ -263,6 +269,25 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
 def is_direct_workflow(workflow_config: dict[str, Any] | None) -> bool:
     execution = workflow_config.get("execution") if workflow_config else None
     return isinstance(execution, dict) and execution.get("mode") == "direct"
+
+
+def runtime_mode_for(capability_ref: str | None, workflow_config: dict[str, Any] | None = None) -> str:
+    """Resolve the SDK lifetime from trusted profile configuration.
+
+    The browser and legacy Java callers do not need to send a new mode field.
+    A workflow may declare its mode in ``workflow.json``; capability-only
+    profiles can use the deployment-owned allow-list.  Unknown capabilities
+    remain one-shot Query runs by default.
+    """
+
+    capability = str(capability_ref or "conversation").strip()
+    runtime = workflow_config.get("runtime") if workflow_config else None
+    if isinstance(runtime, dict) and runtime.get("mode") is not None:
+        mode = str(runtime.get("mode")).strip()
+        if mode in {"query", "client"}:
+            return mode
+        raise RuntimeError("workflow runtime.mode 配置无效")
+    return "client" if capability in _csv_environment("CCSDK_CLIENT_CAPABILITIES") else "query"
 
 
 def _workflow_database(workflow_config: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -393,7 +418,10 @@ def build_system_prompt(
     database_enabled: bool = False,
     workflow_config: dict[str, Any] | None = None,
 ) -> dict[str, str]:
-    parts = [DATABASE_APPEND if database_enabled else "遵循项目 CLAUDE.md 和已加载的项目 Skills；没有可靠证据时明确说明不确定性。"]
+    parts = [
+        "你是师创智能体（AI 师创智能体），代表师创智能体为用户提供可靠、清晰、可执行的帮助。",
+        DATABASE_APPEND if database_enabled else "遵循项目 CLAUDE.md 和已加载的项目 Skills；没有可靠证据时明确说明不确定性。",
+    ]
     tables = configured_database_tables(workflow_config)
     if database_enabled and tables:
         parts.append(f"本次问数允许的业务表仅限：{', '.join(tables)}。超出范围时明确说明，不要猜测或访问其他表。")
@@ -459,7 +487,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
         allowed_tools.append("mcp__db__*")
     if artifact_enabled and not direct_workflow:
         allowed_tools.append("mcp__artifacts__*")
-    requested_skills = payload.get("skill_refs") or []
+    requested_skills = (workflow_config or {}).get("skills", payload.get("skill_refs") or [])
     if not isinstance(requested_skills, list) or any(not isinstance(item, str) or not WORKFLOW_NAME.fullmatch(item) for item in requested_skills):
         raise RuntimeError("skill_refs 配置无效")
     if requested_skills:
@@ -474,7 +502,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
         skills = [] if direct_workflow else requested_skills
     else:
         skills = [] if direct_workflow else None
-    return ClaudeAgentOptions(
+    return build_agent_options(
         model=payload.get("model") or os.environ.get("ANTHROPIC_MODEL"),
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CCSDKScribe Python Runtime · Java 接口</title>
+<style>
+:root{--ink:#182230;--muted:#657286;--line:#e4e8ee;--soft:#f6f8fb;--blue:#2f6feb;--blue-soft:#edf4ff;--code:#20242b;--code-ink:#e9edf4;--green:#14805f;--danger:#b33b4d}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:#fff;font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+.topbar{position:sticky;top:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:58px;padding:10px 28px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.96);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;font-weight:650}.brand-mark{width:24px;height:24px;display:grid;place-items:center;border-radius:6px;color:#fff;background:var(--blue);font-size:12px;font-weight:750}.brand span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.server-bar{display:flex;align-items:center;gap:8px;min-width:0;color:var(--muted)}.server-url{max-width:min(42vw,430px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 10px;border:1px solid #d8dee8;border-radius:7px;color:var(--ink);background:var(--soft);font-family:Consolas,monospace;font-size:12px}.status{padding:3px 9px;border:1px solid #b8ead5;border-radius:7px;color:var(--green);background:#f0fcf7;font-size:12px;white-space:nowrap}
+.layout{display:grid;grid-template-columns:minmax(0,780px) 250px;gap:72px;width:min(1110px,calc(100% - 48px));margin:0 auto;padding:58px 0 100px}main{min-width:0}.eyebrow{margin:0 0 8px;color:var(--blue);font-family:Consolas,monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase}h1{margin:0;font-size:clamp(28px,4vw,40px);line-height:1.2;letter-spacing:-.03em}.lead{max-width:680px;margin:12px 0 0;color:var(--muted);font-size:15px}
+section{scroll-margin-top:82px;margin-top:58px}h2{margin:0 0 16px;padding-top:18px;border-top:1px solid var(--line);font-size:22px;line-height:1.3}h3{margin:32px 0 10px;font-size:16px;line-height:1.35}p{margin:8px 0 14px}code,.inline{padding:2px 5px;border:1px solid #dce2ea;border-radius:4px;color:#315b9e;background:var(--soft);font-family:Consolas,monospace;font-size:.92em}
+.code-wrap{position:relative;margin:14px 0 22px;overflow:hidden;border-radius:10px;background:var(--code);box-shadow:0 5px 18px rgba(22,32,48,.12)}.code-label{padding:10px 15px;border-bottom:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:650}.copy{position:absolute;top:7px;right:9px;padding:3px 8px;border:1px solid rgba(255,255,255,.2);border-radius:5px;color:#cbd5e4;background:transparent;cursor:pointer;font-size:11px}.copy:hover{color:#fff;border-color:rgba(255,255,255,.5)}pre{margin:0;overflow:auto;padding:16px;color:var(--code-ink);font:12px/1.7 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;word-break:break-word}
+table{width:100%;margin:12px 0 20px;border-collapse:collapse;font-size:13px}th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);background:var(--soft);font-size:12px;font-weight:650}td:first-child{width:28%;color:var(--ink);font:12px Consolas,monospace}
+.endpoint{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:26px 0 10px}.method{padding:2px 7px;border:1px solid #abd1ff;border-radius:5px;color:#1767cb;background:var(--blue-soft);font:700 11px Consolas,monospace}.method.post{border-color:#b8ead5;color:var(--green);background:#f0fcf7}.method.patch{border-color:#ead4a7;color:#97641b;background:#fff9ea}.method.delete{border-color:#f0c2cb;color:var(--danger);background:#fff3f5}.path{padding:0;border:0;color:var(--ink);background:transparent;font:13px Consolas,monospace}.note{margin:14px 0;padding:10px 13px;border-left:3px solid var(--blue);color:var(--muted);background:var(--blue-soft);font-size:13px}.error-table td:first-child{color:var(--danger)}
+aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);overflow:auto;padding:4px 0 8px}.toc-title{margin:0 0 11px;color:var(--muted);font-size:12px}.toc a{display:block;padding:6px 10px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;font-size:13px}.toc a:hover,.toc a.active{border-left-color:var(--blue);color:var(--blue);background:var(--blue-soft)}.mobile-toc{display:none}footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media(max-width:880px){.layout{display:block;width:min(100% - 32px,780px);padding-top:34px}aside{display:none}.mobile-toc{display:block;margin:26px 0 0;border:1px solid var(--line);border-radius:8px}.mobile-toc summary{padding:9px 12px;color:var(--muted);cursor:pointer}.mobile-toc .toc{padding:0 10px 10px}.topbar{padding-inline:16px}.server-bar{display:none}}
+@media(max-width:520px){.layout{width:calc(100% - 24px)}h2{font-size:20px}th,td{padding:8px 7px}td:first-child{width:34%}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="brand-mark">S</span><span>CCSDKScribe Python Runtime · Java 接口</span></div></header>
+<div class="layout"><main>
+<p class="eyebrow">API reference · java control plane</p><h1>Python Runtime 接口</h1><p class="lead">本文档是 Python Runtime 提供给 Java 业务层的接口契约。Java 负责业务会话、用户权限和文件 ACL；Python 负责 Capability 执行、SDK 会话、Run 状态、事件和交付物。</p>
+<details class="mobile-toc"><summary>目录</summary><nav class="toc"></nav></details>
+
+<section id="change-rules"><h2>变更规则</h2><ol>
+<li>字段、路径、状态、事件、JWT Claim 或 File Broker 头发生变化时，同步更新 Runtime 规范、Java 设计、本文档和协议测试。</li>
+<li>请求与响应示例必须能按当前 Python Runtime 代码解析；页面只保留当前代码已经接入的接口。</li>
+<li>Capability 只通过 Run 的 <code>capabilityRef</code> 传递，不新增独立 Capability Runtime 接口。</li>
+<li>本地自测通过中间层模拟 Java，不改变本页面记录的 Java 接口契约。</li>
+</ol></section>
+
+<section id="base"><h2>基础约定</h2><table><tbody>
+<tr><td>Base URL</td><td>由部署配置提供；本文路径均相对于 <code>&lt;RUNTIME_BASE_URL&gt;</code>。</td></tr>
+<tr><td>调用方向</td><td>Java 业务层调用 Python Runtime；浏览器不直接调用这些接口。</td></tr>
+<tr><td>Content-Type</td><td>JSON 请求使用 <code>application/json</code>；事件使用 <code>text/event-stream</code>；交付物下载返回文件二进制。</td></tr>
+<tr><td>鉴权请求头</td><td>以下所有 Run 接口都必须发送 <code>Authorization: Bearer &lt;Run JWT&gt;</code>，包括 SSE 和 Artifact 下载。<code>credentials.platformBearer</code> 仅用于业务 MCP，不能代替 Run JWT。</td></tr>
+<tr><td>字符集</td><td>UTF-8。</td></tr>
+<tr><td>ID</td><td>字母、数字、<code>_</code>、<code>-</code>，首字符必须为字母或数字，长度不超过 256。</td></tr>
+<tr><td>Run 状态</td><td><code>queued</code>、<code>running</code>、<code>waiting</code>、<code>succeeded</code>、<code>failed</code>、<code>cancelled</code>。</td></tr>
+</tbody></table>
+<div class="note">Java 只提交业务字段和 <code>capabilityRef</code>。Workflow、Skill、MCP、模型、工作目录、工具参数和 Provider Session 均由 Python Runtime 内部决定。</div></section>
+
+<section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
+<tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
+<tr><td>Capability</td><td>Run 字段 <code>capabilityRef</code></td><td>Java 传业务能力标识；Python 映射到内部 Workflow/Skill/MCP。</td></tr>
+<tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Java 列出或下载 Python 生成的交付物。</td></tr>
+<tr><td>File Broker</td><td>Java 提供授权端点</td><td>Python 按附件引用向 Java 请求文件；Java 校验业务权限后返回一次性 URL 或代理流。</td></tr>
+<tr><td>鉴权</td><td><code>Authorization: Bearer &lt;Run JWT&gt;</code></td><td>Java 签发短期 Run JWT；Python 校验签名、身份、scope 和请求绑定。</td></tr>
+</tbody></table></section>
+
+<section id="create"><h2>创建 Run</h2>
+<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs</code></div>
+<p>Java 为每次执行生成唯一 <code>runId</code> 和 <code>messageId</code>，签发带 <code>run.execute</code> scope 的 Run JWT，然后提交请求。相同请求重试保持原 <code>runId</code>，并用新 <code>jti</code> 签发 Run JWT。SDK 的 <code>session_id</code> 由 Python 内部关联，不替代此执行标识。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Run JWT&gt;
+Content-Type: application/json</pre></div>
+<div class="code-wrap"><div class="code-label">Request body · agent-run/v1</div><button class="copy" type="button">复制</button><pre>{
+  "protocol": "agent-run/v1",
+  "runId": "run_01",
+  "messageId": "message_01",
+  "businessSessionId": "session_01",
+  "capabilityRef": "document-writing",
+  "input": {
+    "text": "请整理这个文档",
+    "attachmentRefs": [
+      {"fileId": "file_01", "purpose": "input"}
+    ]
+  },
+  "credentials": {
+    "platformBearer": "业务 Token"
+  }
+}</pre></div>
+<table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>设计原因和约束</th></tr></thead><tbody>
+<tr><td>protocol</td><td>string</td><td>是</td><td>固定为 <code>agent-run/v1</code>，用于识别请求协议。</td></tr>
+<tr><td>runId</td><td>string</td><td>是</td><td>一次执行的幂等键；同一 ID 的不同请求会被拒绝。</td></tr>
+<tr><td>messageId</td><td>string</td><td>是</td><td>关联 Java 业务消息；不等同于 Provider Session ID。</td></tr>
+<tr><td>businessSessionId</td><td>string</td><td>否</td><td>关联连续业务会话；Python 用它选择内部 Session，但不把它当作 Provider ID。</td></tr>
+<tr><td>capabilityRef</td><td>string</td><td>是</td><td>稳定的业务入口；只传业务标识，不提交内部执行配置。</td></tr>
+<tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；与附件至少有一个非空。</td></tr>
+<tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
+<tr><td>credentials.platformBearer</td><td>string</td><td>否</td><td>仅供受信 MCP 使用；不写入 Prompt、事件、日志或 Run 存储。</td></tr>
+</tbody></table>
+<p>新 Run 返回 <code>202</code>；相同请求的幂等重提交返回 <code>200</code>。</p>
+<div class="code-wrap"><div class="code-label">Response 202 / 200</div><button class="copy" type="button">复制</button><pre>{
+  "run": {
+    "runId": "run_01",
+    "status": "queued",
+    "lastSequence": 0
+  },
+  "eventsUrl": "/internal/v1/runs/run_01/events"
+}</pre></div>
+<div class="note">创建、查询、控制和取消共用精简 Run 响应：<code>runId</code>、<code>status</code>、<code>lastSequence</code>，失败时可带 <code>error</code>。身份、业务关联和 SDK 执行信息仅在 Python 内部保存。</div></section>
+
+<section id="capability"><h2>Capability 字段</h2>
+<p>Runtime 没有独立的 Capability HTTP 接口。Java 只在创建 Run 时传 <code>capabilityRef</code>；Python 在受信目录中完成内部映射。</p>
+<table><thead><tr><th>capabilityRef</th><th>Python 内部映射</th><th>附件</th><th>业务含义</th></tr></thead><tbody>
+<tr><td>conversation</td><td>通用对话配置</td><td>支持</td><td>日常交流、总结和问答。</td></tr>
+<tr><td>document-writing</td><td><code>writing-docx</code></td><td>支持</td><td>文档撰写、修改和 Word 交付物生成。</td></tr>
+<tr><td>national-excellence-data-qa</td><td><code>database-qa</code></td><td>不支持</td><td>国双高项目、任务、资金和绩效问数。</td></tr>
+</tbody></table>
+<div class="note">Java 不提交 Workflow 名称、Skill 列表、MCP 地址、模型、工具参数或工作目录。未知能力返回 <code>400 capability_not_found</code>。</div></section>
+
+<section id="query"><h2>查询 Run</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}</code></div>
+<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。查询请求不消耗 JWT 的 <code>jti</code>。</p>
+<div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
+  "run": {
+    "runId": "run_01",
+    "status": "running",
+    "lastSequence": 3
+  }
+}</pre></div>
+<table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody>
+<tr><td>runId</td><td>Java 提交的执行标识，用于关联业务消息、查询和控制。</td></tr>
+<tr><td>status</td><td>当前 Run 状态；创建成功仅代表已接收，不代表模型执行完成。</td></tr>
+<tr><td>lastSequence</td><td>Run 当前已持久化的最大事件序号；0 表示尚无事件。它用于了解事件进度，不是 SDK resume 标识。续传应使用 Java 已成功处理的事件序号，不能直接用查询所得值跳过未消费事件。</td></tr>
+<tr><td>error</td><td>可选；Run 失败时保存的稳定错误码。</td></tr>
+</tbody></table></section>
+
+<section id="events"><h2>SSE 事件</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/events?afterSequence=0</code></div>
+<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。首次订阅从 <code>afterSequence=0</code> 开始；若已成功处理到事件 7，重连时传 <code>afterSequence=7</code> 或请求头 <code>Last-Event-ID: 7</code>，只补取序号大于 7 的事件。查询参数优先于请求头；续传不重启模型执行，也不恢复 SDK 会话。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Run JWT&gt;
+Accept: text/event-stream
+Last-Event-ID: 3</pre></div>
+<div class="code-wrap"><div class="code-label">SSE frame</div><button class="copy" type="button">复制</button><pre>id: 4
+event: message.delta
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段"}}</pre></div>
+<table><thead><tr><th>事件 type</th><th>payload</th><th>用途</th></tr></thead><tbody>
+<tr><td>run.started</td><td><code>status: "running"</code></td><td>Run 已进入执行。</td></tr>
+<tr><td>phase</td><td><code>name</code>：<code>started</code>、<code>thinking</code>、<code>response</code>、<code>working</code>；思考阶段可带 <code>visible: true</code></td><td>让 Java/前端展示处理阶段；不返回思考正文。</td></tr>
+<tr><td>message.delta</td><td><code>textDelta</code></td><td>助手回复增量，按 <code>sequence</code> 拼接。</td></tr>
+<tr><td>tool.started</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "started"</code></td><td>展示工具调用开始。</td></tr>
+<tr><td>tool.progress</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "running"</code></td><td>展示工具仍在执行。</td></tr>
+<tr><td>tool.finished</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "finished"</code>、<code>isError</code></td><td>展示工具完成或失败。</td></tr>
+<tr><td>run.completed</td><td>可选 <code>inputTokens</code>、<code>outputTokens</code>、<code>turns</code></td><td>执行成功并结束事件流。</td></tr>
+<tr><td>run.failed</td><td><code>code</code>，可带统计字段</td><td>执行失败并结束事件流。</td></tr>
+<tr><td>run.cancelled</td><td>空对象</td><td>执行被取消并结束事件流。</td></tr>
+</tbody></table>
+<div class="note">公共事件只暴露阶段、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、文件路径、凭据和 Provider 原始消息不会进入此接口。</div></section>
+
+<section id="artifacts"><h2>Artifact 交付物</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts</code></div>
+<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。省略 <code>name</code> 时返回文件列表，提供 <code>name</code> 时下载指定文件。</p>
+<div class="code-wrap"><div class="code-label">Response 200 · list</div><button class="copy" type="button">复制</button><pre>{
+  "files": [
+    {"name": "result.docx", "size": 24576}
+  ]
+}</pre></div>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts?name=result.docx</code></div>
+<p>返回文件二进制，并设置 <code>Content-Type</code>、<code>Content-Disposition</code> 和 <code>Cache-Control: no-store</code>。<code>name</code> 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，列表可能包含同一会话之前生成的文件。</p></section>
+
+<section id="control"><h2>控制 Run</h2>
+<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
+<p>使用 <code>run.control</code> 或 <code>run.cancel</code> scope。控制请求消耗 JWT 的 <code>jti</code>。</p>
+<div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{"option":"interrupt"}</pre></div>
+<p><code>option</code> 是必填字符串，只允许以下两个值：</p>
+<table><thead><tr><th>option</th><th>执行效果与状态</th></tr></thead><tbody>
+<tr><td>interrupt</td><td>请求中断当前模型响应，不代表暂停后可以继续同一个 Run。持久 Client 模式调用 SDK interrupt，最终状态由随后返回的 SDK 结果决定；独立执行模式停止任务并进入 cancelled。没有活动任务时不改变状态。</td></tr>
+<tr><td>cancel</td><td>取消本次 Run，包括排队中的执行；执行取消后产生 <code>run.cancelled</code> 事件并进入 <code>cancelled</code>。业务前端的“停止生成”使用此值。</td></tr>
+</tbody></table>
+<p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
+<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
+<p>快捷取消接口，等价于 control 的 <code>{"option":"cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。</p>
+<div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
+  "run": {
+    "runId": "run_01",
+    "status": "cancelled",
+    "lastSequence": 8
+  }
+}</pre></div></section>
+
+<section id="auth"><h2>鉴权</h2>
+<p>Java 签发短期 HS256 Run JWT，并放入 <code>Authorization: Bearer &lt;Run JWT&gt;</code>。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
+<h3>密钥和部署配置</h3>
+<div class="code-wrap"><div class="code-label">Java 与 Python 的服务端共享配置</div><button class="copy" type="button">复制</button><pre>CCSDK_RUNTIME_JWT_SECRET=&lt;服务端随机密钥&gt;
+CCSDK_RUNTIME_JWT_AUDIENCE=ccsdk-runtime
+CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
+<table><thead><tr><th>配置</th><th>设计约束</th></tr></thead><tbody>
+<tr><td>CCSDK_RUNTIME_JWT_SECRET</td><td>非空随机密钥，只放 Java/Python 服务端环境或 Secret Manager，不进入浏览器、代码库、日志和请求正文。</td></tr>
+<tr><td>audience / issuer</td><td>Java 签发值必须分别等于 Python 当前配置；不匹配即拒绝。</td></tr>
+<tr><td>算法</td><td>固定 <code>HS256</code>，Header 为 <code>{"alg":"HS256","typ":"JWT"}</code>。</td></tr>
+</tbody></table>
+<h3>JWT Claims</h3>
+<div class="code-wrap"><div class="code-label">Create Run token claims</div><button class="copy" type="button">复制</button><pre>{
+  "iss": "string-ai-center-service",
+  "aud": "ccsdk-runtime",
+  "iat": 1725400000,
+  "exp": 1725400600,
+  "jti": "jti_01",
+  "sub": "user_01",
+  "tenant": "tenant_01",
+  "runId": "run_01",
+  "capabilityRef": "document-writing",
+  "businessSessionId": "session_01",
+  "messageId": "message_01",
+  "scope": "run.execute"
+}</pre></div>
+<table><thead><tr><th>Claim</th><th>用途</th><th>校验规则</th></tr></thead><tbody>
+<tr><td>iss / aud</td><td>签发方和目标 Runtime</td><td>必须匹配部署配置。</td></tr>
+<tr><td>iat / exp</td><td>有效期</td><td>必须为数字，不能过期，<code>exp</code> 必须晚于 <code>iat</code>。</td></tr>
+<tr><td>jti</td><td>一次性请求标识</td><td>创建和控制请求防重放；查询、SSE、Artifact 不消费。</td></tr>
+<tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
+<tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
+<tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话，不再校验 <code>messageId</code>。</td></tr>
+<tr><td>scope</td><td>最小权限</td><td>使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>。</td></tr>
+</tbody></table>
+<table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
+<tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
+<tr><td>查询、SSE、Artifact</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>消费</td></tr>
+</tbody></table>
+<div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>
+
+<section id="file-broker"><h2>File Broker 回调契约</h2>
+<p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
+<h3>Python → Java 请求</h3>
+<div class="code-wrap"><div class="code-label">Request</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;
+Authorization: Bearer &lt;Run JWT 或 File Broker 服务 Token&gt;
+Accept: application/json, application/octet-stream
+Content-Type: application/json
+
+{"runId":"run_01","fileId":"file_01","purpose":"input"}</pre></div>
+<table><thead><tr><th>字段</th><th>类型</th><th>Java 校验</th></tr></thead><tbody>
+<tr><td>runId</td><td>string</td><td>校验 Run、业务会话和当前用户权限。</td></tr>
+<tr><td>fileId</td><td>string</td><td>校验文件归属、ACL 和请求用途。</td></tr>
+<tr><td>purpose</td><td>string</td><td>只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
+</tbody></table>
+<h3>Java → Python 一次性 URL 响应</h3>
+<div class="code-wrap"><div class="code-label">Response 200 · application/json</div><button class="copy" type="button">复制</button><pre>{
+  "fileId": "file_01",
+  "name": "source.docx",
+  "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "size": 1024,
+  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "downloadUrl": "https://files.example.com/one-time/file_01",
+  "expiresAt": 1725400300000,
+  "oneTime": true
+}</pre></div>
+<table><thead><tr><th>字段</th><th>设计原因</th></tr></thead><tbody>
+<tr><td>fileId</td><td>防止授权响应对应到另一份文件，必须与请求一致。</td></tr>
+<tr><td>name / mimeType</td><td>用于安全文件名和工具输入类型校验。</td></tr>
+<tr><td>size / sha256</td><td>用于下载后大小和内容完整性校验。</td></tr>
+<tr><td>downloadUrl</td><td>必须是 HTTPS、短时、一次性地址；Python 不跟随重定向，也不转发 Run JWT。</td></tr>
+<tr><td>expiresAt / oneTime</td><td>限制授权有效期和重复使用。</td></tr>
+</tbody></table>
+<h3>Java 代理流响应</h3>
+<p>如果 Java 不返回 URL，则直接返回文件字节，并带有以下完整性头：</p>
+<div class="code-wrap"><div class="code-label">Response headers · application/octet-stream</div><button class="copy" type="button">复制</button><pre>X-File-Id: file_01
+X-File-Name: source.docx
+X-File-Mime-Type: application/octet-stream
+X-File-Size: 1024
+X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</pre></div>
+<p>Python 会校验文件名、MIME、大小、SHA-256、HTTPS 主机和 workspace 路径。默认单文件上限为 50 MiB，File Broker 请求超时为 15 秒。</p></section>
+
+<section id="errors"><h2>错误响应</h2>
+<p>Runtime 错误使用 <code>text/plain; charset=utf-8</code>，Java 应按 HTTP 状态和稳定错误码处理，不把错误正文当作 JSON 解析。</p>
+<table class="error-table"><thead><tr><th>HTTP</th><th>含义</th><th>常见场景</th></tr></thead><tbody>
+<tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability、附件或 control 操作不合法。</td></tr>
+<tr><td>401</td><td>Runtime 鉴权失败</td><td>JWT 缺失、签名无效、身份绑定不一致或 scope 不允许。</td></tr>
+<tr><td>403</td><td>请求来源被拒绝</td><td>内部 Runtime 请求带有浏览器 Origin，或不满足服务间调用边界。</td></tr>
+<tr><td>404</td><td>资源不存在</td><td>Run 或 Artifact 不存在。</td></tr>
+<tr><td>409</td><td>状态冲突</td><td>幂等请求归属/内容不一致，或 Run 状态不允许当前操作。</td></tr>
+<tr><td>421</td><td>Host 不允许</td><td>请求 Host 不是当前 Runtime 地址。</td></tr>
+<tr><td>504</td><td>控制超时</td><td>中断或取消命令在控制窗口内未完成。</td></tr>
+<tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失（Artifact 接口此时返回 401）；File Broker 配置或文件访问错误会在 Run 事件中返回稳定错误码。</td></tr>
+</tbody></table>
+<div class="code-wrap"><div class="code-label">Error response · text/plain</div><button class="copy" type="button">复制</button><pre>capability_not_found</pre></div></section>
+<footer>本文档只描述当前已实现的 Java → Python Runtime 契约。接口字段、事件、鉴权或 File Broker 约束发生变化时，应同步更新 Runtime 规范、Java 设计、本文档和协议测试。</footer>
+</main><aside><p class="toc-title">目录</p><nav class="toc"></nav></aside></div>
+<script>
+const sections=[...document.querySelectorAll("main section[id]")],links=[...document.querySelectorAll(".toc")].map(nav=>sections.map(section=>{const link=document.createElement("a");link.href="#"+section.id;link.textContent=section.querySelector("h2")?.textContent||section.id;nav.append(link);return link})).flat();
+const observer=new IntersectionObserver(entries=>{const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top)[0];if(!visible)return;links.forEach(link=>link.classList.toggle("active",link.getAttribute("href")==="#"+visible.target.id))},{rootMargin:"-86px 0px -68% 0px",threshold:0});sections.forEach(section=>observer.observe(section));
+document.querySelectorAll(".copy").forEach(button=>button.addEventListener("click",async()=>{const code=button.parentElement?.querySelector("pre")?.textContent||"";try{await navigator.clipboard.writeText(code);button.textContent="已复制";setTimeout(()=>{button.textContent="复制"},1200)}catch{button.textContent="复制失败"}}));
+</script>
+</body></html>
