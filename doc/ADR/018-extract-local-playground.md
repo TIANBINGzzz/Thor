@@ -18,7 +18,7 @@ Java 接入只需要 Runtime；测试页面、会话存储和本地身份附件�
 ## 实现证据与差距
 - 代码：`python/server.py`、`python/runtime/file_broker.py`；外部 `ScribePlayground/run.py` 与 `python/server.py`。
 - 验证：75 项 Runtime 测试、18 项 Playground 测试、Next 构建与 HTML 测试通过；真实 SDK 附件读取、产物下载、SSE 回放和取消通过。
-- 差距：测试控制面不代表真实 Java 授权或生产隔离验收。
+- 差距：测试控制面不代表真实 Java 授权或生产隔离验收；复测出现模型少抄校验码末位，核对工具内容完整、SDK 最终消息与 SSE 相同，属于模型输出准确性问题。
 ## 后果
 - 好处：Java 契约成为唯一执行入口，测试代码不再进入 Runtime 部署。
 - 代价：独立维护测试项目的依赖、测试能力目录及本地证书。
