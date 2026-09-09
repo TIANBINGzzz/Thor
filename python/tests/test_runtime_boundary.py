@@ -12,6 +12,17 @@ from runtime.protocol import AgentRunRequest
 
 
 class RuntimeBoundaryTests(unittest.TestCase):
+    def test_payload_file_id_does_not_authorize_fetch(self):
+        request = AgentRunRequest.from_dict({
+            "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
+            "capabilityRef": "conversation", "input": {}, "payload": {"fileId": "file-id"},
+        })
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker:
+            result = asyncio.run(server._fetch_run_files(request, {"tenant": "t", "sub": "u"},
+                                 Path(folder), "runtime-jwt", time.monotonic() + 5))
+            self.assertEqual(result, ())
+            broker.assert_not_called()
+
     def test_only_runtime_and_health_routes_are_exposed(self):
         paths = {route.path for route in server.app.routes}
         self.assertTrue(all(path == "/health" or path.startswith("/internal/v1/") for path in paths), paths)

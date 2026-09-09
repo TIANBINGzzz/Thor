@@ -22,4 +22,17 @@ class RuntimeProtocolTests(unittest.TestCase):
     def test_attachment_only(self):
         payload=self.payload(); payload["input"]={"attachmentRefs":[{"fileId":"f-1"}]}
         self.assertEqual(len(AgentRunRequest.from_dict(payload).input.attachment_refs),1)
+    def test_payload_json_validation(self):
+        body = self.payload()
+        body["input"] = {}
+        body["payload"] = {"year": 2026, "sections": ["summary"], "draft": True}
+        self.assertEqual(AgentRunRequest.from_dict(body).to_dict()["payload"], body["payload"])
+        deep = {}
+        for _ in range(18):
+            deep = {"nested": deep}
+        for value in (None, [], "text", {"x": float("nan")}, {"x": "x" * 65536}, deep,
+                      {"nested": {"mcpServers": {}}}, {"credentials": {"platformBearer": "secret"}}):
+            with self.subTest(value_type=type(value).__name__):
+                with self.assertRaises(ProtocolError):
+                    AgentRunRequest.from_dict({**body, "payload": value})
 if __name__ == "__main__": unittest.main()

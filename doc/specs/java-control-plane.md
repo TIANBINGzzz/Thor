@@ -11,7 +11,7 @@ Java 是业务控制面，负责用户身份、业务会话、文件权限、Cap
 | 鉴权 | 登录身份、业务授权、签发 Run JWT | 校验 JWT 签名、有效期、scope 与请求绑定 |
 | 会话 | 生成和持久化 `businessSessionId`、消息关系、Capability 归属 | 维护 Provider Session/Client 执行上下文 |
 | 文件 | 上传、ACL、`fileId`、删除和下载 | 按 File Broker 授权将输入文件放入 Run workspace |
-| Capability | 接收业务侧选定的 `capabilityRef`，按业务权限校验后原样传给 Python | 将 `capabilityRef` 映射到内部 Workflow、Skill、MCP 和运行模式 |
+| Capability | 获取 SDK 目录，配置业务展示与授权；选定标识原样传给 Python | `GET /internal/v1/capabilities`；内部映射 Workflow、Skill、MCP 和运行模式 |
 | Run | 生成幂等 ID、转发事件、展示结果 | 执行 Agent、产生状态和公共事件 |
 
 ## 3. Run 请求
@@ -29,12 +29,17 @@ Content-Type: application/json
   "messageId": "message_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
+  "payload": {"reportTitle": "年度工作报告", "year": 2026},
   "input": {"text": "请整理这个文档", "attachmentRefs": []},
   "credentials": {"platformBearer": "..."}
 }
 ```
 
 `capabilityRef` 是唯一业务能力字段。不得提交 Workflow、Skill、模型、MCP、工作目录或工具参数。
+
+`payload` 是可选业务 JSON 对象：当前作为用户业务数据送入模型，支持嵌套对象和数组，最大 64 KiB、16 层。Java 应校验业务字段与数据权限，只传允许模型读取的数据，不放身份、凭据、文件二进制或运行配置；保留字段规则见 Runtime 规范。文件引用仍放 `input.attachmentRefs`。相同 Run 修改 payload 会触发幂等冲突。
+
+目录调用：`GET /internal/v1/capabilities`，请求头 `Authorization: Bearer <Catalog JWT>`。复用服务端 HS256 密钥，必需 Claims 为 `iss/aud/iat/exp/jti/sub/scope`；sub 为 Java 服务身份，scope 为 `capability.read`，不需要 Run 标识或 tenant。返回 `capabilities` 数组，含 `capabilityRef/name/description/supportsAttachments`；Java 自行合并展示配置并按用户权限筛选。目录不是业务授权结果，不返回内部执行资产。
 
 ## 4. Run 返回与事件
 
@@ -72,6 +77,18 @@ Java 为每次 Runtime 请求签发 HS256 Run JWT，并放入 `Authorization: Be
 创建 Run 使用 `run.execute`；查询、SSE 和 Artifact 使用 `run.read` 或 `run.execute`；控制使用 `run.control` 或 `run.cancel`。Python 校验签名、issuer、audience、有效期、jti 和 scope，创建及控制消费 jti 防重放。创建时校验请求与 JWT 的 `runId`、`capabilityRef`、业务会话、`messageId` 一致性；身份仅从已验证 JWT 的 `tenant`、`sub` 获取并保存，正文不提交 `context`。后续接口按已保存 Run 校验执行标识、能力、业务会话和身份，不再校验 `messageId`。业务 Token 只放在 `credentials.platformBearer`，不得写入日志、事件、Prompt 或持久化数据。
 
 ## 6. File Broker
+
+文件上传由 Java 接收并保存，返回 fileId。发送消息时，Java 将本次允许使用的 fileId 放入 Run 的 attachmentRefs；Python 执行前逐个向 Java 获取文件。Java 可以直接返回代理文件流，不需要另设对象存储。生成文件则由 Java 调用 Artifact 列表和下载接口取得，按业务需要归档到 Java 文件服务，再提供用户下载。
+
+| 文件场景 | fileId 来源与传递 |
+| --- | --- |
+| 新上传附件 | Java 上传返回 fileId，发送消息时加入 attachmentRefs。 |
+| 选择已有文件或模板 | Java 从业务文件记录取 fileId，校验 ACL 后加入 attachmentRefs；模板引用本身不构成新的 Runtime 模板接口。 |
+| 后续一轮再次使用原文件 | Java 重新提交所需引用，Python 重新获取；不能假定 SDK 历史上下文等于文件仍可访问。 |
+| 重试原 Run | 保持相同引用和业务输入；如果实际重新执行且需要下载，Java 重新授权获取文件。 |
+| 复用生成的交付物 | Java 先下载并登记为业务文件，获得 fileId 后通过附件引用用于新 Run。 |
+
+Python 当前只预取 attachmentRefs 中的文件；不会列举 Java 文件库，不从正文或 payload 猜测文件引用，也没有供模型任意按 fileId 回调下载的工具。只传文件名、URL 或 payload.fileId 都不会触发 File Broker。
 
 Java 接收上传并保存文件 ACL。Python 向配置的 File Broker URL 发起：
 

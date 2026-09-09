@@ -14,7 +14,7 @@
 | HTTP Runtime | `python/server.py` | 创建、查询、订阅、控制 Run | `/internal/v1/runs/**` |
 | 请求协议 | `python/runtime/protocol.py` | 校验 `agent-run/v1` 请求和字段 | Run 请求 JSON |
 | 鉴权 | `python/runtime/auth.py`、`python/server.py` | 校验 JWT、scope、请求绑定和防重放 | `Authorization` 请求头 |
-| Capability | `python/runtime/capabilities.py` | 将业务 `capabilityRef` 映射到内部执行配置 | 只作为 Run 字段 |
+| Capability | `python/runtime/capabilities.py`、`python/server.py` | 查询已登记能力；将业务标识映射到内部执行配置 | `GET /internal/v1/capabilities`、Run 字段 `capabilityRef` |
 | 执行与事件 | `python/runtime/claude_sdk.py`、`agent_worker.py`、`session_actor.py` | 调用 Claude Agent SDK、维护 Provider Session、转换公共事件 | SSE 事件 |
 | Run 存储 | `python/runtime/run_store.py` | 保存 Run 摘要和有序事件，支持幂等与续传 | Run 查询、SSE |
 | 输入文件 | `python/runtime/file_broker.py` | 从 Java File Broker 获取附件并校验后写入 workspace | File Broker 请求/响应 |
@@ -49,6 +49,7 @@ Content-Type: application/json
   "messageId": "message_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
+  "payload": {"reportTitle": "年度工作报告", "year": 2026},
   "input": {
     "text": "请整理这个文档",
     "attachmentRefs": [
@@ -70,7 +71,8 @@ Content-Type: application/json
 | `messageId` | 是 | 关联 Java 业务消息，不作为 Provider 会话 ID。 |
 | `businessSessionId` | 否 | 关联连续业务会话；不传则按无业务会话执行。 |
 | `capabilityRef` | 是 | 稳定的业务入口；由 Python 映射到内部 Workflow/Skill/MCP。 |
-| `input.text` | 条件必填 | 文本输入；与附件至少一个非空，最长 1,000,000 字符。 |
+| `input.text` | 条件必填 | 文本输入；与附件、payload 至少一个非空，最长 1,000,000 字符；input 对象仍必填。 |
+| `payload` | 否 | 业务 JSON 对象，默认空；作为本次用户业务数据追加到模型输入，参与 Run 幂等比较。 |
 | `input.attachmentRefs` | 条件必填 | 固定文件引用，最多 64 项；`purpose` 为 `input` 或 `reference`。 |
 | `credentials.platformBearer` | 否 | 仅按 Python 的 MCP 规则注入指定业务服务；不写入 Prompt、事件或 Run 存储。 |
 
@@ -91,7 +93,7 @@ Content-Type: application/json
 
 ### 3.2 Capability 字段
 
-Capability 没有独立 Runtime 接口，只有 `capabilityRef` 字段。当前已实现值为：
+创建 Run 使用 `capabilityRef` 选择能力。目录接口返回当前登记的全部 SDK 能力，不代表用户已获得业务授权，也不是模型/MCP 健康检查。当前已实现值为：
 
 | `capabilityRef` | Python 内部映射 | 附件 |
 | --- | --- | --- |
@@ -100,6 +102,33 @@ Capability 没有独立 Runtime 接口，只有 `capabilityRef` 字段。当前�
 | `national-excellence-data-qa` | `database-qa` | 不支持 |
 
 Java 只传业务标识；映射表、Workflow、Skill、MCP 和运行模式由 Python 维护。
+
+### 3.3 查询能力目录
+
+```http
+GET /internal/v1/capabilities
+Authorization: Bearer <Catalog JWT>
+```
+
+无请求正文和分页参数。成功返回 200，字段为 `capabilityRef`（执行标识）、`name`（默认名称）、`description`（用途）、`supportsAttachments`（是否支持附件）：
+
+```json
+{"capabilities":[
+  {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
+  {"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},
+  {"capabilityRef":"national-excellence-data-qa","name":"双高问数","description":"查询国双高项目、任务、资金与绩效","supportsAttachments":false}
+]}
+```
+
+Catalog JWT 复用 Run JWT 的 HS256 密钥、issuer、audience 和有效期校验。必需 Claim 为 `iss`、`aud`、`iat`、`exp`、`jti`、`sub`、`scope`；`sub` 是 Java 服务身份，`scope` 为 `capability.read`。不要求 tenant、runId、capabilityRef；读取不消费 jti。鉴权失败返回 401，密钥未配置返回 503。Java 按业务权限筛选并配置展示后再提供给前端。
+
+### 3.4 业务 payload
+
+`payload` 支持嵌套对象、数组、字符串、有限数值、布尔值、null；序列化后的 UTF-8 JSON 最多 64 KiB，嵌套深度最多 16 层。当前按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的 fileId，也不保证模型完成确定性字段校验。
+
+不得放 Token、密钥、身份、文件二进制或执行配置。任意层级的以下字段名会被拒绝（忽略大小写、下划线和连字符）：`credentials`、`platformBearer`、`authorization`、`token`、`apiKey`、`secret`、`tenantId`、`userId`、`workflowRef`、`skill`、`skills`、`agent`、`agents`、`model`、`tools`、`mcp`、`mcpServers`、`mcps`、`cwd`、`workspace`、`permissions`。业务数据会进入模型上下文，字段过滤不能识别所有秘密内容，Java 必须只传允许模型读取的数据。
+
+附件仍通过 `input.attachmentRefs` 显式授权，凭据仍通过 `credentials.platformBearer` 传递。相同 runId 修改 payload 返回 409；不在 Run 响应中回传 payload。
 
 ## 4. Run 查询与控制模块
 
@@ -239,6 +268,8 @@ Python 校验 JWT 格式、HS256 签名、`aud`、`iss`、`iat`/`exp`、`jti`、
 ## 8. File Broker 模块
 
 ### 8.1 Python 请求 Java
+
+Java 接收上传并分配 fileId；本次 Run 的 `input.attachmentRefs` 是 Python 获取文件的唯一显式入口。Python 执行前预取这些引用，不解析文本或 payload 中的 fileId。再次使用历史文件需重新提交引用。生成的 Artifact 由 Java 下载、登记为业务文件后，才能用新 fileId 再次提交。
 
 当 Run 含 `input.attachmentRefs` 时，Python 向 `CCSDK_FILE_BROKER_URL` 发起：
 

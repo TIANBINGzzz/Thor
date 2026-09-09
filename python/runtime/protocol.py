@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
+import math
 import re
 from typing import Any, Mapping
 
@@ -10,11 +12,45 @@ from typing import Any, Mapping
 PROTOCOL = "agent-run/v1"
 MAX_TEXT_LENGTH = 1_000_000
 MAX_TOKEN_LENGTH = 16_384
+MAX_PAYLOAD_BYTES = 65_536
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 
 
 class ProtocolError(ValueError):
     """Raised when an internal request has an invalid business shape."""
+
+
+def _payload(value: Any) -> dict[str, Any]:
+    data = _object(value, "payload")
+    reserved = {"credentials", "platformbearer", "authorization", "token", "apikey", "secret",
+                "tenantid", "userid", "workflowref", "skill", "skills", "agent", "agents",
+                "model", "tools", "mcp", "mcpservers", "mcps", "cwd", "workspace", "permissions"}
+
+    def check(item: Any, depth: int) -> None:
+        if depth > 16:
+            raise ProtocolError("payload nesting exceeds 16 levels")
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if not isinstance(key, str) or key.lower().replace("_", "").replace("-", "") in reserved:
+                    raise ProtocolError("payload contains a reserved or invalid key")
+                check(child, depth + 1)
+        elif isinstance(item, list):
+            for child in item:
+                check(child, depth + 1)
+        elif item is not None and not isinstance(item, (str, bool, int, float)):
+            raise ProtocolError("payload must contain JSON values")
+        elif isinstance(item, float) and not math.isfinite(item):
+            raise ProtocolError("payload numbers must be finite")
+
+    check(dict(data), 0)
+    encoded = json.dumps(dict(data), ensure_ascii=False, allow_nan=False)
+    try:
+        size = len(encoded.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ProtocolError("payload must contain valid UTF-8 text") from error
+    if size > MAX_PAYLOAD_BYTES:
+        raise ProtocolError("payload exceeds 65536 bytes")
+    return json.loads(encoded)
 
 
 def _object(value: Any, name: str) -> Mapping[str, Any]:
@@ -108,13 +144,14 @@ class AgentRunRequest:
     input: Input
     business_session_id: str | None = None
     credentials: Credentials = field(default_factory=Credentials)
+    payload: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, value: Any) -> "AgentRunRequest":
         data = _object(value, "request")
         _keys(
             data,
-            {"protocol", "runId", "messageId", "businessSessionId", "capabilityRef", "input", "credentials"},
+            {"protocol", "runId", "messageId", "businessSessionId", "capabilityRef", "input", "credentials", "payload"},
             "request",
         )
         if data.get("protocol") != PROTOCOL:
@@ -127,9 +164,10 @@ class AgentRunRequest:
             capability_ref=_id(data.get("capabilityRef"), "capabilityRef") or "",
             input=Input.from_dict(data.get("input")),
             credentials=Credentials.from_dict(data.get("credentials")),
+            payload=_payload(data.get("payload", {})),
         )
-        if not request.input.text.strip() and not request.input.attachment_refs:
-            raise ProtocolError("input must include text or attachmentRefs")
+        if not request.input.text.strip() and not request.input.attachment_refs and not request.payload:
+            raise ProtocolError("request must include text, attachmentRefs or payload")
         return request
 
     def to_dict(self, *, include_credentials: bool = False) -> dict[str, Any]:
@@ -140,6 +178,7 @@ class AgentRunRequest:
             "businessSessionId": self.business_session_id,
             "capabilityRef": self.capability_ref,
             "input": self.input.to_dict(),
+            "payload": self.payload,
         }
         if include_credentials:
             result["credentials"] = self.credentials.to_dict(include_secret=True)

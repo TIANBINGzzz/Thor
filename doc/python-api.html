@@ -29,7 +29,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <section id="change-rules"><h2>变更规则</h2><ol>
 <li>字段、路径、状态、事件、JWT Claim 或 File Broker 头发生变化时，同步更新 Runtime 规范、Java 设计、本文档和协议测试。</li>
 <li>请求与响应示例必须能按当前 Python Runtime 代码解析；页面只保留当前代码已经接入的接口。</li>
-<li>Capability 只通过 Run 的 <code>capabilityRef</code> 传递，不新增独立 Capability Runtime 接口。</li>
+<li>Capability 目录只读；执行通过 Run 的 <code>capabilityRef</code> 选择，内部执行配置由 Python 维护。</li>
 <li>本地自测通过中间层模拟 Java，不改变本页面记录的 Java 接口契约。</li>
 </ol></section>
 
@@ -46,7 +46,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 
 <section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
-<tr><td>Capability</td><td>Run 字段 <code>capabilityRef</code></td><td>Java 传业务能力标识；Python 映射到内部 Workflow/Skill/MCP。</td></tr>
+<tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Java 列出或下载 Python 生成的交付物。</td></tr>
 <tr><td>File Broker</td><td>Java 提供授权端点</td><td>Python 按附件引用向 Java 请求文件；Java 校验业务权限后返回一次性 URL 或代理流。</td></tr>
 <tr><td>鉴权</td><td><code>Authorization: Bearer &lt;Run JWT&gt;</code></td><td>Java 签发短期 Run JWT；Python 校验签名、身份、scope 和请求绑定。</td></tr>
@@ -63,6 +63,7 @@ Content-Type: application/json</pre></div>
   "messageId": "message_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
+  "payload": {"reportTitle": "年度工作报告", "year": 2026},
   "input": {
     "text": "请整理这个文档",
     "attachmentRefs": [
@@ -79,11 +80,14 @@ Content-Type: application/json</pre></div>
 <tr><td>messageId</td><td>string</td><td>是</td><td>关联 Java 业务消息；不等同于 Provider Session ID。</td></tr>
 <tr><td>businessSessionId</td><td>string</td><td>否</td><td>关联连续业务会话；Python 用它选择内部 Session，但不把它当作 Provider ID。</td></tr>
 <tr><td>capabilityRef</td><td>string</td><td>是</td><td>稳定的业务入口；只传业务标识，不提交内部执行配置。</td></tr>
-<tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；与附件至少有一个非空。</td></tr>
+<tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；文字、附件、payload 至少一个非空；input 对象仍必填，可以为 {}。</td></tr>
+<tr><td>payload</td><td>object</td><td>否</td><td>默认空对象；业务数据追加到当前模型输入，参与幂等比较。支持 JSON 对象、数组和基本值；最多 64 KiB UTF-8 JSON、16 层。不是执行配置，不自动获取其中的文件引用。</td></tr>
 <tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
 <tr><td>credentials.platformBearer</td><td>string</td><td>否</td><td>仅供受信 MCP 使用；不写入 Prompt、事件、日志或 Run 存储。</td></tr>
 </tbody></table>
 <p>新 Run 返回 <code>202</code>；相同请求的幂等重提交返回 <code>200</code>。</p>
+<p>payload 用于报告字段、统计条件等允许模型读取的业务数据，不放身份、Token、密钥、文件字节或工具配置。当前不做定制业务字段的确定性校验。相同 runId 修改 payload 返回 409；响应不回传 payload。</p>
+<details><summary>payload 保留字段</summary><p>任意层级均拒绝以下字段名（忽略大小写、下划线和连字符）：credentials、platformBearer、authorization、token、apiKey、secret、tenantId、userId、workflowRef、skill、skills、agent、agents、model、tools、mcp、mcpServers、mcps、cwd、workspace、permissions。字段过滤不能识别所有秘密内容，Java 必须只传允许模型读取的数据。附件使用 input.attachmentRefs，业务凭据使用 credentials.platformBearer。</p></details>
 <div class="code-wrap"><div class="code-label">Response 202 / 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -94,8 +98,30 @@ Content-Type: application/json</pre></div>
 }</pre></div>
 <div class="note">创建、查询、控制和取消共用精简 Run 响应：<code>runId</code>、<code>status</code>、<code>lastSequence</code>，失败时可带 <code>error</code>。身份、业务关联和 SDK 执行信息仅在 Python 内部保存。</div></section>
 
-<section id="capability"><h2>Capability 字段</h2>
-<p>Runtime 没有独立的 Capability HTTP 接口。Java 只在创建 Run 时传 <code>capabilityRef</code>；Python 在受信目录中完成内部映射。</p>
+<section id="capability"><h2>能力目录与选择</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/capabilities</code></div>
+<p>返回当前已登记的全部 SDK 能力，无请求正文和分页参数。Java 配置展示并按业务权限筛选后供前端使用；目录本身不是用户授权结果，也不是模型或 MCP 健康检查。创建 Run 时传返回的 capabilityRef。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Catalog JWT&gt;</pre></div>
+<div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
+  "capabilities": [
+    {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
+    {"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},
+    {"capabilityRef":"national-excellence-data-qa","name":"双高问数","description":"查询国双高项目、任务、资金与绩效","supportsAttachments":false}
+  ]
+}</pre></div>
+<table><thead><tr><th>字段</th><th>类型</th><th>用途</th></tr></thead><tbody>
+<tr><td>capabilityRef</td><td>string</td><td>创建 Run 使用的稳定业务能力标识。</td></tr>
+<tr><td>name / description</td><td>string</td><td>能力默认名称和业务用途。</td></tr>
+<tr><td>supportsAttachments</td><td>boolean</td><td>是否允许 input.attachmentRefs，供 Java 配置附件入口。</td></tr>
+</tbody></table>
+<h3>目录鉴权</h3><p>Catalog JWT 复用下方鉴权章节的 HS256 密钥、issuer、audience 和有效期校验。必需 Claims 为 iss、aud、iat、exp、jti、sub、scope；sub 为 Java 服务身份，scope 必须包含 capability.read。不要求 tenant、runId 或 capabilityRef；读取不消费 jti。无效 Token 返回 401，密钥未配置返回 503。</p>
+<div class="code-wrap"><div class="code-label">Catalog JWT claims</div><button class="copy" type="button">复制</button><pre>{
+  "iss":"string-ai-center-service", "aud":"ccsdk-runtime",
+  "iat":1725400000, "exp":1725400600, "jti":"catalog_01",
+  "sub":"java-service", "scope":"capability.read"
+}</pre></div>
+<p>iat / exp 使用签发时的 Unix 秒时间戳。Catalog JWT 不能代替 Run 执行授权。</p>
+<h3>当前能力</h3>
 <table><thead><tr><th>capabilityRef</th><th>Python 内部映射</th><th>附件</th><th>业务含义</th></tr></thead><tbody>
 <tr><td>conversation</td><td>通用对话配置</td><td>支持</td><td>日常交流、总结和问答。</td></tr>
 <tr><td>document-writing</td><td><code>writing-docx</code></td><td>支持</td><td>文档撰写、修改和 Word 交付物生成。</td></tr>
@@ -174,7 +200,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 }</pre></div></section>
 
 <section id="auth"><h2>鉴权</h2>
-<p>Java 签发短期 HS256 Run JWT，并放入 <code>Authorization: Bearer &lt;Run JWT&gt;</code>。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
+<p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。目录使用上面的 Catalog JWT，其余 Run 接口使用本节 Run JWT。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
 <h3>密钥和部署配置</h3>
 <div class="code-wrap"><div class="code-label">Java 与 Python 的服务端共享配置</div><button class="copy" type="button">复制</button><pre>CCSDK_RUNTIME_JWT_SECRET=&lt;服务端随机密钥&gt;
 CCSDK_RUNTIME_JWT_AUDIENCE=ccsdk-runtime
@@ -216,6 +242,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>
 
 <section id="file-broker"><h2>File Broker 回调契约</h2>
+<p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Java 通过 Artifact 接口取得并向用户提供下载。</p>
 <p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
 <h3>Python → Java 请求</h3>
 <div class="code-wrap"><div class="code-label">Request</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;

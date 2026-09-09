@@ -13,6 +13,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import threading
 import time
 from collections.abc import Mapping
@@ -101,7 +102,7 @@ class ReplayCache:
 
 
 def _number(value: Any, name: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise JWTError(f"JWT {name} must be numeric")
     return float(value)
 
@@ -114,30 +115,11 @@ def _audience_matches(value: Any, expected: str) -> bool:
     return False
 
 
-def verify_run_jwt(
-    token: str,
-    secret: str | bytes,
-    *,
-    run_id: str | None = None,
-    capability_ref: str | None = None,
-    turn_id: str | None = None,
-    business_session_id: str | None = None,
-    message_id: str | None = None,
-    body: Mapping[str, Any] | Any | None = None,
-    audience: str = "ccsdk-runtime",
-    expected_scope: str = "run.execute",
-    issuer: str | None = None,
-    replay_cache: ReplayCache | None = None,
-    consume_jti: bool = True,
-    now: float | None = None,
+def _verify_signed_claims(
+    token: str, secret: str | bytes, *, audience: str, issuer: str | None,
+    expected_scope: str, required_claims: tuple[str, ...], now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
-    """Verify and return claims bound to one request body.
-
-    ``body`` may be a plain wire mapping or an ``AgentRunRequest``.  The token
-    is marked as used only after every cryptographic and request-binding check
-    succeeds, so malformed requests cannot consume a valid ``jti``.
-    """
     if not isinstance(token, str) or token.count(".") != 2:
         raise JWTError("malformed JWT")
     encoded_header, encoded_claims, encoded_signature = token.split(".")
@@ -172,17 +154,11 @@ def verify_run_jwt(
     if issuer is not None and claims.get("iss") != issuer:
         raise JWTError("invalid JWT issuer")
 
-    # Java supplies the signed principal; Runtime never resolves identity from
-    # a request body or a database. Keep these claims mandatory in all modes.
-    for name in ("sub", "tenant"):
+    for name in required_claims:
         value = claims.get(name)
         if not isinstance(value, str) or not value.strip():
             raise JWTError(f"JWT {name} is required")
 
-    for name in ("jti", "runId", "capabilityRef"):
-        value = claims.get(name)
-        if not isinstance(value, str) or not value.strip():
-            raise JWTError(f"JWT {name} is required")
     scope = claims.get("scope")
     if isinstance(scope, str):
         scopes = {scope}
@@ -192,6 +168,53 @@ def verify_run_jwt(
         raise JWTError("JWT scope is required")
     if expected_scope and expected_scope not in scopes:
         raise JWTError("JWT scope is not allowed")
+
+    return claims
+
+
+def verify_catalog_jwt(
+    token: str, secret: str | bytes, *, audience: str = "ccsdk-runtime",
+    issuer: str = "string-ai-center-service",
+) -> dict[str, Any]:
+    """Authorize catalog discovery without requiring a Run or user tenant."""
+    return _verify_signed_claims(
+        token, secret, audience=audience, issuer=issuer, expected_scope="capability.read",
+        required_claims=("sub", "jti"),
+    )
+
+
+def verify_run_jwt(
+    token: str,
+    secret: str | bytes,
+    *,
+    run_id: str | None = None,
+    capability_ref: str | None = None,
+    turn_id: str | None = None,
+    business_session_id: str | None = None,
+    message_id: str | None = None,
+    body: Mapping[str, Any] | Any | None = None,
+    audience: str = "ccsdk-runtime",
+    expected_scope: str = "run.execute",
+    issuer: str | None = None,
+    replay_cache: ReplayCache | None = None,
+    consume_jti: bool = True,
+    now: float | None = None,
+    leeway_seconds: float = 5.0,
+) -> dict[str, Any]:
+    """Verify and return claims bound to one request body.
+
+    ``body`` may be a plain wire mapping or an ``AgentRunRequest``.  The token
+    is marked as used only after every cryptographic and request-binding check
+    succeeds, so malformed requests cannot consume a valid ``jti``.
+    """
+    claims = _verify_signed_claims(
+        token, secret, audience=audience, issuer=issuer, expected_scope=expected_scope,
+        required_claims=("sub", "tenant", "jti", "runId", "capabilityRef"),
+        now=now, leeway_seconds=leeway_seconds,
+    )
+    current = time.time() if now is None else float(now)
+    leeway = max(0.0, float(leeway_seconds))
+    exp = float(claims["exp"])
 
     body_run_id: str | None = run_id
     body_capability: str | None = capability_ref

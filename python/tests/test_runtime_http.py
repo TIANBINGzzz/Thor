@@ -56,6 +56,47 @@ class RuntimeHTTPTests(unittest.TestCase):
             runtime_session_ref="provider-private", metadata={"messageId": "msg-test", "private": "internal-value"},
         )
 
+    def test_catalog_header_auth_and_public_fields(self):
+        token_claims = {"iss": server.RUNTIME_JWT_ISSUER, "aud": server.RUNTIME_JWT_AUDIENCE,
+                        "iat": int(time.time()), "exp": int(time.time()) + 60,
+                        "sub": "java-service", "jti": uuid.uuid4().hex, "scope": "capability.read"}
+        def auth(claims, secret="test-runtime-secret"):
+            return {"Authorization": "Bearer " + encode_hs256_jwt(claims, secret)}
+        for _ in range(2):
+            response = self.client.get("/internal/v1/capabilities", headers=auth(token_claims))
+            self.assertEqual(response.status_code, 200, response.text)
+            items = response.json()["capabilities"]
+            self.assertEqual({item["capabilityRef"] for item in items}, set(server.CAPABILITIES))
+            for item in items:
+                self.assertEqual(set(item), {"capabilityRef", "name", "description", "supportsAttachments"})
+        for headers in ({}, auth(token_claims, "wrong-secret"), self.headers("run.read"),
+                        auth({**token_claims, "exp": int(time.time()) - 20}),
+                        auth({**token_claims, "iss": "wrong"}), auth({**token_claims, "aud": "wrong"}),
+                        auth({**token_claims, "sub": ""}), auth({**token_claims, "jti": ""}),
+                        auth({**token_claims, "exp": float("nan")})):
+            self.assertEqual(self.client.get("/internal/v1/capabilities", headers=headers).status_code, 401)
+        self.assertEqual(self.client.post("/internal/v1/runs", json=self.body,
+                                         headers=auth(token_claims)).status_code, 401)
+        with patch.object(server, "RUNTIME_JWT_SECRET", ""):
+            self.assertEqual(self.client.get("/internal/v1/capabilities").status_code, 503)
+
+    def test_payload_reaches_query_and_client_prompt_and_binds_retry(self):
+        body = {**self.body, "payload": {"reportTitle": "Annual report", "year": 2026,
+                                       "sections": [{"name": "Budget", "amount": 120}]}}
+        request = AgentRunRequest.from_dict(body)
+        with patch.object(server, "MODELS", ["test-model"]):
+            for mode in ("query", "client"):
+                result = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
+                self.assertIn(json.dumps(body["payload"], ensure_ascii=False), result["prompt"])
+                self.assertEqual(result["model"], "test-model")
+                self.assertIsNone(result["workflow_name"])
+        with patch.object(server, "_execute_internal_run", new_callable=AsyncMock):
+            self.assert_public_run(self.client.post("/internal/v1/runs", json=body,
+                                                   headers=self.headers("run.execute")), 202)
+            response = self.client.post("/internal/v1/runs", json={**body, "payload": {"year": 2027}},
+                                        headers=self.headers("run.execute"))
+            self.assertEqual(response.status_code, 409, response.text)
+
     def assert_public_run(self, response, status_code=200):
         self.assertEqual(response.status_code, status_code, response.text)
         run = response.json()["run"]
