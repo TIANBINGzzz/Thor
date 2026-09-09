@@ -4,6 +4,10 @@
   "execution": {
     "mode": "agent"
   },
+  "runtime": {
+    "mode": "client"
+  },
+  "skills": ["writing-documents"],
   "documents": {
     "constraints": [],
     "semantics": []
