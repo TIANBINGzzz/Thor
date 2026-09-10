@@ -212,6 +212,8 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 <section id="auth"><h2>鉴权</h2>
 <p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。能力目录无需鉴权，Run 接口使用本节 Run JWT。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
 <h3>密钥和部署配置</h3>
+<p>Python 本地配置位置为项目根目录 <code>.env</code>（参考 <code>.env.example</code>，不是 python/.env）；部署时也可注入进程环境变量。启动时根目录 .env 中的同名值会覆盖进程环境，修改后须重启 Python 服务。唯一密钥配置名为 <code>CCSDK_RUNTIME_JWT_SECRET</code>，不再读取旧别名 SCRIBE_RUNTIME_JWT_SECRET。</p>
+<p>Java 对应 Spring 配置项为 <code>ai-center.runtime-jwt-secret</code>（环境变量 <code>AI_CENTER_RUNTIME_JWT_SECRET</code>），必须与 Python 使用相同的密钥值；可通过服务端配置或 Secret/Nacos 注入。下方仅为占位示例，真实密钥不写入本公开文档。建议生成至少 32 字节的随机值，双方使用相同字符串。</p>
 <div class="code-wrap"><div class="code-label">Java 与 Python 的服务端共享配置</div><button class="copy" type="button">复制</button><pre>CCSDK_RUNTIME_JWT_SECRET=&lt;服务端随机密钥&gt;
 CCSDK_RUNTIME_JWT_AUDIENCE=ccsdk-runtime
 CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>

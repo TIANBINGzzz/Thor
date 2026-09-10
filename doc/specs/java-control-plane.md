@@ -153,6 +153,7 @@ Bridge 经 `RuntimeRequestFactory -> ClaudeRuntimeAdapter -> RuntimeJwtSigner/Py
 
 Run 接口统一使用 `Authorization: Bearer <Run JWT>`，JWT 绑定本次执行；能力目录接口无需鉴权，见 2.3。签名算法 HS256，Java/Python 共享密钥；Python 配置为 `CCSDK_RUNTIME_JWT_SECRET`、`CCSDK_RUNTIME_JWT_ISSUER`、`CCSDK_RUNTIME_JWT_AUDIENCE`。业务 Token 不能替代 JWT。Java 转发时不携带浏览器 Origin 头，Runtime 收到非空 Origin 会返回 403；浏览器只访问 Java。
 JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可直接使用的 Token）：
+密钥配置在 Python 项目根目录 `.env` 或进程环境的 `CCSDK_RUNTIME_JWT_SECRET`，根目录 `.env` 同名值优先，启动时读取；旧别名 `SCRIBE_RUNTIME_JWT_SECRET` 已移除。Java 对应 `ai-center.runtime-jwt-secret`（环境变量 `AI_CENTER_RUNTIME_JWT_SECRET`），双方须配置相同值，真实密钥不写入文档。
 
 ```json
 {

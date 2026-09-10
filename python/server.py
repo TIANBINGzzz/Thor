@@ -39,11 +39,7 @@ MODELS = list(dict.fromkeys(
     for model in (os.environ.get("SCRIBE_MODELS") or os.environ.get("ANTHROPIC_MODEL") or "").split(",")
     if model.strip()
 ))
-RUNTIME_JWT_SECRET = (
-    os.environ.get("CCSDK_RUNTIME_JWT_SECRET")
-    or os.environ.get("SCRIBE_RUNTIME_JWT_SECRET")
-    or ""
-).strip()
+RUNTIME_JWT_SECRET = os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").strip()
 RUNTIME_JWT_AUDIENCE = os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime").strip()
 # Keep an explicit default so ``iss`` is always checked against the Java
 # control-plane identity.  Deployments may override it, but an omitted issuer
