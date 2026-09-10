@@ -52,6 +52,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - [ADR 索引](doc/ADR/README.md)
 - [Python API 静态文档](doc/python-api.html)
 
+文档公网发布：运行 `powershell -ExecutionPolicy Bypass -File .\scripts\publish-docs.ps1`，自动提交 HTML 更新并同步至 [在线文档](https://cp.stringedu.com/ccsdkscribe/python-api.html)。发布与回滚说明见 [文档索引](doc/README.md#html-发布)。
+
 ## 验证
 
 ```bash
