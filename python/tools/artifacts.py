@@ -55,7 +55,10 @@ def publish_artifact(
     deliverables_directory: str | Path,
     session_directory: str | Path,
 ) -> dict[str, Any]:
-    """Copy a completed artifact into the only directory exposed to the UI."""
+    """接收源文件、发布名称和会话目录，校验源路径后复制到交付目录并登记发布清单。
+
+    返回发布状态、目标名称、路径和字节数，供上层展示交付结果。
+    """
 
     work = _resolved(work_directory)
     deliverables = _resolved(deliverables_directory)
@@ -116,6 +119,7 @@ def create_artifact_server(
     work_directory: str | Path,
     deliverables_directory: str | Path,
 ):
+    """接收会话、工作和交付目录，返回注册 publish_file 工具的进程内 MCP 服务配置。"""
     session = _resolved(session_directory)
     work = _resolved(work_directory)
     deliverables = _resolved(deliverables_directory)
@@ -133,6 +137,7 @@ def create_artifact_server(
         },
     )
     async def publish_file(args: dict[str, Any]) -> dict[str, Any]:
+        """接收 source_path 和 file_name 工具参数，发布文件并返回 MCP 文本结果。"""
         return _text_result(publish_artifact(
             args.get("source_path", ""),
             args.get("file_name", ""),

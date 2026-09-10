@@ -87,6 +87,7 @@ class FetchedFile:
     transfer_mode: str = "proxy_stream"
 
     def to_metadata(self) -> dict[str, Any]:
+        """将当前下载文件转换为元数据字典，不包含源下载地址、本地路径或凭据。"""
         return {
             "fileId": self.file_id,
             "purpose": self.purpose,
@@ -358,6 +359,10 @@ class FileBroker:
         bearer_token: str | None = None,
         timeout_ms: int | None = None,
     ) -> tuple[FetchedFile, ...]:
+        """接收附件引用、Run 上下文、工作目录和访问凭据，顺序下载并返回已校验的 FetchedFile 元组。
+
+        访问授权交由 Java File Broker 校验；失败、超时或取消时清理本次已下载文件。
+        """
         _ = tenant_id, user_id
         refs = tuple(attachment_refs or ())
         if not refs:
@@ -498,6 +503,7 @@ class FileBroker:
         used_names: set[str],
         auth_token: str | None,
     ) -> FetchedFile:
+        """按附件引用和 Run 标识向 Java 获取授权，处理代理流或一次性下载地址，返回校验后的文件。"""
         file_id = str(getattr(reference, "file_id", "") or "")
         purpose = str(getattr(reference, "purpose", "input") or "input")
         headers = {"accept": "application/json, application/octet-stream"}
@@ -585,6 +591,7 @@ class FileBroker:
             raise FileBrokerTimeoutError() from error
 
     async def _read_grant(self, response: httpx.Response) -> _Grant:
+        """读取 Java 授权响应，校验文件元数据、下载地址及时效，返回内部授权对象。"""
         body = bytearray()
         async for chunk in response.aiter_bytes():
             body.extend(chunk)
@@ -658,6 +665,7 @@ class FileBroker:
         root: Path,
         transfer_mode: str,
     ) -> FetchedFile:
+        """接收下载响应及预期元数据，流式写入目标目录并校验大小和摘要，返回 FetchedFile。"""
         if response.status_code in {301, 302, 303, 307, 308}:
             raise FileBrokerValidationError("文件下载不允许重定向")
         if response.status_code < 200 or response.status_code >= 300:

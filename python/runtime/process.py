@@ -22,6 +22,7 @@ WORKFLOW_PREFIX = re.compile(r"^/([A-Za-z0-9][A-Za-z0-9_-]*)(?:\s|$)")
 
 
 def workflow_name_from_prompt(prompt: Any) -> str | None:
+    """从提示词开头的 /名称 提取 Workflow 名称，不匹配或输入不是字符串时返回 None。"""
     if not isinstance(prompt, str):
         return None
     match = WORKFLOW_PREFIX.match(prompt.strip())
@@ -29,13 +30,14 @@ def workflow_name_from_prompt(prompt: Any) -> str | None:
 
 
 def prompt_without_workflow_prefix(prompt: str) -> str:
-    """Remove a leading workflow selector before the prompt reaches the SDK."""
+    """接收提示词，移除开头的 Workflow 选择前缀并返回剩余文本。"""
     normalized = prompt.strip()
     match = WORKFLOW_PREFIX.match(normalized)
     return normalized[match.end():].strip() if match else normalized
 
 
 async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
+    """接收 Worker 进程，终止其进程树并等待退出；无返回值，已退出时直接结束。"""
     if process.returncode is not None:
         return
     if os.name == "nt" and process.pid:
@@ -65,6 +67,7 @@ async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
 
 
 async def _spawn_worker_process() -> asyncio.subprocess.Process:
+    """以受控环境启动 agent_worker.py，返回带标准输入、输出和错误管道的子进程。"""
     creation_flags = 0
     kwargs: dict[str, Any] = {}
     if os.name == "nt":
@@ -89,6 +92,7 @@ async def _spawn_worker_process() -> asyncio.subprocess.Process:
 
 
 async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
+    """将执行 payload 发送给一次性 Worker，逐条产出事件字典，结束或取消时回收进程。"""
     process = await _spawn_worker_process()
     saw_done = False
     worker_error: str | None = None
@@ -179,6 +183,7 @@ class ClientWorkerProcess:
         return self._process is not None and self._process.returncode is None and not self._closed
 
     async def start(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """接收初始执行配置并启动持久 Worker，等待连接就绪后返回 client_ready 事件。"""
         if self._process is not None:
             raise ClientWorkerError("Client worker 已经启动")
         self._closed = False
@@ -210,6 +215,7 @@ class ClientWorkerProcess:
             raise
 
     async def send(self, message: dict[str, Any]) -> None:
+        """将命令字典以 UTF-8 JSONL 写入 Worker，串行保护写入；无返回值，通道故障时抛出异常。"""
         process = self._process
         if process is None or process.stdin is None or process.returncode is not None or self._closed:
             raise ClientWorkerError("Client worker 不可用")
@@ -228,6 +234,7 @@ class ClientWorkerProcess:
                 raise ClientWorkerError("Client worker 通道已关闭") from error
 
     async def next_event(self) -> dict[str, Any]:
+        """等待并返回队列中的下一条 Worker 事件，无额外输入；遇到进程退出标记时抛出异常。"""
         event = await self._events.get()
         if event.get("type") == "worker_exit":
             code = event.get("code")
@@ -235,6 +242,7 @@ class ClientWorkerProcess:
         return event
 
     async def terminate(self) -> None:
+        """终止持久 Worker 并回收读写后台任务，无额外输入和返回值。"""
         process = self._process
         self._closed = True
         if process is not None:
@@ -249,6 +257,7 @@ class ClientWorkerProcess:
         self._process = None
 
     async def close(self) -> None:
+        """请求 Worker 正常关闭并限时等待确认，最后回收进程，无额外输入和返回值。"""
         if self._process is None:
             self._closed = True
             return
@@ -267,6 +276,7 @@ class ClientWorkerProcess:
             await self.terminate()
 
     async def _read_stdout(self) -> None:
+        """持续读取 Worker 标准输出，将合法 JSON 事件和退出标记放入内部队列；无返回值。"""
         process = self._process
         if process is None or process.stdout is None:
             return
@@ -283,6 +293,7 @@ class ClientWorkerProcess:
             await self._events.put({"type": "worker_exit", "code": code})
 
     async def _relay_stderr(self) -> None:
+        """读取 Worker 标准错误并添加来源前缀转发到父进程标准错误，无返回值。"""
         process = self._process
         if process is None or process.stderr is None:
             return

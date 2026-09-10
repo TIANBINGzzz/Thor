@@ -49,6 +49,7 @@ NOISE = {
 
 
 def clip(value: Any) -> str:
+    """将输入值转为文本并按 TEXT_LIMIT 截断，返回适合事件展示的字符串。"""
     if value is None:
         return ""
     if not isinstance(value, str):
@@ -57,17 +58,20 @@ def clip(value: Any) -> str:
 
 
 def scope_of(message: Any) -> str:
+    """接收 SDK 消息，根据父工具引用返回 main 或 sub:<工具调用标识> 作用域。"""
     normalized = normalize_message(message)
     parent = normalized.parent_tool_use_id
     return f"sub:{parent}" if parent else "main"
 
 
 def emit(event: dict[str, Any]) -> None:
+    """将事件字典写为一行 UTF-8 JSON 并立即刷新标准输出，无返回值。"""
     sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
     sys.stdout.flush()
 
 
 def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
+    """接收增量消息和流状态，更新各作用域的消息标识，返回文本或思考增量事件列表。"""
     normalized = normalize_message(message)
     if normalized.kind != "stream":
         return []
@@ -94,6 +98,7 @@ def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str,
 
 
 def events_from_assistant(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
+    """接收助手消息和流状态，返回文本、思考及工具调用事件，跳过已流式发送的同一消息文本。"""
     normalized = normalize_message(message)
     if normalized.kind != "assistant":
         return []
@@ -120,6 +125,7 @@ def events_from_assistant(message: Any, streaming: dict[str, str]) -> list[dict[
 
 
 def events_from_user(message: Any) -> list[dict[str, Any]]:
+    """接收 SDK 用户消息，提取其中的工具结果并返回事件列表；无工具结果时返回空列表。"""
     normalized = normalize_message(message)
     if normalized.kind != "user":
         return []
@@ -141,6 +147,7 @@ def events_from_user(message: Any) -> list[dict[str, Any]]:
 
 
 def events_from_system(message: Any) -> list[dict[str, Any]]:
+    """接收系统消息，过滤高频状态通知，返回初始化、任务进展或上下文压缩等事件列表。"""
     normalized = normalize_message(message)
     if normalized.kind != "system":
         return []
@@ -184,6 +191,7 @@ def events_from_system(message: Any) -> list[dict[str, Any]]:
 
 
 def events_from_result(message: Any) -> list[dict[str, Any]]:
+    """接收 SDK 结果消息，返回包含成功状态、耗时及用量的结果事件列表。"""
     normalized = normalize_message(message)
     if normalized.kind != "result":
         return []
@@ -207,6 +215,7 @@ def events_from_result(message: Any) -> list[dict[str, Any]]:
 
 
 def message_events(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
+    """按输入 SDK 消息类型分派转换器，返回 Worker 事件列表，并按需更新传入的流状态。"""
     normalized = normalize_message(message)
     if normalized.kind == "stream":
         return event_from_stream(normalized, streaming)
@@ -226,7 +235,7 @@ class ClientRunCancelled(Exception):
 
 
 async def _read_client_commands(queue: asyncio.Queue[dict[str, Any]]) -> None:
-    """Read the persistent worker stdin without blocking the event loop."""
+    """异步读取标准输入中的 JSONL 命令并放入指定队列；无返回值，输入结束时发送关闭标记。"""
 
     while True:
         line = await asyncio.to_thread(sys.stdin.readline)
@@ -245,11 +254,13 @@ async def _read_client_commands(queue: asyncio.Queue[dict[str, Any]]) -> None:
 
 
 def _client_command_run_id(command: dict[str, Any]) -> str:
+    """从命令字典提取 run_id 或 runId，返回字符串，缺失时返回空串。"""
     value = command.get("run_id") or command.get("runId") or ""
     return str(value)
 
 
 def _client_error_code(error: BaseException) -> str:
+    """接收执行异常，返回稳定的 Client 错误码，不包含异常详情。"""
     if isinstance(error, SDKError):
         return error.code
     if isinstance(error, asyncio.TimeoutError):
@@ -265,12 +276,9 @@ async def _receive_client_response(
     direct_workflow: bool,
     deadline: float | None,
 ) -> str | None:
-    """Receive one response while keeping the same owner task in control.
+    """接收 Client、当前命令、流状态、控制队列及执行策略，输出回复事件并返回最后的 SDK 会话标识。
 
-    ``client.interrupt`` is intentionally called from this coroutine's owner
-    task.  The response ``__anext__`` runs as a child task only so stdin
-    commands can wake the owner; no provider lifecycle method is called from
-    that child task.
+    子 Task 仅读取下一条回复；interrupt 等生命周期操作始终由本协程的所属 Task 执行。
     """
 
     iterator = client.receive_response(timeout_ms=None if deadline is None else max(1, int((deadline - time.monotonic()) * 1000)))
@@ -339,7 +347,7 @@ async def _receive_client_response(
 
 
 async def run_client(initial: dict[str, Any]) -> None:
-    """Own one persistent SDK Client and serve sequential JSONL commands."""
+    """接收初始配置并持有一个 SDK Client，串行处理标准输入命令，将回复和控制结果写入 JSONL；无返回值。"""
 
     load_runtime_environment(initial.get("workflow_name"))
     missing = missing_environment()
@@ -416,13 +424,14 @@ async def run_client(initial: dict[str, Any]) -> None:
 
 
 def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
-    """Do not advertise SDK-discovered abilities disabled by a direct profile."""
+    """接收 Worker 事件，清空 direct 模式初始化事件中的 Skill、Agent 和命令列表，返回处理后的事件。"""
     if event.get("type") != "init":
         return event
     return {**event, "skills": [], "agents": [], "commands": []}
 
 
 async def run(payload: dict[str, Any]) -> None:
+    """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
     load_runtime_environment(payload.get("workflow_name"))
     missing = missing_environment()
     if missing:
@@ -441,6 +450,7 @@ async def run(payload: dict[str, Any]) -> None:
 
 
 async def main() -> None:
+    """从标准输入读取 JSONL，按首条消息选择 Query 或 Client 模式，输出执行事件及完成或错误标记。"""
     first_line = await asyncio.to_thread(sys.stdin.readline)
     if not first_line.strip():
         return

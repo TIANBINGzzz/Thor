@@ -21,6 +21,7 @@ class ProtocolError(ValueError):
 
 
 def _payload(value: Any) -> dict[str, Any]:
+    """校验业务 payload 的保留字段、层级、类型和大小，返回 JSON 深拷贝，非法输入抛出 ProtocolError。"""
     data = _object(value, "payload")
     reserved = {"credentials", "platformbearer", "authorization", "token", "apikey", "secret",
                 "tenantid", "userid", "workflowref", "skill", "skills", "agent", "agents",
@@ -82,6 +83,7 @@ class AttachmentRef:
 
     @classmethod
     def from_dict(cls, value: Any) -> "AttachmentRef":
+        """校验输入的文件标识和用途，返回附件引用对象，不执行文件获取或授权。"""
         data = _object(value, "input.attachmentRefs[]")
         _keys(data, {"fileId", "purpose"}, "input.attachmentRefs[]")
         purpose = data.get("purpose", "input")
@@ -90,6 +92,7 @@ class AttachmentRef:
         return cls(_id(data.get("fileId"), "input.attachmentRefs[].fileId") or "", purpose)
 
     def to_dict(self) -> dict[str, str]:
+        """将当前附件引用转换为包含 fileId 和 purpose 的协议字典。"""
         return {"fileId": self.file_id, "purpose": self.purpose}
 
 
@@ -100,6 +103,7 @@ class Input:
 
     @classmethod
     def from_dict(cls, value: Any) -> "Input":
+        """校验输入文本和附件引用列表，返回 Input 对象。"""
         data = _object(value, "input")
         _keys(data, {"text", "attachmentRefs"}, "input")
         text = data.get("text", "")
@@ -111,6 +115,7 @@ class Input:
         return cls(text=text, attachment_refs=tuple(AttachmentRef.from_dict(item) for item in refs))
 
     def to_dict(self) -> dict[str, Any]:
+        """将当前输入转换为含 text 和 attachmentRefs 的协议字典。"""
         return {"text": self.text, "attachmentRefs": [item.to_dict() for item in self.attachment_refs]}
 
 
@@ -120,6 +125,7 @@ class Credentials:
 
     @classmethod
     def from_dict(cls, value: Any = None) -> "Credentials":
+        """校验凭据字典的结构并返回 Credentials，未提供输入时返回空凭据；不验证 Token 的业务有效性。"""
         if value is None:
             return cls()
         data = _object(value, "credentials")
@@ -132,6 +138,7 @@ class Credentials:
         return cls(token)
 
     def to_dict(self, *, include_secret: bool = False) -> dict[str, str]:
+        """将当前凭据转为字典，默认返回空字典，仅显式启用 include_secret 时包含业务 Token。"""
         return {"platformBearer": self.platform_bearer} if include_secret and self.platform_bearer else {}
 
 
@@ -148,6 +155,7 @@ class AgentRunRequest:
 
     @classmethod
     def from_dict(cls, value: Any) -> "AgentRunRequest":
+        """校验请求字典的协议版本、标识和业务输入，返回 AgentRunRequest，非法字段抛出 ProtocolError。"""
         data = _object(value, "request")
         _keys(
             data,
@@ -171,6 +179,7 @@ class AgentRunRequest:
         return request
 
     def to_dict(self, *, include_credentials: bool = False) -> dict[str, Any]:
+        """将当前 Run 请求序列化为协议字典，默认省略凭据，并移除值为 None 或空字典的字段。"""
         result: dict[str, Any] = {
             "protocol": self.protocol,
             "runId": self.run_id,
@@ -185,6 +194,7 @@ class AgentRunRequest:
         return {key: value for key, value in result.items() if value not in (None, {})}
 
     def to_internal_dict(self) -> dict[str, Any]:
+        """返回包含凭据的内部请求字典，仅供需要传递本次请求 Token 的内部调用使用。"""
         return self.to_dict(include_credentials=True)
 
 

@@ -147,7 +147,10 @@ class RunStore:
         runtime_session_ref: str | None = None,
         request: Any | None = None,
     ) -> dict[str, Any]:
-        """Create an idempotent internal Run record with caller-verified ownership."""
+        """接收 Run 标识、已验证身份及请求信息，返回新建或幂等复用的内部记录。
+
+        重试的归属或非密钥请求内容不匹配时抛出异常。
+        """
         run_id = _validate_run_id(run_id)
         if status not in STATUSES:
             raise ValueError(f"unsupported run status: {status}")
@@ -221,12 +224,14 @@ class RunStore:
             return self._run_row(row)
 
     def get_run(self, run_id: str) -> dict[str, Any] | None:
+        """按 Run 标识查询并返回内部记录字典，不存在时返回 None。"""
         run_id = _validate_run_id(run_id)
         with self._lock:
             row = self._connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return self._run_row(row) if row else None
 
     def update_status(self, run_id: str, status: str, *, error: str | None = None) -> dict[str, Any]:
+        """按 Run 标识保存状态及可选错误信息，返回更新后的内部记录，不存在时抛出 KeyError。"""
         run_id = _validate_run_id(run_id)
         if status not in STATUSES:
             raise ValueError(f"unsupported run status: {status}")
@@ -245,6 +250,7 @@ class RunStore:
     set_status = update_status
 
     def update_runtime_session_ref(self, run_id: str, value: str | None) -> dict[str, Any]:
+        """为指定 Run 保存或清空 SDK 会话引用，返回更新后的内部记录。"""
         run_id = _validate_run_id(run_id)
         if value is not None:
             value = str(value).strip()
@@ -262,6 +268,7 @@ class RunStore:
             return self._run_row(row)
 
     def append_event(self, run_id: str, event: Mapping[str, Any]) -> dict[str, Any]:
+        """将输入事件按敏感字段规则过滤后追加到 Run，返回带序号的事件；相同 eventId 返回已有记录。"""
         run_id = _validate_run_id(run_id)
         if not isinstance(event, Mapping):
             raise ValueError("event must be an object")
@@ -309,6 +316,7 @@ class RunStore:
             return self._event_row(row)
 
     def events_after(self, run_id: str, after_sequence: int = 0, *, limit: int = 500) -> list[dict[str, Any]]:
+        """按 Run 标识、起始游标和条数上限查询，返回游标之后按序排列的事件列表。"""
         run_id = _validate_run_id(run_id)
         if isinstance(after_sequence, bool) or not isinstance(after_sequence, int) or after_sequence < 0:
             raise ValueError("after_sequence must be a non-negative integer")
@@ -325,6 +333,7 @@ class RunStore:
     get_events = events_after
 
     def last_sequence(self, run_id: str) -> int:
+        """接收 Run 标识，返回已存事件的最大序号，无事件时返回 0。"""
         run_id = _validate_run_id(run_id)
         with self._lock:
             row = self._connection.execute(
@@ -333,6 +342,7 @@ class RunStore:
             return int(row["sequence"])
 
     def delete_run(self, run_id: str) -> bool:
+        """删除指定 Run 及关联事件，返回是否实际删除了 Run 记录。"""
         run_id = _validate_run_id(run_id)
         with self._lock:
             cursor = self._connection.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))

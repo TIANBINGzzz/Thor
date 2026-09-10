@@ -101,7 +101,7 @@ DIRECT_WORKFLOW_APPEND = (
 
 
 def load_runtime_environment(workflow_name: str | None = None) -> None:
-    """Load root defaults, then the selected workflow's local environment."""
+    """接收可选 Workflow 名称，依次加载根目录和流程环境文件到当前进程，无返回值。"""
     runtime_db_demo = os.environ.get("DB_DEMO")
     load_dotenv(PROJECT_ROOT / ".env", override=True)
     workflow_config = load_workflow_config(workflow_name)
@@ -114,6 +114,7 @@ def load_runtime_environment(workflow_name: str | None = None) -> None:
 
 
 def missing_environment() -> list[str]:
+    """检查当前进程中的必需模型配置，返回缺失的环境变量名称列表。"""
     return [
         name
         for name in REQUIRED_ENV
@@ -123,25 +124,22 @@ def missing_environment() -> list[str]:
 
 
 def agent_environment() -> dict[str, str]:
-    """Return only environment values the Claude SDK actually needs.
+    """从当前进程环境返回 SDK 所需变量的白名单字典，不包含 Runtime、UI 和数据库凭据。
 
-    Runtime JWTs, the local UI token and database credentials are deliberately
-    absent.  Database credentials are added to the DBHub child separately.
+    数据库凭据由 database_environment 单独提供给 DBHub 子进程。
     """
     return _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
 
 
 def database_environment() -> dict[str, str]:
-    """Build the narrower environment for the DBHub MCP child process."""
+    """从当前进程环境返回 DBHub 子进程所需的基础变量和数据库配置字典。"""
     return _select_environment(BASE_PROCESS_ENV_KEYS | DATABASE_ENV_KEYS)
 
 
 def worker_environment() -> dict[str, str]:
-    """Environment passed to the trusted JSONL worker process.
+    """从当前进程环境返回可信 JSONL Worker 所需的变量字典。
 
-    The worker still needs database values to construct DBHub and the public
-    business-MCP allow-list, but the Java Runtime secret and local API token
-    are intentionally excluded before a provider process is started.
+    保留装配 MCP 所需的数据库配置和能力白名单，排除 Runtime JWT 密钥及本地 API Token。
     """
     return _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
                                | DATABASE_ENV_KEYS | WORKER_CONFIG_ENV_KEYS)
@@ -149,14 +147,9 @@ def worker_environment() -> dict[str, str]:
 
 @contextmanager
 def isolated_sdk_environment() -> Iterator[None]:
-    """Run the provider SDK with only its explicit, non-MCP environment.
+    """提供无参数上下文管理器，临时将当前 Worker 环境替换为 SDK 白名单，退出时恢复原环境。
 
-    ``ClaudeAgentOptions.env`` is merged with ``os.environ`` by the SDK.  A
-    filtered options dict alone therefore does not prevent workflow database
-    credentials (or a Runtime/JWT secret loaded from ``.env``) from reaching
-    the Claude CLI.  Build MCP configs first, then temporarily replace the
-    worker environment while the SDK is alive; DBHub receives its own explicit
-    ``database_environment()`` map.
+    SDK 会合并 os.environ，因此须先装配 MCP 配置，再进入此上下文；DBHub 使用独立环境字典。
     """
     original = dict(os.environ)
     safe = agent_environment()
@@ -192,6 +185,7 @@ def _safe_workflow_name(value: Any) -> str | None:
 
 
 def workflow_environment_path(workflow_config: dict[str, Any]) -> Path:
+    """根据 Workflow 配置解析环境文件路径，返回流程目录内的绝对路径，越界时抛出异常。"""
     directory = Path(str(workflow_config["_directory"])).resolve()
     env_value = workflow_config.get("env_file", DEFAULT_WORKFLOW_ENV_FILE)
     if not isinstance(env_value, str) or not env_value.strip():
@@ -205,7 +199,10 @@ def workflow_environment_path(workflow_config: dict[str, Any]) -> Path:
 
 
 def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
-    """Load optional JSON config colocated with a workflow script."""
+    """接收 Workflow 名称，读取并校验同名目录的 workflow.json，返回带目录信息的配置字典。
+
+    未指定流程或有效流程没有配置时返回 None，名称、路径或配置非法时抛出异常。
+    """
     safe_name = _safe_workflow_name(workflow_name)
     if safe_name is None:
         return None
@@ -267,17 +264,15 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
 
 
 def is_direct_workflow(workflow_config: dict[str, Any] | None) -> bool:
+    """检查输入配置的 execution.mode，返回是否采用 direct 执行模式。"""
     execution = workflow_config.get("execution") if workflow_config else None
     return isinstance(execution, dict) and execution.get("mode") == "direct"
 
 
 def runtime_mode_for(capability_ref: str | None, workflow_config: dict[str, Any] | None = None) -> str:
-    """Resolve the SDK lifetime from trusted profile configuration.
+    """接收能力标识和可选 Workflow 配置，返回 query 或 client 生命周期模式。
 
-    The browser and legacy Java callers do not need to send a new mode field.
-    A workflow may declare its mode in ``workflow.json``; capability-only
-    profiles can use the deployment-owned allow-list.  Unknown capabilities
-    remain one-shot Query runs by default.
+    优先读取流程配置，其次检查部署侧 Client 能力白名单，其余默认使用 query。
     """
 
     capability = str(capability_ref or "conversation").strip()
@@ -316,6 +311,7 @@ def _provider_config_path(workflow_config: dict[str, Any]) -> Path | None:
 
 
 def configured_database_tables(workflow_config: dict[str, Any] | None = None) -> list[str]:
+    """从 Workflow 数据库配置返回允许的表名列表，无数据库配置时返回空列表。"""
     database = _workflow_database(workflow_config)
     if not database:
         return []
@@ -339,7 +335,7 @@ def _platform_bearer_present(credentials: Any) -> bool:
 
 
 def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> str:
-    """Load explicitly listed Markdown constraints and semantic hints."""
+    """读取 Workflow 配置显式列出的约束和语义 Markdown，返回合并文本，并校验路径与大小限制。"""
     if not workflow_config:
         return ""
     documents = workflow_config.get("documents") or {}
@@ -370,7 +366,7 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> 
 
 
 def create_database_mcp_server(workflow_config: dict[str, Any] | None = None) -> dict[str, Any] | None:
-    """Build DBHub MCP config from workflow policy and secret environment values."""
+    """结合 Workflow 数据库策略和当前环境，返回 DBHub stdio MCP 配置；未启用数据库时返回 None。"""
     demo = os.environ.get("DB_DEMO", "").lower() in TRUE_VALUES
     database = _workflow_database(workflow_config)
     database_url = os.environ.get("DATABASE_URL", "").strip()
@@ -418,6 +414,7 @@ def build_system_prompt(
     database_enabled: bool = False,
     workflow_config: dict[str, Any] | None = None,
 ) -> dict[str, str]:
+    """接收附加提示词、数据库开关和流程配置，返回 SDK 系统提示词预设及追加内容。"""
     parts = [
         "你是师创智能体（AI 师创智能体），代表师创智能体为用户提供可靠、清晰、可执行的帮助。",
         DATABASE_APPEND if database_enabled else "遵循项目 CLAUDE.md 和已加载的项目 Skills；没有可靠证据时明确说明不确定性。",
@@ -437,6 +434,10 @@ def build_system_prompt(
 
 
 def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
+    """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
+
+    按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
+    """
     workflow_config = load_workflow_config(payload.get("workflow_name"))
     direct_workflow = is_direct_workflow(workflow_config)
     capability_ref = str(

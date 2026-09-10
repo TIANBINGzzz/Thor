@@ -52,7 +52,10 @@ def _credentials_token(credentials: Any) -> str:
 
 
 def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = None) -> dict[str, Any]:
-    """Return a copied MCP config with the token injected when required."""
+    """接收 MCP 标识、服务配置和请求凭据，返回按登记规则注入 Token 的配置副本。
+
+    未登记或缺少必需凭据时抛出 MCPAuthError，不修改原配置或全局环境。
+    """
     if not isinstance(mcp_ref, str) or not mcp_ref.strip():
         raise MCPAuthError("mcp_ref must be a non-empty string")
     rule = MCP_AUTH_RULES.get(mcp_ref)
@@ -98,7 +101,7 @@ def inject_mcp_authentication(
     *,
     allowed_refs: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Apply rules to a selected server map without changing the input map."""
+    """接收服务映射、请求凭据和可选服务名单，返回逐项完成凭据注入的新映射，不修改输入。"""
     if not isinstance(servers, Mapping):
         raise MCPAuthError("servers must be an object")
     refs = list(servers) if allowed_refs is None else list(allowed_refs)

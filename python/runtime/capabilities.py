@@ -18,6 +18,7 @@ class Capability:
     description: str = ""
 
     def to_public_dict(self) -> dict:
+        """将当前能力转换为公开目录字典，包含业务标识、说明和附件支持状态。"""
         return {"capabilityRef": self.ref, "name": self.name,
                 "description": self.description, "supportsAttachments": self.supports_attachments}
 
@@ -32,6 +33,7 @@ CAPABILITIES: dict[str, Capability] = {
 
 
 def resolve_capability(ref: str) -> Capability:
+    """根据业务能力标识返回登记的 Capability，未登记时抛出 CapabilityError。"""
     try:
         return CAPABILITIES[ref]
     except KeyError as error:

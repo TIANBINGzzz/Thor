@@ -64,6 +64,7 @@ CLIENT_QUEUE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_CLIENT_QUEUE_TIMEOUT_
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    """管理 FastAPI 生命周期，启动时创建会话管理器，退出时关闭 Client 并取消后台 Run。"""
     global SESSION_MANAGER
     SESSION_MANAGER = _create_session_manager()
     yield
@@ -90,6 +91,7 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 
 @app.middleware("http")
 async def secure_runtime_api(request: Request, call_next):
+    """检查请求路径及 Origin，返回拒绝响应或交给下一处理器；具体 Run 鉴权由路由执行。"""
     if request.url.path == "/health":
         return await call_next(request)
     if not request.url.path.startswith("/internal/v1/"):
@@ -111,11 +113,13 @@ def _plain(message: str, status: int) -> PlainTextResponse:
 
 @app.get("/health")
 async def health() -> dict[str, bool]:
+    """返回服务存活标记，无输入，不检查模型或 MCP 的连通性。"""
     return {"ok": True}
 
 
 @app.get("/internal/v1/capabilities")
 async def internal_capabilities():
+    """返回登记能力的公开目录 JSON，无输入，不包含 Workflow 执行配置。"""
     return JSONResponse({"capabilities": [item.to_public_dict() for item in CAPABILITIES.values()]},
                         headers={"cache-control": "no-store"})
 
@@ -131,6 +135,7 @@ async def internal_capabilities():
 
 
 async def _small_json(request: Request, maximum: int = MAX_PROMPT_BYTES) -> dict[str, Any]:
+    """读取 HTTP 请求体并按字节上限校验，返回 JSON 对象，空请求返回空字典。"""
     body = await request.body()
     if len(body) > maximum:
         raise ValueError("请求体过大")
@@ -181,6 +186,7 @@ def _authorize_internal(
     allowed_scopes: set[str],
     consume_jti: bool,
 ) -> dict[str, Any]:
+    """校验请求 JWT、允许权限及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
     if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
     run_id = str(run.get("runId") or "")
@@ -218,6 +224,7 @@ def _authorize_internal(
 
 
 def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tuple[dict[str, Any], str]:
+    """校验 HTTP JWT 与新 Run 请求的绑定，返回 claims 和仅供内存使用的原始 Token。"""
     if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
     capability = run_request.capability_ref or "conversation"
@@ -245,7 +252,7 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tu
 
 
 def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
-    """Translate one SDK event to the small public event contract."""
+    """接收 Run 标识和 Worker 原始事件，返回公共协议事件，省略思考正文及工具输入输出详情。"""
     raw_type = str(raw.get("type") or "activity")
     if raw_type == "text":
         text = raw.get("text")
@@ -292,7 +299,7 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def _public_run(run: dict[str, Any]) -> dict[str, Any]:
-    """Keep storage and provider bookkeeping outside the Java response."""
+    """接收内部 Run 记录，返回公开状态字典，包含 runId、状态、事件序号及可选错误。"""
     result = {key: run[key] for key in ("runId", "status", "lastSequence")}
     if run.get("error"):
         result["error"] = run["error"]
@@ -302,6 +309,7 @@ def _public_run(run: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any]:
+    """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
     clean = {"protocolVersion": "agent-events/v1", **event}
     stored = RUN_STORE.append_event(run_id, clean)
     async with internal_runs_lock:
@@ -339,6 +347,7 @@ async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
 
 
 def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) -> str:
+    """根据已验证身份、业务会话和能力生成 Client 路由键，返回用于会话隔离的字符串。"""
     tenant = claims["tenant"]
     user = claims["sub"]
     business = str(run_request.business_session_id or claims.get("businessSessionId") or run_request.run_id)
@@ -381,6 +390,7 @@ def _clear_runtime_input(directory: Path) -> None:
 
 
 def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
+    """根据请求凭据及执行配置生成哈希指纹，返回供会话管理器判断 Client 是否可复用的字符串。"""
     credentials = run_request.credentials.platform_bearer
     credential_digest = hashlib.sha256(credentials.encode("utf-8")).hexdigest() if credentials else ""
     stable = {
@@ -394,6 +404,7 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
 
 
 def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
+    """解析请求能力对应的可信 Workflow 配置，返回 query 或 client 执行模式。"""
     capability = resolve_capability(run_request.capability_ref)
     workflow_config = load_workflow_config(capability.workflow_ref)
     mode = runtime_mode_for(run_request.capability_ref, workflow_config)
@@ -408,6 +419,7 @@ async def _run_phase(run_id: str, payload: dict[str, Any]) -> None:
 
 async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any], workspace: Path,
                            runtime_bearer: str | None) -> tuple[FetchedFile, ...]:
+    """按请求附件引用和已验证身份获取文件到工作目录，发布准备进度并返回 FetchedFile 元组。"""
     if not run_request.input.attachment_refs:
         return ()
     async def progress(payload: dict[str, Any]) -> None:
@@ -429,6 +441,7 @@ def _internal_worker_payload(
     session_directory: Path | None = None,
     attachment_files: tuple[FetchedFile, ...] = (),
 ) -> dict[str, Any]:
+    """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
     model = MODELS[0] if MODELS else ""
     if not model or model not in MODELS:
         raise ValueError("model 不在允许列表中")
@@ -512,6 +525,7 @@ async def _execute_internal_run(
     *,
     runtime_bearer: str | None = None,
 ) -> None:
+    """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
     input_workspace: Path | None = None
     runtime_mode: str | None = None
@@ -663,6 +677,7 @@ async def _execute_internal_run(
 
 @app.post("/internal/v1/runs")
 async def internal_create_run(request: Request):
+    """解析并鉴权创建请求，幂等登记和调度 Run，返回公开状态及 SSE 地址，错误时返回 HTTP 错误响应。"""
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
@@ -715,6 +730,7 @@ async def internal_create_run(request: Request):
 
 @app.get("/internal/v1/runs/{run_id}")
 async def internal_get_run(run_id: str, request: Request):
+    """按 Run 标识及请求 JWT 校验访问权，返回公开状态，不存在或鉴权失败时返回错误响应。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
@@ -731,6 +747,7 @@ async def internal_run_events(
     request: Request,
     afterSequence: int | None = Query(default=None, ge=0),
 ):
+    """按 Run 标识和事件游标返回 SSE 响应，先回放历史再推送实时事件；连接断开仅移除订阅。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
@@ -801,6 +818,7 @@ async def internal_run_events(
 
 @app.get("/internal/v1/runs/{run_id}/artifacts")
 async def internal_artifacts(run_id: str, request: Request, name: str | None = None):
+    """鉴权指定 Run 后返回交付目录的文件列表；传入 name 时校验路径并返回文件下载响应。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
@@ -821,6 +839,7 @@ async def internal_artifacts(run_id: str, request: Request, name: str | None = N
 
 
 async def _apply_internal_control(run_id: str, request: Request, option: str):
+    """校验请求对 Run 的控制权限，执行 interrupt 或 cancel，返回最新公开状态或错误响应。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
@@ -878,6 +897,7 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
 
 @app.post("/internal/v1/runs/{run_id}/control")
 async def internal_control_run(run_id: str, request: Request):
+    """读取并校验请求中的 option，控制指定 Run，返回控制处理结果。"""
     try:
         payload = await _small_json(request, 1024)
         if set(payload) != {"option"} or not isinstance(payload.get("option"), str):
@@ -889,6 +909,7 @@ async def internal_control_run(run_id: str, request: Request):
 
 @app.post("/internal/v1/runs/{run_id}/cancel")
 async def internal_cancel_run(run_id: str, request: Request):
+    """将 Run 标识和 HTTP 请求交给取消处理器，返回最新公开状态或错误响应。"""
     return await _apply_internal_control(run_id, request, "cancel")
 
 

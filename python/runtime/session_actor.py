@@ -139,6 +139,7 @@ class SessionActor:
         return process.pid if process and process.returncode is None else None
 
     def snapshot(self) -> dict[str, Any]:
+        """返回当前 Actor 的内部状态字典，包括队列、活动 Run、Worker 和 SDK 会话信息。"""
         return {
             "sessionKey": self.session_key,
             "state": self._state.value,
@@ -166,6 +167,7 @@ class SessionActor:
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
     ) -> dict[str, Any]:
+        """接收 Run 标识、执行参数及准备/清理回调，排队并等待串行执行，返回 Run 结果字典。"""
         self._cancel_idle_timer()
         command = await self._enqueue("run", run_id, dict(payload), prepare=prepare, cleanup=cleanup)
         try:
@@ -195,6 +197,7 @@ class SessionActor:
             raise
 
     async def interrupt(self, run_id: str) -> None:
+        """接收 Run 标识并提交中断命令，等待处理完成；准备阶段改为取消，无返回值。"""
         if self._active_run_id == run_id and self._preparation_task is not None:
             await self.cancel(run_id)
             return
@@ -202,6 +205,7 @@ class SessionActor:
         await command.future
 
     async def cancel(self, run_id: str) -> None:
+        """接收 Run 标识，取消排队、附件准备或正在执行的命令，无返回值；非活动 Run 抛出异常。"""
         if run_id not in self._run_commands:
             raise SessionActorError("Run 不存在或已结束", code="run_not_active")
         # Set this before enqueuing the control command. If the Run is still in
@@ -220,6 +224,7 @@ class SessionActor:
         await command.future
 
     async def close(self) -> None:
+        """关闭当前 Actor 和 Worker，结束待处理命令并更新状态，无额外输入和返回值。"""
         if self._preparation_task is not None and self._active_run_id is not None:
             await self.cancel(self._active_run_id)
         task = self._task
@@ -664,6 +669,7 @@ class SessionManager:
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
     ) -> dict[str, Any]:
+        """根据会话键和初始配置选择或创建 Actor，提交 Run 及其回调并返回执行结果字典。"""
         async with self._lock:
             actor = self._actors.get(session_key)
             incoming_fingerprint = initial_payload.get("_credential_binding")
@@ -692,24 +698,29 @@ class SessionManager:
                 self._run_actors.pop(run_id, None)
 
     async def interrupt(self, run_id: str) -> None:
+        """根据 Run 标识找到所属 Actor 并请求中断，无返回值；Run 不活动时抛出异常。"""
         actor = self._run_actors.get(run_id)
         if actor is None:
             raise SessionActorError("Run 不存在或已结束", code="run_not_active")
         await actor.interrupt(run_id)
 
     async def cancel(self, run_id: str) -> None:
+        """根据 Run 标识找到所属 Actor 并请求取消，无返回值；Run 不活动时抛出异常。"""
         actor = self._run_actors.get(run_id)
         if actor is None:
             raise SessionActorError("Run 不存在或已结束", code="run_not_active")
         await actor.cancel(run_id)
 
     def actor_for_run(self, run_id: str) -> SessionActor | None:
+        """按 Run 标识返回正在管理它的 Actor，没有活动映射时返回 None。"""
         return self._run_actors.get(run_id)
 
     def snapshots(self) -> list[dict[str, Any]]:
+        """返回所有已登记 Actor 的内部状态快照列表，无额外输入。"""
         return [actor.snapshot() for actor in self._actors.values()]
 
     async def close_all(self) -> None:
+        """等待所有 Actor 关闭并清空会话和 Run 映射，无额外输入和返回值。"""
         actors = list(self._actors.values())
         if actors:
             await asyncio.gather(*(actor.close() for actor in actors), return_exceptions=True)

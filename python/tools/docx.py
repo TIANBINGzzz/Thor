@@ -21,6 +21,7 @@ def _inside(path: Path, roots: list[Path]) -> bool:
 
 
 def _resolve(path_value: str, roots: list[Path], *, must_exist: bool = True) -> Path:
+    """按允许目录解析输入 DOCX 路径并返回绝对路径，越界、扩展名错误或缺失时抛出异常。"""
     if not isinstance(path_value, str) or not path_value.strip():
         raise ValueError("path 不能为空")
     path = Path(path_value).expanduser()
@@ -37,6 +38,7 @@ def _resolve(path_value: str, roots: list[Path], *, must_exist: bool = True) -> 
 
 
 def _paragraphs(document: Document):
+    """接收 Word 文档对象，依次产出正文、顶层表格单元格、页眉和页脚中的段落。"""
     yield from document.paragraphs
     for table in document.tables:
         for row in table.rows:
@@ -48,6 +50,7 @@ def _paragraphs(document: Document):
 
 
 def _document_summary(path: Path, document: Document) -> dict[str, Any]:
+    """接收文件路径和 Word 文档，返回段落、表格、计数及模板占位符的结构化摘要。"""
     paragraphs = [p.text for p in _paragraphs(document)]
     tables = [
         [[cell.text for cell in row.cells] for row in table.rows]
@@ -73,12 +76,14 @@ def _text_result(value: Any) -> dict[str, list[dict[str, str]]]:
 
 
 def inspect_document(path_value: str, base_dir: str | Path, additional_dirs: list[str] | None = None) -> dict[str, Any]:
+    """在指定允许目录内读取 DOCX，返回段落、表格及占位符摘要字典。"""
     roots = _roots(base_dir, additional_dirs)
     path = _resolve(path_value, roots)
     return _document_summary(path, Document(path))
 
 
 def extract_document(path_value: str, base_dir: str | Path, additional_dirs: list[str] | None = None) -> dict[str, Any]:
+    """按文件路径和允许目录提取 DOCX 段落文本，返回包含路径及合并纯文本的字典。"""
     roots = _roots(base_dir, additional_dirs)
     path = _resolve(path_value, roots)
     return {"path": str(path), "text": "\n".join(p.text for p in _paragraphs(Document(path)))}
@@ -91,6 +96,10 @@ def replace_document(
     additional_dirs: list[str] | None = None,
     output_path: str | None = None,
 ) -> dict[str, Any]:
+    """接收模板路径、占位符替换映射和可选输出路径，替换内容并另存为新 DOCX。
+
+    返回输出路径、发生修改的段落数和替换键列表，输出路径必须区别于源模板。
+    """
     roots = _roots(base_dir, additional_dirs)
     source = _resolve(path_value, roots)
     if not isinstance(replacements, dict) or not replacements:
@@ -125,6 +134,7 @@ def replace_document(
 
 
 def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None = None):
+    """接收基础目录和额外允许目录，返回注册检查、提取和替换工具的进程内 MCP 服务配置。"""
     roots = _roots(base_dir, additional_dirs)
 
     @sdk_tool(
@@ -133,6 +143,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
         {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
     )
     async def inspect_docx(args: dict[str, Any]) -> dict[str, Any]:
+        """接收含 path 的工具参数，返回以 MCP 文本格式封装的 DOCX 结构摘要。"""
         return _text_result(inspect_document(args.get("path", ""), roots[0], [str(root) for root in roots[1:]]))
 
     @sdk_tool(
@@ -141,6 +152,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
         {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
     )
     async def extract_docx(args: dict[str, Any]) -> dict[str, Any]:
+        """接收含 path 的工具参数，返回以 MCP 文本格式封装的文档纯文本。"""
         return _text_result(extract_document(args.get("path", ""), roots[0], [str(root) for root in roots[1:]]))
 
     @sdk_tool(
@@ -157,6 +169,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
         },
     )
     async def replace_docx(args: dict[str, Any]) -> dict[str, Any]:
+        """接收路径、替换映射和可选输出路径，返回以 MCP 文本格式封装的新文件生成结果。"""
         return _text_result(replace_document(
             args.get("path", ""), args.get("replacements"), roots[0],
             [str(root) for root in roots[1:]], args.get("output_path"),

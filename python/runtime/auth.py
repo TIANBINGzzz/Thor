@@ -48,7 +48,7 @@ def _json_segment(value: str, name: str) -> dict[str, Any]:
 
 
 def encode_hs256_jwt(claims: Mapping[str, Any], secret: str | bytes) -> str:
-    """Create a compact HS256 token; primarily useful for Java adapter tests."""
+    """接收 claims 和共享密钥，返回 HS256 签名 JWT，主要供适配器测试使用。"""
     if not isinstance(claims, Mapping):
         raise TypeError("claims must be a mapping")
     secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else bytes(secret)
@@ -78,6 +78,7 @@ class ReplayCache:
         self._lock = threading.Lock()
 
     def check_and_mark(self, jti: str, *, ttl_seconds: float, now: float | None = None) -> bool:
+        """检查并登记指定 jti 的有效期，首次登记返回 True，重复使用返回 False；缓存满时淘汰最早过期项。"""
         current = time.time() if now is None else float(now)
         expiry = current + max(0.001, float(ttl_seconds))
         with self._lock:
@@ -190,11 +191,9 @@ def verify_run_jwt(
     now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
-    """Verify and return claims bound to one request body.
+    """接收 JWT、共享密钥及请求绑定条件，校验签名、时效、权限和业务绑定后返回 claims。
 
-    ``body`` may be a plain wire mapping or an ``AgentRunRequest``.  The token
-    is marked as used only after every cryptographic and request-binding check
-    succeeds, so malformed requests cannot consume a valid ``jti``.
+    body 可为字典或 AgentRunRequest；启用重放检查时，仅在全部验证通过后登记 jti。
     """
     claims = _verify_signed_claims(
         token, secret, audience=audience, issuer=issuer, expected_scope=expected_scope,

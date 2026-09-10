@@ -19,19 +19,19 @@ import claude_agent_sdk as _sdk
 
 
 def build_agent_options(**kwargs: Any) -> Any:
-    """Construct provider options without exposing the provider module upstream."""
+    """接收 SDK 配置关键字参数，返回 ClaudeAgentOptions，供运行配置层统一装配。"""
 
     return _sdk.ClaudeAgentOptions(**kwargs)
 
 
 def create_sdk_mcp_server(*args: Any, **kwargs: Any) -> Any:
-    """Create an SDK MCP server through the project-owned provider boundary."""
+    """接收服务名称、版本和工具等 SDK 参数，返回进程内 MCP 服务配置。"""
 
     return _sdk.create_sdk_mcp_server(*args, **kwargs)
 
 
 def sdk_tool(*args: Any, **kwargs: Any) -> Any:
-    """Apply the provider tool decorator through the project-owned boundary."""
+    """接收工具名称、描述和输入 schema，返回 SDK 工具装饰器。"""
 
     return _sdk.tool(*args, **kwargs)
 
@@ -88,7 +88,7 @@ class SDKMessage:
     uuid: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize a provider-neutral message for the local JSONL boundary."""
+        """将当前消息序列化为普通字典，省略为空的可选字段，供 JSONL 传输。"""
 
         return {
             key: value
@@ -104,7 +104,7 @@ class SDKMessage:
 
     @classmethod
     def from_dict(cls, value: Any) -> "SDKMessage":
-        """Restore a plain message emitted by the SDK worker."""
+        """校验输入字典并还原 SDKMessage；字段类型不合法时抛出 ValueError。"""
 
         if not isinstance(value, Mapping):
             raise ValueError("SDK message must be an object")
@@ -133,6 +133,7 @@ class SDKMessage:
 
 
 def _to_jsonable(value: Any) -> Any:
+    """接收任意 SDK 字段值，递归转换为可 JSON 序列化的数据。"""
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, Enum):
@@ -149,6 +150,7 @@ def _to_jsonable(value: Any) -> Any:
 
 
 def _message_fields(message: Any) -> dict[str, Any]:
+    """接收 SDK 消息对象，返回字段字典，并为已识别的内容块补充 type。"""
     value = _to_jsonable(message)
     if not isinstance(value, dict):
         return {"value": value}
@@ -174,7 +176,7 @@ def _message_fields(message: Any) -> dict[str, Any]:
 
 
 def normalize_message(message: Any) -> SDKMessage:
-    """Convert one provider message into a plain project-owned snapshot."""
+    """接收原生 SDK 消息或 SDKMessage，返回统一的 SDKMessage，保留会话及父工具引用。"""
 
     if isinstance(message, SDKMessage):
         return message
@@ -223,7 +225,7 @@ def normalize_message(message: Any) -> SDKMessage:
 
 
 def _safe_sdk_error(error: BaseException) -> SDKError:
-    """Map provider exceptions without copying provider details to callers."""
+    """接收底层异常，返回项目定义的 SDKError，避免向上层复制底层异常详情。"""
 
     if isinstance(error, SDKError):
         return error
@@ -237,6 +239,7 @@ def _safe_sdk_error(error: BaseException) -> SDKError:
 
 
 async def _close_iterator(iterator: Any, timeout_ms: int = 5_000) -> None:
+    """接收迭代器和关闭时限，调用其可用的 aclose；无返回值，超时或关闭失败向上抛出。"""
     close = getattr(iterator, "aclose", None)
     if close is None:
         return
@@ -246,6 +249,7 @@ async def _close_iterator(iterator: Any, timeout_ms: int = 5_000) -> None:
 
 
 def _validate_timeout(timeout_ms: int | None, name: str) -> None:
+    """检查指定名称的超时参数是否为正整数或 None；无返回值，非法值抛出配置错误。"""
     if timeout_ms is not None and (
         isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int) or timeout_ms <= 0
     ):
@@ -253,13 +257,17 @@ def _validate_timeout(timeout_ms: int | None, name: str) -> None:
 
 
 async def _await_with_timeout(awaitable: Awaitable[Any], timeout_ms: int | None) -> Any:
+    """按可选毫秒时限等待异步操作，返回操作结果，超时抛出 TimeoutError。"""
     if timeout_ms is None:
         return await awaitable
     return await asyncio.wait_for(awaitable, timeout_ms / 1000)
 
 
 async def _disconnect_provider(provider: Any, timeout_ms: int) -> SDKError | None:
-    """Close a provider client and return a cleanup error without hiding a primary error."""
+    """按指定时限关闭底层 Client，成功返回 None，失败返回 SDKError 供调用方处理。
+
+    取消信号继续抛出，调用方可保留原始执行错误，避免被清理错误覆盖。
+    """
 
     try:
         await _await_with_timeout(provider.disconnect(), timeout_ms)
@@ -293,6 +301,7 @@ class ClaudeSDKClient:
         receive_timeout_ms: int | None = 120_000,
         disconnect_timeout_ms: int = 5_000,
     ) -> None:
+        """接收 SDK 选项、可选 Client 工厂和各阶段时限，初始化客户端状态；此时尚未连接。"""
         for value, name in (
             (connect_timeout_ms, "connect_timeout_ms"),
             (query_timeout_ms, "query_timeout_ms"),
@@ -312,9 +321,11 @@ class ClaudeSDKClient:
 
     @property
     def state(self) -> ClientState:
+        """返回当前 Client 生命周期状态，无额外输入。"""
         return self._state
 
     def _claim_owner(self) -> None:
+        """绑定或校验当前 asyncio Task 的独占操作权；无返回值，跨 Task 调用时报错。"""
         current = asyncio.current_task()
         if current is None:
             raise SDKConfigurationError("Client 必须在 asyncio Task 中使用")
@@ -324,6 +335,7 @@ class ClaudeSDKClient:
             raise SDKExecutionError("Claude Client 只能由创建它的 asyncio Task 操作")
 
     def _require_state(self, allowed: set[ClientState]) -> None:
+        """接收允许的状态集合并检查当前状态；无返回值，不匹配时抛出执行错误。"""
         if self._state not in allowed:
             allowed_names = ", ".join(item.value for item in allowed)
             raise SDKExecutionError(
@@ -331,6 +343,7 @@ class ClaudeSDKClient:
             )
 
     async def connect(self, prompt: str | None = None) -> None:
+        """接收可选初始提示词并连接底层 Client，成功后进入 READY；无返回值，失败时清理连接。"""
         self._claim_owner()
         self._require_state({ClientState.NEW})
         self._state = ClientState.CONNECTING
@@ -360,6 +373,7 @@ class ClaudeSDKClient:
             raise _safe_sdk_error(error) from error
 
     async def query(self, prompt: str, session_id: str = "default") -> None:
+        """向已连接 Client 提交提示词和 SDK 会话标识，进入 RUNNING；无返回值，回复由 receive_response 读取。"""
         self._claim_owner()
         self._require_state({ClientState.READY})
         if not isinstance(prompt, str) or not prompt.strip():
@@ -388,6 +402,7 @@ class ClaudeSDKClient:
             raise _safe_sdk_error(error) from error
 
     def receive_response(self, *, timeout_ms: int | None = None) -> AsyncIterator[SDKMessage]:
+        """接收可选响应总时限，返回 SDKMessage 异步迭代器；未指定时使用实例默认时限。"""
         self._claim_owner()
         self._require_state({ClientState.RUNNING})
         effective_timeout = self._receive_timeout_ms if timeout_ms is None else timeout_ms
@@ -399,6 +414,10 @@ class ClaudeSDKClient:
         return self._receive_response(provider, effective_timeout)
 
     async def _receive_response(self, provider: Any, timeout_ms: int | None) -> AsyncIterator[SDKMessage]:
+        """按总时限消费底层 Client 的回复并逐条产出 SDKMessage，收到 result 后恢复 READY。
+
+        提前结束、取消或失败时关闭响应流，并废弃未正常完成的连接。
+        """
         iterator: Any | None = None
         completed = False
         primary_error: BaseException | None = None
@@ -456,6 +475,7 @@ class ClaudeSDKClient:
                     raise cleanup_error
 
     async def interrupt(self) -> None:
+        """请求底层 Client 中断当前生成，无额外输入和返回值；调用后仍需消费回复至结束。"""
         self._claim_owner()
         self._require_state({ClientState.RUNNING})
         provider = self._provider
@@ -481,6 +501,7 @@ class ClaudeSDKClient:
             raise _safe_sdk_error(error) from error
 
     async def disconnect(self) -> None:
+        """释放底层 Client 并更新关闭状态，无额外输入和返回值；清理失败时抛出 SDKError。"""
         self._claim_owner()
         if self._state in {ClientState.CLOSED, ClientState.NEW}:
             self._state = ClientState.CLOSED
@@ -504,10 +525,12 @@ class ClaudeSDKClient:
     close = disconnect
 
     async def __aenter__(self) -> "ClaudeSDKClient":
+        """进入异步上下文时建立连接，返回当前 Client。"""
         await self.connect()
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+        """接收上下文异常信息并关闭连接，返回 False 以继续传播原异常。"""
         await self.disconnect()
         return False
 
@@ -520,6 +543,7 @@ class ClaudeSDKFacade:
         *,
         query_impl: Callable[..., AsyncIterator[Any]] | None = None,
     ) -> None:
+        """接收可选 query 实现并保存，默认使用原生 SDK query；不立即发起请求。"""
         self._query_impl = query_impl or _sdk.query
 
     async def stream_query(
@@ -529,12 +553,9 @@ class ClaudeSDKFacade:
         *,
         timeout_ms: int | None = None,
     ) -> AsyncIterator[SDKMessage]:
-        """Yield normalized messages with a total hard timeout.
+        """接收提示词、SDK 选项和可选总时限，逐条产出标准化 SDKMessage。
 
-        The timeout is measured across the whole query, including periods with
-        no SDK output.  Cancellation is deliberately re-raised as
-        ``asyncio.CancelledError`` after the SDK iterator is closed so the
-        caller can distinguish cancellation from a provider failure.
+        总时限包含无输出的等待期；取消时关闭 SDK 流并继续抛出 CancelledError，区别于执行失败。
         """
 
         if not isinstance(prompt, str) or not prompt.strip():
@@ -586,7 +607,7 @@ async def stream_query(
     *,
     timeout_ms: int | None = None,
 ) -> AsyncIterator[SDKMessage]:
-    """Convenience entry point for application code."""
+    """接收提示词、SDK 选项和可选总时限，通过默认 Facade 逐条产出 SDKMessage。"""
 
     facade = ClaudeSDKFacade()
     async for message in facade.stream_query(prompt, options, timeout_ms=timeout_ms):
