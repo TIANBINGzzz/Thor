@@ -1,6 +1,5 @@
 import asyncio
 import tempfile
-import time
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -19,7 +18,7 @@ class RuntimeBoundaryTests(unittest.TestCase):
         })
         with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker:
             result = asyncio.run(server._fetch_run_files(request, {"tenant": "t", "sub": "u"},
-                                 Path(folder), "runtime-jwt", time.monotonic() + 5))
+                                 Path(folder), "runtime-jwt"))
             self.assertEqual(result, ())
             broker.assert_not_called()
 
@@ -43,10 +42,10 @@ class RuntimeBoundaryTests(unittest.TestCase):
             "businessSessionId": "session-file", "capabilityRef": "conversation",
             "input": {"text": "read", "attachmentRefs": [{"fileId": "file-id", "purpose": "input"}]},
         })
-        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker:
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker, patch.object(server, "_run_phase", new_callable=AsyncMock):
             broker.return_value.fetch_all = AsyncMock(return_value=())
             asyncio.run(server._fetch_run_files(request, {"tenant": "local-tenant", "sub": "local-user"},
-                Path(folder), "runtime-jwt", time.monotonic() + 5))
+                Path(folder), "runtime-jwt"))
             kwargs = broker.return_value.fetch_all.call_args.kwargs
             self.assertEqual(kwargs["bearer_token"], "runtime-jwt")
             self.assertEqual(kwargs["tenant_id"], "local-tenant")

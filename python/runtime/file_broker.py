@@ -20,7 +20,7 @@ from pathlib import Path
 import re
 import socket
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 import uuid
@@ -30,7 +30,9 @@ import httpx
 
 LOGGER = logging.getLogger("ccsdk.file_broker")
 DEFAULT_GRANT_TIMEOUT_MS = 15_000
-DEFAULT_MAX_FILE_BYTES = 50 * 1024 * 1024
+DEFAULT_MAX_FILE_BYTES = 256 * 1024 * 1024
+DEFAULT_PREPARE_TIMEOUT_MS = 600_000
+DOWNLOAD_CHUNK_BYTES = 256 * 1024
 MAX_GRANT_BYTES = 256 * 1024
 MAX_GRANT_TTL_MS = 5 * 60 * 1000
 SAFE_MIME = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+/[A-Za-z0-9!#$%&'*+.^_`|~-]+$")
@@ -110,6 +112,7 @@ class _Grant:
 
 
 EventSink = Callable[[str, dict[str, Any]], None]
+ProgressSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 def _positive_int(value: Any, name: str) -> int:
@@ -299,6 +302,7 @@ class FileBroker:
         client_cert: str | tuple[str, str] | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         event_sink: EventSink | None = None,
+        progress_sink: ProgressSink | None = None,
     ) -> None:
         raw_endpoint = (endpoint if endpoint is not None else os.environ.get("CCSDK_FILE_BROKER_URL", "")).strip()
         if raw_endpoint:
@@ -337,6 +341,7 @@ class FileBroker:
             self.client_cert = configured_cert or client_cert
         self.transport = transport
         self.event_sink = event_sink
+        self.progress_sink = progress_sink
 
     @property
     def configured(self) -> bool:
@@ -376,7 +381,7 @@ class FileBroker:
         effective_timeout_ms = (
             _positive_int(timeout_ms, "timeout_ms")
             if timeout_ms is not None
-            else self.timeout_ms
+            else _env_int("CCSDK_FILE_PREPARE_TIMEOUT_MS", DEFAULT_PREPARE_TIMEOUT_MS)
         )
         deadline = time.monotonic() + effective_timeout_ms / 1000
         active_reference: Any | None = None
@@ -384,7 +389,7 @@ class FileBroker:
         try:
             async with asyncio.timeout(effective_timeout_ms / 1000):
                 async with httpx.AsyncClient(
-                    timeout=self._timeout(timeout_ms),
+                    timeout=self._timeout(None),
                     follow_redirects=False,
                     trust_env=False,
                     transport=self.transport,
@@ -398,6 +403,7 @@ class FileBroker:
                         started = time.monotonic()
                         active_started = started
                         self._emit("file.fetch.started", {"fileId": file_id, "purpose": purpose})
+                        await self._progress("preparing_file", fileId=file_id)
                         try:
                             fetched = await self._fetch_one(
                                 client,
@@ -409,6 +415,8 @@ class FileBroker:
                             )
                             results.append(fetched)
                             used_names.add(fetched.safe_name.lower())
+                            await self._progress("file_ready", fileId=file_id,
+                                                 receivedBytes=fetched.size, totalBytes=fetched.size)
                             self._emit(
                                 "file.fetch.succeeded",
                                 {**fetched.to_metadata(), "durationMs": self._duration(started)},
@@ -671,16 +679,31 @@ class FileBroker:
         temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.part")
         digest = hashlib.sha256()
         total = 0
+        progress_at = time.monotonic()
+        await self._progress("downloading_file", fileId=file_id,
+                             receivedBytes=0, totalBytes=expected_size)
         try:
             with temporary.open("xb") as stream:
-                async for chunk in response.aiter_bytes():
+                async for chunk in response.aiter_bytes(chunk_size=DOWNLOAD_CHUNK_BYTES):
                     if not chunk:
                         continue
                     total += len(chunk)
-                    if total > self.max_bytes:
+                    if total > self.max_bytes or (expected_size is not None and total > expected_size):
                         raise FileBrokerValidationError("文件超过大小限制")
                     stream.write(chunk)
                     digest.update(chunk)
+                    now = time.monotonic()
+                    if now - progress_at >= 0.5:
+                        await self._progress("downloading_file", fileId=file_id,
+                                             receivedBytes=total, totalBytes=expected_size)
+                        progress_at = now
+                    # Bounded writes and a scheduling point keep cancellation responsive
+                    # even when the HTTP transport already has buffered data.
+                    await asyncio.sleep(0)
+                await self._progress("downloading_file", fileId=file_id,
+                                     receivedBytes=total, totalBytes=expected_size)
+                await self._progress("validating_file", fileId=file_id,
+                                     receivedBytes=total, totalBytes=expected_size)
                 stream.flush()
                 os.fsync(stream.fileno())
             actual_sha256 = digest.hexdigest()
@@ -745,6 +768,10 @@ class FileBroker:
                 # Event sink. A broken sink must not
                 # turn a valid file fetch into a failed user Run.
                 LOGGER.warning("File Broker event sink failed: %s", type(error).__name__)
+
+    async def _progress(self, name: str, **fields: Any) -> None:
+        if self.progress_sink is not None:
+            await self.progress_sink({"name": name, **fields})
 
     @staticmethod
     def _remove_files(files: list[FetchedFile]) -> None:

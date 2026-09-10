@@ -157,7 +157,7 @@ event: message.delta
 data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段"}}</pre></div>
 <table><thead><tr><th>事件 type</th><th>payload</th><th>用途</th></tr></thead><tbody>
 <tr><td>run.started</td><td><code>status: "running"</code></td><td>Run 已进入执行。</td></tr>
-<tr><td>phase</td><td><code>name</code>：<code>started</code>、<code>thinking</code>、<code>response</code>、<code>working</code>；思考阶段可带 <code>visible: true</code></td><td>让 Java/前端展示处理阶段；不返回思考正文。</td></tr>
+<tr><td>phase</td><td><code>name</code>：下表文件阶段或 <code>started</code>、<code>thinking</code>、<code>response</code>、<code>working</code>；思考阶段可带 <code>visible: true</code></td><td>展示文件准备和模型执行阶段；不返回思考正文。</td></tr>
 <tr><td>message.delta</td><td><code>textDelta</code></td><td>助手回复增量，按 <code>sequence</code> 拼接。</td></tr>
 <tr><td>tool.started</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "started"</code></td><td>展示工具调用开始。</td></tr>
 <tr><td>tool.progress</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "running"</code></td><td>展示工具仍在执行。</td></tr>
@@ -166,7 +166,23 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td>run.failed</td><td><code>code</code>，可带统计字段</td><td>执行失败并结束事件流。</td></tr>
 <tr><td>run.cancelled</td><td>空对象</td><td>执行被取消并结束事件流。</td></tr>
 </tbody></table>
-<div class="note">公共事件只暴露阶段、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、文件路径、凭据和 Provider 原始消息不会进入此接口。</div></section>
+<h3>文件准备进度</h3>
+<p>Run 的 running 包含文件准备和 SDK 执行；run.started 不代表模型已经启动。无附件时跳过文件阶段，文件未就绪不查询模型。</p>
+<table><thead><tr><th>phase.name</th><th>额外字段</th><th>建议展示</th></tr></thead><tbody>
+<tr><td>queued</td><td>无</td><td>等待当前会话可执行（Client 模式）。</td></tr>
+<tr><td>preparing_files</td><td>fileCount</td><td>正在准备模板或附件。</td></tr>
+<tr><td>preparing_file</td><td>fileId</td><td>正在获取当前文件授权，显示不定进度。</td></tr>
+<tr><td>downloading_file</td><td>fileId、receivedBytes、totalBytes</td><td>正在准备文件，可展示当前文件的字节进度。</td></tr>
+<tr><td>validating_file</td><td>fileId、receivedBytes、totalBytes</td><td>正在校验文件，尚未开始模型执行。</td></tr>
+<tr><td>file_ready</td><td>fileId、receivedBytes、totalBytes</td><td>当前文件就绪。</td></tr>
+<tr><td>files_ready</td><td>fileCount</td><td>全部附件就绪。</td></tr>
+<tr><td>model_starting</td><td>无</td><td>正在处理；收到 thinking 后才显示模型思考。</td></tr>
+</tbody></table>
+<div class="code-wrap"><div class="code-label">SSE frame · file progress</div><button class="copy" type="button">复制</button><pre>id: 4
+event: phase
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904}}</pre></div>
+<p>文件逐个获取；receivedBytes / totalBytes 是当前文件进度，不是整个 Run 的完成比例。下载开始报告 0 字节，中间最多每 500ms 更新一次，结束补发最终字节数。授权前没有总大小，显示不定进度；totalBytes 为 0 时不计算百分比。进度事件与回复共用 sequence，支持 SSE 断线回放。断开 SSE 不取消下载。</p>
+<div class="note">公共事件只暴露阶段、文件标识与字节数、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、文件路径、凭据和 Provider 原始消息不会进入此接口。</div></section>
 
 <section id="artifacts"><h2>Artifact 交付物</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts</code></div>
@@ -185,7 +201,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{"option":"interrupt"}</pre></div>
 <p><code>option</code> 是必填字符串，只允许以下两个值：</p>
 <table><thead><tr><th>option</th><th>执行效果与状态</th></tr></thead><tbody>
-<tr><td>interrupt</td><td>请求中断当前模型响应，不代表暂停后可以继续同一个 Run。持久 Client 模式调用 SDK interrupt，最终状态由随后返回的 SDK 结果决定；独立执行模式停止任务并进入 cancelled。没有活动任务时不改变状态。</td></tr>
+<tr><td>interrupt</td><td>文件准备期间等同取消准备，进入 cancelled。模型执行期间请求中断当前响应，不代表可恢复暂停：持久 Client 调用 SDK interrupt，最终状态由随后 SDK 结果决定；独立执行停止任务并进入 cancelled。没有活动任务时不改变状态。</td></tr>
 <tr><td>cancel</td><td>取消本次 Run，包括排队中的执行；执行取消后产生 <code>run.cancelled</code> 事件并进入 <code>cancelled</code>。业务前端的“停止生成”使用此值。</td></tr>
 </tbody></table>
 <p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
@@ -242,6 +258,14 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>
 
 <section id="file-broker"><h2>File Broker 回调契约</h2>
+<h3>文件流转</h3>
+<div class="code-wrap"><div class="code-label">用户与服务端流程</div><button class="copy" type="button">复制</button><pre>上传或预置文件 → Java 文件服务器保存并分配 fileId
+选择模板 → 前端显示“已选择”
+发送消息 → Java 创建 Run（JSON 中传 attachmentRefs）→ Python 立即返回 202
+Python 后台：获取授权 → 分块下载 → 校验并落盘 → 文件全部就绪 → SDK 查询
+Python → SSE 准备进度和回复 → Java → 前端
+生成文件 → Java 调用 Artifact 下载 → 业务归档或用户下载</pre></div>
+<p>“上传中”仅用于用户本机向文件服务器上传。Python 获取已存在的模板时显示“正在准备模板”，不是再次上传。Java 不等待下载完成再响应前端；文件字节经 HTTPS 二进制响应传输，进度经 SSE 传输，不把文件放入 payload。当前无附件的 Run 直接执行，有附件但能力不支持时创建返回 400。</p>
 <p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Java 通过 Artifact 接口取得并向用户提供下载。</p>
 <p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
 <h3>Python → Java 请求</h3>
@@ -281,7 +305,16 @@ X-File-Name: source.docx
 X-File-Mime-Type: application/octet-stream
 X-File-Size: 1024
 X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</pre></div>
-<p>Python 会校验文件名、MIME、大小、SHA-256、HTTPS 主机和 workspace 路径。默认单文件上限为 50 MiB，File Broker 请求超时为 15 秒。</p></section>
+<p>Python 按最多 256 KiB 分块写入临时文件并计算 SHA-256，校验成功后才将文件提供给 SDK；不把整个大文件载入内存。取消或失败清理临时文件，Run 完成后清理临时输入，不删除 Java 原文件。这里的校验是传输完整性校验，不代表 DOC/DOCX 内容已被工具成功解析。</p>
+<h3>大小和独立超时</h3>
+<table><thead><tr><th>配置</th><th>默认值</th><th>含义</th></tr></thead><tbody>
+<tr><td>CCSDK_FILE_MAX_BYTES</td><td>268435456</td><td>单文件 256 MiB。</td></tr>
+<tr><td>CCSDK_FILE_PREPARE_TIMEOUT_MS</td><td>600000</td><td>本次全部附件准备 10 分钟。</td></tr>
+<tr><td>CCSDK_FILE_BROKER_TIMEOUT_MS</td><td>15000</td><td>连接和等待数据等单次网络操作 15 秒，不是整份文件下载时长。</td></tr>
+<tr><td>CCSDK_RUN_EXECUTION_TIMEOUT_MS</td><td>300000</td><td>文件就绪后单独计时，模型执行 5 分钟。</td></tr>
+<tr><td>CCSDK_CLIENT_QUEUE_TIMEOUT_MS</td><td>300000</td><td>Client 排队等待 5 分钟。</td></tr>
+</tbody></table>
+<p>文件准备超时通过 run.failed 返回 file_broker_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。Java 须确保文件授权 Token 在排队后和后续文件请求时仍有效，Python 不会自动刷新。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
 <p>Runtime 错误使用 <code>text/plain; charset=utf-8</code>，Java 应按 HTTP 状态和稳定错误码处理，不把错误正文当作 JSON 解析。</p>

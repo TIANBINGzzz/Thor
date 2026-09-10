@@ -153,7 +153,7 @@ Content-Type: application/json
 
 | option | 执行效果与状态 |
 | --- | --- |
-| `interrupt` | 请求中断当前模型响应，不是暂停/恢复。持久 Client 调用 SDK interrupt，终态由随后 SDK 结果决定；独立执行停止任务并进入 cancelled。没有活动任务时不改变状态。 |
+| `interrupt` | 请求中断当前模型响应，不是暂停/恢复。文件准备期间等同取消准备，进入 cancelled；模型执行期间持久 Client 调用 SDK interrupt，终态由随后 SDK 结果决定；独立执行停止任务并进入 cancelled。没有活动任务时不改变状态。 |
 | `cancel` | 取消本次 Run，包括排队执行；执行取消后进入 cancelled 并产生 run.cancelled 事件。业务前端“停止生成”使用此值。 |
 
 两者都不删除业务会话或已有输出，不撤销工具已完成的操作；已结束的 Run 保持原状态。返回当前 Run，例如 `{"run":{"runId":"run_01","status":"cancelled","lastSequence":8}}`；执行可能仍在收尾，最终状态以 SSE 终态事件或后续查询为准。继续对话应创建新 Run。
@@ -181,7 +181,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `type` | `payload` | 设计原因 |
 | --- | --- | --- |
 | `run.started` | `status: "running"` | 明确 Run 已进入执行。 |
-| `phase` | `name: started\|thinking\|response\|working`，思考阶段另有 `visible:true` | 让 Java/前端展示阶段；不暴露思考正文。 |
+| `phase` | `name` 为下表准备阶段或 `started\|thinking\|response\|working`；思考阶段另有 `visible:true` | 展示准备与执行进度，不暴露思考正文。 |
 | `message.delta` | `textDelta` | 传输助手回复增量，客户端按顺序拼接。 |
 | `tool.started` | `toolCallId`、`toolName`、`status: started` | 展示工具调用开始。 |
 | `tool.progress` | `toolCallId`、`toolName`、`status: running` | 展示工具仍在执行。 |
@@ -191,6 +191,31 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `run.cancelled` | 空对象 | 表示执行被取消。 |
 
 公共事件不包含工具参数、工具结果正文、Prompt、文件路径、凭据或供应商原始消息。每个 Run 的 `sequence` 从 1 递增，RunStore 负责持久化和回放。
+
+### 5.1 文件准备阶段
+
+创建 Run 立即返回 202；后台顺序执行文件准备和模型查询。`running` 包含准备和执行，`run.started` 不代表模型已启动。无附件跳过全部文件阶段，文件准备失败或取消时不启动模型。
+
+| phase.name | 额外字段 | 含义 |
+| --- | --- | --- |
+| `queued` | 无 | 持久 Client 等待当前会话可执行。 |
+| `preparing_files` | `fileCount` | 开始准备本次附件。 |
+| `preparing_file` | `fileId` | 正在向 Java 请求该文件，大小尚未确定。 |
+| `downloading_file` | `fileId`、`receivedBytes`、`totalBytes` | 当前文件已接收字节及授权总大小；开始时 receivedBytes 为 0，中间更新最多每 500ms 一次，结束时补发最终字节数。 |
+| `validating_file` | 同上 | 字节传输完毕，正在完成落盘和大小、SHA-256 校验；不等于模板内容解析成功。 |
+| `file_ready` | 同上 | 当前文件校验成功。 |
+| `files_ready` | `fileCount` | 全部附件就绪。 |
+| `model_starting` | 无 | 已结束输入准备，进入 SDK 执行阶段；不是模型思考事件。 |
+
+文件逐个下载，进度属于当前 fileId，不是整个 Run 的完成百分比。准备授权时显示不定进度；大小为 0 时不做除法。SSE 示例：
+
+```text
+id: 4
+event: phase
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904}}
+```
+
+所有准备阶段通过同一 RunStore 保存并按序回放；断开 SSE 不取消下载。停止生成使用 control 的 `option: cancel`，取消下载并清理本次临时输入，不删除 Java 原文件。文件流不通过 SSE 传输。
 
 ## 6. Artifact 模块
 
@@ -313,7 +338,19 @@ X-File-Size: 1024
 X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
-Python 会校验文件名安全性、MIME、大小、SHA-256、下载地址主机和 workspace 路径，再将文件提供给 Workflow。默认单文件上限为 50 MiB，File Broker 请求超时为 15 秒；URL 模式还必须配置 `CCSDK_FILE_BROKER_ALLOWED_HOSTS`。
+Python 按最多 256 KiB 的块写入临时文件并计算 SHA-256；校验大小与摘要成功后原子移动到可用路径，全部附件就绪后才查询模型。取消或失败删除临时下载；完成 Run 后清理临时输入。文件传输成功不代表 DOC/DOCX 内容可由具体工具解析。URL 模式还必须配置 `CCSDK_FILE_BROKER_ALLOWED_HOSTS`。
+
+### 8.4 大文件与超时
+
+| 服务端配置 | 默认值 | 范围 |
+| --- | --- | --- |
+| `CCSDK_FILE_MAX_BYTES` | 268435456（256 MiB） | 单文件大小上限；不是磁盘总配额。 |
+| `CCSDK_FILE_PREPARE_TIMEOUT_MS` | 600000（10 分钟） | 本 Run 全部附件获取和校验预算，从开始获取计时。 |
+| `CCSDK_FILE_BROKER_TIMEOUT_MS` | 15000（15 秒） | HTTP 连接、等待数据等单次网络操作超时，不是整个下载耗时。 |
+| `CCSDK_RUN_EXECUTION_TIMEOUT_MS` | 300000（5 分钟） | 输入准备完成后单独计算的 SDK 执行预算。 |
+| `CCSDK_CLIENT_QUEUE_TIMEOUT_MS` | 300000（5 分钟） | 持久 Client 等待执行的排队预算，不占文件准备及执行预算。 |
+
+文件准备超时返回 `run.failed` / `file_broker_timeout`；排队超时为 `run_queue_timeout`；模型执行超时 Query 为 `timeout`，Client 为 `sdk_timeout`。均为异步 SSE 错误，并可查询 Run.error；不是创建 HTTP 请求等待这些阶段完成。
 
 ## 9. 错误响应
 

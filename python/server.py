@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import shutil
-import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -19,7 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 
 from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for
 from runtime.auth import JWTError, verify_catalog_jwt, verify_run_jwt
-from runtime.file_broker import FileBroker, FetchedFile
+from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
@@ -62,6 +61,9 @@ INTERNAL_BODY_BYTES = 2 * 1024 * 1024
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = max(1.0, float(os.environ.get("CCSDK_SSE_HEARTBEAT_SECONDS", "15")))
 CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
+FILE_PREPARE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_FILE_PREPARE_TIMEOUT_MS", str(DEFAULT_PREPARE_TIMEOUT_MS))))
+RUN_EXECUTION_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_RUN_EXECUTION_TIMEOUT_MS", "300000")))
+CLIENT_QUEUE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_CLIENT_QUEUE_TIMEOUT_MS", "300000")))
 
 
 @asynccontextmanager
@@ -409,20 +411,25 @@ def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
     return mode
 
 
-def _remaining_timeout_ms(deadline: float) -> int:
-    remaining = int((deadline - time.monotonic()) * 1000)
-    if remaining <= 0:
-        raise asyncio.TimeoutError
-    return remaining
+async def _run_phase(run_id: str, payload: dict[str, Any]) -> None:
+    # File preparation events expose business identifiers and progress only.
+    public = {key: payload[key] for key in ("name", "fileId", "receivedBytes", "totalBytes", "fileCount") if key in payload}
+    await _publish_internal_event(run_id, {"runId": run_id, "type": "phase", "payload": public})
 
 
 async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any], workspace: Path,
-                           runtime_bearer: str | None, deadline: float) -> tuple[FetchedFile, ...]:
+                           runtime_bearer: str | None) -> tuple[FetchedFile, ...]:
     if not run_request.input.attachment_refs:
         return ()
-    return await FileBroker().fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
+    async def progress(payload: dict[str, Any]) -> None:
+        await _run_phase(run_request.run_id, payload)
+
+    await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
+    files = await FileBroker(progress_sink=progress).fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
         tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
-        bearer_token=runtime_bearer, timeout_ms=_remaining_timeout_ms(deadline))
+        bearer_token=runtime_bearer, timeout_ms=FILE_PREPARE_TIMEOUT_MS)
+    await progress({"name": "files_ready", "fileCount": len(files)})
+    return files
 
 
 def _internal_worker_payload(
@@ -499,7 +506,7 @@ def _internal_worker_payload(
         "deliverables_directory": str(deliverables_directory),
         "skill_refs": (load_workflow_config(workflow_name) or {}).get("skills", []),
         "runtime_mode": runtime_mode,
-        "timeout_ms": 300_000,
+        "timeout_ms": RUN_EXECUTION_TIMEOUT_MS,
     }
     credentials = run_request.credentials.to_dict(include_secret=True)
     if credentials:
@@ -529,7 +536,6 @@ async def _execute_internal_run(
         input_workspace = _runtime_input_directory(runtime_mode, run_directory, session_directory)
         RUN_STORE.update_status(run_id, "running")
         await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
-        run_deadline = time.monotonic() + 300
         attachment_files: tuple[FetchedFile, ...] = ()
         if runtime_mode == "client":
             # A persistent Client cannot change its SDK add_dirs after connect.
@@ -547,7 +553,7 @@ async def _execute_internal_run(
                 if not run_request.input.attachment_refs:
                     prepared_files: tuple[FetchedFile, ...] = ()
                 else:
-                    prepared_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer, run_deadline)
+                    prepared_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
                 prepared_payload = _internal_worker_payload(
                     run_request,
                     run_directory,
@@ -555,7 +561,8 @@ async def _execute_internal_run(
                     session_directory=session_directory,
                     attachment_files=prepared_files,
                 )
-                return {"prompt": prepared_payload["prompt"]}
+                await _run_phase(run_id, {"name": "model_starting"})
+                return {"prompt": prepared_payload["prompt"], "timeout_ms": RUN_EXECUTION_TIMEOUT_MS}
 
             async def cleanup_client_run() -> None:
                 # Accepted Client commands are cleaned inside the Actor. This
@@ -563,7 +570,7 @@ async def _execute_internal_run(
                 _clear_runtime_input(input_workspace)
         else:
             if run_request.input.attachment_refs:
-                attachment_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer, run_deadline)
+                attachment_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
             worker_payload = _internal_worker_payload(
                 run_request,
                 run_directory,
@@ -603,19 +610,17 @@ async def _execute_internal_run(
                 "business_session_id": run_request.business_session_id,
                 "message_id": run_request.message_id,
                 "capability_ref": run_request.capability_ref or "conversation",
-                "timeout_ms": _remaining_timeout_ms(run_deadline),
+                "timeout_ms": RUN_EXECUTION_TIMEOUT_MS,
+                "queue_timeout_ms": CLIENT_QUEUE_TIMEOUT_MS,
             }
-            grace_ms = max(1_000, int(os.environ.get("CCSDK_CLIENT_CONTROL_GRACE_MS", "10000")))
-            outcome = await asyncio.wait_for(
-                manager.submit(
-                    session_key or run_id,
-                    worker_payload,
-                    run_id,
-                    run_payload,
-                    prepare=prepare_client_run,
-                    cleanup=cleanup_client_run,
-                ),
-                timeout=_remaining_timeout_ms(run_deadline) / 1000 + grace_ms / 1000,
+            await _run_phase(run_id, {"name": "queued"})
+            outcome = await manager.submit(
+                session_key or run_id,
+                worker_payload,
+                run_id,
+                run_payload,
+                prepare=prepare_client_run,
+                cleanup=cleanup_client_run,
             )
             if outcome.get("runtimeSessionRef"):
                 RUN_STORE.update_runtime_session_ref(run_id, str(outcome["runtimeSessionRef"]))
@@ -631,7 +636,8 @@ async def _execute_internal_run(
         else:
             # Cancelling this wait propagates through stream_agent and terminates
             # the child worker process tree.
-            await asyncio.wait_for(consume_agent(), timeout=_remaining_timeout_ms(run_deadline) / 1000)
+            await _run_phase(run_id, {"name": "model_starting"})
+            await asyncio.wait_for(consume_agent(), timeout=RUN_EXECUTION_TIMEOUT_MS / 1000)
         if not saw_terminal:
             if runtime_mode == "query":
                 await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})

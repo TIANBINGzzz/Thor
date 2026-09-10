@@ -58,6 +58,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 父 Runtime ↔ Worker：JSONL 进程边界；独立执行使用 `query()`，持久执行由 SessionActor 独占 Client。
 - Python ↔ MCP：受控服务器配置和按 MCP 注入的凭据；规则不由浏览器或模型提供。
 - 业务文件 ↔ Runtime 工作目录：通过授权引用获取输入；本地路径不能替代文件 ACL。
+- Run 内先准备全部附件，再查询 SDK；无附件直接执行。Client 的准备和清理随会话串行，准备可取消；排队、文件准备、模型执行分别计时，文件进度复用公共 SSE。
 
 ## 8. Cross-cutting concerns
 

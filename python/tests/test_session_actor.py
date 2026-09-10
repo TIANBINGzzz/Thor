@@ -84,6 +84,69 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_preparation_can_be_cancelled_without_starting_sdk(self):
+        async def exercise(operation):
+            workers = []
+            started = asyncio.Event()
+            cleaned = []
+
+            def factory(**kwargs):
+                worker = FakeClientWorker([complete_script()], worker_id=0)
+                workers.append(worker)
+                return worker
+
+            async def prepare():
+                started.set()
+                await asyncio.Event().wait()
+
+            async def cleanup():
+                cleaned.append(True)
+
+            actor = SessionActor("session", {}, worker_factory=factory)
+            pending = asyncio.create_task(actor.submit("run-1", {}, prepare=prepare, cleanup=cleanup))
+            await started.wait()
+            await getattr(actor, operation)("run-1")
+            self.assertEqual((await pending)["status"], "cancelled")
+            self.assertEqual(cleaned, [True])
+            self.assertEqual(workers, [])
+            self.assertEqual((await actor.submit("run-2", {}))["status"], "succeeded")
+            await actor.close()
+
+        for operation in ("cancel", "interrupt"):
+            with self.subTest(operation=operation):
+                asyncio.run(asyncio.wait_for(exercise(operation), timeout=2))
+
+    def test_preparation_and_queue_have_separate_execution_budgets(self):
+        async def exercise():
+            prepared = []
+            started = asyncio.Event()
+            release = asyncio.Event()
+            actor = SessionActor("session", {}, worker_factory=lambda **kw: FakeClientWorker(
+                [complete_script(), complete_script()], worker_id=0))
+
+            async def prepare():
+                started.set()
+                await release.wait()
+                return {"timeout_ms": 50}
+
+            async def queued_prepare():
+                prepared.append(True)
+                return {}
+
+            active = asyncio.create_task(actor.submit("active", {"timeout_ms": 10}, prepare=prepare))
+            await started.wait()
+            with self.assertRaises(SessionActorError) as caught:
+                await actor.submit("queued", {"queue_timeout_ms": 20}, prepare=queued_prepare)
+            self.assertEqual(caught.exception.code, "run_queue_timeout")
+            self.assertFalse(active.done())
+            release.set()
+            self.assertEqual((await active)["status"], "succeeded")
+            self.assertEqual((await actor.submit("after", {}))["status"], "succeeded")
+            self.assertEqual(prepared, [])
+            await actor.close()
+
+        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
+
     def test_preparation_and_cleanup_are_serialized_with_queued_runs(self):
         async def exercise():
             workers = []

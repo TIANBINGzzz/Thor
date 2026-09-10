@@ -78,6 +78,25 @@ Java 为每次 Runtime 请求签发 HS256 Run JWT，并放入 `Authorization: Be
 
 ## 6. File Broker
 
+### 6.1 交互与接口职责
+
+预置模板和用户上传文件都先由 Java 文件服务保存。选择已有模板时显示“已选择”；只有用户本机到文件服务器的首次传输显示“上传中”。点击发送后，Java 创建 Run 并订阅 SSE，不等待 Python 下载完再响应前端。
+
+| Java 必须实现的业务能力 | 对接方式 |
+| --- | --- |
+| 模板列表、文件上传和选择 | 返回业务 fileId；上传、列表路径由 Java 自定，不属于 Runtime 接口。 |
+| 发送消息 | 校验能力、会话和文件权限，将本次 fileId 放入 attachmentRefs，调用 POST /internal/v1/runs。 |
+| 文件授权/代理流 | 提供配置在 CCSDK_FILE_BROKER_URL 的 HTTPS POST 接口，按本节请求响应契约返回文件。 |
+| 状态和进度转发 | 订阅 Run SSE，保留 sequence，按 phase 展示；重连从已处理序号续传。 |
+| 停止生成 | 调用 control 的 option: cancel；准备期间也可取消，收到终态后结束界面等待。 |
+| 生成文件下载 | 通过 Runtime Artifact 列表及下载接口取得文件，归档或转发给用户。 |
+
+Java 将 `preparing_files/preparing_file/downloading_file` 展示为“正在准备模板”或“正在准备附件”，`validating_file` 为“正在校验文件”，`model_starting` 为“正在处理”；仅收到 thinking 才显示模型思考。下载进度按 fileId 的 receivedBytes / totalBytes 计算，不把文件下载 100% 当作 Run 完成。无附件的能力直接进入模型执行。
+
+文件准备期间 `interrupt` 也会停止准备并进入 cancelled；业务前端统一使用 `cancel`。模型执行阶段的 interrupt 行为见控制说明。
+
+### 6.2 文件来源
+
 文件上传由 Java 接收并保存，返回 fileId。发送消息时，Java 将本次允许使用的 fileId 放入 Run 的 attachmentRefs；Python 执行前逐个向 Java 获取文件。Java 可以直接返回代理文件流，不需要另设对象存储。生成文件则由 Java 调用 Artifact 列表和下载接口取得，按业务需要归档到 Java 文件服务，再提供用户下载。
 
 | 文件场景 | fileId 来源与传递 |
@@ -119,6 +138,16 @@ Java 必须先校验 `fileId` 属于当前用户和业务会话，再返回以�
 ```
 
 `downloadUrl` 必须是短时、一次性 HTTPS 地址且不重定向。也可返回代理流，但必须设置 `X-File-Id`、`X-File-Name`、`X-File-Mime-Type`、`X-File-Size`、`X-File-Sha256`，并在响应体中返回原始文件字节。Python 会校验文件名、MIME、大小、SHA-256、有效期和路径安全；Java 对无权或不存在文件返回 `401`、`403`、`404`、`409` 或 `410`。
+
+### 6.3 大文件传输要求
+
+建议 Java 代理文件流，按块读取文件服务器并写响应，不先将整个文件读入内存；预存文件大小和 SHA-256，确保下载期间文件版本不变。HTTP 流式响应可以省略 Content-Length，但完整性头 X-File-Size / X-File-Sha256 仍必须提供。响应不重定向，Python 断开后 Java 应结束对应流并释放资源。
+
+Python 默认允许单文件 256 MiB；全部附件准备 10 分钟、模型执行 5 分钟、Client 排队 5 分钟分别计时，网络无数据等待上限默认 15 秒，配置名见 Runtime 规范。Java 和代理服务器应匹配大小、流式转发及超时，SSE 不缓冲；准备失败显示文件失败提示，不显示为模型思考失败。
+
+使用 Run JWT 回调时，Java 应让有效期覆盖排队和后续各文件的授权请求；Python 不会自动刷新 Token。每个 fileId 都要校验属于该 Run 获准附件和当前身份的可访问范围。Run 创建的 jti 防重放不能让同一 Run 的后续合法文件授权全部失效；一次性约束针对每个下载 URL。也可使用已实现的 File Broker 服务 Token 模式，Java 按 runId 查找并校验业务归属。
+
+无需新增独立文件准备任务接口。已有附件能力复用 Runtime 的统一准备流程；是否要求模板文件属于该能力的业务输入校验，由 Java 与相应 Python 能力共同约定。
 
 ## 7. Java 实现方式可自行决定
 

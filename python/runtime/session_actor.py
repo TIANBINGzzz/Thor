@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import time
@@ -57,6 +57,7 @@ class _Command:
     future: asyncio.Future[Any]
     prepare: RunPreparation | None = None
     cleanup: RunCleanup | None = None
+    started: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,7 @@ class SessionActor:
         self._worker: ClientWorkerProcess | None = None
         self._state = ActorState.NEW
         self._active_run_id: str | None = None
+        self._preparation_task: asyncio.Task[Any] | None = None
         self._last_session_id: str | None = self._initial_payload.get("resume")
         self._last_event_at: int | None = None
         self._created_at = int(time.time() * 1000)
@@ -167,7 +169,15 @@ class SessionActor:
         self._cancel_idle_timer()
         command = await self._enqueue("run", run_id, dict(payload), prepare=prepare, cleanup=cleanup)
         try:
-            result = await command.future
+            queue_timeout_ms = payload.get("queue_timeout_ms")
+            if isinstance(queue_timeout_ms, int) and queue_timeout_ms > 0:
+                try:
+                    await asyncio.wait_for(command.started.wait(), queue_timeout_ms / 1000)
+                except asyncio.TimeoutError as error:
+                    if not command.future.done():
+                        await self.cancel(run_id)
+                    raise SessionActorError("Run 排队超时", code="run_queue_timeout") from error
+            result = await asyncio.shield(command.future)
             return result
         except asyncio.CancelledError:
             # A cancelled HTTP/task waiter must not leave its command running
@@ -185,6 +195,9 @@ class SessionActor:
             raise
 
     async def interrupt(self, run_id: str) -> None:
+        if self._active_run_id == run_id and self._preparation_task is not None:
+            await self.cancel(run_id)
+            return
         command = await self._enqueue("interrupt", run_id, None)
         await command.future
 
@@ -197,10 +210,18 @@ class SessionActor:
         self._cancel_requested.add(run_id)
         if self._active_run_id != run_id:
             return
+        if self._preparation_task is not None:
+            preparation = self._preparation_task
+            command = self._run_commands[run_id]
+            preparation.cancel()
+            await asyncio.shield(command.future)
+            return
         command = await self._enqueue("cancel", run_id, None)
         await command.future
 
     async def close(self) -> None:
+        if self._preparation_task is not None and self._active_run_id is not None:
+            await self.cancel(self._active_run_id)
         task = self._task
         if task is None or task.done():
             if self._worker is not None:
@@ -243,6 +264,7 @@ class SessionActor:
             while self._state not in {ActorState.CLOSING, ActorState.CLOSED}:
                 command = self._pending_runs.popleft() if self._pending_runs else await self._commands.get()
                 if command.kind == "run":
+                    command.started.set()
                     if command.run_id in self._cancel_requested:
                         self._cancel_requested.discard(command.run_id or "")
                         self._resolve_run(command, {
@@ -280,14 +302,25 @@ class SessionActor:
         try:
             payload = dict(command.payload or {})
             if command.prepare is not None:
-                prepared = await command.prepare()
+                self._preparation_task = asyncio.create_task(command.prepare(), name=f"ccsdk-prepare:{command.run_id}")
+                try:
+                    prepared = await self._preparation_task
+                finally:
+                    self._preparation_task = None
                 if not isinstance(prepared, Mapping):
                     raise SessionActorError("Run 准备结果无效", code="run_preparation_failed")
                 payload.update(prepared)
-            await self._ensure_worker()
-            self._state = ActorState.RUNNING
-            await self._notify_state()
-            outcome = await self._run_worker_command(command.run_id, payload)
+                if command.run_id in self._cancel_requested:
+                    raise asyncio.CancelledError
+            execution_ms = payload.get("timeout_ms")
+            try:
+                async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
+                    await self._ensure_worker()
+                    self._state = ActorState.RUNNING
+                    await self._notify_state()
+                    outcome = await self._run_worker_command(command.run_id, payload)
+            except asyncio.TimeoutError as error:
+                raise SessionActorError("Claude Client 执行超时", code="sdk_timeout") from error
             if outcome.session_id:
                 self._last_session_id = outcome.session_id
             if self._close_requested:
@@ -308,6 +341,11 @@ class SessionActor:
             self._resolve_run(command, result)
         except asyncio.CancelledError:
             await self._cleanup_run(command)
+            # Cancelling only preparation must leave the actor alive for the
+            # next Run, while cancelling the actor itself still propagates.
+            if command.run_id in self._cancel_requested and not asyncio.current_task().cancelling():
+                self._resolve_run(command, {"status": "cancelled", "runtimeSessionRef": self._last_session_id})
+                return
             self._resolve_run_error(command, SessionActorError("SessionActor 被取消", code="cancelled"))
             raise
         except (SessionActorError, ClientWorkerError) as error:
@@ -325,6 +363,7 @@ class SessionActor:
             await self._cleanup_run(command)
             self._resolve_run_error(command, SessionActorError("SessionActor 执行失败", code=self._last_error_code))
         finally:
+            self._cancel_requested.discard(command.run_id)
             if self._active_run_started_at is not None:
                 self._last_run_duration_ms = max(0, int(time.time() * 1000) - self._active_run_started_at)
             self._active_run_id = None
@@ -567,11 +606,13 @@ class SessionActor:
 
     @staticmethod
     def _resolve(command: _Command, value: Any) -> None:
+        command.started.set()
         if not command.future.done():
             command.future.set_result(value)
 
     @staticmethod
     def _resolve_error(command: _Command, error: BaseException) -> None:
+        command.started.set()
         if not command.future.done():
             command.future.set_exception(error)
 
