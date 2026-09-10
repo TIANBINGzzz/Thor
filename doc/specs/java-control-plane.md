@@ -9,13 +9,13 @@
 接口按方向/路径、鉴权、输入、输出、字段、限制描述，共用字段只解释一次；保留必要表格和代表性报文。
 修改时更新顶部日期；源码核对基线与验证范围按实际检查记录，不因文字调整宣称重新完成全量核对。
 
-本次核对基线如下；`J`、`W` 在后文分别代表对应源码根目录，含未提交修改的快照不等于该提交本身。
+本次核对基线如下；含未提交修改的快照不等于该提交本身。
 
 | 范围 | 基线与阅读入口 |
 | --- | --- |
 | Python | 本仓库 `51a8e67`；[server.py](../../python/server.py)、[protocol.py](../../python/runtime/protocol.py)、[auth.py](../../python/runtime/auth.py)、[file_broker.py](../../python/runtime/file_broker.py)、[capabilities.py](../../python/runtime/capabilities.py)；并核对 config、SDK Facade、Worker、Actor、RunStore 和测试。 |
-| Java，J | `D:/code/string-ai-center-service/src/main/java/com/string/ai`；HEAD `3761748` 加本地未提交改动。核对 controller/chat、service/chat、service/runtime、service/dify、service/agent、support、DTO 和配置。 |
-| 前端，W | `D:/code/string-ai-center-web/src`；HEAD `96fc1de` 加本地未提交改动。核对 api/chat、shared/ai、views/ai 的调用、SSE、消息、附件、模板组件及框架 getHeaders。 |
+| Java | `D:/code/string-ai-center-service/src/main/java/com/string/ai`；HEAD `3761748` 加本地未提交改动。核对 controller/chat、service/chat、service/runtime、service/dify、service/agent、support、DTO 和配置。 |
+| 前端 | `D:/code/string-ai-center-web/src`；HEAD `96fc1de` 加本地未提交改动。核对 api/chat、shared/ai、views/ai 的调用、SSE、消息、附件、模板组件及框架 getHeaders。 |
 
 ## 1. 推荐设计（非强制接口）
 
@@ -80,9 +80,9 @@ Java 仅转发正文、业务阶段、泛化工具状态和授权文件；原始
 
 ### 2.1 Java 和前端已有什么
 
-`J/service/chat/impl/ChatServiceImpl.java` 先保存用户/助手消息；仅当 runtimeEnabled=true 且传了 capabilityRef 时走 ClaudeRuntimeChatBridge，否则走 Dify。开关默认 false。
+Java 的 `service/chat/impl/ChatServiceImpl.java` 先保存用户/助手消息；仅当 runtimeEnabled=true 且传了 capabilityRef 时走 ClaudeRuntimeChatBridge，否则走 Dify。开关默认 false。
 Bridge 经 `RuntimeRequestFactory -> ClaudeRuntimeAdapter -> RuntimeJwtSigner/PythonRuntimeClient` 创建 Run、读取 SSE、保存回答；运行映射目前只在内存。停止经现有 `/conversations/{id}/stop` 或消息级 `/stop?taskId=...` 调用 Runtime `/cancel`。
-前端 `W/api/chat/index.js -> shared/ai/composables/useAiApp.js` 已可发送 content、attachmentIds、可选 capabilityRef，消费 message/agent_thought/message_end；未实现推荐的独立工具/文件进度事件。
+前端 `src/api/chat/index.js -> src/shared/ai/composables/useAiApp.js` 已可发送 content、attachmentIds、可选 capabilityRef，消费 message/agent_thought/message_end；未实现推荐的独立工具/文件进度事件。
 
 | 当前 Java/前端报文 | 示例与字段 |
 | --- | --- |
@@ -257,7 +257,7 @@ hello
 
 Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其他失败、下载过期、完整性错误各有稳定 code。Python 分块落临时文件、校验后原子移动，全部就绪才查询模型；取消/失败清理下载，Run 结束清理临时输入。传输成功不保证文档/图片工具可解析内容。
 默认预算：单文件 256 MiB，文件准备 10 分钟，网络操作等待 15 秒，模型执行 5 分钟，Client 排队 5 分钟，分别计时。配置名与 TLS 选项见 [Runtime 规范](ccsdk-runtime-interface.md#84-大文件与超时)。Java 应流式代理并匹配超时；原 Run JWT 须覆盖后续文件授权，Python 不自动刷新；创建 jti 防重放不能阻止合法文件回调。
-来源：[file_broker.py](../../python/runtime/file_broker.py)、server.py。这是 Python 已实现的回调契约；本次未在 J 应用控制器找到对应 Broker 实现。
+来源：[file_broker.py](../../python/runtime/file_broker.py)、server.py。这是 Python 已实现的回调契约；本次未在 Java 应用控制器找到对应 Broker 实现。
 
 ### 2.7 生成文件：Java -> Python -> Java 文件服务
 
@@ -274,9 +274,9 @@ Python 列出 .deliverables 中普通文件，下载限制到该目录。Java �
 
 | 优先级 / 问题 | 当前证据与影响 | 建议处理 |
 | --- | --- | --- |
-| 阻断：Java 报文/能力不匹配 | J RuntimeRunRequest/Factory 仍发送 turnId、agentRef、execution、runtime、limits、context，Python 拒绝；Java 用 writing-docx/database-qa，Python 用 document-writing/national-excellence-data-qa；Java 也没传 payload。 | Java DTO/Factory 按 2.4 收敛，并读取 2.3 的业务名称。 |
-| 阻断：凭据来源与业务 ACL | W 的 getHeaders 发 token 头；J BusinessTokenResolver 只读 Authorization Bearer。UserContextHelper 反射取 tenant 或 org；Registry 只验证全局名称，未见用户/Agent 能力 ACL 与文件 ACL 闭环。 | 明确已认证上下文如何提供原业务 Token 与真实 tenant；先校验业务权限再签 JWT，不能默认 org 就是租户。 |
-| 缺口：文件接入/前后端版本 | W 调用附件登记、模板等接口，当前 J ChatController 无附件登记，未找到 Broker；RuntimeClient 无 Artifact API。重命名/删除方法也与 W 不一致。 | 先确定对应 Java 分支及文件服务，再接 2.6/2.7；不能以本地前端 API 清单证明 Java 已支持。 |
+| 阻断：Java 报文/能力不匹配 | Java 的 RuntimeRunRequest/Factory 仍发送 turnId、agentRef、execution、runtime、limits、context，Python 拒绝；Java 用 writing-docx/database-qa，Python 用 document-writing/national-excellence-data-qa；Java 也没传 payload。 | Java DTO/Factory 按 2.4 收敛，并读取 2.3 的业务名称。 |
+| 阻断：凭据来源与业务 ACL | 前端的 getHeaders 发 token 头；Java 的 BusinessTokenResolver 只读 Authorization Bearer。UserContextHelper 反射取 tenant 或 org；Registry 只验证全局名称，未见用户/Agent 能力 ACL 与文件 ACL 闭环。 | 明确已认证上下文如何提供原业务 Token 与真实 tenant；先校验业务权限再签 JWT，不能默认 org 就是租户。 |
+| 缺口：文件接入/前后端版本 | 前端调用附件登记、模板等接口，当前 Java 的 ChatController 无附件登记，未找到 Broker；RuntimeClient 无 Artifact API。重命名/删除方法也与前端不一致。 | 先确定对应 Java 分支及文件服务，再接 2.6/2.7；不能以本地前端 API 清单证明 Java 已支持。 |
 | 缺口：状态与结束判定 | Bridge 将全部 phase 和工具开始/完成映射 agent_thought，忽略 tool.progress 与 sequence；SSE 无终态就 EOF 时仍可能保存 completed。Python toolName 也不符合之前期望的浏览器泛化展示。 | 单独映射准备/工具状态、序号及终态；异常断线查询/续订阅，Java 过滤原始工具名。 |
 | 缺口：默认 resume 与图片模型 | server 的 Query payload 固定 resume=None；Client 仅 Actor 内持有会话，重建未从 RunStore 恢复。模型固定 MODELS[0]，无按 Capability 的图片模型配置。 | Python 实现持久会话查找与串行约束；图片能力首轮选视觉模型并验证图片读取；Java 不增加调度字段。 |
 | 风险：同 Run 重执行 | server 在记录非终态但没有本进程 Task 时会重新启动同一 runId；Java Bridge 运行记录也只有内存。 | worker 丢失先核实状态/副作用，避免同 Run 自动再执行；实际重执行用新 runId，补 Java Run/Event 持久化。 |
