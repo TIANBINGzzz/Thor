@@ -1,19 +1,13 @@
 # Java 控制面：推荐设计与当前实现
 
-更新时间：2026-09-10（Asia/Shanghai）。本次只整理文档，不修改接口或业务代码。
+更新时间：2026-09-10。本次只整理文档，不修改接口或业务代码。
 结论：Python 已提供 Run、鉴权、SSE 和文件接口；本地 Java 有接入骨架，但请求仍是旧协议，不能视为已经联通。
 
-## 0. 维护规则与核对范围
+## 0. 维护约定与核对范围
 
-| 项目 | 规则 |
-| --- | --- |
-| 何时更新 | Java/Python 请求、鉴权、文件、事件、适配边界或前端展示发生变化；设计被采纳；联调发现差异。纯内部重构不扩写本文。 |
-| 固定结构 | 第 1 部分是推荐设计，可讨论调整；第 2 部分是源码核实的实现和接入约定。不得把建议直接改写为已实现。 |
-| 设计格式 | 写清职责、建议字段和理由，标注待实现点；不罗列尚无需求的表、Runner 或版本体系。 |
-| 实现格式 | 每个接口写方向/路径、鉴权、最小输入/输出、字段/限制、源码依据；共用字段只解释一次。 |
-| 日期与证据 | 更新顶部日期及核对基线；实际行为引用源码，测试写清范围。未运行真实服务不得标记联调完成。 |
-| 同步范围 | 实际协议变化时同步 [Runtime 规范](ccsdk-runtime-interface.md)、[API 页面](../python-api.html) 和测试；纯建议只更新设计及差异记录。重要已采纳决策再记 ADR。 |
-| 简洁与历史 | 保留必要字段表和代表性报文，不写完整实现代码或重复教程；差异解决后更新状态，详细历史交给 Git。改后提交本地 Git。 |
+更新条件与同步范围见[文档职责表](../README.md)。第 1 部分是推荐设计；第 2 部分的实现结论须有源码依据，未做真实联调不得标为联通。
+接口按方向/路径、鉴权、输入、输出、字段、限制描述，共用字段只解释一次；保留必要表格和代表性报文。
+修改时更新顶部日期；源码核对基线与验证范围按实际检查记录，不因文字调整宣称重新完成全量核对。
 
 本次核对基线如下；`J`、`W` 在后文分别代表对应源码根目录，含未提交修改的快照不等于该提交本身。
 
@@ -102,7 +96,7 @@ Bridge 经 `RuntimeRequestFactory -> ClaudeRuntimeAdapter -> RuntimeJwtSigner/Py
 
 ### 2.2 鉴权：Java -> Python
 
-Runtime 请求统一使用 `Authorization: Bearer <Run JWT>`；目录使用 Catalog JWT。签名算法 HS256，Java/Python 共享密钥；Python 配置为 `CCSDK_RUNTIME_JWT_SECRET`、`CCSDK_RUNTIME_JWT_ISSUER`、`CCSDK_RUNTIME_JWT_AUDIENCE`。业务 Token 不能替代 JWT。Java 转发时不携带浏览器 Origin 头，Runtime 收到非空 Origin 会返回 403；浏览器只访问 Java。
+Runtime 请求统一使用 `Authorization: Bearer <JWT>`。Run 接口使用绑定本次执行的 Run JWT；能力目录接口使用带 `capability.read` 权限的 JWT（下文称 Catalog JWT），用于 Java 查询 Python 支持哪些能力。两者采用相同的签名与校验配置，区别在权限和绑定字段，目录查询无需先创建 Run。签名算法 HS256，Java/Python 共享密钥；Python 配置为 `CCSDK_RUNTIME_JWT_SECRET`、`CCSDK_RUNTIME_JWT_ISSUER`、`CCSDK_RUNTIME_JWT_AUDIENCE`。业务 Token 不能替代 JWT。Java 转发时不携带浏览器 Origin 头，Runtime 收到非空 Origin 会返回 403；浏览器只访问 Java。
 JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可直接使用的 Token）：
 
 ```json
@@ -119,14 +113,20 @@ JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可�
 | businessSessionId | 请求/记录存在时必须匹配；无会话请求建议正文和 JWT 一起省略。 |
 | messageId | 创建时必须匹配正文；后续查询/控制不再检查。 |
 | scope | 一个字符串或字符串数组，按接口校验；不能把多个 scope 拼成空格字符串。 |
-| Catalog 特例 | 保留 iss/aud/iat/exp/jti；sub 为 Java 服务身份，scope=capability.read，不要求 tenant 或 Run 标识。 |
+| 能力目录 JWT | 保留 iss/aud/iat/exp/jti；sub 由 Java 填服务身份（Python 仅校验非空），scope=capability.read，不要求 tenant、runId、capabilityRef、businessSessionId 或 messageId。 |
 
 鉴权成功继续执行，没有独立登录返回接口；缺失/失效/绑定不符返回 HTTP 401 纯文本，JWT 密钥未配置时目录、创建等接口返回 503。已存在 Run 另校验保存的 tenant/sub。来源：[auth.py](../../python/runtime/auth.py)、server.py 的 `_authorize_new_request/_authorize_internal`。
 `credentials.platformBearer` 是另一路业务凭据：只按 MCP_AUTH_RULES 注入本次获准的 business MCP；db/docx/artifacts 不接收，不写 Prompt、事件和持久记录。仅持有 Token 不会增加 MCP 权限。
 
 ### 2.3 能力目录：Java -> Python
 
-`GET /internal/v1/capabilities`，Catalog JWT；HTTP 200 返回完整登记目录，由 Java 再做用户权限筛选：
+`GET /internal/v1/capabilities`，无请求正文。Java 签发目录读取 JWT，通过 `Authorization: Bearer <JWT>` 发送；解码后的字段示例如下（时间仅演示，实际须签名）：
+
+```json
+{"iss":"string-ai-center-service","aud":"ccsdk-runtime","iat":1789012000,"exp":1789012600,"jti":"catalog_01","sub":"string-ai-center-service","scope":"capability.read"}
+```
+
+仅含上述权限的 JWT 不能创建或控制 Run；缺少 JWT 或缺少 capability.read 返回 401。HTTP 200 返回完整登记目录，由 Java 再做用户权限筛选，不能直接视为当前用户可用列表：
 
 ```json
 {"capabilities":[{"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},{"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},{"capabilityRef":"national-excellence-data-qa","name":"双高问数","description":"查询国双高项目、任务、资金与绩效","supportsAttachments":false}]}
