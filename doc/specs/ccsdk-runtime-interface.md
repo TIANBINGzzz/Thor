@@ -107,7 +107,6 @@ Java 只传业务标识；映射表、Workflow、Skill、MCP 和运行模式由 
 
 ```http
 GET /internal/v1/capabilities
-Authorization: Bearer <Catalog JWT>
 ```
 
 无请求正文和分页参数。成功返回 200，字段为 `capabilityRef`（执行标识）、`name`（默认名称）、`description`（用途）、`supportsAttachments`（是否支持附件）：
@@ -120,7 +119,7 @@ Authorization: Bearer <Catalog JWT>
 ]}
 ```
 
-Catalog JWT 复用 Run JWT 的 HS256 密钥、issuer、audience 和有效期校验。必需 Claim 为 `iss`、`aud`、`iat`、`exp`、`jti`、`sub`、`scope`；`sub` 是 Java 服务身份，`scope` 为 `capability.read`。不要求 tenant、runId、capabilityRef；读取不消费 jti。鉴权失败返回 401，密钥未配置返回 503。Java 按业务权限筛选并配置展示后再提供给前端。
+目录接口无需鉴权，不要求 Authorization 请求头，也不依赖 Runtime JWT 密钥配置。仅返回公开能力描述；Java 按业务权限筛选并配置展示后再提供给前端。创建、查询和控制 Run 仍须通过 Run JWT 鉴权。
 
 ### 3.4 业务 payload
 

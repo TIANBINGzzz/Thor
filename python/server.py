@@ -17,7 +17,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
 from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for
-from runtime.auth import JWTError, verify_catalog_jwt, verify_run_jwt
+from runtime.auth import JWTError, verify_run_jwt
 from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
 from runtime.protocol import AgentRunRequest, ProtocolError
@@ -119,14 +119,7 @@ async def health() -> dict[str, bool]:
 
 
 @app.get("/internal/v1/capabilities")
-async def internal_capabilities(request: Request):
-    if not RUNTIME_JWT_SECRET:
-        return _plain("Runtime JWT 未配置", 503)
-    try:
-        verify_catalog_jwt(_bearer_from_request(request), RUNTIME_JWT_SECRET,
-                           audience=RUNTIME_JWT_AUDIENCE, issuer=RUNTIME_JWT_ISSUER)
-    except (JWTError, _InternalAuthError) as error:
-        return _plain(str(error), 401)
+async def internal_capabilities():
     return JSONResponse({"capabilities": [item.to_public_dict() for item in CAPABILITIES.values()]},
                         headers={"cache-control": "no-store"})
 

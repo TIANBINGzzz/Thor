@@ -172,17 +172,6 @@ def _verify_signed_claims(
     return claims
 
 
-def verify_catalog_jwt(
-    token: str, secret: str | bytes, *, audience: str = "ccsdk-runtime",
-    issuer: str = "string-ai-center-service",
-) -> dict[str, Any]:
-    """Authorize catalog discovery without requiring a Run or user tenant."""
-    return _verify_signed_claims(
-        token, secret, audience=audience, issuer=issuer, expected_scope="capability.read",
-        required_claims=("sub", "jti"),
-    )
-
-
 def verify_run_jwt(
     token: str,
     secret: str | bytes,

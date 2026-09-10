@@ -101,7 +101,7 @@ Content-Type: application/json</pre></div>
 <section id="capability"><h2>能力目录与选择</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/capabilities</code></div>
 <p>返回当前已登记的全部 SDK 能力，无请求正文和分页参数。Java 配置展示并按业务权限筛选后供前端使用；目录本身不是用户授权结果，也不是模型或 MCP 健康检查。创建 Run 时传返回的 capabilityRef。</p>
-<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Catalog JWT&gt;</pre></div>
+<p>鉴权：无需 Authorization 请求头，不依赖 Runtime JWT 密钥配置。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "capabilities": [
     {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
@@ -114,13 +114,7 @@ Content-Type: application/json</pre></div>
 <tr><td>name / description</td><td>string</td><td>能力默认名称和业务用途。</td></tr>
 <tr><td>supportsAttachments</td><td>boolean</td><td>是否允许 input.attachmentRefs，供 Java 配置附件入口。</td></tr>
 </tbody></table>
-<h3>目录鉴权</h3><p>Catalog JWT 复用下方鉴权章节的 HS256 密钥、issuer、audience 和有效期校验。必需 Claims 为 iss、aud、iat、exp、jti、sub、scope；sub 为 Java 服务身份，scope 必须包含 capability.read。不要求 tenant、runId 或 capabilityRef；读取不消费 jti。无效 Token 返回 401，密钥未配置返回 503。</p>
-<div class="code-wrap"><div class="code-label">Catalog JWT claims</div><button class="copy" type="button">复制</button><pre>{
-  "iss":"string-ai-center-service", "aud":"ccsdk-runtime",
-  "iat":1725400000, "exp":1725400600, "jti":"catalog_01",
-  "sub":"java-service", "scope":"capability.read"
-}</pre></div>
-<p>iat / exp 使用签发时的 Unix 秒时间戳。Catalog JWT 不能代替 Run 执行授权。</p>
+<p>目录只返回公开能力描述。Java 仍须校验用户的能力权限；创建、查询和控制 Run 仍需 Run JWT。</p>
 <h3>当前能力</h3>
 <table><thead><tr><th>capabilityRef</th><th>Python 内部映射</th><th>附件</th><th>业务含义</th></tr></thead><tbody>
 <tr><td>conversation</td><td>通用对话配置</td><td>支持</td><td>日常交流、总结和问答。</td></tr>
@@ -216,7 +210,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 }</pre></div></section>
 
 <section id="auth"><h2>鉴权</h2>
-<p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。目录使用上面的 Catalog JWT，其余 Run 接口使用本节 Run JWT。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
+<p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。能力目录无需鉴权，Run 接口使用本节 Run JWT。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
 <h3>密钥和部署配置</h3>
 <div class="code-wrap"><div class="code-label">Java 与 Python 的服务端共享配置</div><button class="copy" type="button">复制</button><pre>CCSDK_RUNTIME_JWT_SECRET=&lt;服务端随机密钥&gt;
 CCSDK_RUNTIME_JWT_AUDIENCE=ccsdk-runtime
