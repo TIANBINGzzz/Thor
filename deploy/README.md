@@ -1,4 +1,4 @@
-# 云效部署（ECS / Linux Docker 单实例）
+# 云效部署（内网 Linux Docker 单实例）
 
 这是待目标环境验证的内网试运行配置，不代表生产已验收。ACK 或裸机 Python 需要不同部署步骤。
 [配置迁移问题与真实流程验证](checks/README.md) 记录 localhost、代理、路径、密钥注入及实测缺陷。
@@ -10,14 +10,24 @@
 | --- | --- |
 | 拉取代码 | 选择已连接的 Codeup 仓库与分支；现有过滤发布脚本会保留部署文件 |
 | 构建、测试、推送 | Linux Docker 构建机；镜像仓库服务连接先登录 ACR；设置 `CCSDK_IMAGE=仓库地址/命名空间/ccsdkscribe:完整提交SHA`，执行 `sh deploy/build.sh` |
-| 部署制品 | 将本提交的 `deploy/` 目录作为流水线制品传至目标 ECS；构建阶段不读取部署密钥 |
-| 主机部署 | 同一 `CCSDK_IMAGE` 传入主机任务；执行 `sh deploy/deploy.sh`；目标机需预先具备 ACR 拉取权限 |
+| 部署制品 | 将本提交的 `deploy/` 目录作为流水线制品传至目标内网服务器；构建阶段不读取部署密钥 |
+| 主机部署 | 主机组或内网自建 Runner；同一 `CCSDK_IMAGE` 传入主机任务；执行 `sh deploy/deploy.sh`；目标机需具备镜像拉取权限 |
 | 验收 | 在可信调用方验证 JWT、SSE、取消、会话续接；按需验证真实模型、数据库及附件/DOCX |
 
 流水线阶段名称以云效当前界面为准。云效组织、仓库连接、ACR 服务连接、主机组须在实际账号中配置。
 构建机和主机应使用相同 CPU 架构；都需要 Docker，主机需要 Compose >=2.30（raw env_file）和 `flock`。
-镜像内包含 Python、SDK/CLI 和 Node/DBHub，主机不再单独安装 Python/Node。
+镜像内包含 Python、SDK/CLI 和 Node/DBHub；开启保密变量生成 env 时，部署主机另需 Python 3（只用标准库），无需安装应用依赖或 Node。
 Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同步的对应 Debian Bookworm 官方镜像（建议固定 digest）；不要替换为来源不明的镜像。
+
+## 保密变量与客户换 Key
+
+- 云效将 `ANTHROPIC_AUTH_TOKEN`、`CCSDK_RUNTIME_JWT_SECRET`、可选 `DB_PASSWORD` / `CCSDK_FILE_BROKER_SERVICE_TOKEN` 设为保密变量；模型 URL、模型名、issuer/audience 等为普通配置。DB_HOST/DB_USER 也可设为保密变量。变量名与 `write-env.py` 一致，值不用手动加引号。
+- 在内网部署任务的进程环境中绑定这些变量，设置 `CCSDK_GENERATE_ENV=1`、可选 `CCSDK_WITH_DATABASE=1`，执行 `sh deploy/deploy.sh`。不要把变量值直接拼接进 shell 脚本、命令参数或流水线 YAML；不要启用 `set -x`。远程主机任务是否自动透传变量必须在云效实测，不能把构建机环境等同于服务器环境。
+- 脚本在主机生成 `/etc/ccsdkscribe/runtime.env`（0600）及可选 `database-qa.env`（UID/GID 10001、0400），目录 0700；问数模式需 root 设置属主。自定义目录使用 `CCSDK_CONFIG_DIRECTORY`。生成文件不作为构建制品上传。Workflow dotenv 中的 `${...}` 值会拒绝生成，避免被运行时插值改写。
+- 内网服务器不必是 ECS；云效需有可达的主机组或自建 Runner。Runner 要能访问 Codeup、制品/镜像仓库和目标 Docker；完全离线客户用导出的镜像包和现场配置。
+- 客户修改 Key：有云效就修改对应保密变量并重新部署；无云效就由客户管理员修改主机 `runtime.env`，执行 `CCSDK_GENERATE_ENV=0 CCSDK_PULL_IMAGE=0 CCSDK_IMAGE=已导入镜像 sh deploy/deploy.sh`。不要把新 Key 作为命令行参数。更换供应商时同时核对 BASE_URL、MODEL 及默认模型配置。
+- 部署脚本强制重建容器以刷新环境。仅 `docker restart` 不会加载更新后的 env_file；先排空正在执行的任务，换 Key 后做真实模型调用，确认成功再撤销旧 Key。当前没有凭据热更新或自动回滚。
+- 不在镜像里保存 Key，不用 `docker commit` 制作含密钥镜像；镜像层会随镜像分发。`docker exec` 中 export 只影响新 shell，不会更新正在运行的服务。Docker 管理员仍能查看容器环境，保密变量不是对主机管理员的加密隔离。
 
 ## 配置与数据
 

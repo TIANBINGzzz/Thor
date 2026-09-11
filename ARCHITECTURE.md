@@ -68,7 +68,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 数据生命周期：`.scribe-runs/` 含运行记录、SDK 会话及工作数据；业务会话、上传由 Java 管理，历史测试 `.scribe-sessions/` 已迁至 ScribePlayground。运行数据不是可整体删除的缓存。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
-- 部署：`deploy/` 提供云效 ECS 内网试运行模板；镜像排除密钥，运行时注入环境与 Workflow 文件，命名卷保留运行数据和 SDK 会话。单副本、单 HTTP worker，容器不构成租户隔离或生产验收。
+- 部署：`deploy/` 提供云效内网 Linux 试运行模板；部署主机将任务保密变量写入受限权限配置文件，镜像排除密钥，运行时注入环境与 Workflow 文件，命名卷保留运行数据和 SDK 会话。换 Key 需排空任务并重建容器。单副本、单 HTTP worker，容器不构成租户隔离或生产验收。
 
 ## 9. Where to look for X
 

@@ -4,6 +4,9 @@
 
 最终复测使用重新构建的 `ccsdkscribe:20260911-live`，没有向运行容器临时覆盖代码。本机 `.env` 未改动；测试注入副本移除了回环 HTTP/HTTPS 代理，并补充独立 JWT 密钥。Windows 与 Linux 各 90 项测试通过。
 
+同日追加：`write-env.py` 从任务环境生成配置，在独立 Compose 项目完成启动、真实并发对话、DBHub SELECT 1、DOCX 下载和第二轮修改；4 项配置生成测试在 Linux 通过。以临时虚构 Key 验证 restart 保留旧值、force-recreate 加载新值，再恢复真实 Key，真实模型调用与历史文件读取通过。未轮换供应商账号中的真实 Key。Linux 文件权限测试使用容器本地文件系统，Windows 绑定目录不作为 POSIX 权限证据。
+云效和内网主机实测尚未完成：浏览器连接失败，现有业务前端地址不能确定主机组、Runner、目标目录或服务名。当前 Compose 命令链已执行，deploy.sh 通过 shell 语法检查，目标 Linux 主机脚本整体执行仍待验证。
+
 ## 配置迁移问题
 
 | 现状与位置 | 容器中的影响 | 部署处理 |
@@ -39,6 +42,7 @@
 | DOCX 生成和下载 | 原流程误写 `/app`/其他目录，Run succeeded 但下载 404；明确目录后正确发布，下载 200，关键内容可解析 |
 | DOCX 第二轮修改 | 同会话把预算 120 改为 150，产物下载及字段校验通过；模型曾补充未提供的任务明细，内容事实约束仍需验收 |
 | DOCX 版式 | 本机缺少 LibreOffice，render_docx.py 失败；未通过渲染验收，不声称视觉质量通过 |
+| DOCX 公共回答 | 本轮出现“跳过确认”“验证内容”等执行过程文字，且补写多集群/安全验证事实；文件可下载不等于公共回答质量达标 |
 | 数据库连接 | 真实模型调用 DBHub 执行 SELECT 1 成功；另用独立 MCP Client 同 SQL 对照通过，未查询业务表 |
 | 业务问数租户 | JWT 用于 HTTP 归属，但未注入可信数据库查询范围；缺少绑定不能验收跨租户业务 SQL，不用提示词代替数据库权限 |
 | 附件输入 | 缺少 File Broker，返回 file_broker_unavailable；未启动模型。真实附件链路待 Java HTTPS File Broker |
