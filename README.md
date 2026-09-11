@@ -23,6 +23,7 @@ npm test
 ```text
 python/       FastAPI Runtime、SDK Worker、文件 Broker 和执行工具
 .claude/      Skills、Agents、Commands、Workflow 配置
+deploy/       云效 ECS 容器构建、配置示例与部署脚本
 doc/          接口规范、工程要求、ADR 和静态 API 文档
 ```
 
@@ -43,6 +44,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 模型配置写在根 `.env`；数据库专属配置写在 `.claude/workflows/database-qa/workflow.env`，该文件已被 Git 忽略。不要把密钥、真实 Token、租户值、内部 ID 或真实查询结果写入代码、文档、日志或提交。当前入口仍启用 `bypassPermissions`，只适合本地或内网验证。
 
 ## 文档入口
+
+- [云效 ECS 部署](deploy/README.md)：镜像构建、运行时密钥注入、数据卷和发布限制；尚需目标环境验收。
 
 - [文档索引](doc/README.md)
 - [架构总览](ARCHITECTURE.md)

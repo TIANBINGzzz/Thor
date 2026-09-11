@@ -1,6 +1,8 @@
 node_modules/
 .env
 **/workflow.env
+deploy/*.env
+/dist/
 *.log
 .claude/settings.local.json
 .tmp/

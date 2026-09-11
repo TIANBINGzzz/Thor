@@ -30,7 +30,7 @@ class DocxToolsTests(unittest.TestCase):
     def test_paths_cannot_escape_root(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError):
-                inspect_document("..\\outside.docx", directory)
+                inspect_document(str(Path("..") / "outside.docx"), directory)
 
 
 if __name__ == "__main__":

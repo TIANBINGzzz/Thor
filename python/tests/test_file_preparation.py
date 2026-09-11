@@ -137,7 +137,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 def assert_ready(payload):
                     self.assertIn("template.docx", payload["prompt"])
                     self.assertTrue(list(root.rglob("template.docx")))
-                    self.assertEqual(payload["timeout_ms"], 50)
+                    self.assertEqual(payload["timeout_ms"], 500)
                     sdk_calls.append(payload)
 
                 async def query(payload):
@@ -156,13 +156,14 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         lambda _: file_response(b"x" * 262144, 2, gate=gate, started=started)))
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
-                                    MODELS=["test"], SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=50,
-                                    FILE_PREPARE_TIMEOUT_MS=2000, internal_tasks={}, internal_subscribers={}), \
+                                    MODELS=["test"], SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=500,
+                                    FILE_PREPARE_TIMEOUT_MS=3000, internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileBroker", side_effect=broker), patch.object(server, "stream_agent", query):
                     task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}, runtime_bearer="jwt"))
                     await asyncio.wait_for(started.wait(), 1)
-                    await asyncio.sleep(0.07)
+                    # Preparation must outlast the SDK budget, with enough scheduling headroom on CI.
+                    await asyncio.sleep(0.7)
                     self.assertFalse(task.done())
                     self.assertEqual(sdk_calls, [])
                     gate.set()

@@ -54,7 +54,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIsNotNone(server)
         self.assertNotIn("DSN", server["env"])
         self.assertIn("--config", server["args"])
-        self.assertIn(".claude\\workflows\\database-qa", server["args"][-1])
+        self.assertEqual(Path(server["args"][-1]).parts[-4:],
+                         (".claude", "workflows", "database-qa", "dbhub.readonly.toml"))
 
     def test_database_prompt_contains_workflow_table_scope(self):
         config = load_workflow_config("database-qa")

@@ -1,0 +1,9 @@
+services:
+  runtime:
+    volumes:
+      - type: bind
+        source: ${CCSDK_DATABASE_ENV_FILE:-/etc/ccsdkscribe/database-qa.env}
+        target: /app/.claude/workflows/database-qa/workflow.env
+        read_only: true
+        bind:
+          create_host_path: false
