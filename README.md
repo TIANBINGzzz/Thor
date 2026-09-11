@@ -37,6 +37,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
+撰写模板资产放在 `.claude/workflows/writing-docx/templates/`；[双高中期自评模板与逐段来源](.claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md)已整理，模板数据绑定尚未接入 Runtime。
+
 前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
 
 ## 配置与安全
