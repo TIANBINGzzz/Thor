@@ -471,6 +471,15 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
     work_directory = payload.get("work_directory")
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
+    prompt_append = payload.get("system_prompt_append") or ""
+    if artifact_enabled and not direct_workflow:
+        prompt_append += (
+            "\n当前执行的受控工作目录：" + str(work_directory)
+            + "\n当前执行的交付目录：" + str(deliverables_directory)
+            + "\n生成文件时使用工作目录下的绝对路径；不要写入项目根目录、猜测目录或扫描其他会话。"
+            "完成后必须调用 mcp__artifacts__publish_file 发布，成功后才能告知用户文件可下载。"
+            "回复仅提供文件名，不输出服务器本地路径；发布失败必须如实说明。"
+        )
     if artifact_enabled and not direct_workflow:
         mcp_servers["artifacts"] = create_artifact_server(
             session_directory,
@@ -530,7 +539,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
         include_partial_messages=bool(payload.get("include_partial_messages")),
         setting_sources=[] if direct_workflow else ["project", "local"],
         system_prompt=build_system_prompt(
-            payload.get("system_prompt_append") or "",
+            prompt_append,
             database_enabled,
             workflow_config,
         ),

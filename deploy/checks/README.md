@@ -1,0 +1,53 @@
+# 容器迁移检查与真实流程验证
+
+核对日期：2026-09-11。环境：本机 Docker Linux/amd64，按 Compose env_file 注入真实模型配置，独立数据卷，只读挂载现有数据库 Workflow 环境文件；Run JWT 使用测试临时密钥。不是云效/ECS 或真实 Java 控制面的验收。
+
+最终复测使用重新构建的 `ccsdkscribe:20260911-live`，没有向运行容器临时覆盖代码。本机 `.env` 未改动；测试注入副本移除了回环 HTTP/HTTPS 代理，并补充独立 JWT 密钥。Windows 与 Linux 各 90 项测试通过。
+
+## 配置迁移问题
+
+| 现状与位置 | 容器中的影响 | 部署处理 |
+| --- | --- | --- |
+| 本机 `.env` 的 HTTP/HTTPS 代理为 `127.0.0.1:7897` | 实测容器连接拒绝；模型域名命中 NO_PROXY 才能成功，其他请求可能失败 | 无代理需求时不注入代理；确需代理时配置容器可访问地址。Desktop 宿主机用 `host.docker.internal`，Linux 需显式 host-gateway 或私网地址，且代理必须监听可达网卡 |
+| `NO_PROXY` 包含回环和模型域名 | 只解决匹配域名；Java/MCP/对象存储可能错误走代理 | 按部署拓扑补充内网域名，不能用成功的模型调用推断其他网络都通 |
+| Dockerfile 健康检查访问 `127.0.0.1:4310` | 此处访问容器自身，地址正确；urllib 仍可能受代理环境影响 | 保留回环地址；启用代理时让 NO_PROXY 包含 localhost、127.0.0.1 |
+| `server.py` 直接启动监听 `127.0.0.1` | 容器端口映射无法访问仅监听回环的服务 | 使用镜像 entrypoint，其 Uvicorn 监听 `0.0.0.0:4310` |
+| Compose 主机绑定默认 `127.0.0.1:4310` | 同机可访问；跨 ECS 或另一个容器不能通过自身 localhost 访问 | 同机反代保留默认；跨机绑定 ECS 私网 IP 并限制来源；同 Docker 网络使用服务名 |
+| `SCRIBE_PORT` 与容器入口 | 入口、健康检查、映射固定 4310，容器内改 SCRIBE_PORT 不会修改实际监听 | 保持容器端口 4310，需要改外部端口时修改映射，勿误改模型或 Java URL |
+| 本机 `.env` 没有 Runtime JWT 密钥 | 复制到部署环境会在 entrypoint 校验失败 | 独立配置至少 32 字节强随机密钥，Java 使用相同密钥及 issuer/audience；不要用模型 API Key 替代 |
+| `config.py` 的 dotenv `override=True` | 挂载根 `.env` 会覆盖流水线/容器注入值，Workflow 文件随后覆盖同名值 | 通用配置只使用 env_file 注入，不再挂载根 `.env`；流程凭据只读挂载到指定 Workflow |
+| Compose raw 与 python-dotenv 语法不同 | raw 会保留引号及 `$`；直接复制带引号的 dotenv 值可能导致鉴权失败 | runtime.env 写实际值、不加外层引号；Workflow 文件仍按 python-dotenv 规则解析，避免二次 shell 展开 |
+| Workflow 库名与 DBHub TOML 端口 | 库名固定 `test_hpm_dev`，端口固定 3306；DB_NAME/DB_PORT 不一定覆盖它们 | 在受控 Workflow 配置中核对生产库名和端口；配置只读账号、数据库白名单及网络权限 |
+| `.env.example` 的 Windows 证书/SQLite 路径 | `D:/...` 在 Linux 中不指向宿主机文件 | 只读挂载证书并使用容器路径；工作数据放命名卷，不挂载宿主机整个项目目录 |
+| `file_broker.py` 的授权服务与下载 URL | Broker 要求 HTTPS；一次性下载 URL 只允许 443、白名单域名和公网解析，配置白名单也不会放行私网 IP | 内网 Java 可提供可信 HTTPS Broker 的 proxy_stream；对象存储 URL 模式需公网可达且符合白名单。不要为接入内网存储直接关闭 SSRF 校验 |
+| `/app` 为 root 所有、服务 UID 为 10001 | 默认 cwd 不可写；未指明工作目录时模型曾误选其他 Run 目录，下载 404 | 已在系统执行配置提供当前工作和交付目录及发布规则；仍须实现 OS 级租户隔离 |
+| `.scribe-runs/` 与 SDK 配置目录 | 只保留 SQLite 会丢文件/会话；绑定卷属主不对会拒绝写入 | 当前命名卷保存全部运行数据，证书/流程文件需要 UID 10001 可读；不使用 `chmod 777` |
+| 数据卷保留不等于 Client 恢复 | 活动任务和 SessionManager 在进程内；SDK 文件存在不代表重启自动续接 | 发布前排空任务；单 worker/单副本，恢复协议和跨实例协调另验收 |
+| 单 worker 不等于所有会话串行 | 不同会话可并发；同一持久 Client 的请求由 Actor 串行处理，共享机器资源 | 两路并发已验证；容量需按模型延迟、CPU/内存实测，不能直接增加 workers 或副本 |
+| SSE 与反向代理 | 缓冲/短超时可造成看似无输出或中途断开 | 关闭响应缓冲，设置长连接超时；利用事件序号重连，JWT 时钟同步和有效期也要匹配 |
+| Docker Hub / Python 传递依赖 | 本机 Hub 拉取曾 EOF；顶层 requirements 固定但传递依赖未全锁 | 使用可信 ACR 缓存与镜像 digest；镜像内验证依赖组合，同一镜像晋级环境，不在 ECS 重新解析依赖 |
+| `bypassPermissions` 与同 UID 文件 | 只读挂载防修改但不防模型读取；卷内其他会话也没有 OS 隔离 | 当前仍不满足多租户生产隔离；不能把路径提示词或非 root 视为沙箱 |
+
+## 实测与修复
+
+| 项目 | 结果与依据 |
+| --- | --- |
+| 两路真实模型并发 | 算术 17×23=391、中文响应通过；公共流未检出本次密钥原文 |
+| HTTP/SSE | 事件序号有序、游标回放一致、同请求幂等；跨租户读取 401；收到文本后取消为 run.cancelled |
+| 持久 Client 首次执行 | 原镜像缺少 `import time` 导致 NameError；已修复并增加 Worker 收发测试 |
+| 持久 Client 最终结果 | 提前关闭迭代器时 READY 更新原本在 yield 后，可能误关闭连接；已提前更新并测试第二次 query |
+| DOCX 生成和下载 | 原流程误写 `/app`/其他目录，Run succeeded 但下载 404；明确目录后正确发布，下载 200，关键内容可解析 |
+| DOCX 第二轮修改 | 同会话把预算 120 改为 150，产物下载及字段校验通过；模型曾补充未提供的任务明细，内容事实约束仍需验收 |
+| DOCX 版式 | 本机缺少 LibreOffice，render_docx.py 失败；未通过渲染验收，不声称视觉质量通过 |
+| 数据库连接 | 真实模型调用 DBHub 执行 SELECT 1 成功；另用独立 MCP Client 同 SQL 对照通过，未查询业务表 |
+| 业务问数租户 | JWT 用于 HTTP 归属，但未注入可信数据库查询范围；缺少绑定不能验收跨租户业务 SQL，不用提示词代替数据库权限 |
+| 附件输入 | 缺少 File Broker，返回 file_broker_unavailable；未启动模型。真实附件链路待 Java HTTPS File Broker |
+| 重启持久化 | 容器重启及替换新镜像后文件字节一致、历史事件可回放；不包含在途任务/模型上下文恢复承诺 |
+| 依赖风险 | 既有 npm 审计 4 项 moderate；未在本次做依赖升级，上线前需修复与复测 |
+
+## 工程要求检查
+
+| 要求编号 | 状态 | 依据 | 差距与后续处理 |
+| --- | --- | --- | --- |
+| REQ-001 | 部分满足 | 沿用按 MCP 注入，测试密钥不进镜像/提交；公共流检查未命中凭据 | Java 真实 Token、撤销和同 UID 文件隔离未验收 |
+| REQ-002 | 部分满足 | HTTP 使用业务 Capability；工作目录由受信 Runtime 决定；新增回归覆盖 | Java 业务授权、DB 租户绑定、模型内容事实约束和配置审计未完成 |

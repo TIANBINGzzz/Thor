@@ -21,6 +21,18 @@ from runtime.config import (
 
 
 class AgentWorkerTests(unittest.TestCase):
+    def test_artifact_prompt_exposes_only_current_output_directories(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict("os.environ", {}, clear=True):
+            work = str(Path(folder) / "work")
+            output = str(Path(folder) / "output")
+            options = build_options({"session_directory": folder, "work_directory": work,
+                                     "deliverables_directory": output, "skill_refs": []})
+        prompt = options.system_prompt["append"]
+        self.assertIn(work, prompt)
+        self.assertIn(output, prompt)
+        self.assertIn("mcp__artifacts__publish_file", prompt)
+        self.assertIn("不输出服务器本地路径", prompt)
+
     def test_database_mcp_is_disabled_without_connection(self):
         with patch.dict("os.environ", {}, clear=True):
             self.assertIsNone(create_database_mcp_server())

@@ -1,6 +1,7 @@
 # 云效部署（ECS / Linux Docker 单实例）
 
 这是待目标环境验证的内网试运行配置，不代表生产已验收。ACK 或裸机 Python 需要不同部署步骤。
+[配置迁移问题与真实流程验证](checks/README.md) 记录 localhost、代理、路径、密钥注入及实测缺陷。
 云效通过界面配置下面的任务；本仓库不提供未经云效校验的专用 YAML。
 
 ## 流水线
@@ -35,12 +36,12 @@ Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同
 - 回滚时将 `CCSDK_IMAGE` 改为已留存的上一版本 tag/digest，重新执行部署脚本；保留同一数据卷。数据库格式兼容和配置变更要单独核对，镜像回滚不等于业务副作用回滚。
 - HTTP 健康检查仅证明服务可响应；构建成功不证明模型、数据库、JWT 签发和 File Broker 已连通。
 - 2026-09-11：现有 Node 锁文件审计报告 4 项 moderate（`hono`、`qs` 及依赖链）。目前 DBHub 走 stdio，但仍需修复并验证，不因镜像可构建而宣称生产安全。
-- 2026-09-11 本地 Linux/amd64 镜像验证：87 项测试通过，UID 10001 下 SDK CLI、Node 和 DBHub demo 启动成功；容器健康检查与未授权 Run 返回 401 通过。未使用真实模型/数据库凭据，云效及 ECS 未部署验收。
+- 2026-09-11 修复版验证：Windows 与 Linux 各 90 项测试通过；真实配置注入后并发对话、SSE、取消、DBHub SELECT 1、DOCX 生成下载和同会话修改通过。附件因未接入 File Broker 失败，业务问数租户隔离和 DOCX 内容/版式仍未验收；云效及 ECS 未部署验收。
 
 ## 离线镜像导入
 
-本地导出的 `dist/ccsdkscribe-20260911-linux-amd64.tar` 可通过 `docker load -i ccsdkscribe-20260911-linux-amd64.tar` 导入；镜像名为 `ccsdkscribe:20260911`。
-导入后准备上述主机配置，在 `deploy/` 执行 `CCSDK_IMAGE=ccsdkscribe:20260911 docker compose up -d --wait`；问数加 `-f compose.yaml -f compose.database.yaml`。
+真实流程修复版导出为 `dist/ccsdkscribe-20260911-live-linux-amd64.tar`，使用 `docker load -i ccsdkscribe-20260911-live-linux-amd64.tar` 导入；镜像名为 `ccsdkscribe:20260911-live`。旧 `20260911` 镜像存在 Client 缺陷，不再用于部署。
+导入后准备上述主机配置，在 `deploy/` 执行 `CCSDK_IMAGE=ccsdkscribe:20260911-live docker compose up -d --wait`；问数加 `-f compose.yaml -f compose.database.yaml`。
 离线导入不执行 `deploy.sh` 的仓库拉取步骤；不要把镜像 tar 提交到 Git。后续发布使用提交 SHA 或 digest 标识镜像。
 
 ## 本次工程要求检查

@@ -434,10 +434,11 @@ class ClaudeSDKClient:
                 except StopAsyncIteration as error:
                     raise SDKExecutionError("Claude SDK response stream 提前结束") from error
                 message = normalize_message(raw)
-                yield message
                 if message.kind == "result":
                     completed = True
                     self._state = ClientState.READY
+                yield message
+                if completed:
                     return
         except asyncio.TimeoutError as error:
             primary_error = SDKTimeoutError("Claude SDK response stream 超时")
