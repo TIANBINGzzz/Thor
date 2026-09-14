@@ -7,7 +7,7 @@
 | 实现状态 | 未开始 |
 | 最近核对 | 2026-09-14 |
 | 替代的旧 ADR | 无；细化 ADR-019 的后续接入设计 |
-| 被哪份 ADR 替代 | 无 |
+| 被哪份 ADR 替代 | [ADR-021](021-template-batch-data-plan.md) 部分替代显式连接工具与DBHub后端建议；来源/连接分离保留 |
 
 ## 背景
 
@@ -18,7 +18,7 @@
 - 用户已确认分离方向；具体实现拟采用 DataSource、ConnectionProfile 与可信 Binding，模板及 QuerySpec 引用业务来源，连接随部署和授权上下文解析。
 - 拟提供固定的数据源检索、连接、结构查询及固定/动态查询工具；模型用 source_key 请求连接，服务端管理凭据、物理连接与 Run 内句柄。
 - 拟复用 DBHub 多库及参数化 Custom Tools；Python 负责业务语义、授权、QuerySpec 装配与结果处理，SQL方言/参数适配需验证。
-- 具体字段、职责及实施顺序见[设计方案](../specs/data-source-connections.md)；本轮不修改资产或 Runtime，不将方案写成当前接口。
+- 以上显式连接与DBHub是本ADR初始建议；后续[ADR-021](021-template-batch-data-plan.md)改为工具内懒连接及SQLAlchemy后端建议，字段与实施顺序见[当前设计](../specs/data-source-connections.md)，均未改变Runtime。
 
 ## 实现证据与差距
 
@@ -44,3 +44,4 @@
 | 日期 | 决策状态 | 实现状态 | 说明 |
 | --- | --- | --- | --- |
 | 2026-09-14 | 提议 | 未开始 | 用户确认分离方向，本轮提交具体设计供评审 |
+| 2026-09-14 | 提议 | 未开始 | ADR-021细化已选择的批量计划，部分替代连接工具和后端建议；分离原则保留 |

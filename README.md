@@ -43,6 +43,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 
 [共享查询资产 QuerySpec](.claude/query-specs/README.md)已整理数据源、参数化 SQL、口径及输出字段，覆盖现有 18 问和报告表格来源；已验证问数库字段与部分数值，运行时查询执行和报告库绑定待接入。
 
+后续采用[固定模板绑定与批量取数计划](doc/specs/template-batch-data-plan.md)，并保留模型动态只读查询；[数据库管理与工具设计](doc/specs/data-source-connections.md)列明字段、授权及SQLAlchemy执行后端建议。此为待实施设计，当前运行仍使用DBHub。
+
 前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
 
 ## 配置与安全

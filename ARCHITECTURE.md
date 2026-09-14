@@ -85,3 +85,4 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与技能 | `.claude/workflows/`、`.claude/skills/` |
 | 数据源与共享查询资产 | [.claude/query-specs/README.md](.claude/query-specs/README.md) |
+| 数据源管理与模板批量计划（待实施） | [数据工具与管理](doc/specs/data-source-connections.md)、[模板绑定与取数计划](doc/specs/template-batch-data-plan.md)；拟将共享语义、执行与Run结果职责集中，当前目录/生命周期不变 |

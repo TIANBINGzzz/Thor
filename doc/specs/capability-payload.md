@@ -46,7 +46,7 @@
 
 该模板的查询引用已记录在同目录 `query-bindings.json`，复用[共享 QuerySpec](../../.claude/query-specs/README.md)。查询标识、SQL、数据源连接及授权上下文均由服务端装配，不增加浏览器 `payload` 字段；运行时解析仍待接入。
 
-[数据源与连接分离方案](data-source-connections.md)拟让模型通过工具选择已授权业务源并按需连接；连接标识、DSN、密码和授权范围不加入业务 payload，预制模板仍只需 templateKey。该方案尚未实现。
+[数据源与连接分离方案](data-source-connections.md)拟让模型通过工具选择已授权业务源并由服务端懒连接；连接标识、DSN、密码和授权范围不加入业务payload，预制模板仍只需templateKey。[模板批量计划](template-batch-data-plan.md)细化了内部report_parameters、Java授权回调及工具传值，均为待实施设计，不增加当前HTTP字段。
 
 ## 工程要求检查
 

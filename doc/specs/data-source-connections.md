@@ -1,84 +1,89 @@
-# 数据源、数据库连接与取数工具设计
+# 数据源管理与数据库工具设计
 
-日期：2026-09-14。用户确认业务数据源与数据库连接应分开；本文给出具体接入建议，尚未实现，不改变现有 HTTP/payload 契约。
+2026-09-14。方案一细化设计，尚未实现；现有 HTTP、MCP、Workflow 和部署行为不变。模板执行见[批量取数方案](template-batch-data-plan.md)，决策见 [ADR-021](../ADR/021-template-batch-data-plan.md)。所有新增字段/工具/命令均为拟议契约。
 
-## HPM 与模板的关系
+## 职责与执行后端
 
-模板可以直接依赖 HPM 业务域及其 QuerySpec。HPM 表示项目、任务、绩效、资金等业务模型；当前 DBHub 恰好也使用 `hpm` 作为 provider source id，两者不是同一个标识空间。
-深职模板建议声明 `queryCatalog=hpm`、业务角色 `hpm -> report_db`；问数使用同一查询目录并选择 `qa_db`。模板绑定业务来源，运行时再确定物理连接。
-已知 HPM 指标复用现有查询；评分、外部成果、调查或审计材料沿各自来源补充，不能仅靠 HPM 当前12表生成全部事实。保留原来源，不因数据库值或名称不同质疑其有效性。
+Java 管理身份、Capability、模板/数据源/项目 ACL；Python 维护语义、查询、模板绑定并执行取数；管理员维护连接与密钥。问数和撰写共用 `data` MCP，模板仍使用 `writing-docx`。
+模型只传业务来源与查询参数；服务端按 Run 授权解析唯一连接并懒连接，连接句柄仅内部持有，无需模型先调用 connect。同一逻辑来源可按部署/租户绑定不同连接；同一连接可服务多个来源，权限各自校验。
+建议新执行后端采用 SQLAlchemy Core 2.x + 对应驱动，MySQL 首期使用 PyMySQL；SQLGlot 做 SQL 解析和范围检查，官方 Python MCP SDK 提供 stdio 工具。SQLAlchemy 管连接池、驱动绑定和事务，不引入 ORM 业务模型；后续 PostgreSQL 必须补驱动、方言及语义适配验证。
+依据：本地 DBHub 1.2.0 的通用 execute_sql 只有 sql 参数，Custom Tools 需预注册且错误可能带参数；不利于任意动态查询和跨调用固定事务。SQLAlchemy 原生支持绑定参数与事务。实施时完成同范围回归后移除旧数据库 MCP/配置及无其他使用方的依赖，不保留两套查询后端；本轮仅变更设计。
+成熟实现参考：[SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy)、[SQLGlot](https://github.com/tobymao/sqlglot)、[DBHub](https://github.com/bytebase/dbhub)。SQL 解析能力不等于行级授权。
 
-## 四类配置与职责
+## 管理对象与字段
 
-| 对象 | 保存什么 | 不保存什么 | 维护方 |
-| --- | --- | --- | --- |
-| DataSource：业务数据源 | source_key、domain、名称/用途、数据集、表字段语义、口径、历史覆盖、字典和可用查询；能力适用范围只是候选条件 | 地址、密码、连接池及用户实时授权结果 | Python 维护业务定义；Java 管理展示和业务授权 |
-| ConnectionProfile：连接配置 | connection_key、连接器、数据库类型、host/port/database、TLS、credential_ref、连接超时/池策略、配置版本 | 指标定义、模板内容 | 运维/管理员通过受保护的服务端配置维护 |
-| Binding：来源到连接的绑定 | 在部署环境与获准租户范围中，source_key -> connection_key + schema_profile；匹配必须唯一 | 可由模型改变的地址或授权范围 | 可信服务端配置；Java 提供权限上下文 |
-| QuerySpec：查询资产 | query_id、业务粒度、参数、SQL/适配版本、输出、校验与来源兼容性 | 数据库口令或客户端选定的连接 | Python 共享资产；模板引用查询标识 |
+HTTP 业务字段沿用 camelCase；内部配置、MCP 工具及结果使用 snake_case。下表列出的对象为发布格式，必填字段均须类型校验、拒绝未知字段；可选项显式标注。
 
-业务数据源可以是 HPM、财务、人事等；同一物理连接可承载多个业务数据源，同一业务源可在不同部署环境绑定不同连接。权限仍按业务源分别约束。
-首期每个来源在一次授权上下文中解析为一个连接。报告可同时使用多个来源，分别取数后按已登记业务键合并；暂不引入跨连接 SQL 联邦查询或自动全库关联。
-同一逻辑源需要多个连接时，先按独立可描述的数据集拆来源；不能让模型在多个不同实值库中任意挑一个。跨库 ID 不默认同义，时间、单位、范围和合并键必须明确。
+| 对象 / 归属 | 字段与类型 | 规则 |
+| --- | --- | --- |
+| ConnectionProfile / 受保护部署配置 | connection_key:string, revision:int, enabled:bool, driver:enum, host:string, port:int, database:string, username_ref:string, password_ref:string, tls:object, limits:object | driver 首期 mysql+pymysql；tls含verify_identity:bool=true、ca_ref?:string；密钥引用如env:REPORT_DB_PASSWORD，只允许管理员登记的env/Secret名；地址与账号信息不进入模型目录 |
+| 连接 limits / 同上 | connect_timeout_s:int=10, query_timeout_s:int=30, pool_size:int=2, max_overflow:int=0, pool_recycle_s:int=1800 | 初始建议值，须压测；另设全实例/连接总并发上限，不能只限制每个 Run 的池 |
+| DataSource / Python 业务资产 | source_key:string, version:int, name:string, description:string, domain:string, semantic_ref:string, dataset_refs:string[], query_catalog:string, coverage:object, enabled:bool | 只记录业务定义；coverage 包含 period_basis、available_periods、supports_as_of、freshness，动态信息须带核验时间；指标/字段只返回当前授权子集 |
+| SourceBinding / 受保护部署配置 | binding_key:string, revision:int, environment:string, tenant_scope_ref:string, source_key:string, connection_key:string, schema_profile:string, security_scope_ref:string, enabled:bool | 授权上下文必须唯一匹配；tenant_scope_ref/security_scope_ref 对应 Java 登记范围，含真实值的配置不入 Git；0/多条均报错，不自动换库 |
+| SchemaProfile / Python 业务资产 | profile_key:string, version:int, dialect:string, datasets:object, dictionaries:object, row_isolation:enum | datasets 登记模型可用表/视图名、物理映射、允许列、关联键和受审查的授权参数；隔离方式 query_spec_only/database_rls/scoped_readonly_views |
+| SemanticModel / Python 共享资产 | domain:string, version:int, entities:object, joins:object[], periods:object, units:object, rule_refs:string[] | joins 必须有粒度、基数及去重规则；跨库关联只认已登记业务键；报告库 first/second 关系不能套问数库 parent 关系 |
+| Metric / QuerySpec 目录内 metrics.json | metric_key:string, version:int, name:string, aliases:string[], kind:enum, query_id?:string, output_field?:string, grain:string, unit:string, period_modes:string[], rule_ref?:string | kind 为 direct/derived；direct 必填query_id/output_field，derived必填rule_ref且由规则声明输入查询/字段；业务表中的几千条指标记录由dataset查询返回，不逐条复制成静态Metric |
+| QuerySpec / 现有 JSON+SQL | 保留 id/version/status/source_keys/dialect/grain/parameters/output/requires_queries/validation；增加 schema_profiles:string[], batch?:object, checks:object[] | batch 显式声明批量参数、结果键和可合并维度；checks 使用已实现的规则类型，不能把文字 validation 当可执行代码；只执行 defined 且当前来源已验证的版本 |
 
-## 具体映射示例（建议标识，不代表已配置）
+连接路径由 `CCSDK_DATA_CONFIG` 指定，相对值以仓库根为基准；文件内引用以配置文件父目录为基准。来源登记路径相对仓库根，QuerySpec的sql_file继续相对业务域目录，模板文件引用相对模板目录，禁止逃逸登记目录。Secret 值不写配置示例、Git、Prompt 或日志。
+source_key 示例 qa_db/report_db 表示两个业务来源，hpm 是共享业务域；物理连接及 schema_profile 分别绑定，report_db 未连接时不能回退 qa_db。同名表不表示字段字典、历史覆盖或实值等价。
 
-| 使用方 | 业务域/查询目录 | 业务数据源 | 服务端连接绑定 |
-| --- | --- | --- | --- |
-| 双高问数 | hpm | qa_db | hpm_qa_primary |
-| 深职报告的 HPM 内容 | hpm | report_db | hpm_report_primary |
-| 报告的其他财务内容 | finance | finance_ledger | finance_primary |
+## 管理方式与发布
 
-`hpm_qa_primary` 与 `hpm_report_primary` 分别描述真实数据库连接；地址/密码变更只改连接配置。若管理员确认两个业务源确实使用同一数据库，可以绑定同一个连接，仍保留各自语义和权限；不能自动把问数源当作报告源回退。
-MySQL/PostgreSQL 等按连接器区分，QuerySpec 同时校验 SQL 方言和 schema_profile；表结构不同需来源适配，MySQL SQL 不因连接切换就自动变成 PostgreSQL SQL。
+一期提供配置文件及管理命令，在python/目录执行拟议入口 `python -m data_access.manage`：validate 检查类型/引用/绑定唯一性；test-connection 检查连接和只读账号；verify-source 核对字段、隔离和 QuerySpec 基准；publish 原子启用已验证修订；disable 停用并使运行授权失效。命令只接受受信配置位置和逻辑key；CCSDK_DATA_CONFIG的相对值仍以仓库根为基准，不从业务工具执行。
+Java 管理页面按连接、业务数据源、语义/指标、模板使用情况四个视图组织：连接页提供测试/启停/密钥更新；来源页展示覆盖、schema、绑定与 ACL；指标页显示口径/版本/验证；模板页显示绑定覆盖、缺口及受影响版本。普通业务用户只看到 Java 筛选后的可用能力和模板。
+部署配置和业务资产分别保持一个权威来源：连接/绑定由受保护配置维护，语义/QuerySpec/模板由 Python 仓库维护；Java 管理页调用受控发布流程或提交资产变更，不额外维护可独立编辑的第二份语义。页面不是一期取数的前置依赖。
+发布状态 draft -> validated -> published -> disabled；运行固定 asset_revision 和 binding_revision，更新供新 Run 使用。停用/撤销禁止下一次查询，在途任务最长15秒内检测并取消，交付结果前再检查；普通修订不改正在运行的计划。轮换连接密钥后废弃旧连接池并重新授权，不能继续用旧凭据。
+可变更对象都记录 revision、changed_by、changed_at、reason；有引用的对象只能停用，发布前列出受影响模板/指标。回滚只选择仍兼容且通过当前权限校验的旧版本，不能恢复已撤销权限。
 
-## Claude 可调用的工具（拟新增）
+## Java 授权与传值
 
-| 工具 | 作用与返回 |
-| --- | --- |
-| list_data_sources(query?) | 仅返回当前用户/租户/能力获准的数据源名称、用途、覆盖期间和 source_key |
-| describe_data_source(source_key, topic?) | 按需返回语义、指标口径、数据集说明及连接可用状态，不返回地址/凭据 |
-| find_query_specs(source_key, intent) | 返回匹配查询及其前置条件、业务参数、输出说明；无需先打开物理连接 |
-| connect_data_source(source_key) | 服务端解析唯一获准绑定，按需建立或复用连接，返回不透明 source_handle、方言及能力状态 |
-| inspect_schema(source_handle, tables) | 经授权过滤后查看实际结构，复用 DBHub 结构查询；只暴露当前源允许的数据集 |
-| execute_query_spec(source_handle, query_id, parameters) | 自动检查依赖诊断、绑定参数、执行固定 SQL、校验结果并返回证据引用 |
-| execute_readonly_sql(source_handle, sql, parameters?) | 语义和范围明确且无适用 QuerySpec 时执行动态查询；不能用来绕过缺定义/未授权项 |
+浏览器 -> Java -> Python 沿用现有 Run 请求：payload 仅 templateKey；input.text 提供期间与要求，附件走 attachmentRefs。tenant/sub 只取已验证 Run JWT；不在 payload 增加数据库、SQL、连接、项目授权清单或 Token。
+Java 在签发 Run 前登记该 Run 的数据授权；拟新增 Java 内部回调 `POST /internal/v1/data-grants/resolve`，请求含 runId、capabilityRef、tenant、subject、sourceKeys。Python 从已验证身份和受控资产组装请求；Java 必须核对自己的 Run 记录及当前 ACL，不能按提交身份直接授权。
+回调响应为 `grant_ref:string, revision:int, expires_at:timestamp, template_keys:string[], source_scopes:object[]`；每个 source_scope 含 source_key、scope_ref、project_ids、policy_ref、allowed_query_ids、allow_dynamic_sql。project_ids 为该数据源真实授权键，仅内部持有；空集合表示无权限，不表示全量。实体候选工具将业务对象映射为不透明引用。
+回调地址取服务端 `CCSDK_DATA_AUTH_URL`，采用服务身份认证与 TLS；该服务凭据不同于业务 Token、Run JWT 和模型密钥。Grant 接口是拟新增 Java 契约，当前 Runtime 不能仅凭已有 JWT 推导项目权限，也不把该回调伪装成现有业务 Token MCP。
+每次数据库/结果读取及交付前复核grant和当前配置启停状态，长查询期间至少每15秒复核，到期不得继续；撤销/校验不可用时停止并丢弃未交付结果。Grant不进入模型或普通日志；审计仅留引用、修订和脱敏关联。业务Token继续仅向REQ-001明确登记的业务MCP注入，data MCP不接收它。
 
-这里“Claude 自主连接”指模型根据业务需求调用 connect_data_source。首次注册新地址和凭据由管理员的连接管理完成；模型使用已登记来源触发连接，不在业务工具中提交 DSN、密码或 connection_key。
-source_handle 绑定 Run、用户、租户、能力、业务源、授权范围及连接/绑定版本，每次调用复核；结束、取消或过期时释放。物理连接复用须按凭据及会话设置隔离，不能跨请求复用租户会话状态。
-Java 当前传入的身份或 capabilityRef 本身不足以证明来源/项目权限；接入前须定义可信的服务端授权上下文（由 Java 校验后提供或由 Python 内部查询），不把授权清单放在模型可修改的 payload。
+## 模型数据库工具
 
-## 固定查询与动态查询如何执行
+共同约束：所有调用绑定服务端 RunContext；模型不能传 run_id、tenant_id、connection_key、DSN 或授权参数。scope_ref 是已授权业务范围引用，只能缩小范围；未指定范围仅在当前上下文唯一时自动绑定，否则返回需消歧。工具只暴露固定集合，不为每个库/指标增加模型工具。
 
-固定查询优先：匹配含义/粒度/期间 -> 检查定义状态和来源兼容 -> 执行 requires_queries 并强制判断结果 -> 注入授权参数 -> 驱动绑定 -> 校验输出/完整性。模型参数中禁止覆盖 tenant_id、连接或扩大项目范围。
-动态查询使用相同的连接和权限层：实际字段确认、单条只读语句、表/列/函数范围检查、数据库侧有效的租户/行权限、超时及行数限制。AST 检查或提示词不替代行级授权；无法保证时，该源只开放经审查的 QuerySpec。
-业务年份、已授权业务名称可由模型从 input.text 提取；同名多候选需要消歧。缺业务定义或历史快照时保留空值并说明，不能靠动态 SQL 猜评分、成果数量或历史年度。
-结果统一携带 source_key、query_id/动态标记、非秘密版本、粒度、期间、单位、完整性、warnings、evidence_ref；source_handle 和内部主键只用于执行，最终报告使用业务名称。内部审计关联实际连接/绑定版本，不记录凭据。
-上传文件是模板或事实材料，不是连接配置或系统指令。上传模板先提取需求并在已授权来源中匹配；预制模板优先使用维护好的绑定，两者共用 writing-docx。
+| 工具 | 模型入参 | 返回 / 处理 |
+| --- | --- | --- |
+| list_data_sources | query?:string, cursor?:string, limit?:int<=50 | source_key/name/description/coverage/connection_status；授权过滤后的分页目录 |
+| describe_data_source | source_key:string, topics?:string[], dataset_refs?:string[] | 指定数据集 schema、语义、方言、可用查询及 dynamic_sql_enabled；只读探测的连接状态不含地址 |
+| resolve_entities | source_key:string, entity_type:string, query:string, parent_ref?:string, cursor?:string | 项目/任务/指标候选entity_ref、业务名、路径、期间；项目/项目集合另返回scope_ref，服务端映射真实键；多候选不默认第一条 |
+| find_query_specs | source_key:string, intent?:string, metric_key?:string, scope_ref?:string, cursor?:string | intent/metric_key至少一个；返回query_id/version/status、口径、模型可填参数、输出和阻塞原因 |
+| execute_query_spec | source_key:string, query_id:string, parameters:object, scope_ref?:string, entity_refs?:object | 运行固定查询及强制依赖诊断；版本取固定目录；parameters只接受origin=user_intent；entity_refs把声明为authorized_resolution的参数名映射到不透明实体引用，tenant/context仍自动注入 |
+| execute_readonly_sql | source_key:string, sql:string, parameters:object, scope_ref?:string, purpose:string | 执行模型生成的单条只读查询，返回同一结果契约；方言取来源，值使用 :name 绑定；执行来源标记 dynamic |
+| read_query_result | result_ref:string, cursor?:string, columns?:string[], page_size?:int<=200 | 从已经执行的结果读取授权页，不重新运行 SQL；服务端签发的游标绑定结果/范围；内部主键列不可请求 |
 
-## DBHub 复用与适配范围
+示例：`execute_query_spec({"source_key":"report_db","query_id":"fund_totals","parameters":{"year":"2025"},"scope_ref":"scope_selected"})`；scope_selected 是 resolve_entities/当前可信上下文产生的引用，tenant_id/project_id 自动解析。此例只演示参数形状，报告源验证完成前仍拒绝执行。
+动态例：`execute_readonly_sql({"source_key":"report_db","scope_ref":"scope_selected","sql":"SELECT name, progress FROM task_view WHERE progress < :threshold","parameters":{"threshold":50},"purpose":"查找进度不足50%的任务"})`；task_view/name/progress 为示意名称，实际只能用 describe 返回的已授权视图及列。
 
-当前项目通过 Python 装配 Node DBHub MCP，使用 stdio 连接 MySQL；workflow.json、workflow.env 和 dbhub.readonly.toml 共同决定连接。现有 sources.json 是资产登记，尚未驱动运行时。
-本地核对 DBHub 1.2.0 已支持多数据库、按需 ensureConnected 和参数化 Custom Tools：拟继续用作数据库连接后端，Python 增加稳定的数据源工具门面与授权/QuerySpec 适配，避免模型直接接触物理 source id。
-现有 execute_sql 接受 SQL 文本；固定查询拟通过 Custom Tools 的 statement/parameters 执行。逻辑 :name 须按方言编译成 ?/$n 等占位符并保持重复参数顺序；值由驱动绑定，不能字符串替换成 SQL 字面值。
-动态 SQL 若使用绑定参数，也装配成仅属于本次 Run 的临时 Custom Tool，经同一门面执行，不写入共享 QuerySpec。DBHub 内部配置重建/实例启动的开销须纳入接入验证，不假设现有 provider 支持热增工具或直接接收命名参数。
-其参数类型目前不直接接受显式 null；适配器需将已校验的可空参数映射为 optional 且省略值，由 DBHub 映射成 null。这与参数缺失/未授权的语义必须在门面先区分，接入时须回归重复参数、null、数组与日期类型。
-当前自定义工具错误可能携带 SQL/参数，provider 还会追踪错误；适配必须处理工具返回、stderr 及 provider 内部追踪的脱敏/禁持久化，不能只清理最后的模型回复。Token 按 REQ-001 仅注入获准且声明需要的 MCP。
-模型始终看到固定工具集合；Python 在内部管理所需 DBHub 连接。按连接与获准范围隔离 provider 实例/配置，运行中不向所有会话注入全量数据库凭据，也不靠动态添加模型工具实现连接切换。
+## 执行与动态 SQL 边界
 
-## 文件归属与实施顺序
+两条路径共用：复核授权 -> 解析绑定/方言 -> 校验查询与参数 -> 建立只读连接/事务 -> 驱动绑定执行 -> 完整性和业务校验 -> 保存结果及证据。标识符由登记映射选择，不能把参数拼成表/库名。SQLAlchemy 绑定处理重复参数、NULL、日期、Decimal；列表需声明 expanding，空列表表示空结果，不能变成不加过滤。
+固定查询优先；未命中但语义明确时模型可写 SQL。动态结果可用于问数和补充分析；固定槽位只有登记允许动态查询、定义/期间/输出已明确且通过同等校验时才能使用动态结果，不允许覆盖已有固定绑定或绕过 needs_definition/blocked。
+SQLGlot 按已验证方言只允许单条 SELECT 或只读 WITH，检查所有子查询/CTE/UNION/关联的表、列和函数；拒绝多语句、DDL/DML、写入型CTE、锁、文件/网络/UDF、系统表和外部库。未知语法拒绝，不能仅检查 SELECT 前缀；模型不能改变查询超时、最大行数或开启危险函数。
+动态 SQL 必须具备数据库侧的有效行隔离：PostgreSQL 可用不可绕过的 RLS 角色；MySQL 首期要求只读账号仅有按授权范围过滤视图的 SELECT 权限，且无底表/越范围视图权限。当次scope_ref对应的获准范围必须覆盖该账号全部可见行，任意SQL才不会越行；多项目权限无法匹配时只开放固定QuerySpec。视图按真实授权范围管理，不把可由SQL更改的会话变量当授权。
+固定 QuerySpec 可在 query_spec_only 模式运行，但需逐资产审查每个表的租户/项目过滤与关联，禁止模型覆盖授权参数；不自动重写任意 SQL 来声称实现行级权限。MySQL 动态查询的视图/账号部署成本是明确代价，未配置隔离的来源保持 dynamic_sql_enabled=false，不能假装已经支持。
+data MCP独立于SDK模型进程；Runtime在模型启动前用Java回调验模板权限，再以私有启动上下文传已验证身份和固定资产版本，data启动及每次执行重新核验Grant。数据库密钥只给data进程，不转发原始Run JWT。数据库/报告工具注册在同一data MCP进程，共用执行器/结果仓库；prepare_report_data启动进程内受控后台任务，状态由get_report_data读取。
+正式多租户运行必须隔离密钥文件、进程权限及直连数据库网络，去掉可旁路取数的原始DB工具；当前bypassPermissions与同账号进程不能证明隔离已成立。拟采用每Run独立data MCP；Client跨轮继续会话时重建MCP并重新授权，新Run重新取数，历史报告走授权文件引用，不能直接复用旧工具上下文。
+连接池按连接修订、凭据版本、租户/授权范围及会话设置隔离；事务结束回滚并清理上下文，取消时终止数据库语句，无法确认取消的连接直接废弃。禁止将池简单按 source_key 缓存，也不因 Client 跨轮复用继续使用旧 RunContext。
+查询必须设置数据库端超时：MySQL使用适用SELECT的MAX_EXECUTION_TIME，PostgreSQL使用事务内statement_timeout，并验证实际方言行为；Python等待超时不能当作SQL已终止。取消适配需终止本次数据库语句并核验，失败连接不复用；Runtime按连接发放并发名额，覆盖所有Run的独立MCP进程。
 
-建议新增 `.claude/data-sources/` 存非秘密业务定义，保留 `.claude/query-specs/<domain>/` 存查询，模板继续维护 query-bindings.json。来源到连接的绑定和 ConnectionProfile 由独立受保护配置提供；其位置由环境变量解析，相对路径以仓库根为基准，凭据只用 Secret/环境引用。
-现有 hpm/sources.json 同时登记业务定义和连接引用；实施分层时拆分其职责并更新资产引用，不维护两份权威连接配置。本轮仅文档设计，既有登记、SQL、Workflow 和 Runtime 均不调整。
-1. 拆分登记、连接和绑定配置；实现参数/来源校验及 list/describe/connect/inspect 工具，先用当前 MySQL 完成最小链路。
-2. 接入 find/execute QuerySpec、依赖校验与证据记录，复用已整理资产完成问数和一个预制模板；report_db 实际连接由部署方绑定。
-3. 接入受约束动态 SQL 和上传模板需求匹配，按真实需要补第二数据库及对应 QuerySpec 方言/字段适配；每个来源独立授权。
-管理页面可按“业务数据源”“数据库连接”分开：前者编辑说明/数据集/口径/权限，后者由管理员维护连接、密钥引用、测试连接、启停；绑定操作显式选择已登记连接。初期配置文件即可，后续 UI 维护同一数据模型。
-验收需覆盖：两个库切换且模板不变、不同源共用连接但权限不混、句柄跨租户/Run拒绝、授权撤销/凭据轮换、查询取消、参数注入与越表/越行拒绝、NULL/重复关联/结果截断、历史期间缺失和无凭据/ID泄漏。
+## 结果契约与存储
+
+统一返回 `status:ok|partial|blocked|error, result_ref, source_key, query:{kind,id,version}, columns:[{name,type,unit,nullable}], row_count, preview, period, scope_ref, snapshot_ref, complete, warnings, evidence_refs`。preview默认最多20行；row_count是已物化行数，complete仅指请求结果完整，字段缺失另由checks/warnings表示。动态SQL无法核验期间/粒度时标unknown，不因当前报告参数存在就宣称已按其过滤，也不得挂接要求该口径的槽位。
+结果保存在隔离的 Run 目录，数据库明细不入 Prompt 全量上下文、公共 SSE、普通日志或 Git；模型按引用分页读取。数值 Decimal 以十进制字符串+列类型返回，日期用ISO格式并登记时区；NULL、无记录、未填报、0分开。分页游标不是SQL offset，过期结果返回 RESULT_EXPIRED。
+evidence_ref 关联实际来源、查询/规则版本、绑定修订、业务期间、采集时间和结果行引用；内部主键只用于关联，模型接收不透明 row_ref。QuerySpec原文可随部署版本追溯；动态SQL及绑定值只放受限执行记录，公共审计仅留脱敏摘要/指纹，数据库异常不回显SQL实值/凭据。
+超量以 byte/row 限额停止并标 complete=false，不对截断记录计算全量汇总或填完整表。Run默认建议结果总量50MiB、单结果10万行，管理员配置；持久化保留期由部署决定并与Run归档一致，引用过期不会触发隐式重新查询。
+稳定错误码：SOURCE_UNBOUND、SOURCE_AMBIGUOUS、SOURCE_NOT_VERIFIED、SCOPE_DENIED、GRANT_EXPIRED、PARAMETER_INVALID、QUERY_BLOCKED、SQL_REJECTED、QUERY_TIMEOUT、RESULT_INCOMPLETE；只返回业务可理解原因。可重试与完整性由服务端判断，模型不能无界重试。
 
 ## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
-| REQ-001 | 部分满足 | 方案保留逐请求按MCP注入，连接凭据与业务Token分离；已有通用注入基础 | 多连接隔离、轮换、provider追踪脱敏及真实Java链路待验收 |
-| REQ-002 | 部分满足 | 模型选择获准业务来源，模板不绑定物理连接；执行资产由可信服务端解析 | 来源/项目授权上下文、句柄/SQL强制检查、模板装配与版本审计未实现 |
+| REQ-001 | 部分满足 | Java授权回调使用独立服务身份；业务Token继续按MCP逐请求注入，不进入data工具 | 新工具进程隔离、在途撤销、轮换、日志脱敏及Java链路均待实现验收 |
+| REQ-002 | 部分满足 | payload仅templateKey；可信配置绑定来源、执行资产与权限，问数/撰写共享工具 | 模板校验、Grant接口、数据库侧行隔离、版本审计未实现；未开放来源不执行动态SQL |

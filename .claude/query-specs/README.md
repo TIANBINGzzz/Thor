@@ -2,7 +2,7 @@
 
 已确认的指标和数据集固化为查询资产，供问数和撰写复用。当前已落地资产、来源映射和测试；Runtime 检索、参数绑定、执行工具及模板填充尚未接入。
 
-后续[数据源与连接分离方案](../../doc/specs/data-source-connections.md)明确 HPM 是业务域、业务来源独立于连接配置，Claude 可按需调用连接工具；当前 sources.json 的连接引用尚未拆分，具体方案未实现。
+后续[数据源与连接分离方案](../../doc/specs/data-source-connections.md)明确 HPM 是业务域、业务来源独立于连接配置，模型以source_key调用工具并由服务端懒连接；当前 sources.json 的连接引用尚未拆分。[模板批量计划](../../doc/specs/template-batch-data-plan.md)已选定方向，SQLAlchemy执行、模板绑定和动态SQL工具尚未实现。
 
 ## 入口
 
