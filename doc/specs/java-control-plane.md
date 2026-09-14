@@ -1,6 +1,6 @@
 # Java 控制面：推荐设计与当前实现
 
-更新时间：2026-09-10。本次格式化报文示例，并将能力目录接口改为免鉴权。
+更新时间：2026-09-14。本次补充预制模板仅传 `payload.templateKey` 的业务约定与能力字段映射入口；未实现模板解析，当前接口实现仍以第 2 部分的源码核对范围为准。
 结论：Python 已提供 Run、鉴权、SSE 和文件接口；本地 Java 有接入骨架，但请求仍是旧协议，不能视为已经联通。
 
 ## 0. 维护约定与核对范围
@@ -33,7 +33,7 @@
 | 前端 | 保留会话列表、消息气泡、附件/模板选择、停止、重新生成和文件预览；增加独立阶段与工具状态。 | 文件准备、思考、工具执行和回答是不同状态。 |
 
 Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabilityRef`；Java 用当前用户权限与 Agent 允许能力取交集。Python 目录只说明“Runtime 支持什么”，不是用户授权结果。
-当前名称映射足够，不引入复杂 Capability revision/binding 或通用 Runner；模板作为授权文件输入，不因换模板复制 Workflow。
+当前名称映射足够，不引入复杂 Capability revision/binding 或通用 Runner；预制模板由 Python 维护，Java 仅传 `payload.templateKey`，外部文档仍作为授权文件输入，不因换模板复制 Workflow。字段约定和待实现范围统一记录在[能力 payload 映射](capability-payload.md)。
 模型策略继续由 Python 维护：可能包含图片的 Capability 从首轮起使用支持图片的默认模型，无需为此新增 Subagent。当前未实现按能力选择模型，见 2.8。
 
 ### 1.2 业务字段与关联
@@ -42,14 +42,10 @@ Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabili
 
 ```json
 {
-  "content": "请整理附件成报告",
-  "attachmentIds": [
-    "file_01"
-  ],
+  "content": "生成截至2025年底的双高中期自评报告",
   "capabilityRef": "document-writing",
   "payload": {
-    "reportTitle": "年度报告",
-    "year": 2026
+    "templateKey": "szpt-midterm"
   }
 }
 ```
@@ -60,7 +56,7 @@ Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabili
 | content | 转为 Python input.text，也对应 Dify query；query() 本身是 SDK 调用，不是业务 ID。 |
 | attachmentIds[] | Java 校验文件归属后转为 input.attachmentRefs[]，缺省 purpose 使用 input。 |
 | capabilityRef | 可省略并由 Java 取 Agent 默认值；Java 发给 Python 时必须确定具体值。 |
-| payload | 推荐新增的业务 JSON；Java 按能力校验后传递。现有 Java 的 Dify inputs 不等同于此字段。 |
+| payload | Java 按[能力映射记录](capability-payload.md)校验后传递；预制模板只需 templateKey，年份和撰写要求用 content。现有 Java 的 Dify inputs 不等同于此字段，Python 模板解析待实现。 |
 | Java messageId | 沿用当前 Bridge 的助手消息 ID，关联输出；用户消息通过现有回复关系关联。 |
 | Java runId | 一次执行；网络重提交复用，新执行/重新生成使用新值；无需 turnId。 |
 

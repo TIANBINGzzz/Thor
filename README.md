@@ -39,6 +39,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 
 撰写模板资产放在 `.claude/workflows/writing-docx/templates/`；[双高中期自评模板与逐段来源](.claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md)已整理，模板数据绑定尚未接入 Runtime。
 
+各能力的业务字段统一维护在[能力 payload 映射记录](doc/specs/capability-payload.md)；预制模板约定只传 `payload.templateKey`，年份和要求放 `input.text`，模板解析待实现。
+
 前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
 
 ## 配置与安全
