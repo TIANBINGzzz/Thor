@@ -17,3 +17,4 @@ __pycache__/
 *.tgz
 .sdk-extract-*/
 *.incomplete/
+~$*.docx

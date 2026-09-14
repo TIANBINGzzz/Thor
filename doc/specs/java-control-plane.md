@@ -16,8 +16,8 @@
 | 范围 | 基线与阅读入口 |
 | --- | --- |
 | Python | 本仓库 `51a8e67`；[server.py](../../python/server.py)、[protocol.py](../../python/runtime/protocol.py)、[auth.py](../../python/runtime/auth.py)、[file_broker.py](../../python/runtime/file_broker.py)、[capabilities.py](../../python/runtime/capabilities.py)；并核对 config、SDK Facade、Worker、Actor、RunStore 和测试。 |
-| Java | `D:/code/string-ai-center-service/src/main/java/com/string/ai`；HEAD `3761748` 加本地未提交改动。核对 controller/chat、service/chat、service/runtime、service/dify、service/agent、support、DTO 和配置。 |
-| 前端 | `D:/code/string-ai-center-web/src`；HEAD `96fc1de` 加本地未提交改动。核对 api/chat、shared/ai、views/ai 的调用、SSE、消息、附件、模板组件及框架 getHeaders。 |
+| Java | 外部项目 `string-ai-center-service` 的 `src/main/java/com/string/ai`；HEAD `3761748` 加本地未提交改动。核对 controller/chat、service/chat、service/runtime、service/dify、service/agent、support、DTO 和配置。 |
+| 前端 | 外部项目 `string-ai-center-web` 的 `src`；HEAD `96fc1de` 加本地未提交改动。核对 api/chat、shared/ai、views/ai 的调用、SSE、消息、附件、模板组件及框架 getHeaders。 |
 
 ## 1. 推荐设计（非强制接口）
 

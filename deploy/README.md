@@ -15,7 +15,7 @@
 | 验收 | 在可信调用方验证 JWT、SSE、取消、会话续接；按需验证真实模型、数据库及附件/DOCX |
 
 流水线阶段名称以云效当前界面为准。云效组织、仓库连接、ACR 服务连接、主机组须在实际账号中配置。
-构建机和主机应使用相同 CPU 架构；都需要 Docker，主机需要 Compose >=2.30（raw env_file）和 `flock`。
+构建机和主机应使用相同 CPU 架构；都需要 Docker，主机需要 Compose >=2.30（raw env_file）和 `flock`。部署前必须设置 `CCSDK_CONFIG_DIRECTORY`，指向跨版本保留的主机配置目录；相对路径以 `deploy/` 为基准。不同发布目录部署同一服务必须使用同一配置目录，默认锁文件为该目录下的 `deploy.lock`；可用 `CCSDK_DEPLOY_LOCK_FILE` 指定共同锁文件。
 镜像内包含 Python、SDK/CLI 和 Node/DBHub；开启保密变量生成 env 时，部署主机另需 Python 3（只用标准库），无需安装应用依赖或 Node。
 Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同步的对应 Debian Bookworm 官方镜像（建议固定 digest）；不要替换为来源不明的镜像。
 
@@ -23,7 +23,7 @@ Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同
 
 - 云效将 `ANTHROPIC_AUTH_TOKEN`、`CCSDK_RUNTIME_JWT_SECRET`、可选 `DB_PASSWORD` / `CCSDK_FILE_BROKER_SERVICE_TOKEN` 设为保密变量；模型 URL、模型名、issuer/audience 等为普通配置。DB_HOST/DB_USER 也可设为保密变量。变量名与 `write-env.py` 一致，值不用手动加引号。
 - 在内网部署任务的进程环境中绑定这些变量，设置 `CCSDK_GENERATE_ENV=1`、可选 `CCSDK_WITH_DATABASE=1`，执行 `sh deploy/deploy.sh`。不要把变量值直接拼接进 shell 脚本、命令参数或流水线 YAML；不要启用 `set -x`。远程主机任务是否自动透传变量必须在云效实测，不能把构建机环境等同于服务器环境。
-- 脚本在主机生成 `/etc/ccsdkscribe/runtime.env`（0600）及可选 `database-qa.env`（UID/GID 10001、0400），目录 0700；问数模式需 root 设置属主。自定义目录使用 `CCSDK_CONFIG_DIRECTORY`。生成文件不作为构建制品上传。Workflow dotenv 中的 `${...}` 值会拒绝生成，避免被运行时插值改写。
+- 脚本在 `CCSDK_CONFIG_DIRECTORY` 生成 `runtime.env`（0600）及可选 `database-qa.env`（UID/GID 10001、0400），目录 0700；问数模式需 root 设置属主。单独运行 `write-env.py` 时可传 `--directory`（相对当前工作目录），优先于该环境变量；两者都未设置则报错。生成文件不作为构建制品上传。Workflow dotenv 中的 `${...}` 值会拒绝生成，避免被运行时插值改写。
 - 内网服务器不必是 ECS；云效需有可达的主机组或自建 Runner。Runner 要能访问 Codeup、制品/镜像仓库和目标 Docker；完全离线客户用导出的镜像包和现场配置。
 - 客户修改 Key：有云效就修改对应保密变量并重新部署；无云效就由客户管理员修改主机 `runtime.env`，执行 `CCSDK_GENERATE_ENV=0 CCSDK_PULL_IMAGE=0 CCSDK_IMAGE=已导入镜像 sh deploy/deploy.sh`。不要把新 Key 作为命令行参数。更换供应商时同时核对 BASE_URL、MODEL 及默认模型配置。
 - 部署脚本强制重建容器以刷新环境。仅 `docker restart` 不会加载更新后的 env_file；先排空正在执行的任务，换 Key 后做真实模型调用，确认成功再撤销旧 Key。当前没有凭据热更新或自动回滚。
@@ -31,9 +31,9 @@ Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同
 
 ## 配置与数据
 
-- 运维将 `runtime.env.example` 的实际配置放到主机 `/etc/ccsdkscribe/runtime.env`；目录限制访问，文件权限 `0600`，由有 Docker 权限的部署账号读取。密钥也可由 Secret Manager 在部署阶段生成到该路径。
+- 运维将 `runtime.env.example` 的实际配置放到 `CCSDK_CONFIG_DIRECTORY` 下的 `runtime.env`；目录限制访问，文件权限 `0600`，由有 Docker 权限的部署账号读取。密钥也可由 Secret Manager 生成。使用已有文件时可分别设置 `CCSDK_ENV_FILE`、`CCSDK_DATABASE_ENV_FILE`；启用自动生成时统一使用配置目录内的新文件。
 - 通用配置通过容器环境注入；不要上传本机 `.env`，不要用构建参数传密钥，不要运行会展开密钥的 `docker compose config`（脚本只用 `--quiet`）。`runtime.env` 是 raw 格式，值不加外层引号，`$` 原样传入。
-- 问数另备 `/etc/ccsdkscribe/database-qa.env`，内容按 Workflow 的 `workflow.env.example`，只读挂载。文件需允许容器 UID 10001 读取，例如属主 10001、权限 `0400`；设置 `CCSDK_WITH_DATABASE=1` 启用。此文件由 python-dotenv 解析，不使用 Compose raw 语法。
+- 问数另备同目录的 `database-qa.env`，内容按 Workflow 的 `workflow.env.example`，只读挂载。文件需允许容器 UID 10001 读取，例如属主 10001、权限 `0400`；设置 `CCSDK_WITH_DATABASE=1` 启用。此文件由 python-dotenv 解析，不使用 Compose raw 语法。
 - 问数当前 Workflow 的库名是 `test_hpm_dev`；上线前须在受控 Workflow 配置中确认库名、表白名单和只读账号，不能只改密码。数据库端权限才是最终约束。
 - `.dockerignore` 排除密钥和本机数据；代码不需要根 `.env` 也能从环境读取配置。现有本地 dotenv 覆盖行为不变。
 - 固定命名卷 `ccsdkscribe-runtime-data` 保存 Run、工作文件及 SDK 配置/会话；升级保留该卷。制定卷的备份、保留期限和磁盘告警；不要执行 `down -v`。仅改数据库文件路径不足以持久化全部状态。

@@ -74,9 +74,11 @@ def atomic_write(path, content, *, database=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--directory", type=Path, default=Path("/etc/ccsdkscribe"))
+    parser.add_argument("--directory", type=Path, default=os.environ.get("CCSDK_CONFIG_DIRECTORY") or None)
     parser.add_argument("--database", action="store_true")
     args = parser.parse_args()
+    if args.directory is None:
+        parser.error("Set --directory or CCSDK_CONFIG_DIRECTORY")
     try:
         runtime = render(os.environ)
         database = render(os.environ, database=True) if args.database else None

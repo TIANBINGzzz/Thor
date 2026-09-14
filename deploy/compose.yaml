@@ -5,8 +5,9 @@ services:
     init: true
     restart: unless-stopped
     env_file:
-      - path: ${CCSDK_ENV_FILE:-/etc/ccsdkscribe/runtime.env}
+      - path: ${CCSDK_ENV_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/runtime.env}
         format: raw
+    # Paths below are inside the image, matching Dockerfile and the named volume.
     environment:
       HOME: /home/scribe
       CLAUDE_CONFIG_DIR: /app/.scribe-runs/claude-config

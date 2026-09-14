@@ -2,7 +2,8 @@ services:
   runtime:
     volumes:
       - type: bind
-        source: ${CCSDK_DATABASE_ENV_FILE:-/etc/ccsdkscribe/database-qa.env}
+        source: ${CCSDK_DATABASE_ENV_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/database-qa.env}
+        # Container path owned by the writing/runtime image, not the host.
         target: /app/.claude/workflows/database-qa/workflow.env
         read_only: true
         bind:

@@ -1,9 +1,17 @@
 param(
     [string]$SshHost = '103.236.98.149',
-    [string]$RollbackRelease = ''
+    [string]$RollbackRelease = '',
+    [string]$RemoteReleaseScript = $env:CCSDK_DOCS_RELEASE_SCRIPT,
+    [string]$RemoteIncomingDirectory = $env:CCSDK_DOCS_INCOMING_DIRECTORY
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+# Validate before Git, SSH or filesystem writes; these values enter a remote shell.
+foreach ($remotePath in @($RemoteReleaseScript, $RemoteIncomingDirectory)) {
+    if ($remotePath -notmatch '^/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$' -or ($remotePath -split '/') -contains '..' -or ($remotePath -split '/') -contains '.') {
+        throw 'Set RemoteReleaseScript and RemoteIncomingDirectory (or CCSDK_DOCS_RELEASE_SCRIPT and CCSDK_DOCS_INCOMING_DIRECTORY) to normalized remote paths without shell characters.'
+    }
+}
 $repo = Split-Path $PSScriptRoot -Parent
 $url = 'https://cp.stringedu.com/ccsdkscribe/python-api.html'
 $sshOptions = @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=15')
@@ -12,7 +20,7 @@ New-Item -ItemType Directory -Path $scratch | Out-Null
 try {
     if ($RollbackRelease) {
         if ($RollbackRelease -notmatch '^\d{8}T\d{6}Z-[a-f0-9]{12}-[a-f0-9]{8}$') { throw 'Invalid release ID.' }
-        $result = & ssh @sshOptions $SshHost "/opt/ccsdkscribe-docs/release.sh --rollback '$RollbackRelease'"
+        $result = & ssh @sshOptions $SshHost "'$RemoteReleaseScript' --rollback '$RollbackRelease'"
         if ($LASTEXITCODE -ne 0) { throw 'Remote rollback failed.' }
     } else {
         # Commit only this document; leave unrelated staged changes intact.
@@ -32,12 +40,13 @@ try {
         Expand-Archive -LiteralPath "$scratch/source.zip" -DestinationPath $scratch
         $html = Join-Path $scratch 'doc/python-api.html'
         $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $html).Hash.ToLowerInvariant()
-        $stage = (& ssh @sshOptions $SshHost 'mktemp -d /var/lib/ccsdkscribe-docs/incoming/upload.XXXXXXXX').Trim()
-        if ($LASTEXITCODE -ne 0 -or $stage -notmatch '^/var/lib/ccsdkscribe-docs/incoming/upload\.[a-zA-Z0-9]+$') { throw 'Cannot create remote staging directory.' }
+        $stage = (& ssh @sshOptions $SshHost "mktemp -d '$RemoteIncomingDirectory/upload.XXXXXXXX'").Trim()
+        $stagePattern = '^' + [regex]::Escape($RemoteIncomingDirectory) + '/upload\.[a-zA-Z0-9]+$'
+        if ($LASTEXITCODE -ne 0 -or $stage -notmatch $stagePattern) { throw 'Cannot create remote staging directory.' }
         try {
             & scp @sshOptions $html "${SshHost}:$stage/python-api.html"
             if ($LASTEXITCODE -ne 0) { throw 'HTML upload failed.' }
-            $result = & ssh @sshOptions $SshHost "/opt/ccsdkscribe-docs/release.sh '$stage' '$sha' '$revision'"
+            $result = & ssh @sshOptions $SshHost "'$RemoteReleaseScript' '$stage' '$sha' '$revision'"
             if ($LASTEXITCODE -ne 0) { throw 'Remote release failed; inspect server output.' }
         } finally {
             & ssh @sshOptions $SshHost "if test -d '$stage'; then rm -f '$stage/python-api.html'; rmdir '$stage'; fi"

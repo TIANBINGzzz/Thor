@@ -18,7 +18,7 @@
 - 本条保留 Catalog、manifest 与 v2 执行绑定的提议背景；当前已实现接口以 [Runtime 规范](../specs/ccsdk-runtime-interface.md) 为准，Java 职责见 [Java 控制面接入方案](../specs/java-control-plane.md)，不据此认定模板确认已实现。
 
 ## 实现证据与差距
-- 原型在 D:/code/string-ai-center-web/prototype 的 index-capability.html、agent-management-capability.html；保留原始 HTML。
+- 原型在外部项目 `string-ai-center-web` 的 `prototype/` 下：`index-capability.html`、`agent-management-capability.html`；保留原始 HTML。
 - 2026-09-07：离线 Chrome 实际 DOCX 上传、草稿修改、过期版本拒绝、稍后处理、刷新恢复与显式确认通过。
 
 ## 后果

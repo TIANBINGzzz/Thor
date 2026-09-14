@@ -18,7 +18,7 @@
 
 ## HTML 发布
 
-公网：[Python API 文档](https://cp.stringedu.com/ccsdkscribe/python-api.html)。修改 `doc/python-api.html` 后，在项目根目录运行：
+公网：[Python API 文档](https://cp.stringedu.com/ccsdkscribe/python-api.html)。先按服务器运维配置设置 `CCSDK_DOCS_RELEASE_SCRIPT`（远端发布脚本路径）和 `CCSDK_DOCS_INCOMING_DIRECTORY`（远端上传目录），或传同义参数 `-RemoteReleaseScript`、`-RemoteIncomingDirectory`。两者必须是已配置的规范 POSIX 路径，仅允许字母、数字、下划线、点、连字符和路径分隔符；脚本不再假定主机目录。修改 `doc/python-api.html` 后，在项目根目录运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\publish-docs.ps1

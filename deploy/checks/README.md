@@ -21,7 +21,7 @@
 | `config.py` 的 dotenv `override=True` | 挂载根 `.env` 会覆盖流水线/容器注入值，Workflow 文件随后覆盖同名值 | 通用配置只使用 env_file 注入，不再挂载根 `.env`；流程凭据只读挂载到指定 Workflow |
 | Compose raw 与 python-dotenv 语法不同 | raw 会保留引号及 `$`；直接复制带引号的 dotenv 值可能导致鉴权失败 | runtime.env 写实际值、不加外层引号；Workflow 文件仍按 python-dotenv 规则解析，避免二次 shell 展开 |
 | Workflow 库名与 DBHub TOML 端口 | 库名固定 `test_hpm_dev`，端口固定 3306；DB_NAME/DB_PORT 不一定覆盖它们 | 在受控 Workflow 配置中核对生产库名和端口；配置只读账号、数据库白名单及网络权限 |
-| `.env.example` 的 Windows 证书/SQLite 路径 | `D:/...` 在 Linux 中不指向宿主机文件 | 只读挂载证书并使用容器路径；工作数据放命名卷，不挂载宿主机整个项目目录 |
+| `.env.example` 的宿主机证书/SQLite 路径 | 宿主机路径在 Linux 中不指向部署文件 | 只读挂载证书并使用容器路径；工作数据放命名卷，不挂载宿主机整个项目目录 |
 | `file_broker.py` 的授权服务与下载 URL | Broker 要求 HTTPS；一次性下载 URL 只允许 443、白名单域名和公网解析，配置白名单也不会放行私网 IP | 内网 Java 可提供可信 HTTPS Broker 的 proxy_stream；对象存储 URL 模式需公网可达且符合白名单。不要为接入内网存储直接关闭 SSRF 校验 |
 | `/app` 为 root 所有、服务 UID 为 10001 | 默认 cwd 不可写；未指明工作目录时模型曾误选其他 Run 目录，下载 404 | 已在系统执行配置提供当前工作和交付目录及发布规则；仍须实现 OS 级租户隔离 |
 | `.scribe-runs/` 与 SDK 配置目录 | 只保留 SQLite 会丢文件/会话；绑定卷属主不对会拒绝写入 | 当前命名卷保存全部运行数据，证书/流程文件需要 UID 10001 可读；不使用 `chmod 777` |
@@ -50,6 +50,10 @@
 | 依赖风险 | 既有 npm 审计 4 项 moderate；未在本次做依赖升级，上线前需修复与复测 |
 
 ## 工程要求检查
+
+2026-09-14 路径修复：移除代码、配置示例及文档中的固定宿主机路径，部署目录改由 `CCSDK_CONFIG_DIRECTORY` 指定，锁文件默认与配置同目录；远端发布脚本和上传目录使用参数或环境变量。容器内路径按镜像契约保留。全仓库受版本控制的代码与配置已扫描，Runtime 动态解析路径保留。
+
+验证：Windows 配置生成测试 4 项通过、3 项 POSIX 专属测试跳过；Shell 语法、Compose 相对配置目录/数据库挂载及缺参拒绝通过；4 个部署脚本模拟场景和 7 个发布脚本模拟场景通过。模拟替换了 Docker、配置生成/锁命令或 SSH/SCP/curl，不等于真实部署/发布。Docker 引擎本轮未就绪，Linux 文件权限与真实锁排他测试尚未重跑。
 
 | 要求编号 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
