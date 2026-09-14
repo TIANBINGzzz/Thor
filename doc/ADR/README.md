@@ -71,6 +71,7 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [016](016-file-broker-for-runtime-inputs.md) | Runtime 输入文件通过 File Broker 获取 | 已采纳 | 部分实现 | Python Broker 适配器已有；Java 真实附件链路未验证 |
 | [017](017-capability-catalog-and-template-confirmation.md) | 能力目录与模板确认状态 | 提议 | 部分实现 | 静态原型已验证；Java 配置/草稿与 Python 目录/v2 待实现 |
 | [019](019-shared-query-spec-assets.md) | 问数与撰写共享 QuerySpec 查询资产 | 已采纳 | 部分实现 | 查询资产、18问及模板绑定已整理验证；运行时执行和报告库待接入 |
+| [020](020-separate-data-sources-and-connections.md) | 业务数据源与物理连接分离 | 提议 | 未开始 | 分离方向已确认；具体多库绑定、连接工具与权限执行设计待接入 |
 
 ## 本次核验
 
