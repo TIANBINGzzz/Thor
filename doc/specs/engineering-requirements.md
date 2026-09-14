@@ -65,3 +65,4 @@
 - 本地自测已迁至独立 ScribePlayground，仅提交 `capabilityRef`；Workflow 名称只存在于 Python 内部执行配置，Runtime 不再暴露本地 `/api/*` 接口或识别测试身份直读附件（2026-09-09，ADR-018）。
 - [Runtime 规范](ccsdk-runtime-interface.md) 与 [Java 接入方案](java-control-plane.md) 中现有 Workflow/Capability 映射、注册职责和审计约定需在后续方案修改时与本条对齐；Java 端到端授权未在本次验证。
 - 2026-09-14 已确认预制模板业务输入仅需 `payload.templateKey`，年份与要求放 `input.text`；Python 维护模板及数据源绑定，内部记录实际配置版本，见[能力 payload 映射](capability-payload.md)。模板解析、按能力校验及版本审计待实现；其他 Capability 的业务粒度与注册配置归属仍待接入方案明确。
+- 2026-09-14 已沉淀[共享 QuerySpec](../../.claude/query-specs/README.md)：确定口径固定查询，未命中且语义/权限明确时才动态生成 SQL；资产内部化，模板仅引用查询标识。本轮验证不包含工具端授权、Runtime 装配或报告源生成验收。

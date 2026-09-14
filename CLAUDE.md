@@ -53,6 +53,7 @@
 - Runtime 代码放在 `python/`，执行资产放在 `.claude/`；测试 UI 和模拟 Java 控制面位于独立项目 `../ScribePlayground`，只能通过 HTTP 契约连接，禁止 Runtime 导入测试项目。Node.js 只用于 DBHub 等 MCP 和项目脚本。
 - 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；单 Agent 的确定性 workflow 使用同名目录中的 `workflow.json` 声明 `execution.mode=direct`，由 Python 直接启动受限 SDK Run，不再经过 Skill/Workflow/子代理
 - `python/` 放应用后端、Agent SDK worker 和可复用运行时方法；workflow 专属表范围、数据库名和 provider 模板不得放入 Python 目录
+- 问数与撰写共用的 QuerySpec 放 `.claude/query-specs/<domain>/`，记录来源、口径、参数、SQL、输出与验证；模板只引用查询标识。定义不明不编造 SQL，未接入的资产不得宣称已成为运行时工具。
 - workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
 - workflow 的约束和语义 Markdown 必须在 `workflow.json` 的 `documents` 清单中显式登记；未登记的文件不会进入 prompt
 - `database-qa` 的语义来源维护在 DBProcessing 的 `doc/model_context`，接入时只提炼硬约束、业务口径和必要字段；`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照只作人工核验，不注入 prompt

@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "path_base": "query_catalog_root",
+  "runtime_integration": "not_implemented",
+  "queries": [
+    {
+      "id": "completed_task_count",
+      "name": "所有层级已完成任务数",
+      "description": "Q3 固定统计所有有阶段层级，不复用三级过滤。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/completed_task_count.json"
+    },
+    {
+      "id": "completed_tasks_without_material",
+      "name": "已完成但无合格材料的任务",
+      "description": "Q6 所有有阶段层级；NOT EXISTS 检查审核通过且附件非空的反馈。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/completed_tasks_without_material.json"
+    },
+    {
+      "id": "fund_department_coverage",
+      "name": "资金部门归属覆盖与零执行诊断",
+      "description": "Q16 保留所有有效资金节点做关系覆盖诊断；不是一级资金预算汇总查询。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/fund_department_coverage.json"
+    },
+    {
+      "id": "fund_source_amounts",
+      "name": "资金七类来源与四类金额",
+      "description": "沉淀 28 个资金字段，返回总额及六类来源；来源中文标签由具体数据源字典决定。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/fund_source_amounts.json"
+    },
+    {
+      "id": "fund_totals",
+      "name": "年度及累计资金金额与比例",
+      "description": "覆盖 Q13-Q15，分别提供预算、投入、执行、到位及三个不同分母的比例。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/fund_totals.json"
+    },
+    {
+      "id": "performance_current_summary",
+      "name": "当前绩效指标统计",
+      "description": "覆盖 Q17/Q18；按模块开关涵盖阶段绩效和无阶段绩效，不接收伪历史年度参数。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/performance_current_summary.json"
+    },
+    {
+      "id": "performance_department_metrics",
+      "name": "绩效负责部门当前完成情况",
+      "description": "按绩效负责主部门去重；使用 PerformanceOrg，不由任务或人员部门代替。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/performance_department_metrics.json"
+    },
+    {
+      "id": "performance_feedback_candidates",
+      "name": "已审核绩效反馈版本候选",
+      "description": "返回年度/累计目标和完成值及材料提示；提交时间只用于筛候选，不自动认定业务年度或适用历史版本。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/performance_feedback_candidates.json"
+    },
+    {
+      "id": "performance_historical_snapshot",
+      "name": "报告期绩效反馈快照",
+      "description": "以 performance_feedback_candidates 取得候选后，需确定业务年度、审核生效时间和版本选取规则。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/performance_historical_snapshot.json"
+    },
+    {
+      "id": "performance_module_status",
+      "name": "绩效模块口径诊断",
+      "description": "逐项目返回模块数量和阶段开关；绩效查询前检查缺失、重复或无效开关。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/performance_module_status.json"
+    },
+    {
+      "id": "performance_stage_summary",
+      "name": "指定年度阶段绩效统计",
+      "description": "仅用于明确启用阶段绩效的项目；无阶段绩效需另行确认反馈年度，不静默排除。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/performance_stage_summary.json"
+    },
+    {
+      "id": "performance_tree",
+      "name": "问数库绩效分类树和当前值",
+      "description": "返回分类及真实指标；问数库使用 parent_id_ 组装路径，不能作为报告库的标题关系替代。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db"
+      ],
+      "spec_file": "specs/performance_tree.json"
+    },
+    {
+      "id": "project_catalog",
+      "name": "国双高项目目录与标题",
+      "description": "解析授权项目名称并取得封面/项目标题所需元数据，不将同名候选合并。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/project_catalog.json"
+    },
+    {
+      "id": "project_leaders",
+      "name": "项目负责人名单",
+      "description": "按项目+人员去重取得角色0负责人，仅明确询问且获准时用于报告。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/project_leaders.json"
+    },
+    {
+      "id": "report_achievement_count",
+      "name": "标志性成果计数",
+      "description": "已审核反馈及附件提供证据，或接入实际成果服务。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_achievement_count.json"
+    },
+    {
+      "id": "report_cycle_budget",
+      "name": "建设全周期预算",
+      "description": "报告库需确定无阶段预算代表全周期总额还是汇总占位。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_cycle_budget.json"
+    },
+    {
+      "id": "report_income_budget_rate",
+      "name": "收入预算执行率",
+      "description": "保留原报告标题，待该源确认分子分母。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_income_budget_rate.json"
+    },
+    {
+      "id": "report_indicator_completion_rate",
+      "name": "单项指标完成率",
+      "description": "依据指标方向、单位、定性达标和封顶规则计算。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_indicator_completion_rate.json"
+    },
+    {
+      "id": "report_performance_titles",
+      "name": "报告库绩效一级二级标题",
+      "description": "按原报告库 first_item_id_/second_item_id_ 关联标题；保留独立来源，不用问数库 parent_id_ 替代。",
+      "status": "blocked",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_performance_titles.json"
+    },
+    {
+      "id": "report_scoring",
+      "name": "报告分值、权重与自评得分",
+      "description": "评分办法或业务评分服务提供规则，不能以 progress_ 代替评分。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_scoring.json"
+    },
+    {
+      "id": "report_task_performance_links",
+      "name": "报告库任务到绩效关系",
+      "description": "来源为 t_hpm_project_task_performance_relation；已知关联键 tenant_id_+project_id_+task_id_+performance_id_。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_task_performance_links.json"
+    },
+    {
+      "id": "report_terminal_completion",
+      "name": "终期累计完成度",
+      "description": "需终期目标、建设周期及聚合/加权方式；total_progress_ 仅是候选字段。",
+      "status": "needs_definition",
+      "source_keys": [
+        "report_db"
+      ],
+      "spec_file": "specs/report_terminal_completion.json"
+    },
+    {
+      "id": "stage_catalog",
+      "name": "项目阶段与年度目录",
+      "description": "在已授权项目内按阶段名称定位年度，保留跨项目同名阶段。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/stage_catalog.json"
+    },
+    {
+      "id": "task_department_candidates",
+      "name": "任务主部门名称候选",
+      "description": "从有效双高年度任务的主部门解析业务名称，保留同名不同部门及名称版本。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_department_candidates.json"
+    },
+    {
+      "id": "task_department_metrics",
+      "name": "牵头部门任务统计与排名",
+      "description": "先按项目、任务与主部门去重，覆盖 Q7-Q12；层级由具体问题绑定。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_department_metrics.json"
+    },
+    {
+      "id": "task_feedback_candidates",
+      "name": "已审核任务反馈材料候选",
+      "description": "按任务业务阶段及反馈 date_ 取已审核事实材料；不自动把多次反馈相加。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_feedback_candidates.json"
+    },
+    {
+      "id": "task_level_counts",
+      "name": "年度任务层级数量",
+      "description": "按任务实际层级分组，覆盖 Q1 和单独三级数量查询。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_level_counts.json"
+    },
+    {
+      "id": "task_members",
+      "name": "任务负责人和参与人",
+      "description": "按任务、人员、角色去重；人员部门不代替任务牵头部门。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_members.json"
+    },
+    {
+      "id": "task_progress_summary",
+      "name": "任务进度与阈值统计",
+      "description": "默认绑定三级任务；同时返回平均进度、按条数完成率、达到阈值和零/未填报数量，覆盖 Q2/Q4/Q5。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_progress_summary.json"
+    },
+    {
+      "id": "task_project_candidates",
+      "name": "任务口径项目候选",
+      "description": "按任务双高标记定位其项目名称，即使项目标记不同也保留候选并披露；避免任务查询被项目口径候选过滤。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_project_candidates.json"
+    },
+    {
+      "id": "task_project_flag_diagnostics",
+      "name": "任务与项目标记诊断",
+      "description": "发现任务关联项目缺失、失效或双高标记不同；结果仅披露，不反向过滤纯任务。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_project_flag_diagnostics.json"
+    },
+    {
+      "id": "task_tree",
+      "name": "年度任务树与标题数据集",
+      "description": "返回任务名称、编码、父键和当前值，供正文标题及模板任务路径定位。",
+      "status": "defined",
+      "source_keys": [
+        "qa_db",
+        "report_db"
+      ],
+      "spec_file": "specs/task_tree.json"
+    }
+  ]
+}

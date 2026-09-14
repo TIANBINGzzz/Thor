@@ -23,7 +23,7 @@ python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
   tools/      DOCX、Artifact 工具
   tests/      后端测试
-.claude/      skills/、agents/、commands/、workflows/ 执行资产
+.claude/      skills/、agents/、commands/、workflows/ 执行资产；query-specs/ 共享查询资产
 deploy/       单实例容器构建、部署脚本及配置示例
 doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 ```
@@ -34,6 +34,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、约束、语义和专属配置。
+- `.claude/query-specs/<domain>/`：按业务域复用的数据源登记、QuerySpec、SQL 和验证；供问数/撰写共享，运行时解析执行尚未接入。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
@@ -83,3 +84,4 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | Client 与存储 | `python/runtime/session_actor.py`、`run_store.py` |
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与技能 | `.claude/workflows/`、`.claude/skills/` |
+| 数据源与共享查询资产 | [.claude/query-specs/README.md](.claude/query-specs/README.md) |

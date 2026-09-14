@@ -22,7 +22,7 @@ npm test
 
 ```text
 python/       FastAPI Runtime、SDK Worker、文件 Broker 和执行工具
-.claude/      Skills、Agents、Commands、Workflow 配置
+.claude/      Skills、Agents、Commands、Workflow 配置与共享 QuerySpec
 deploy/       云效 ECS 容器构建、配置示例与部署脚本
 doc/          接口规范、工程要求、ADR 和静态 API 文档
 ```
@@ -40,6 +40,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 撰写模板资产放在 `.claude/workflows/writing-docx/templates/`；[双高中期自评模板与逐段来源](.claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md)已整理，模板数据绑定尚未接入 Runtime。
 
 各能力的业务字段统一维护在[能力 payload 映射记录](doc/specs/capability-payload.md)；预制模板约定只传 `payload.templateKey`，年份和要求放 `input.text`，模板解析待实现。
+
+[共享查询资产 QuerySpec](.claude/query-specs/README.md)已整理数据源、参数化 SQL、口径及输出字段，覆盖现有 18 问和报告表格来源；已验证问数库字段与部分数值，运行时查询执行和报告库绑定待接入。
 
 前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
 

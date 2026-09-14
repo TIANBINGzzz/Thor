@@ -44,6 +44,8 @@
 
 `szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX 和逐段数据来源 Markdown；这是本次确认的标识映射，运行时注册尚待实现。
 
+该模板的查询引用已记录在同目录 `query-bindings.json`，复用[共享 QuerySpec](../../.claude/query-specs/README.md)。查询标识、SQL、数据源连接及授权上下文均由服务端装配，不增加浏览器 `payload` 字段；运行时解析仍待接入。
+
 ## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |

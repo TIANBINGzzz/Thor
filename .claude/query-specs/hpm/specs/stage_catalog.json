@@ -1,0 +1,113 @@
+{
+  "id": "stage_catalog",
+  "name": "项目阶段与年度目录",
+  "description": "在已授权项目内按阶段名称定位年度，保留跨项目同名阶段。",
+  "status": "defined",
+  "source_keys": [
+    "qa_db",
+    "report_db"
+  ],
+  "dialect": "mysql8",
+  "grain": "project + stage",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "tables": [
+    "t_hpm_project",
+    "t_hpm_project_stage"
+  ],
+  "sql_file": "sql/stage_catalog.sql",
+  "output": [
+    {
+      "name": "project_id",
+      "description": "项目内部键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "stage_id",
+      "description": "阶段内部键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "stage_name",
+      "description": "年度/阶段名称",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "start_time",
+      "description": "阶段开始时间",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "end_time",
+      "description": "阶段结束时间",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "current_flag",
+      "description": "当前阶段标记",
+      "type": "string",
+      "nullable": true
+    }
+  ],
+  "semantics": [],
+  "prerequisites": [
+    "授权租户与项目范围已由服务端确定；不能从库内发现的租户值推导用户权限"
+  ],
+  "validation": [
+    "同项目同名阶段多条须消歧；不能把全校年度解析为单一 stage_id"
+  ],
+  "evidence": [
+    ".claude/workflows/database-qa/semantics/metric-definitions.md",
+    ".claude/workflows/database-qa/semantics/join-rules.md",
+    ".claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md",
+    ".claude/workflows/database-qa/semantics/tables/t_hpm_project.md",
+    ".claude/workflows/database-qa/semantics/tables/t_hpm_project_stage.md"
+  ],
+  "verification": {
+    "qa_db": {
+      "date": "2026-09-14",
+      "method": "MySQL read-only zero-row projection of full query; output aliases checked",
+      "result": "passed",
+      "numeric_baseline": "not_checked"
+    },
+    "report_db": "connection_unbound"
+  },
+  "version": 1,
+  "path_base": "query_catalog_root",
+  "result_policy": {
+    "internal_keys": "只用于取数、去重和授权材料解析，不进入正文、公共事件或普通日志",
+    "completeness": "执行端必须标记结果是否完整；发现行数截断时分页或缩小授权范围，不把部分行作全量聚合",
+    "nulls": "无记录、未填报和数值0分别处理；以本资产的数量/非空数量和语义说明为准"
+  }
+}

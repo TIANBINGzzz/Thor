@@ -1,0 +1,649 @@
+{
+  "template_key": "szpt-midterm",
+  "version": 1,
+  "path_base": "repository_root",
+  "query_catalog": ".claude/query-specs/hpm",
+  "source_key": "report_db",
+  "status": "binding_assets_only; runtime_not_integrated; report_source_unbound",
+  "source_document": ".claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md",
+  "location_contract": "继承逐段来源MD的规则代码；表格使用Txx/Rxxx/Cxx/Pxx，正文使用原P/新P。具体位置和原始指标名仍以该MD为准",
+  "period_policy": [
+    "报告期间须明确；多个选定年份分别绑定，不用year=null扩大成所有年度",
+    "只能合并可加金额和去重后的同粒度记录；不能相加累计反馈值或平均已算好的百分比",
+    "当前主表和目前审核状态不证明历史截止日实绩；若要求历史报告，先补期间/快照规则"
+  ],
+  "authorization": "Java确定模板与项目业务范围；Python查询资产不自行授权。学校与专业群范围分别定位，不能拿两个专业群代替学校",
+  "rules": {
+    "F": {
+      "kind": "fixed_or_narrative",
+      "query_ids": [],
+      "description": "固定章序、表号及概括文字来自模板；具体实绩须有查询或材料证据"
+    },
+    "M": {
+      "kind": "template_metadata",
+      "query_ids": [],
+      "description": "Python预制模板元数据+input.text报告期间，不用服务器当前年代替"
+    },
+    "P": {
+      "kind": "query",
+      "query_ids": [
+        "project_catalog"
+      ],
+      "description": "项目名称按授权范围唯一定位"
+    },
+    "T": {
+      "kind": "query",
+      "query_ids": [
+        "task_project_candidates",
+        "task_tree",
+        "task_progress_summary",
+        "task_project_flag_diagnostics"
+      ],
+      "description": "任务标题按项目+阶段+父路径+名称定位；概述默认三级，模板适用层级另行确认"
+    },
+    "K": {
+      "kind": "blocked",
+      "query_ids": [
+        "report_task_performance_links",
+        "report_performance_titles"
+      ],
+      "description": "报告源专用任务绩效关系和first/second标题关系；不可用qa_db父键替代"
+    },
+    "V": {
+      "kind": "candidate_then_definition",
+      "query_ids": [
+        "performance_module_status",
+        "performance_feedback_candidates",
+        "performance_historical_snapshot"
+      ],
+      "description": "先读已审核候选版本，再按明确业务年度和生效规则选年度/累计值；未定不得回填"
+    },
+    "R": {
+      "kind": "needs_definition",
+      "query_ids": [
+        "report_indicator_completion_rate"
+      ],
+      "description": "单项完成率需指标方向、单位、定性及封顶规则；不是统一finish/target"
+    },
+    "S": {
+      "kind": "needs_definition",
+      "query_ids": [
+        "report_scoring"
+      ],
+      "description": "分值、权重和得分来自适用评分规则"
+    },
+    "U": {
+      "kind": "needs_definition",
+      "query_ids": [
+        "report_terminal_completion"
+      ],
+      "description": "终期完成度需建设周期和聚合/加权规则"
+    },
+    "B": {
+      "kind": "query_with_period_check",
+      "query_ids": [
+        "fund_totals",
+        "fund_source_amounts",
+        "report_cycle_budget",
+        "report_income_budget_rate"
+      ],
+      "description": "28字段和三类比率已定义；全周期预算及收入预算执行率另有待补项"
+    },
+    "N": {
+      "kind": "evidence",
+      "query_ids": [
+        "task_tree",
+        "task_feedback_candidates"
+      ],
+      "description": "取任务树下已审核反馈用于正文；需判断当期适用性和事实去重"
+    },
+    "A": {
+      "kind": "candidate_then_definition",
+      "query_ids": [
+        "task_feedback_candidates",
+        "report_achievement_count"
+      ],
+      "description": "反馈/授权附件提供成果候选，不将反馈数量当成果数量"
+    },
+    "E": {
+      "kind": "authorized_material",
+      "query_ids": [
+        "task_feedback_candidates",
+        "performance_feedback_candidates"
+      ],
+      "description": "候选返回has_attachment和内部反馈键；实际材料通过File Broker校验归属和可用性"
+    },
+    "G": {
+      "kind": "template_asset",
+      "query_ids": [],
+      "description": "保留原模板版式图片；历史示意不能作为当期事实"
+    },
+    "X": {
+      "kind": "external_material",
+      "query_ids": [],
+      "description": "政策、第三方调查与审计来自授权文件/业务服务；无明确数据库来源不编造SQL，满意度绩效值不能推导调查样本或方法"
+    }
+  },
+  "tables": [
+    {
+      "table_id": "T01",
+      "title": "表 1 深职院“双高”建设中期绩效评价自评得分表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T02",
+      "title": "表 2 深职院“双高”建设 2024—2026年主要标志性成果一览表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "M",
+        "A"
+      ]
+    },
+    {
+      "table_id": "T03",
+      "title": "表 3-1 “打造技术技能人才培养高地”中期自评得分表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T04",
+      "title": "表 3-2 “打造技术技能创新服务平台”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T05",
+      "title": "表 3-3 “打造高水平专业群”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T06",
+      "title": "表 3-4 “打造高水平双师队伍”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T07",
+      "title": "表 3-5 “提升校企合作水平”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T08",
+      "title": "表 3-6 “提升服务发展水平”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T09",
+      "title": "表 3-7 “提升学校治理水平”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T10",
+      "title": "表 3-8 “提升信息化水平”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T11",
+      "title": "表 3-9 “提升国际化水平”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T12",
+      "title": "表 3-10 “打造创新创业教育高地”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T13",
+      "title": "表 3-11 “提升学生综合素质”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T14",
+      "title": "表 3-12 深职院“双高”建设时效指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S",
+        "B",
+        "U"
+      ]
+    },
+    {
+      "table_id": "T15",
+      "title": "表 4 效益指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T16",
+      "title": "表 5 服务对象满意度中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T17",
+      "title": "表 6-1 “人才培养模式创新”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T18",
+      "title": "表 6-2 “课程教学资源建设”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T19",
+      "title": "表 6-3 “教材与教法改革”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T20",
+      "title": "表 6-4 “教师教学创新团队”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T21",
+      "title": "表 6-5 “实践教学基地”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T22",
+      "title": "表 6-6 “技术技能平台”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T23",
+      "title": "表 6-7 “社会服务”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T24",
+      "title": "表 6-8 “国际交流与合作”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T25",
+      "title": "表 6-9 通信技术专业群时效指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S",
+        "B",
+        "U"
+      ]
+    },
+    {
+      "table_id": "T26",
+      "title": "表 6-10 “社会效益指标和可持续影响指标”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T27",
+      "title": "表 6-11 “满意度”指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T28",
+      "title": "表 7-1 “人才培养模式创新”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T29",
+      "title": "表 7-2 “课程教学资源建设”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T30",
+      "title": "表 7-3 “教材与教法改革”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T31",
+      "title": "表 7-4 “教师教学创新团队”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T32",
+      "title": "表 7-5 “实践教学基地”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T33",
+      "title": "表 7-6 “技术技能平台”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T34",
+      "title": "表 7-6 “技术技能平台”中期自评表（续表）",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T35",
+      "title": "表 7-7 “社会服务”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T36",
+      "title": "表 7-8 “国际交流与合作”中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S"
+      ]
+    },
+    {
+      "table_id": "T37",
+      "title": "表 7-9 电子信息工程技术专业群时效指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "T",
+        "K",
+        "V",
+        "R",
+        "S",
+        "B",
+        "U"
+      ]
+    },
+    {
+      "table_id": "T38",
+      "title": "表 7-10 社会效益指标和可持续影响指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T39",
+      "title": "表 7-11 满意度指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "K",
+        "V",
+        "R",
+        "S",
+        "X"
+      ]
+    },
+    {
+      "table_id": "T40",
+      "title": "表 8 项目管理指标中期自评表",
+      "source_key": "report_db",
+      "rules": [
+        "F",
+        "N",
+        "E",
+        "S",
+        "X"
+      ]
+    }
+  ],
+  "unmapped_policy": "已知来源但无SQL或规则时留空高亮/询问；可确定语义但没有匹配QuerySpec时才在授权范围动态生成SQL，动态SQL不能弥补缺失业务定义"
+}
