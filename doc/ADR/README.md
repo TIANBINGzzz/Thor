@@ -73,8 +73,8 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [019](019-shared-query-spec-assets.md) | 问数与撰写共享 QuerySpec 查询资产 | 已采纳 | 部分实现 | 资产和部分验证已落地；目录被ADR-023部分替代，运行时与模板取数待接入 |
 | [020](020-separate-data-sources-and-connections.md) | 业务数据源与物理连接分离 | 提议 | 未开始 | 凭据分离保留；工具/后端被ADR-021、首期绑定被ADR-022部分替代 |
 | [021](021-template-batch-data-plan.md) | 固定模板绑定与批量取数计划 | 已采纳 | 未开始 | 计划与动态SQL保留；首期Grant/独立data进程被ADR-022部分替代 |
-| [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 单租户策略保留；目录被ADR-023部分替代，当前实际只有校本库 |
-| [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 未开始 | 每库一个包，首期支持单租户多来源；更新目录/修改方案，尚未搬迁资产或接入执行器 |
+| [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 保留历史名称及单租户策略；目录被ADR-023部分替代，最新唯一来源为校双高库schoolDoubleHigh |
+| [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 未开始 | 每库一个包，唯一实际来源schoolDoubleHigh；补充工具/流程规范，尚未搬迁资产或接入执行器 |
 
 ## 本次核验
 

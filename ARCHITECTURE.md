@@ -16,7 +16,7 @@ CCSDKScribe 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话
 
 Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相同 Runtime HTTP 契约接入。
 
-2026-09-14用户确认当前唯一数据库为校本数据库；目标按数据库集中管理，第一版支持单租户、多数据源。qa_db/report_db是旧标识，目标统一school；HPM仅为当前已整理业务域，shuanggao仅为未来来源示例。来源/目录变更尚未实施。
+2026-09-14用户最新确认当前唯一数据库为校双高数据库，内部标识定为schoolDoubleHigh；此前校本库/school指向同一来源。目标按库集中管理，第一版支持单租户、多数据源；qa_db/report_db是旧资产标识，hpm保留为已整理业务域。命名不改变查询筛选口径，来源/目录变更尚未实施。
 
 ## 3. Top-level codemap
 
@@ -37,7 +37,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - 当前 `.claude/query-specs/<domain>/` 及问数公共语义待集中到 `.claude/databases/<source_key>/`：source.json登记数据库，`query-specs/<domain>/` 保存语义、指标、规则、查询和验证；供问数/撰写共享，运行时尚未接入。
-- 目标 `python/data_access/` 统一管理多来源索引、授权、连接、执行和结果，`python/reporting/` 编译模板批量计划；均待实现，数据库业务知识留在资产包。
+- 目标 `python/data_access/` 统一管理来源、授权、连接、查询和结果；`python/reporting/` 解析模板绑定、编译批量计划及校验填表，`tools/reports.py`仅提供Agent调用入口，复用DOCX/Artifact基础能力；均待实现，数据库业务知识留在资产包。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions

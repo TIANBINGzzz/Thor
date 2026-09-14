@@ -2,12 +2,12 @@
 
 已确认的指标和数据集固化为查询资产，供问数和撰写复用。当前已落地资产、来源映射和测试；Runtime 检索、参数绑定、执行工具及模板填充尚未接入。
 
-2026-09-14用户确认当前唯一数据库为校本数据库，按[数据库包方案](../../doc/specs/data-source-connections.md)将资产集中到.claude/databases/school/query-specs/hpm/，来源登记放school/source.json。qa_db/report_db是旧键，后续由数据库包确定归属并移除source_keys；本页描述仍在原处的资产，SQLAlchemy执行、模板工具及目录搬迁均未实现。
+2026-09-14用户最新确认唯一数据库为校双高数据库，指定source_key=schoolDoubleHigh。按[数据库包方案](../../doc/specs/data-source-connections.md)将资产集中到.claude/databases/schoolDoubleHigh/query-specs/hpm/，来源登记放包根source.json。qa_db/report_db是旧键，后续由包确定来源并移除source_keys；本页描述仍在原处的资产，运行时和目录搬迁均未实现。
 
 ## 入口
 
 - [HPM 查询目录](hpm/catalog.json)：按名称、描述、状态和数据源检索 32 项资产。
-- [现有来源登记](hpm/sources.json)：仍保留qa_db/report_db旧键，待逐资产核验后统一school；模板字段和规则缺口不因来源统一而视为已验证。
+- [现有来源登记](hpm/sources.json)：仍保留qa_db/report_db旧键，待逐资产核验后统一schoolDoubleHigh；模板字段和规则缺口不因来源统一而视为已验证。
 - [18 问覆盖映射](hpm/coverage.json)：Q1—Q18 到查询及层级、结果字段的绑定；也记录 12 张业务表覆盖。
 - [深职模板绑定](../workflows/writing-docx/templates/szpt-midterm/query-bindings.json)：40 张表及 15 类段落来源规则到 QuerySpec 或固定/外部材料；具体段落和指标名继承原来源 MD。
 
@@ -36,16 +36,16 @@
 3. SQL 中 `:name` 是逻辑命名参数，必须由执行适配器使用数据库驱动参数绑定；不做字符串拼接。当前 DBHub `execute_sql` 不支持命名参数，不能直接发送这些 SQL，执行适配仍待实现。
 4. 无匹配资产但语义、字段和范围已知时，可以动态生成只读 SQL；缺业务定义、历史快照或授权时，动态 SQL 也不能补足，需留空高亮或问询。
 5. 动态查询经口径确认和验证后再作为新版本资产入库，不能由模型自动改写已批准的查询定义。
-6. `source_key`由可信服务端解析，不拼接数据库名；当前旧来源约束尚未迁移，不能靠互换qa_db/report_db绕过校本库字段/口径核验。统一school时保留已验证范围及待定义状态，不认定全部模板查询可用。
+6. `source_key`由可信服务端解析，不拼接数据库名；当前旧来源约束尚未迁移，不能靠互换qa_db/report_db绕过校双高库字段/口径核验。统一schoolDoubleHigh时保留已验证范围及待定义状态，不认定全部模板查询可用。
 7. 年度按阶段名称；当前主表值不证明历史截止日状态。反馈提交时间不是业务年度，累计反馈版本不跨年相加。
 8. 来源、查询版本、非秘密口径与结果引用在 Run 内关联；业务原始值、内部 ID、凭据不得写入仓库。对外文档不展示内部 ID 或附件原始地址。
 
 ## 本次覆盖与验证
 
-- 23 条已定义查询，另有 1 条模板标题 SQL 待校本库字段验证、8 项定义待补；包括评分、成果计数、报告专用关系、历史版本、终期完成度和特殊比例口径。
+- 23 条已定义查询，另有 1 条模板标题 SQL 待校双高库字段验证、8 项定义待补；包括评分、成果计数、报告专用关系、历史版本、终期完成度和特殊比例口径。
 - 2026-09-14：23 条 SQL 在当前 MySQL 问数源完成只读零行投影并核对输出列；3 项任务统计与独立读取后计算的结果一致。未写入真实值或 ID。
 - 测试入口：`python -m unittest discover -s .claude/query-specs/hpm/tests -p 'test_*.py' -v`。内存 SQLite 用合成数据检查去重、隔离、NULL、零分母和阶段规则；不等同于 MySQL 全量数值回归。
-- 原report_db资产需在唯一校本库核验实际表列、字典、关系及期间，缺字段/规则继续阻塞；旧登记中的connection_unbound不再作为存在第二库的证据。尚未完成真实报告生成或工具端授权验收。
+- 原report_db资产需在唯一校双高库核验实际表列、字典、关系及期间，缺字段/规则继续阻塞；旧登记中的connection_unbound不再作为存在第二库的证据。尚未完成真实报告生成或工具端授权验收。
 
 ## 工程要求检查
 

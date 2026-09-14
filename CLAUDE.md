@@ -6,10 +6,10 @@
 
 ## 已确认项目事实
 
-- 2026-09-14 用户确认：当前唯一数据库是校本数据库，改造先按单租户实施，保留以后扩展多租户的边界。
-- 既有资产中的 `qa_db`、`report_db` 是待整理的旧来源标识，不代表当前存在两个物理数据库；目标统一 `source_key=school`。HPM 是校本库当前已整理的业务域，不代表校本库全部内容。
-- 已确认按数据库集中管理：目标 `.claude/databases/<source_key>/source.json` 与 `query-specs/<domain>/`；第一版支持单租户、多数据源，目前只登记校本库。双高库仅为以后新增来源的示例，目录和运行时改造尚未实施，见[ADR-023](doc/ADR/023-database-scoped-asset-packages.md)。
-- 当前改造方案见[校本库数据工具设计](doc/specs/data-source-connections.md)。唯一数据库不证明模板中的所有表、关系、字段、历史期间或评分规则已核验；不得因统一来源名称就自动启用待验证查询。
+- 2026-09-14 用户最新确认：当前唯一数据库是校双高数据库；此前“校本数据库”是对同一来源的不准确称呼。内部数据源标识定为 `schoolDoubleHigh`，改造先按单租户实施，保留多租户扩展边界。
+- 既有资产中的 `qa_db`、`report_db` 及此前拟议的 `school` 均待统一到 `schoolDoubleHigh`，不代表多个物理数据库。`hpm` 保留为已整理的项目、任务、资金和绩效业务域标识；命名修正不改变现有国/校双高筛选口径或物理库名。
+- 已确认按数据库集中管理：目标 `.claude/databases/<source_key>/source.json` 与 `query-specs/<domain>/`；第一版支持单租户、多数据源，目前实际只有校双高库。目录和运行时改造尚未实施，见[ADR-023](doc/ADR/023-database-scoped-asset-packages.md)。
+- 当前改造方案见[数据库工具设计](doc/specs/data-source-connections.md)。唯一数据库不证明模板中的所有表、关系、字段、历史期间或评分规则已核验；不得因统一来源名称就自动启用待验证查询。
 
 ## 开发约束
 
