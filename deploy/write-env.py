@@ -1,6 +1,9 @@
 """Render deployment files from task environment variables without logging values."""
 
 import argparse
+import base64
+import binascii
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -22,6 +25,32 @@ RUNTIME_KEYS = (
 )
 REQUIRED_KEYS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "CCSDK_RUNTIME_JWT_SECRET")
 DATABASE_KEYS = ("DB_HOST", "DB_USER", "DB_PASSWORD")
+
+
+def parse_bundle(content):
+    try:
+        environment = json.loads(content)
+    except (ValueError, UnicodeError):
+        raise ValueError("Deployment bundle must contain UTF-8 JSON") from None
+    if not isinstance(environment, dict) or not all(
+        key in RUNTIME_KEYS + DATABASE_KEYS and isinstance(value, str)
+        for key, value in environment.items()
+    ):
+        raise ValueError("Deployment bundle must map allowed variable names to strings")
+    render(environment)
+    if any(key in environment for key in DATABASE_KEYS):
+        render(environment, database=True)
+    return environment
+
+
+def load_environment(environment):
+    if "CCSDK_DEPLOY_ENV_B64" not in environment:
+        return environment
+    try:
+        content = base64.b64decode(environment["CCSDK_DEPLOY_ENV_B64"], validate=True)
+    except (ValueError, binascii.Error):
+        raise ValueError("CCSDK_DEPLOY_ENV_B64 must be single-line Base64 from encode-secret.py") from None
+    return parse_bundle(content)
 
 
 def render(environment, *, database=False):
@@ -76,12 +105,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, default=os.environ.get("CCSDK_CONFIG_DIRECTORY") or None)
     parser.add_argument("--database", action="store_true")
+    parser.add_argument("--list-keys", action="store_true")
     args = parser.parse_args()
+    if args.list_keys:
+        print("\n".join(RUNTIME_KEYS + DATABASE_KEYS))
+        return
     if args.directory is None:
         parser.error("Set --directory or CCSDK_CONFIG_DIRECTORY")
     try:
-        runtime = render(os.environ)
-        database = render(os.environ, database=True) if args.database else None
+        environment = load_environment(os.environ)
+        runtime = render(environment)
+        database = render(environment, database=True) if args.database else None
         if os.name != "posix":
             raise ValueError("Run on the Linux deployment host to enforce file ownership and permissions")
         if args.database and os.geteuid() != 0:

@@ -5,7 +5,7 @@
 最终复测使用重新构建的 `ccsdkscribe:20260911-live`，没有向运行容器临时覆盖代码。本机 `.env` 未改动；测试注入副本移除了回环 HTTP/HTTPS 代理，并补充独立 JWT 密钥。Windows 与 Linux 各 90 项测试通过。
 
 同日追加：`write-env.py` 从任务环境生成配置，在独立 Compose 项目完成启动、真实并发对话、DBHub SELECT 1、DOCX 下载和第二轮修改；4 项配置生成测试在 Linux 通过。以临时虚构 Key 验证 restart 保留旧值、force-recreate 加载新值，再恢复真实 Key，真实模型调用与历史文件读取通过。未轮换供应商账号中的真实 Key。Linux 文件权限测试使用容器本地文件系统，Windows 绑定目录不作为 POSIX 权限证据。
-云效和内网主机实测尚未完成：浏览器连接失败，现有业务前端地址不能确定主机组、Runner、目标目录或服务名。当前 Compose 命令链已执行，deploy.sh 通过 shell 语法检查，目标 Linux 主机脚本整体执行仍待验证。
+云效和内网主机实测尚未完成：浏览器连接失败，资源 ID、Runner、目标目录和服务名仍需在 Flow/97 确认。YAML 已按官方结构编排；本机干净源码副本的 Docker test stage 通过 90 项应用测试、7 项部署测试及 build/deploy Shell 语法检查，目标 Linux 主机脚本整体执行仍待验证。
 
 ## 配置迁移问题
 

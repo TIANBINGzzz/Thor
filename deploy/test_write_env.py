@@ -77,7 +77,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             binary = root / "bin"
             binary.mkdir()
             docker = binary / "docker"
-            docker.write_text('#!/bin/sh\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_DATABASE_ENV_FILE" "$*" >> "$TEST_DOCKER_LOG"\n')
+            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_DATABASE_ENV_FILE" "$*" >> "$TEST_DOCKER_LOG"\n')
             docker.chmod(0o700)
             config = root / "config with spaces"
             log = root / "docker.log"

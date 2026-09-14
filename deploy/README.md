@@ -1,62 +1,57 @@
-# 云效部署（内网 Linux Docker 单实例）
+# 云效内网 Docker 部署
 
-这是待目标环境验证的内网试运行配置，不代表生产已验收。ACK 或裸机 Python 需要不同部署步骤。
-[配置迁移问题与真实流程验证](checks/README.md) 记录 localhost、代理、路径、密钥注入及实测缺陷。
-云效通过界面配置下面的任务；本仓库不提供未经云效校验的专用 YAML。
+`flow.yml` 是 CCSDKScribe 的 Flow YAML 模板。它采用“构建机生成镜像包，97 导入镜像并启动”的路线，目标机不需要 Python、Node.js 或访问镜像仓库。
 
-## 流水线
+## 构建机怎么选
 
-| 阶段 | 配置 |
-| --- | --- |
-| 拉取代码 | 选择已连接的 Codeup 仓库与分支；现有过滤发布脚本会保留部署文件 |
-| 构建、测试、推送 | Linux Docker 构建机；镜像仓库服务连接先登录 ACR；设置 `CCSDK_IMAGE=仓库地址/命名空间/ccsdkscribe:完整提交SHA`，执行 `sh deploy/build.sh` |
-| 部署制品 | 将本提交的 `deploy/` 目录作为流水线制品传至目标内网服务器；构建阶段不读取部署密钥 |
-| 主机部署 | 主机组或内网自建 Runner；同一 `CCSDK_IMAGE` 传入主机任务；执行 `sh deploy/deploy.sh`；目标机需具备镜像拉取权限 |
-| 验收 | 在可信调用方验证 JWT、SSE、取消、会话续接；按需验证真实模型、数据库及附件/DOCX |
+默认使用 `public/cn-beijing` + 官方 `alinux3` 构建容器，并开启 `enableDockerDaemon: true`。`LARGE_4C8G`（4 vCPU、8 GiB、约 50 GB 临时盘）是当前起点；Docker 构建内存不足再升到 `XLARGE_8C16G`。构建机每次是临时环境，代码、pip/npm、基础镜像和 Flow 制品服务必须能通过公网访问。北京/杭州集群适合国内资源，香港集群适合海外代码源。
 
-流水线阶段名称以云效当前界面为准。云效组织、仓库连接、ACR 服务连接、主机组须在实际账号中配置。
-构建机和主机应使用相同 CPU 架构；都需要 Docker，主机需要 Compose >=2.30（raw env_file）和 `flock`。部署前必须设置 `CCSDK_CONFIG_DIRECTORY`，指向跨版本保留的主机配置目录；相对路径以 `deploy/` 为基准。不同发布目录部署同一服务必须使用同一配置目录，默认锁文件为该目录下的 `deploy.lock`；可用 `CCSDK_DEPLOY_LOCK_FILE` 指定共同锁文件。
-镜像内包含 Python、SDK/CLI 和 Node/DBHub；开启保密变量生成 env 时，部署主机另需 Python 3（只用标准库），无需安装应用依赖或 Node。
-Docker Hub 不通时可设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织 ACR 中同步的对应 Debian Bookworm 官方镜像（建议固定 digest）；不要替换为来源不明的镜像。
+如果组织没有公共构建集群，使用账号提供的 VPC 构建集群，或接入能访问公网的 Linux amd64 私有构建机。私有 VM 需把 `runsOn` 改成 `group: private/<构建集群ID>`、`labels: linux,amd64`、`vm: true`，移除 `container`、`instanceType` 和 `enableDockerDaemon`，并预装 Docker/BuildKit。97 只做部署机即可。
 
-## 保密变量与客户换 Key
+构建失败时先区分：申请构建环境失败是构建容器/网络问题，`docker build` 拉基础镜像或 pip/npm 超时是出网问题，部署阶段下载制品失败是 97 到云效制品服务的问题。完全离线客户使用本流水线生成的 `image.tar` 制品，现场 `docker load`。
 
-- 云效将 `ANTHROPIC_AUTH_TOKEN`、`CCSDK_RUNTIME_JWT_SECRET`、可选 `DB_PASSWORD` / `CCSDK_FILE_BROKER_SERVICE_TOKEN` 设为保密变量；模型 URL、模型名、issuer/audience 等为普通配置。DB_HOST/DB_USER 也可设为保密变量。变量名与 `write-env.py` 一致，值不用手动加引号。
-- 在内网部署任务的进程环境中绑定这些变量，设置 `CCSDK_GENERATE_ENV=1`、可选 `CCSDK_WITH_DATABASE=1`，执行 `sh deploy/deploy.sh`。不要把变量值直接拼接进 shell 脚本、命令参数或流水线 YAML；不要启用 `set -x`。远程主机任务是否自动透传变量必须在云效实测，不能把构建机环境等同于服务器环境。
-- 脚本在 `CCSDK_CONFIG_DIRECTORY` 生成 `runtime.env`（0600）及可选 `database-qa.env`（UID/GID 10001、0400），目录 0700；问数模式需 root 设置属主。单独运行 `write-env.py` 时可传 `--directory`（相对当前工作目录），优先于该环境变量；两者都未设置则报错。生成文件不作为构建制品上传。Workflow dotenv 中的 `${...}` 值会拒绝生成，避免被运行时插值改写。
-- 内网服务器不必是 ECS；云效需有可达的主机组或自建 Runner。Runner 要能访问 Codeup、制品/镜像仓库和目标 Docker；完全离线客户用导出的镜像包和现场配置。
-- 客户修改 Key：有云效就修改对应保密变量并重新部署；无云效就由客户管理员修改主机 `runtime.env`，执行 `CCSDK_GENERATE_ENV=0 CCSDK_PULL_IMAGE=0 CCSDK_IMAGE=已导入镜像 sh deploy/deploy.sh`。不要把新 Key 作为命令行参数。更换供应商时同时核对 BASE_URL、MODEL 及默认模型配置。
-- 部署脚本强制重建容器以刷新环境。仅 `docker restart` 不会加载更新后的 env_file；先排空正在执行的任务，换 Key 后做真实模型调用，确认成功再撤销旧 Key。当前没有凭据热更新或自动回滚。
-- 不在镜像里保存 Key，不用 `docker commit` 制作含密钥镜像；镜像层会随镜像分发。`docker exec` 中 export 只影响新 shell，不会更新正在运行的服务。Docker 管理员仍能查看容器环境，保密变量不是对主机管理员的加密隔离。
+本项目构建会访问基础镜像仓库、`registry.npmjs.org`、`pypi.org`/`files.pythonhosted.org`、Debian 软件源和云效代码/制品服务。Docker Hub 不通时，在 Flow 普通变量中设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织同步的官方 Bookworm 镜像（建议固定 digest）。本机官方 ECR 镜像源构建成功不代表云效也能访问；锁文件内 npm 下载地址、pip 传递依赖和 apt 下载仍需连通。镜像运行后无需临时安装 SDK/Node/DBHub。
 
-## 配置与数据
+## 运行前置条件
 
-- 运维将 `runtime.env.example` 的实际配置放到 `CCSDK_CONFIG_DIRECTORY` 下的 `runtime.env`；目录限制访问，文件权限 `0600`，由有 Docker 权限的部署账号读取。密钥也可由 Secret Manager 生成。使用已有文件时可分别设置 `CCSDK_ENV_FILE`、`CCSDK_DATABASE_ENV_FILE`；启用自动生成时统一使用配置目录内的新文件。
-- 通用配置通过容器环境注入；不要上传本机 `.env`，不要用构建参数传密钥，不要运行会展开密钥的 `docker compose config`（脚本只用 `--quiet`）。`runtime.env` 是 raw 格式，值不加外层引号，`$` 原样传入。
-- 问数另备同目录的 `database-qa.env`，内容按 Workflow 的 `workflow.env.example`，只读挂载。文件需允许容器 UID 10001 读取，例如属主 10001、权限 `0400`；设置 `CCSDK_WITH_DATABASE=1` 启用。此文件由 python-dotenv 解析，不使用 Compose raw 语法。
-- 问数当前 Workflow 的库名是 `test_hpm_dev`；上线前须在受控 Workflow 配置中确认库名、表白名单和只读账号，不能只改密码。数据库端权限才是最终约束。
-- `.dockerignore` 排除密钥和本机数据；代码不需要根 `.env` 也能从环境读取配置。现有本地 dotenv 覆盖行为不变。
-- 固定命名卷 `ccsdkscribe-runtime-data` 保存 Run、工作文件及 SDK 配置/会话；升级保留该卷。制定卷的备份、保留期限和磁盘告警；不要执行 `down -v`。仅改数据库文件路径不足以持久化全部状态。
-- 默认只在主机 `127.0.0.1:4310` 暴露。Java 跨主机访问时设 `CCSDK_BIND_IP` 为 ECS 私网 IP，并限制安全组来源；网关开启 TLS、关闭 SSE 缓冲并放宽流式超时。File Broker mTLS 证书另加只读挂载，配置填写容器内路径。
+- 97 已安装 Docker、Docker Compose `>=2.30`、`flock`、`tar`、`sha256sum`，并由云效主机组 Runner 以 root 执行。
+- 97 为 Linux amd64。在 Flow UI 创建普通字符变量 `CCSDK_DEPLOY_ROOT`，由管理员填写专用于本服务的持久化绝对目录；无默认值。管理员提前创建其 `packages/` 子目录，部署脚本生成 `releases/` 和 `config/`。该目录不要放进其他服务发布目录。
+- Java 或网关访问 Runtime 时，配置 `CCSDK_BIND_IP` 为 97 的内网地址并限制防火墙来源；同机反代可保持默认 `127.0.0.1`。
+- Compose 命名卷 `ccsdkscribe-runtime-data` 保存运行记录、工作文件和 SDK 会话，升级时保留，禁止 `docker compose down -v`。
 
-## 发布限制与回滚
+## Flow 变量和私密变量
 
-- 保持一个副本、一个 HTTP worker；4 GiB/2 CPU 只是初始资源限制，并非容量承诺。容器非 root、移除 capabilities 不能替代租户沙箱，模型仍可执行命令并访问容器内同用户文件。
-- 发布前让调用方停止接收新 Run，等活动任务结束再部署。当前没有自动排空及无损滚动升级，替换容器会中断尚未完成的任务。
-- 回滚时将 `CCSDK_IMAGE` 改为已留存的上一版本 tag/digest，重新执行部署脚本；保留同一数据卷。数据库格式兼容和配置变更要单独核对，镜像回滚不等于业务副作用回滚。
-- HTTP 健康检查仅证明服务可响应；构建成功不证明模型、数据库、JWT 签发和 File Broker 已连通。
-- 2026-09-11：现有 Node 锁文件审计报告 4 项 moderate（`hono`、`qs` 及依赖链）。目前 DBHub 走 stdio，但仍需修复并验证，不因镜像可构建而宣称生产安全。
-- 2026-09-11 修复版验证：Windows 与 Linux 各 90 项测试通过；真实配置注入后并发对话、SSE、取消、DBHub SELECT 1、DOCX 生成下载和同会话修改通过。附件因未接入 File Broker 失败，业务问数租户隔离和 DOCX 内容/版式仍未验收；云效及 ECS 未部署验收。
+在 Flow 的“变量和缓存”中创建 `CCSDK_DEPLOY_ENV_B64` 字符变量，打开**私密模式**，值来自本地命令：
 
-## 离线镜像导入
+```text
+python deploy/encode-secret.py scratch/ccsdkscribe.secret.json scratch/ccsdkscribe.secret.b64
+```
 
-真实流程修复版导出为 `dist/ccsdkscribe-20260911-live-linux-amd64.tar`，使用 `docker load -i ccsdkscribe-20260911-live-linux-amd64.tar` 导入；镜像名为 `ccsdkscribe:20260911-live`。旧 `20260911` 镜像存在 Client 缺陷，不再用于部署。
-导入后准备上述主机配置，在 `deploy/` 执行 `CCSDK_IMAGE=ccsdkscribe:20260911-live docker compose up -d --wait`；问数加 `-f compose.yaml -f compose.database.yaml`。
-离线导入不执行 `deploy.sh` 的仓库拉取步骤；不要把镜像 tar 提交到 Git。后续发布使用提交 SHA 或 digest 标识镜像。
+先复制 `secrets.example.json` 为被 `.gitignore` 忽略的 `*.secret.json`，填写实际值，再把生成的 `.secret.b64` 单行内容粘贴到 Flow。该包至少包含 `ANTHROPIC_AUTH_TOKEN`、HTTPS 的 `ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、32 字节以上的 `CCSDK_RUNTIME_JWT_SECRET`；可选填 JWT issuer/audience、代理、File Broker 和 `DB_HOST`/`DB_USER`/`DB_PASSWORD`。数据库变量只有在部署任务设置 `CCSDK_WITH_DATABASE=1` 时才会生成 Workflow 文件。
+
+在“编辑流水线 → 变量和缓存 → 字符变量 → 新建变量”填写 `CCSDK_DEPLOY_ENV_B64`，打开私密模式，粘贴编码文件内容（不加引号）并保存。JSON 不要使用在线编码网站；用 JSON 字符串规则转义反斜线/双引号，值不能含换行。Base64 是传输编码，不是加密；编码文件和原 JSON 都按密钥保管，Windows 还需限制本地文件 ACL。
+
+Flow 的私密变量支持 UI 配置或私密变量组，不支持在 YAML `variables.value` 存明文后标私密。变量组是流水线作用域；限制流水线编辑/执行权限，构建脚本不读取或打包该变量不等于构建环境无法访问它。不要输出环境或打开 `set -x`。客户换 Key 后更新私密变量并重新部署；无 Flow 时更新主机 `runtime.env`，用已导入镜像执行 `CCSDK_GENERATE_ENV=0` 的部署脚本。不要修改镜像保存 Key，单独 `docker restart` 不会刷新 env。
+
+## 使用模板
+
+将 `flow.yml` 导入 Flow 的 YAML 流水线后，替换：
+
+1. `REPLACE_CODEUP_SERVICE_CONNECTION_ID`：能读取目标 Codeup 仓库的服务连接；分支 `main` 按仓库实际默认分支修改。
+2. `REPLACE_MACHINE_GROUP_ID`：包含 `192.168.10.97` 的主机组 ID。截图中的“开发环境-192.168.10.97（业务系统）”是显示名，不是 ID；在主机组详情或 YAML 编辑器中复制真实 ID。
+3. `CCSDK_DEPLOY_ROOT`：97 上的持久目录。
+
+普通部署设置在 YAML 的 `variables` 修改：`CCSDK_BIND_IP` 默认回环；`CCSDK_WITH_DATABASE` 默认 `0`，启用问数改 `1` 并在 JSON 加上全部三个 DB 字段。JWT 密钥、issuer/audience 要与 Java 一致。容器内的 `127.0.0.1` 指容器自身，本机代理、数据库、File Broker 地址不能照搬；数据库库名和 3306 端口目前由受控 Workflow 配置固定，需另核对。完整迁移问题见 [checks/README.md](checks/README.md)。
+
+构建任务会运行 `deploy/build.sh`：执行 Dockerfile 的完整 Python 测试，生成 `dist/release/image.tar`、镜像 ID、校验和及部署文件，然后通过 `ArtifactUpload` 上传。部署任务下载完整制品，校验 SHA256，`docker load` 后使用镜像内的 `write-env.py` 生成 `runtime.env`，再以 `docker compose --pull never` 启动。`CCSDK_SMOKE_TEST=1` 会额外执行健康、未认证拒绝、签名 Run、真实模型响应和 SSE 顺序检查；首次接入可先设为 `0`，待模型网络和 JWT 配置确认后再设为 `1`。
+
+该模板依据云效官方的 [YAML 结构](https://help.aliyun.com/zh/yunxiao/user-guide/yaml-preliminary-experience/)、[构建集群](https://help.aliyun.com/zh/yunxiao/user-guide/build-a-cluster)、[环境变量](https://help.aliyun.com/zh/yunxiao/user-guide/variables) 和 [主机部署](https://help.aliyun.com/zh/yunxiao/user-guide/host-deployment-1) 编排。平台尚未验证资源 ID、主机组连接和 97 的网络；这些是上线前仍需在 Flow 中确认的项目。
+
+发布会重建单 worker/单实例容器，先由调用方停止新 Run、等待活动任务结束；当前没有自动排空和无损滚动更新。模型失败会让任务失败，但不会自动回滚。保留历史制品及数据备份，通过上一版本制品重新部署回滚，配置/数据兼容性另核对。云效公共制品有保留期限，长期客户交付需另行归档。
 
 ## 本次工程要求检查
 
 | 要求编号 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
-| REQ-001 | 部分满足 | 构建排除密钥；Workflow 凭据独立挂载；不改 MCP 选择性注入 | Java 真实透传、Token 撤销、跨租户执行隔离仍需端到端验收 |
-| REQ-002 | 部分满足 | 原 HTTP 契约、Capability 映射和执行资产保留在 Runtime 镜像 | Java 业务授权、配置版本审计及生产接入仍需验收 |
+| REQ-001 | 部分满足 | 密钥只在运行时生成配置；构建制品排除 env；沿用 MCP 按需注入 | Java 真 Token 透传、撤销和跨租户隔离仍需端到端验收 |
+| REQ-002 | 部分满足 | 执行资产随镜像内部交付，探测使用受控 Capability | Capability 标识解耦、Java 业务授权与配置审计未完成 |

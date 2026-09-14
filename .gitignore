@@ -2,6 +2,8 @@ node_modules/
 .env
 **/workflow.env
 deploy/*.env
+*.secret.json
+*.secret.b64
 /dist/
 *.log
 .claude/settings.local.json

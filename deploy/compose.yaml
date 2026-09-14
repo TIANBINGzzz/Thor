@@ -1,7 +1,8 @@
-name: ccsdkscribe
+name: ${CCSDK_COMPOSE_PROJECT:-ccsdkscribe}
 services:
   runtime:
     image: ${CCSDK_IMAGE:?Set the full image reference with a release tag or digest}
+    pull_policy: never
     init: true
     restart: unless-stopped
     env_file:
@@ -13,7 +14,7 @@ services:
       CLAUDE_CONFIG_DIR: /app/.scribe-runs/claude-config
       SCRIBE_RUN_DB: /app/.scribe-runs/runs.sqlite3
     ports:
-      - "${CCSDK_BIND_IP:-127.0.0.1}:4310:4310"
+      - "${CCSDK_BIND_IP:-127.0.0.1}:${CCSDK_HOST_PORT:-4310}:4310"
     volumes:
       - runtime-data:/app/.scribe-runs
     cap_drop: [ALL]
@@ -29,4 +30,4 @@ services:
         max-file: "3"
 volumes:
   runtime-data:
-    name: ccsdkscribe-runtime-data
+    name: ${CCSDK_DATA_VOLUME:-ccsdkscribe-runtime-data}

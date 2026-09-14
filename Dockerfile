@@ -20,7 +20,8 @@ COPY --from=node-deps /deps/node_modules ./node_modules
 COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./
-COPY deploy/entrypoint.py ./deploy/entrypoint.py
+# Fixed /app paths are container-scoped; deployment helpers run from this image.
+COPY deploy/entrypoint.py deploy/write-env.py deploy/smoke.py ./deploy/
 RUN mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
 USER 10001:10001
 EXPOSE 4310
@@ -29,4 +30,6 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=4 \
 ENTRYPOINT ["python", "deploy/entrypoint.py"]
 
 FROM runtime AS test
+COPY deploy/ ./deploy/
 RUN python -m unittest discover -s python/tests -t python -p 'test_*.py'
+RUN python deploy/test_write_env.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh

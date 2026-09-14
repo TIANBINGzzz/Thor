@@ -1,0 +1,87 @@
+# Flow YAML template; replace the two resource IDs and confirm the Codeup branch.
+# Private settings belong in Flow UI, never in variables.value here.
+name: CCSDKScribe-内网Docker
+defaultWorkspace: scribe_repo
+sources:
+  scribe_repo:
+    type: codeup
+    name: string-ai-agent
+    endpoint: https://codeup.aliyun.com/646e181ebe6b046b8f87d1e8/string-fwk/cloud/string-ai-agent.git
+    branch: main
+    certificate:
+      type: serviceConnection
+      serviceConnection: REPLACE_CODEUP_SERVICE_CONNECTION_ID
+concurrencyConfig:
+  maxRunningPipelineInstances: 1
+  pipelineMaxRunningBehavior: rejectNew
+  maxRunningJobInstances: 1
+variables:
+  - key: CCSDK_BIND_IP
+    value: "127.0.0.1"
+  - key: CCSDK_WITH_DATABASE
+    value: "0"
+  - key: CCSDK_SMOKE_TEST
+    value: "0"
+stages:
+  build_stage:
+    name: 构建测试并打包
+    jobs:
+      build_job:
+        name: Linux镜像制品
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+          instanceType: LARGE_4C8G
+        enableDockerDaemon: true
+        timeoutMinutes: 40
+        steps:
+          build_step:
+            step: Command
+            name: Docker构建和测试
+            with:
+              run: |
+                set -eu
+                export CCSDK_IMAGE="ccsdkscribe:${CI_COMMIT_SHA}-${BUILD_NUMBER}"
+                export CCSDK_OUTPUT_DIRECTORY="dist/release-${BUILD_NUMBER}"
+                sh deploy/build.sh
+          upload_step:
+            step: ArtifactUpload
+            name: 上传镜像部署包
+            with:
+              uploadType: flowPublic
+              artifact: ccsdkscribe_release
+              filePath:
+                - dist/release-${BUILD_NUMBER}/
+              includePathInArtifact: false
+  deploy_stage:
+    name: 内网主机部署与验证
+    jobs:
+      deploy_job:
+        name: CCSDKScribe主机部署
+        component: VMDeploy
+        with:
+          # Select the group containing only 192.168.10.97; its name is not its ID.
+          machineGroup: REPLACE_MACHINE_GROUP_ID
+          artifact: $[stages.build_stage.build_job.upload_step.artifacts.ccsdkscribe_release]
+          artifactDownloadPath: ${CCSDK_DEPLOY_ROOT}/packages/${PIPELINE_ID}-${BUILD_NUMBER}.tgz
+          executeUser: root
+          downloadArtifact: true
+          useEncode: false
+          batchNumber: 1
+          pauseStrategy: noPause
+          run: |
+            set -eu
+            set +x
+            umask 077
+            # This value must be the single-line output of encode-secret.py.
+            export CCSDK_DEPLOY_ENV_B64='${CCSDK_DEPLOY_ENV_B64}'
+            export CCSDK_BIND_IP='${CCSDK_BIND_IP}'
+            export CCSDK_WITH_DATABASE='${CCSDK_WITH_DATABASE}'
+            export CCSDK_CONFIG_DIRECTORY="${CCSDK_DEPLOY_ROOT}/config"
+            export CCSDK_RELEASE_DIRECTORY=..
+            export CCSDK_GENERATE_ENV=1
+            export CCSDK_SMOKE_TEST='${CCSDK_SMOKE_TEST}'
+            release_directory="${CCSDK_DEPLOY_ROOT}/releases/${PIPELINE_ID}-${BUILD_NUMBER}"
+            mkdir -p "$release_directory"
+            tar -xzf "${CCSDK_DEPLOY_ROOT}/packages/${PIPELINE_ID}-${BUILD_NUMBER}.tgz" -C "$release_directory"
+            sh "$release_directory/deploy/deploy.sh"

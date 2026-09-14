@@ -8,7 +8,9 @@
 !.claude/**
 !.mcp.json
 !deploy/
-!deploy/entrypoint.py
+!deploy/*.py
+!deploy/*.sh
+!deploy/compose*.yaml
 **/__pycache__/
 **/*.pyc
 **/node_modules/
