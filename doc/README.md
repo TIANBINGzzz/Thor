@@ -9,8 +9,8 @@
 | Java ↔ Python Runtime 契约 | [Runtime 接口](specs/ccsdk-runtime-interface.md) | 当前契约 | 实际请求、鉴权、响应、事件或文件协议变化 | Java 控制面实现部分、API 页面和相关测试 |
 | 不同能力的 payload 字段 | [能力 payload 映射](specs/capability-payload.md) | 已确认业务约定；模板解析待实现 | 新增能力、专属字段、预制模板绑定或字段实现状态变化 | Java 接入建议、对应模板来源说明；实现后再同步 Runtime 契约与 API 页面 |
 | 共享查询与数据源 | [QuerySpec](../.claude/query-specs/README.md) | 资产及验证已落地；运行时待接入 | 数据源、指标口径、参数、SQL、输出或验证范围变化 | 查询目录、18问覆盖、模板绑定和相应语义依据 |
-| 数据源与物理连接分离 | [多数据库与取数工具方案](specs/data-source-connections.md) | 细化设计；未实现 | 来源/连接/绑定字段、工具、授权和执行后端变化 | ADR-020/021、QuerySpec说明；实现后同步接口与配置 |
-| 固定模板批量取数 | [绑定与取数计划](specs/template-batch-data-plan.md) | 方案一已选择；具体契约待实施 | 模板槽位、参数传递、批量执行、动态补数与结果契约变化 | ADR-021、数据源方案、能力payload；实现后同步Runtime/API |
+| 校本库管理与查询工具 | [单租户改造与扩展方案](specs/data-source-connections.md) | 当前唯一校本库；设计待实施 | 校本库域包、静态策略、可信Context、工具和租户扩展边界变化 | ADR-020/021/022、QuerySpec说明；实现后同步接口与配置 |
+| 固定模板批量取数 | [绑定与取数计划](specs/template-batch-data-plan.md) | 方案一已选择；校本库接入待实施 | 模板槽位、参数传递、批量执行、动态补数与结果契约变化 | ADR-021/022、数据源方案、能力payload；实现后同步Runtime/API |
 | Java 业务控制面接入 | [Java 控制面](specs/java-control-plane.md) | 推荐设计 + 源码核实的实现 | Java/Python 请求、鉴权、文件、事件、适配边界或前端展示变化；设计被采纳；联调发现差异。纯内部重构不扩写 | 实际协议变化同步 Runtime 规范、API 页面和测试；纯建议只更新设计及差异记录；重要已采纳决策另记 ADR |
 | 持续工程约束 | [工程要求](specs/engineering-requirements.md) | 必须持续检查 | 新增或调整要求，或实现证据、差距变化；每次方案变更均须检查 | 受影响的方案、规范及实施总结；已实现要求仍保留 |
 | 架构取舍和替代关系 | [ADR 索引](ADR/README.md) | 当前决策 + 历史索引 | 重要决策新增、替代或状态变化 | 对应 ADR、索引、替代链接及受影响的规范 |

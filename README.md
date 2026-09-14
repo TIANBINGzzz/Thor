@@ -2,6 +2,8 @@
 
 供 Java 开发接入的 Python Claude Agent SDK Runtime。通过 Anthropic 兼容接口连接模型，按受信 Capability 调用 Workflow、Skill、MCP 和文件工具。Java 负责业务身份、租户、授权、会话和文件，Python 负责执行及 Run 生命周期。
 
+当前唯一数据库为校本数据库（2026-09-14用户确认）；数据能力改造先按单租户实施。旧qa_db/report_db来源标识待统一为school，不能当成两个现存物理库；HPM仅为当前已整理业务域。
+
 ## 快速开始
 
 ```bash
@@ -41,9 +43,9 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 
 各能力的业务字段统一维护在[能力 payload 映射记录](doc/specs/capability-payload.md)；预制模板约定只传 `payload.templateKey`，年份和要求放 `input.text`，模板解析待实现。
 
-[共享查询资产 QuerySpec](.claude/query-specs/README.md)已整理数据源、参数化 SQL、口径及输出字段，覆盖现有 18 问和报告表格来源；已验证问数库字段与部分数值，运行时查询执行和报告库绑定待接入。
+[共享查询资产 QuerySpec](.claude/query-specs/README.md)已整理数据源、参数化 SQL、口径及输出字段，覆盖现有 18 问和报告表格来源；已验证校本库问数字段与部分数值，运行时查询执行和报告模板取数待接入。
 
-后续采用[固定模板绑定与批量取数计划](doc/specs/template-batch-data-plan.md)，并保留模型动态只读查询；[数据库管理与工具设计](doc/specs/data-source-connections.md)列明字段、授权及SQLAlchemy执行后端建议。此为待实施设计，当前运行仍使用DBHub。
+后续采用[固定模板绑定与批量取数计划](doc/specs/template-batch-data-plan.md)，并保留模型动态只读查询；[校本库改造方案](doc/specs/data-source-connections.md)按单租户静态策略起步，保留可信上下文及权限/连接扩展边界。资产目录和SQLAlchemy后端均待实施，当前运行仍使用DBHub。
 
 前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
 

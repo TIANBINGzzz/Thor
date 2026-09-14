@@ -16,6 +16,8 @@ CCSDKScribe 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话
 
 Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相同 Runtime HTTP 契约接入。
 
+2026-09-14用户确认当前唯一数据库为校本数据库；改造按单租户起步。资产中的qa_db/report_db是旧标识，目标统一school，并不表示两个现存物理库；HPM仅为当前已整理业务域。来源/目录变更尚未实施。
+
 ## 3. Top-level codemap
 
 ```text
