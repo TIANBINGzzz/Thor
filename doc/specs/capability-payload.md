@@ -46,7 +46,7 @@
 
 该模板的查询引用已记录在同目录 `query-bindings.json`，复用[共享 QuerySpec](../../.claude/query-specs/README.md)。查询标识、SQL、数据源连接及授权上下文均由服务端装配，不增加浏览器 `payload` 字段；运行时解析仍待接入。
 
-[校本数据库方案](data-source-connections.md)明确当前唯一来源拟统一为school，首期单租户静态策略，保留可信DataContext及未来租户扩展；不引入Java Data Grant回调。连接标识、DSN、密码和授权范围不加入业务payload，预制模板仍只需templateKey。[模板批量计划](template-batch-data-plan.md)细化内部参数与工具传值，均待实施，不增加当前HTTP字段。
+[数据库包方案](data-source-connections.md)明确按库集中管理，首期支持单租户多来源，当前唯一来源拟统一school；采用可信DataContext和各来源静态策略，不引入Java Data Grant回调。模板通过source_key+domain+query_id引用包内查询，路径、连接、DSN、密码与授权范围不加入业务payload，预制模板仍只需templateKey。[批量计划](template-batch-data-plan.md)细化参数与工具传值，均待实施，不增加当前HTTP字段。
 
 ## 工程要求检查
 

@@ -16,7 +16,7 @@ CCSDKScribe 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话
 
 Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相同 Runtime HTTP 契约接入。
 
-2026-09-14用户确认当前唯一数据库为校本数据库；改造按单租户起步。资产中的qa_db/report_db是旧标识，目标统一school，并不表示两个现存物理库；HPM仅为当前已整理业务域。来源/目录变更尚未实施。
+2026-09-14用户确认当前唯一数据库为校本数据库；目标按数据库集中管理，第一版支持单租户、多数据源。qa_db/report_db是旧标识，目标统一school；HPM仅为当前已整理业务域，shuanggao仅为未来来源示例。来源/目录变更尚未实施。
 
 ## 3. Top-level codemap
 
@@ -35,14 +35,15 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - Java 控制面：业务身份、租户、资源 ACL、Capability、会话/文件和审计。
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
-- `.claude/workflows/<name>/`：流程 profile、约束、语义和专属配置。
-- `.claude/query-specs/<domain>/`：按业务域复用的数据源登记、QuerySpec、SQL 和验证；供问数/撰写共享，运行时解析执行尚未接入。
+- `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
+- 当前 `.claude/query-specs/<domain>/` 及问数公共语义待集中到 `.claude/databases/<source_key>/`：source.json登记数据库，`query-specs/<domain>/` 保存语义、指标、规则、查询和验证；供问数/撰写共享，运行时尚未接入。
+- 目标 `python/data_access/` 统一管理多来源索引、授权、连接、执行和结果，`python/reporting/` 编译模板批量计划；均待实现，数据库业务知识留在资产包。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
 
 调用方向：入口 → Runtime → SDK Worker → 模型 / MCP；Runtime 配置层加载执行资产并装配工具。
-核心运行时不依赖 Web 展示；流程专属知识留在 Workflow 目录，不写入通用 Python 代码。业务授权来自 Java，模型与工具不得反向提升权限。
+核心运行时不依赖 Web 展示；流程专属知识留在 Workflow，数据库公共知识目标放数据库包，不写入通用 Python 代码。业务授权来自 Java，模型与工具不得反向提升权限；发现数据库包不等于授予访问权。
 
 ## 6. Architectural invariants
 
@@ -87,4 +88,4 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与技能 | `.claude/workflows/`、`.claude/skills/` |
 | 数据源与共享查询资产 | [.claude/query-specs/README.md](.claude/query-specs/README.md) |
-| 数据源管理与模板批量计划（待实施） | [数据工具与管理](doc/specs/data-source-connections.md)、[模板绑定与取数计划](doc/specs/template-batch-data-plan.md)；拟将共享语义、执行与Run结果职责集中，当前目录/生命周期不变 |
+| 数据源管理与模板批量计划（待实施） | [数据库包与修改方案](doc/specs/data-source-connections.md)、[模板绑定与取数计划](doc/specs/template-batch-data-plan.md)、[按库组织决策](doc/ADR/023-database-scoped-asset-packages.md)；当前资产目录/生命周期未改 |

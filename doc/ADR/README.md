@@ -70,10 +70,11 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [018](018-extract-local-playground.md) | 本地自测拆为独立项目 | 已采纳 | 已实现 | Runtime 75 项、Playground 18 项测试及真实 SDK 跨项目联调通过；未验收生产 Java |
 | [016](016-file-broker-for-runtime-inputs.md) | Runtime 输入文件通过 File Broker 获取 | 已采纳 | 部分实现 | Python Broker 适配器已有；Java 真实附件链路未验证 |
 | [017](017-capability-catalog-and-template-confirmation.md) | 能力目录与模板确认状态 | 提议 | 部分实现 | 静态原型已验证；Java 配置/草稿与 Python 目录/v2 待实现 |
-| [019](019-shared-query-spec-assets.md) | 问数与撰写共享 QuerySpec 查询资产 | 已采纳 | 部分实现 | 查询资产、18问及模板绑定已整理验证；运行时执行和报告模板取数待接入 |
+| [019](019-shared-query-spec-assets.md) | 问数与撰写共享 QuerySpec 查询资产 | 已采纳 | 部分实现 | 资产和部分验证已落地；目录被ADR-023部分替代，运行时与模板取数待接入 |
 | [020](020-separate-data-sources-and-connections.md) | 业务数据源与物理连接分离 | 提议 | 未开始 | 凭据分离保留；工具/后端被ADR-021、首期绑定被ADR-022部分替代 |
 | [021](021-template-batch-data-plan.md) | 固定模板绑定与批量取数计划 | 已采纳 | 未开始 | 计划与动态SQL保留；首期Grant/独立data进程被ADR-022部分替代 |
-| [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 当前唯一校本库；静态策略、可信Context及权限/连接集中解析，资产和代码待改造 |
+| [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 单租户策略保留；目录被ADR-023部分替代，当前实际只有校本库 |
+| [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 未开始 | 每库一个包，首期支持单租户多来源；更新目录/修改方案，尚未搬迁资产或接入执行器 |
 
 ## 本次核验
 

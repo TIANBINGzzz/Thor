@@ -67,3 +67,4 @@
 - 2026-09-14 已确认预制模板业务输入仅需 `payload.templateKey`，年份与要求放 `input.text`；Python 维护模板及数据源绑定，内部记录实际配置版本，见[能力 payload 映射](capability-payload.md)。模板解析、按能力校验及版本审计待实现；其他 Capability 的业务粒度与注册配置归属仍待接入方案明确。
 - 2026-09-14 已沉淀[共享 QuerySpec](../../.claude/query-specs/README.md)：确定口径固定查询，未命中且语义/权限明确时才动态生成 SQL；资产内部化，模板仅引用查询标识。本轮验证不包含工具端授权、Runtime 装配或报告源生成验收。
 - 2026-09-14用户确认当前唯一数据库为校本数据库，按[ADR-022](../ADR/022-school-database-single-tenant.md)先做单租户；来源统一school、受控静态策略及可信DataContext均为待实施设计。单租户不取消Java业务授权，不删tenant参数；如存在用户/部门范围差异，静态策略必须覆盖或接入真实授权，不能默认为全库可读。
+- 2026-09-14按[ADR-023](../ADR/023-database-scoped-asset-packages.md)确定以数据库包集中登记、语义、指标和查询，第一版支持单租户多来源；模型/模板只引用source_key+domain+query_id。来源发现不代替授权，各源连接/策略/结果分别解析与审计；本轮仅设计，未搬迁资产或实现多来源工具。

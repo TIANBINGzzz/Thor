@@ -2,7 +2,7 @@
 
 已确认的指标和数据集固化为查询资产，供问数和撰写复用。当前已落地资产、来源映射和测试；Runtime 检索、参数绑定、执行工具及模板填充尚未接入。
 
-2026-09-14用户确认当前唯一数据库为校本数据库；qa_db/report_db是现有资产里的旧逻辑键，不代表两个物理库。按[校本库改造方案](../../doc/specs/data-source-connections.md)拟统一school并将HPM资产集中到hpm/school/；SQLAlchemy执行、模板绑定和动态SQL工具尚未实现，当前JSON/SQL目录未迁移。
+2026-09-14用户确认当前唯一数据库为校本数据库，按[数据库包方案](../../doc/specs/data-source-connections.md)将资产集中到.claude/databases/school/query-specs/hpm/，来源登记放school/source.json。qa_db/report_db是旧键，后续由数据库包确定归属并移除source_keys；本页描述仍在原处的资产，SQLAlchemy执行、模板工具及目录搬迁均未实现。
 
 ## 入口
 
