@@ -1,0 +1,252 @@
+{
+  "section_key": "body_dfb0193709",
+  "slots": [
+    {
+      "slot_key": "P4463",
+      "section_key": "body_dfb0193709",
+      "kind": "static",
+      "required": false,
+      "name": "（十）打造创新创业教育高地",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[337]",
+        "expected_text_hash": "dfb0193709555ef90523661cd8ebe33ee84d96303b0223be5f00c89381163e77"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4464",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.进阶式双创、专创融合课程（82门）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[338]",
+        "expected_text_hash": "bb05cda5c988c7609240e1e3a048d0956ffd11b570d65315e19e99c636ecea27"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4465",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.创客产品试制平台（2个）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[339]",
+        "expected_text_hash": "4db1a60eb6c5f2ac3cd76ab56307d2f92049baf13cd4fdcb9ba12c96db7a6c4a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4466",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.跨界学习中心（6个）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[340]",
+        "expected_text_hash": "fe929f0dcda2570a0908b269a62eb141cfb81e3aba2ecb130bdf93be30b4ac3b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4467",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.双创孵化空间（6 个）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[341]",
+        "expected_text_hash": "fb1dafa72db9e6f205f4cc603a14d5df07e6217fa4033a8ad71e4fbb115a50c9"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4468",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.国际双创赛会（3 场）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[342]",
+        "expected_text_hash": "56fe61a9c13288dfed87461fffeb680e66154bbcfdc99b03e5dd08f5be5e4bf4"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4550",
+      "section_key": "body_dfb0193709",
+      "kind": "static",
+      "required": false,
+      "name": "（十）打造创新创业教育高地",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[424]",
+        "expected_text_hash": "dfb0193709555ef90523661cd8ebe33ee84d96303b0223be5f00c89381163e77"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4551",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.开发创新创业教学颗粒化资源（22238条）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[425]",
+        "expected_text_hash": "60a8654811d4d5754ef2ccb3f26340540708af1ba332f50177197e2ceec66c77"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4552",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.应用深职双创课程、教材的境内外院校（170个）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[426]",
+        "expected_text_hash": "907dcb35edcae29f9ea75e8361a605fbb960326fef92235325bfb6c84a6ade1b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4553",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.双创教学平台用户访问次数（3634万次）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[427]",
+        "expected_text_hash": "994979f0700bab454d92405edab90ac74f0ac9c737b66707cd077756df133b24"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4554",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.省级（含）以上创新创业获奖项目（12个国赛奖项）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[428]",
+        "expected_text_hash": "2ac005ca586aa87463b607242ecbe22662955c7925835c86add0c3c2c3e0f148"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4555",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.学生自主知识产权授权量（65个）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[429]",
+        "expected_text_hash": "6b05eb1c84f1274e527f27bf79ef184ec09fc6fa3573a98230fc3df534474030"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4556",
+      "section_key": "body_dfb0193709",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.校内孵化企业三年存活率（68.79%）",
+      "business_context": "（十）打造创新创业教育高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[430]",
+        "expected_text_hash": "881966bc62816e8fe2f99b19fcdd2d00a73bfb347d34d43bf0173684309608b8"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

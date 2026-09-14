@@ -1,0 +1,24 @@
+{
+  "section_key": "body_4a7cf96148",
+  "slots": [
+    {
+      "slot_key": "P4394",
+      "section_key": "body_4a7cf96148",
+      "kind": "static",
+      "required": false,
+      "name": "附件：佐证材料目录清单",
+      "business_context": "附件：佐证材料目录清单",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[268]",
+        "expected_text_hash": "4a7cf961488f8461b7af0a2c8eaeb339f1f11626f6283b8e71a5dcac27c4ce8a"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

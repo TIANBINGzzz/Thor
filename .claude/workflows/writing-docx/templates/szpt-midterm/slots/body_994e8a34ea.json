@@ -1,0 +1,119 @@
+{
+  "section_key": "body_994e8a34ea",
+  "slots": [
+    {
+      "slot_key": "P2161",
+      "section_key": "body_994e8a34ea",
+      "kind": "static",
+      "required": false,
+      "name": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[150]",
+        "expected_text_hash": "994e8a34ea13d14a8962d4d372db10b4d1800b2f7a98107090b13e94f0a75254"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2162",
+      "section_key": "body_994e8a34ea",
+      "kind": "narrative",
+      "required": true,
+      "name": "参与国家政策制定。参与《国家职业教育改革实施方案》《教育部 广东省关于推动深圳职业教育高端发展争创世界一流的意见》《职业教育提质培优行动计划（2020—2023年）》《职业学校学生实习管理规",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[151]",
+        "expected_text_hash": "f00f381266978f1c33b95b6dcf046f224682332e15c635637b14754f017b160a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2163",
+      "section_key": "body_994e8a34ea",
+      "kind": "narrative",
+      "required": true,
+      "name": "参与国家标准制定。学校25名专家在全国行（教）指委担任主任委员、副主任委员和委员等职务，积极推动职业教育国家教学标准体系建设。2020年，学校作为电子与信息大类牵头单位，深度参与教育部职业教",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[152]",
+        "expected_text_hash": "8bce2bf23957065261fbb79047639002eb2bee903f1a55ba7a3ad5da96403cf0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2164",
+      "section_key": "body_994e8a34ea",
+      "kind": "static",
+      "required": false,
+      "name": "（三）社会认可度情况",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "固定保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[153]",
+        "expected_text_hash": "7612cffeb2e95fe05d93f843342fa5e6d457ea50ae17824676b25066708790b7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2165",
+      "section_key": "body_994e8a34ea",
+      "kind": "narrative",
+      "required": true,
+      "name": "学校连续三年录取分数线达本科线比例60%以上，连续三年广东省内普通高考各类别招生录取分数线稳居全省第一。在社会各类综合排行榜中，均位列第一。根据第三方调查，服务对象满意度均超中期目标值，详见",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "X"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[154]",
+        "expected_text_hash": "69e6a3a3d6e17c52583744d0a14cb748f04652d88b3e87fcb3263a97fa9c9f32"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2167",
+      "section_key": "body_994e8a34ea",
+      "kind": "static",
+      "required": false,
+      "name": "表 5 服务对象满意度中期自评表",
+      "business_context": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[156]",
+        "expected_text_hash": "f1984cd4368025e4ae3d5675ce41fef577c97996d44bddbadbd194eb869ef620"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

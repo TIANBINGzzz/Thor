@@ -1,0 +1,24 @@
+{
+  "section_key": "body_7f721c7108",
+  "slots": [
+    {
+      "slot_key": "P4384",
+      "section_key": "body_7f721c7108",
+      "kind": "static",
+      "required": false,
+      "name": "六、问题与改进措施",
+      "business_context": "六、问题与改进措施",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[258]",
+        "expected_text_hash": "7f721c71083694668bb8e5763728ca9ec1ddf60bf02cba6747d467ef1f6be0a4"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

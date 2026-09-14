@@ -147,7 +147,7 @@ class AgentRunRequest:
     protocol: str
     run_id: str
     message_id: str
-    capability_ref: str
+    capability_ref: str | None
     input: Input
     business_session_id: str | None = None
     credentials: Credentials = field(default_factory=Credentials)
@@ -169,7 +169,7 @@ class AgentRunRequest:
             run_id=_id(data.get("runId"), "runId") or "",
             message_id=_id(data.get("messageId"), "messageId") or "",
             business_session_id=_id(data.get("businessSessionId"), "businessSessionId", required=False),
-            capability_ref=_id(data.get("capabilityRef"), "capabilityRef") or "",
+            capability_ref=_id(data.get("capabilityRef"), "capabilityRef", required=False),
             input=Input.from_dict(data.get("input")),
             credentials=Credentials.from_dict(data.get("credentials")),
             payload=_payload(data.get("payload", {})),

@@ -1,0 +1,43 @@
+{
+  "section_key": "body_48f9dab3c1",
+  "slots": [
+    {
+      "slot_key": "P4345",
+      "section_key": "body_48f9dab3c1",
+      "kind": "static",
+      "required": false,
+      "name": "（二）加强领导，建立了“双高计划”领导管理体系",
+      "business_context": "（二）加强领导，建立了“双高计划”领导管理体系",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[244]",
+        "expected_text_hash": "48f9dab3c1b3c5053aaa66d2eb5e6c32ba159446a66e7c33c4be9e44111eabf6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4346",
+      "section_key": "body_48f9dab3c1",
+      "kind": "narrative",
+      "required": true,
+      "name": "成立“双高计划”工作领导小组，书记、校长任组长，全面统筹推进“双高计划”建设。领导小组下设“高水平高职学校建设”工作小组、“高水平专业建设”工作小组和综合工作小组，具体推进落实各项建设任务。",
+      "business_context": "（二）加强领导，建立了“双高计划”领导管理体系",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[245]",
+        "expected_text_hash": "a414786e04b27afcd76e650b257bb95d536520991668c4bacfc77004358f00da"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "template_key": "double-high-annual",
+  "name": "双高项目年度建设报告",
+  "version": 1,
+  "enabled": true,
+  "capabilities": [
+    "document-writing"
+  ],
+  "docx_file": "template.docx",
+  "docx_sha256": "846f5bfcca44fba054206189fa9f14527be4a6cea68aa0d6c46ada1fb7e9aa76",
+  "bindings_file": "query-bindings.json",
+  "source_roles": {
+    "hpm": "schoolDoubleHigh"
+  },
+  "scope_roles": {
+    "hpm": [
+      "group_a",
+      "group_b"
+    ]
+  },
+  "missing_policy": "reject",
+  "parameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "years": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "as_of": {
+        "type": "string",
+        "format": "date"
+      },
+      "period_mode": {
+        "const": "annual"
+      },
+      "timezone": {
+        "const": "Asia/Shanghai"
+      }
+    },
+    "required": [
+      "years",
+      "period_mode",
+      "timezone",
+      "as_of"
+    ]
+  }
+}

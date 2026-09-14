@@ -1,0 +1,328 @@
+{
+  "section_key": "body_e2b98fb972",
+  "slots": [
+    {
+      "slot_key": "P4469",
+      "section_key": "body_e2b98fb972",
+      "kind": "static",
+      "required": false,
+      "name": "（十一）提升学生综合素质",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[343]",
+        "expected_text_hash": "e2b98fb972b4939c44a4170e4e8f71c133358591b56eed2292e9653dc9521039"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4470",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.“一站式”学生社区育人创新案例成果（26个）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[344]",
+        "expected_text_hash": "ad094ff81299131de23eb5732149796db5ae1dd380a6d07a1c9bd3c27545a6c8"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4471",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.研发深职《幸福课》教材（1部）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[345]",
+        "expected_text_hash": "80e072468e92c8b0d31c5ba40862b019aaf749bc55e958fc452ccee7b452d4cf"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4472",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.建设深职《幸福课》慕课（1门）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[346]",
+        "expected_text_hash": "b7627864c2fea0089f857150fdfdf7862fb65d2e339ac188138b851060b91629"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4473",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.“学生精英成长培养计划”人数（609人）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[347]",
+        "expected_text_hash": "33d8231a2aea8b22966fb3a008a6a2a8574517d8134aaeeeaf65d31f55ba3c74"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4474",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.社团精品项目（35个）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[348]",
+        "expected_text_hash": "8a9f61adf4bee64aac591baa7180a8b5c761cddf2837ae50defe3ad8fbdd7d21"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4475",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.校内、外社团实践基地（6个）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[349]",
+        "expected_text_hash": "23b4b64e9c68b2d9531106160d4c2724516a04e52278421d6212feea9314c960"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4476",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "7.学生可持续发展能力培养网络课程资源库（基本建成）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[350]",
+        "expected_text_hash": "a374f052e068892710f8b4d905beb77526d142e38f65e97a77c0c0330565f7bd"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4477",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "8.出版社团案例集（已完成3册）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[351]",
+        "expected_text_hash": "b50bb51cc399249c1a3f65c31ccef9dc3a9b5d0e2c90b2d233be78010a5e9976"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4478",
+      "section_key": "body_e2b98fb972",
+      "kind": "static",
+      "required": false,
+      "name": "9.出版《高职院校学生非专业能力培养研究》等相关社团专著（部）（形成初稿）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[352]",
+        "expected_text_hash": "4abaaea4bfd4066f9d8d792ad6e15e5384335c6d6650eda4b0952ed3e346e521"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4479",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "10建设劳动教育慕课（1门）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[353]",
+        "expected_text_hash": "33c89be5557e25f1a8ca7fc22e927714fe65b978926389a31514c75bb98be375"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4480",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "11出版劳动与职业读本（1部）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[354]",
+        "expected_text_hash": "3cb66ed23916039078282a2f25554d81e865fe6e18951175f886feb01063a48b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4557",
+      "section_key": "body_e2b98fb972",
+      "kind": "static",
+      "required": false,
+      "name": "（十一）提升学生综合素质",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[431]",
+        "expected_text_hash": "e2b98fb972b4939c44a4170e4e8f71c133358591b56eed2292e9653dc9521039"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4558",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验（基本形成）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[432]",
+        "expected_text_hash": "8f6cad68638a3b9f9ce9ed47452bd4277ad51a179e5e78c5f5fc5401a3bc80b0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4559",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.深职“幸福课”慕课网上点击数（80万次）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[433]",
+        "expected_text_hash": "3677769ce4c9f8a874f81cfee399f343bc258a4cee3cc00856aac702bc7465c0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4560",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.社团特色活动学生参与度（95%）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[434]",
+        "expected_text_hash": "cce600429a189d45c6298b9d6e55e278b52d66531afabacbd1126873cbd074fc"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4561",
+      "section_key": "body_e2b98fb972",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.深职“劳动教育课”慕课网上点击数（78.54万次）",
+      "business_context": "（十一）提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[435]",
+        "expected_text_hash": "d60637bac68fa2b97814e0f2035f3e077eac59a5a9188b3d518c38ab5b0a043f"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

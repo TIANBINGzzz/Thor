@@ -1,0 +1,81 @@
+{
+  "section_key": "body_8080a382f5",
+  "slots": [
+    {
+      "slot_key": "P2157",
+      "section_key": "body_8080a382f5",
+      "kind": "static",
+      "required": false,
+      "name": "2.支撑国家战略和地方经济社会发展",
+      "business_context": "2.支撑国家战略和地方经济社会发展",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[146]",
+        "expected_text_hash": "8080a382f548b5aa1c1123f489e58a15ba719b83211d8c4d0eedfac67a4c5942"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2158",
+      "section_key": "body_8080a382f5",
+      "kind": "narrative",
+      "required": true,
+      "name": "推动解决“卡脖子”难题。坚持“立地、顶天”的应用技术研发导向，在科学的技术化、技术的产业化、产业的高端化链条上找准生态域、着力点，对接湾区战略性新兴产业，聚焦集成电路、新材料等重点领域，校企",
+      "business_context": "2.支撑国家战略和地方经济社会发展",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[147]",
+        "expected_text_hash": "85aa5de3900f6d7ee5923adeb77c7757936c0ad04b833b986b675ed42277dd3c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2159",
+      "section_key": "body_8080a382f5",
+      "kind": "narrative",
+      "required": true,
+      "name": "促进深圳企业高质量发展。目前，深圳上市公司数量达到505家，涌现了以华为、腾讯、比亚迪、大疆、大族激光等为代表的一批世界一流创新型企业。这些企业在技术、工艺、标准和业态创新方面走在了世界前列",
+      "business_context": "2.支撑国家战略和地方经济社会发展",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[148]",
+        "expected_text_hash": "5e0b584f96a366715fd45a10b53e1701abc79491c2ed56ac4931fdad4cbe0a99"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2160",
+      "section_key": "body_8080a382f5",
+      "kind": "narrative",
+      "required": true,
+      "name": "助力实现共同富裕。落实国家教育扶贫政策，招收贫困地区学生6000余人，其中，面向云南省建档立卡户招收1821人，面向新疆、西藏、甘肃等9个西部协作计划省（自治区）招收学生857人，通过普通高",
+      "business_context": "2.支撑国家战略和地方经济社会发展",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[149]",
+        "expected_text_hash": "a9ee62a4c1034ef7efdbb02a8b9f17792daba486791ee0c7e6b60eac3d28371a"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

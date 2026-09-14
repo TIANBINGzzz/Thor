@@ -77,7 +77,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         client = Client()
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [],
-                            build_options=lambda _: SimpleNamespace(tools=None, strict_mcp_config=False),
+                            build_options=lambda _, **kwargs: SimpleNamespace(tools=None, strict_mcp_config=False),
                             ClaudeSDKClient=lambda *args, **kwargs: client,
                             isolated_sdk_environment=nullcontext,
                             _read_client_commands=commands, emit=emit):

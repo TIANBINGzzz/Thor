@@ -1,0 +1,235 @@
+import asyncio
+from copy import deepcopy
+from dataclasses import replace
+import json
+from pathlib import Path
+import runpy
+import sqlite3
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from data_access.catalog import Catalog, PROJECT_ROOT
+from data_access.context import DataContext, DataError
+from data_access.executor import Executor
+from data_access.runtime import RunServices
+from data_access.sql_policy import validate_sql
+from reporting.bindings import load_template
+from runtime.config import worker_environment, isolated_sdk_environment
+
+ASSETS = PROJECT_ROOT / '.claude/databases/schoolDoubleHigh/query-specs/hpm'
+QuerySemanticsTests = runpy.run_path(str(ASSETS / 'tests/test_queries.py'))['QuerySemanticsTests']
+AssetContractTests = runpy.run_path(str(ASSETS / 'tests/test_assets.py'))['AssetContractTests']
+
+
+def save(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data), encoding='utf-8')
+
+
+class DataAccessTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.config = {'version': 1, 'connections': {}, 'policies': {}}
+        for source, amount in [('first', 10), ('second', 20)]:
+            folder = self.root / 'databases' / source
+            save(folder/'source.json', {'source_key': source, 'name': source, 'enabled': True, 'version': 1,
+                'profiles': {'sales': 'query-specs/sales'}, 'connection_ref': source, 'policy_ref': source})
+            domain = folder/'query-specs/sales'
+            save(domain/'catalog.json', {'queries': [{'id': 'total', 'name': 'Total', 'status': 'defined', 'spec_file': 'specs/total.json'}],
+                                        'documents': {}})
+            spec = {'id': 'total', 'status': 'defined', 'version': 1, 'parameters': {
+                'tenant_id': {'type': 'string', 'required': True, 'origin': 'authorized_context'}},
+                'output': [{'name': 'total', 'type': 'number', 'unit': 'USD'}], 'sql_file': 'sql/total.sql'}
+            save(domain/'specs/total.json', spec)
+            (domain/'sql').mkdir()
+            (domain/'sql/total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
+            db = sqlite3.connect(self.root/f'{source}.db')
+            db.execute('CREATE TABLE sales (tenant TEXT, amount INTEGER, private_id TEXT)')
+            db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
+            db.commit()
+            db.close()
+            self.config['connections'][source] = {'source_key':source,'tenant_id':'jwt-a','driver':'sqlite',
+                'database':f'{source}.db','revision':1,'timeout_seconds':1,'max_rows':1000}
+            self.config['policies'][source] = {'source_key':source,'tenant_id':'jwt-a','business_tenant_id':'business-a',
+                'capabilities':['qa'], 'templates':[], 'users':['u1','u2'],'revision':1,
+                'project_scope':{'mode':'all_school'},'domains':{'sales':{'queries':['total'],
+                'tables':{'sales':{'tenant':'TEXT','amount':'INTEGER','private_id':'TEXT'}},
+                'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant']}}}
+        self.catalog = Catalog(self.root/'databases')
+        self.context = DataContext('run-a','jwt-a','u1','qa',self.root/'run-a')
+        self.executor = self.make_executor()
+
+    def make_executor(self, context=None):
+        return Executor(context or self.context, self.config, {}, self.root, self.catalog, ['first','second'])
+
+    def school(self, executor=None, source='first'):
+        return (executor or self.executor).resolve_entities(source,'sales','school','')['candidates'][0]['scope_ref']
+
+    def test_identical_queries_route_to_distinct_sources_and_bind_business_tenant(self):
+        for source, expected in [('first',10),('second',20)]:
+            result = self.executor.execute_query_spec(source,'sales','total',{},self.school(source=source))
+            self.assertEqual(result['rows'], [{'total':expected}])
+        with self.assertRaises(DataError):
+            self.executor.execute_query_spec('second','sales','total',{},self.school())
+
+    def test_access_denies_wrong_identity_empty_scope_and_unlisted_user(self):
+        for change in [{'tenant_id':'jwt-b'}, {'user_id':'u3'}, {'capability_ref':'writing'}]:
+            executor = self.make_executor(replace(self.context, **change))
+            self.assertEqual(executor.list_data_sources()['sources'], [])
+        self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
+        with self.assertRaises(DataError): self.school(self.make_executor())
+
+    def test_no_identity_or_source_fallback_and_no_model_tenant(self):
+        with self.assertRaises(DataError): DataContext.from_payload({'run_id':'x'})
+        with self.assertRaises(DataError): self.executor.access('FIRST')
+        with self.assertRaisesRegex(DataError, 'PARAMETERS_INVALID'):
+            self.executor.execute_query_spec('first','sales','total',{'tenant_id':'business-b'},self.school())
+
+    def test_result_paging_preserves_null_zero_and_owner(self):
+        rows = [{'id': str(i), 'amount': None if i == 0 else i} for i in range(220)]
+        ref = self.executor.results.save(rows, {'complete':True}, [{'name':'id','visibility':'internal_only'},{'name':'amount'}])
+        page = self.executor.results.page(ref)
+        self.assertEqual(page['rows'][0], {'amount':None})
+        collected = list(page['rows'])
+        while page['cursor']:
+            page = self.executor.results.page(ref,page['cursor'])
+            collected += page['rows']
+        self.assertEqual(len(collected),220)
+        with self.assertRaises(DataError): self.make_executor(replace(self.context,user_id='u2')).results.page(ref)
+        with self.assertRaises(DataError): self.executor.results.page(ref,'invented')
+
+    def test_result_provenance_excludes_identity_and_connection_policy(self):
+        result = self.executor.execute_query_spec('first','sales','total',{},self.school())
+        provenance = result['provenance']
+        self.assertEqual(provenance['source_key'], 'first')
+        self.assertEqual(provenance['query_id'], 'total')
+        self.assertFalse(provenance['dynamic'])
+        self.assertIn('collected_at', provenance)
+        self.assertNotIn('access', provenance)
+        self.assertNotIn('connection_revision', provenance)
+        self.assertNotIn('owner', provenance)
+        self.assertEqual(self.executor.results.page(result['result_ref'])['provenance'], provenance)
+
+    def test_worker_receives_only_selected_authorized_secrets_and_sdk_receives_none(self):
+        for source in ('first', 'second'):
+            self.config['connections'][source]['password_ref'] = f'env:{source.upper()}_DB_SECRET'
+        path = self.root/'config.json'
+        save(path, self.config)
+        payload = {'workflow_name':'qa', 'run_id':'r1', 'capability_ref':'qa',
+                   '_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
+                   '_data_run_directory':str(self.root/'r1')}
+        values = {'CCSDK_DATA_CONFIG':str(path), 'FIRST_DB_SECRET':'first-secret',
+                  'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
+        with patch.dict('os.environ', values, clear=True), \
+             patch('runtime.config.load_workflow_config', return_value={'data_sources':['first']}), \
+             patch('data_access.runtime.Catalog', return_value=self.catalog):
+            selected = worker_environment(payload)
+            self.assertEqual(selected['FIRST_DB_SECRET'], 'first-secret')
+            self.assertNotIn('SECOND_DB_SECRET', selected)
+            self.assertNotIn('UNREGISTERED_SECRET', selected)
+            self.assertNotIn('FIRST_DB_SECRET', worker_environment())
+            with isolated_sdk_environment():
+                import os
+                self.assertNotIn('FIRST_DB_SECRET', os.environ)
+                self.assertNotIn('SECOND_DB_SECRET', os.environ)
+            self.assertEqual(os.environ['FIRST_DB_SECRET'], 'first-secret')
+            denied = {**payload, '_data_identity':{'tenant_id':'jwt-b','user_id':'u1'}}
+            self.assertNotIn('FIRST_DB_SECRET', worker_environment(denied))
+
+    def test_sql_checks_nested_tables_functions_writes_comments_and_internal_columns(self):
+        policy=self.config['policies']['first']['domains']['sales']
+        valid=['SELECT SUM(amount) AS total FROM sales',
+               'WITH s AS (SELECT amount FROM sales) SELECT SUM(amount) AS total FROM s',
+               'SELECT COUNT(*) AS n FROM sales']
+        for sql in valid: validate_sql(sql,policy,dynamic=True)
+        invalid=['DELETE FROM sales','SELECT 1; SELECT 2','SELECT SLEEP(1)',
+            'SELECT amount FROM other','SELECT x FROM sales','SELECT amount FROM mysql.sales',
+            "SELECT amount INTO OUTFILE '/tmp/data' FROM sales",'SELECT amount FROM sales FOR UPDATE',
+            'WITH s AS (SELECT amount FROM hidden) SELECT amount FROM s',
+            'SELECT (SELECT password FROM users) FROM sales','SELECT LOAD_FILE(:path)',
+            'SELECT * FROM sales', 'SELECT private_id AS public FROM sales',
+            'WITH x AS (SELECT private_id AS p FROM sales) SELECT p AS n FROM x',
+            "SELECT 1 /*! INTO OUTFILE 'x' */", 'SELECT @value',
+            'SELECT amount FROM sales UNION SELECT amount FROM hidden']
+        for sql in invalid:
+            with self.subTest(sql=sql), self.assertRaises(DataError): validate_sql(sql,policy,dynamic=True)
+
+    def test_dynamic_sql_requires_database_enforced_scope_and_revision(self):
+        scope = self.school()
+        with self.assertRaisesRegex(DataError,'DYNAMIC_SQL_FORBIDDEN'):
+            self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',scope)
+        policy = self.config['policies']['first']
+        policy['dynamic_sql_enabled']=True
+        self.config['connections']['first'].update(database_scope_enforced=True,scope_policy_ref='first',scope_policy_revision=1)
+        self.executor=self.make_executor()
+        # Test account visibility is reduced to the approved business tenant.
+        db = sqlite3.connect(self.root/'first.db')
+        db.execute("DELETE FROM sales WHERE tenant <> 'business-a'")
+        db.commit(); db.close()
+        scope=self.school()
+        result=self.executor.execute_readonly_sql('first','sales','SELECT SUM(amount) AS n FROM sales WHERE amount > :minimum',{'minimum':0},'test',scope)
+        self.assertEqual(result['rows'],[{'n':10}])
+        policy['revision']=2
+        self.executor=self.make_executor()
+        with self.assertRaises(DataError):
+            self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',self.school())
+
+    def test_path_containment_and_changed_source_config(self):
+        path=self.root/'databases/first/source.json'
+        source=json.loads(path.read_text())
+        source['profiles']['sales']='../second/query-specs/sales'
+        save(path,source)
+        with self.assertRaises(DataError): self.catalog.domain('first','sales')
+
+    def test_statement_timeout_and_cancel(self):
+        connection=self.config['connections']['first']
+        with self.assertRaises(Exception):
+            with self.executor.connections.snapshot(connection) as db:
+                db.exec_driver_sql('WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM numbers) SELECT SUM(n) FROM numbers').fetchall()
+        self.executor.connections.cancel()
+        with self.assertRaisesRegex(DataError,'CANCELLED'): self.executor.access('first')
+
+    def test_run_rebinding_invalidates_results_and_refreshes_policy(self):
+        async def scenario():
+            path=self.root/'config.json'
+            save(path,self.config)
+            services=RunServices(['first','second'],config_path=str(path),env={},catalog=self.catalog)
+            payload={'run_id':'r1','_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
+                     'capability_ref':'qa','_data_run_directory':str(self.root/'r1')}
+            await services.bind(payload)
+            old=services.current()
+            ref=old.results.save([{'amount':0}],{'complete':True},[{'name':'amount'}])
+            await services.bind({**payload,'run_id':'r2','_data_run_directory':str(self.root/'r2')})
+            with self.assertRaises(DataError): services.current().results.page(ref)
+            with self.assertRaises(DataError): old.access('first')
+            self.config['policies']['first']['users']=[]
+            save(path,self.config)
+            await services.bind({**payload,'run_id':'r3'})
+            self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['second'])
+            await services.close()
+            with self.assertRaises(DataError): services.current()
+        asyncio.run(scenario())
+
+
+class RegisteredAssetsTests(unittest.TestCase):
+    def test_all_defined_queries_pass_ast_policy(self):
+        config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
+        policy=config['policies']['schoolDoubleHigh_readonly']['domains']['hpm']
+        catalog=Catalog()
+        for entry in catalog.domain('schoolDoubleHigh','hpm')[1]['queries']:
+            spec=catalog.spec('schoolDoubleHigh','hpm',entry['id'])
+            if spec['status']=='defined':
+                with self.subTest(query=spec['id']): validate_sql(catalog.sql('schoolDoubleHigh','hpm',spec),policy)
+
+    def test_template_all_mappings_are_bound_to_original_physical_paragraphs(self):
+        template=load_template('szpt-midterm','document-writing')
+        self.assertEqual(len(template['_slots']),3503)
+        self.assertEqual(len([s for s in template['_slots'] if s['section_key'].startswith('T')]),2710)
+        self.assertEqual(len(template['_bindings']['tables']),40)
+        self.assertEqual(template['source_roles'],{'hpm':'schoolDoubleHigh'})
+
+
+if __name__ == '__main__': unittest.main()

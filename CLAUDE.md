@@ -7,8 +7,9 @@
 ## 已确认项目事实
 
 - 2026-09-14 用户最新确认：当前唯一数据库是校双高数据库；此前“校本数据库”是对同一来源的不准确称呼。内部数据源标识定为 `schoolDoubleHigh`，改造先按单租户实施，保留多租户扩展边界。
-- 既有资产中的 `qa_db`、`report_db` 及此前拟议的 `school` 均待统一到 `schoolDoubleHigh`，不代表多个物理数据库。`hpm` 保留为已整理的项目、任务、资金和绩效业务域标识；命名修正不改变现有国/校双高筛选口径或物理库名。
-- 已确认按数据库集中管理：目标 `.claude/databases/<source_key>/source.json` 与 `query-specs/<domain>/`；第一版支持单租户、多数据源，目前实际只有校双高库。目录和运行时改造尚未实施，见[ADR-023](doc/ADR/023-database-scoped-asset-packages.md)。
+- 运行资产已统一到schoolDoubleHigh；qa_db/report_db仅保留在历史核验证据中，不代表多库。hpm为项目、任务、资金和绩效业务域，命名不改变查询口径或物理库名。
+- 已按 `.claude/databases/<source_key>/source.json` 和query-specs/<domain>/集中管理；data_access/reporting及MCP工具已接入，实际仅校双高库。原40表仍有规则缺口，见[ADR-023](doc/ADR/023-database-scoped-asset-packages.md)。
+- 专业群名称来自双高项目name_；建设章节是任务树一级指标，绩效表产出/效益/满意度属于另一棵分类树。来源、阶段及任务绩效关联必须按semantics/report-lineage.md核验；不得只记标题而丢失关联。
 - 当前改造方案见[数据库工具设计](doc/specs/data-source-connections.md)。唯一数据库不证明模板中的所有表、关系、字段、历史期间或评分规则已核验；不得因统一来源名称就自动启用待验证查询。
 
 ## 开发约束
@@ -57,12 +58,12 @@
 ## 技术约定
 
 - Runtime HTTP/SSE、Run、SDK 会话、文件获取和 Agent 子进程使用 Python；HTTP 层采用 FastAPI，Agent 执行使用 `claude-agent-sdk`
-- Runtime 代码放在 `python/`，执行资产放在 `.claude/`；测试 UI 和模拟 Java 控制面位于独立项目 `../ScribePlayground`，只能通过 HTTP 契约连接，禁止 Runtime 导入测试项目。Node.js 只用于 DBHub 等 MCP 和项目脚本。
+- Runtime代码放python/，执行资产放.claude/；测试UI及模拟Java位于独立ScribePlayground，仅经HTTP连接。Node.js用于SDK CLI及脚本；数据库由Python data MCP执行。
 - 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；单 Agent 的确定性 workflow 使用同名目录中的 `workflow.json` 声明 `execution.mode=direct`，由 Python 直接启动受限 SDK Run，不再经过 Skill/Workflow/子代理
 - `python/` 放应用后端、Agent SDK worker 和可复用运行时方法；workflow 专属表范围、数据库名和 provider 模板不得放入 Python 目录
-- 数据资产目标按 `.claude/databases/<source_key>/` 集中：`source.json` 登记来源，`query-specs/<domain>/` 维护语义、指标、规则、QuerySpec、SQL 和验证；模板引用 `source_key + domain + query_id`。当前旧 `.claude/query-specs/` 待整理；定义不明不编造 SQL，未接入的资产不得宣称已成为运行时工具。
-- workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
-- workflow 专属约束和语义 Markdown 在 `workflow.json.documents` 显式登记；公共数据库语义目标迁至数据库域，由该域 `catalog.json.documents` 登记、经授权按需加载。两个加载器分别限制目录边界，未登记文档及人工核验材料不进入 Prompt；当前加载器尚未改造。
+- 数据资产按.claude/databases/<source_key>/集中，域内维护语义、指标、规则、SQL和验证；模板引用source_key+domain+query_id。定义不明不得编造SQL，blocked/needs_definition不得自动升级。
+- workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；数据库连接改由CCSDK_DATA_CONFIG及秘密引用装配，旧数据库workflow.env仅作迁移核验；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
+- workflow文档由workflow.json.documents登记；公共数据库语义由域catalog.json.documents登记并授权按需加载。两个加载器分别限制边界，未登记及not_for_model人工材料不进入Prompt。
 - `database-qa` 的语义来源维护在 DBProcessing 的 `doc/model_context`，接入时只提炼硬约束、业务口径和必要字段；`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照只作人工核验，不注入 prompt
 - `database-qa` 默认是国双高口径：项目/资金/绩效按有效项目标记，纯任务统计按任务标记；标记不一致必须披露，不能静默用另一种标记排除数据
 - 真实问数验证必须使用临时进程环境和只读 SQL，对照独立基准；不得把真实凭据、租户值、内部 ID 或结果明细写入仓库

@@ -1,0 +1,24 @@
+{
+  "section_key": "body_a08695c76c",
+  "slots": [
+    {
+      "slot_key": "P3238",
+      "section_key": "body_a08695c76c",
+      "kind": "static",
+      "required": false,
+      "name": "（二）电子信息工程技术专业群",
+      "business_context": "（二）电子信息工程技术专业群",
+      "scope_role": "group_b",
+      "source_rules": [
+        "P"
+      ],
+      "instruction": "原项目标题保留；生成时按报告所选项目名称替换",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[197]",
+        "expected_text_hash": "a08695c76c61607c6f277e092152ad11ed2c7f1e27be0a22109af11d7d82b14f"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

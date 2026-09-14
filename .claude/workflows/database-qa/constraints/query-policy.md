@@ -8,9 +8,10 @@
 
 - 只生成并执行一条 MySQL 8 只读语句：`SELECT`，或最终为 `SELECT` 的 `WITH` CTE。
 - 禁止 `INSERT`、`UPDATE`、`DELETE`、DDL、权限/事务命令、存储过程、多语句、文件读写、系统库查询和 `SELECT *`。
-- 只允许使用 workflow 配置的 12 张 HPM 表；不得根据表名臆造表、字段或关系。
-- 查询只返回回答所需业务字段；`:tenantId`、`:year` 仅是本约束中的逻辑占位符。DBHub `execute_sql` 不支持参数绑定，绝不能把带 `:` 的占位符发送给工具；需先用最小只读查询在当前数据源中确认唯一租户或业务范围，再把实际内部值仅写入后续 SQL。不要把实际内部值写入回答或文档。
-- 执行前先调用 `mcp__db__search_objects` 检查相关表和字段，再执行最小必要 SQL；优先聚合并限制返回行数。
+- 只允许使用 `describe_data_source` 返回的本库表、列和函数；不得根据表名臆造字段或关系。
+- 当前数据库标识为 `schoolDoubleHigh`，业务域为 `hpm`。先读取该域的 `glossary`、`entity-grain`、`join-rules`、`metric-definitions` 和问题涉及的表主题，再检索 QuerySpec。
+- 优先 `find_query_specs` -> `resolve_entities` -> `execute_query_spec`；工具内部绑定租户和项目。禁止从数据库行推导授权，不查询租户候选，不向工具提交租户实值。
+- 仅在动态SQL获准且固定查询不适用时调用 `execute_readonly_sql`，值通过 `parameters` 与 `:name` 绑定；不得拼接字面值或把动态结果当作已发布指标定义。
 
 ## 租户、有效数据与关联
 

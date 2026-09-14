@@ -1,0 +1,104 @@
+{
+  "section_key": "body_a971b941fa",
+  "slots": [
+    {
+      "slot_key": "P1023",
+      "section_key": "body_a971b941fa",
+      "kind": "static",
+      "required": false,
+      "name": "5.打造高水平双师队伍",
+      "business_context": "5.打造高水平双师队伍",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[88]",
+        "expected_text_hash": "a971b941fa8546266c166d8b3d8d97a3eae5bf787e0f7c86315e19a877026048"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1024",
+      "section_key": "body_a971b941fa",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值16项，完成度均超100%。取得标志性成果14项，其中，国家级7项、省级6项、独创1项。自评等级优。",
+      "business_context": "5.打造高水平双师队伍",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[89]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1025",
+      "section_key": "body_a971b941fa",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-4 “打造高水平双师队伍”中期自评表",
+      "business_context": "5.打造高水平双师队伍",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[90]",
+        "expected_text_hash": "7cc01a21e55687374e36276f266ef0a429bf62f5560904789e5fbcb5d2ad02ae"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1171",
+      "section_key": "body_a971b941fa",
+      "kind": "narrative",
+      "required": true,
+      "name": "名匠大师不断汇聚。新增市级以上人才141人次，其中国家级6人次、省级18人次，现有高层次人才400余人次。新增国务院特殊津贴专家1人、全国技术能手5人、省技术能手1人、省教学名师3人、省特支",
+      "business_context": "5.打造高水平双师队伍",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[92]",
+        "expected_text_hash": "a5d5ef3d7c125e305ec2b4575e81ca2721ea216b35f270663af7ec7fa07a4052"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1172",
+      "section_key": "body_a971b941fa",
+      "kind": "narrative",
+      "required": true,
+      "name": "创新团队脱颖而出。新增国家级职业教育教师教学创新团队1个、省教学团队3个，国家级教学团队达4个。新增市级技能大师工作室1个。引培以诺奖获得者、院士等领军人才领衔的应用研发团队38个，获批省级",
+      "business_context": "5.打造高水平双师队伍",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[93]",
+        "expected_text_hash": "1c36a4825c20010c4792da1ae41b4dc5c58b819c17828e55bc8889eff7e13e46"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

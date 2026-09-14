@@ -1,0 +1,385 @@
+{
+  "section_key": "body_76f5066e90",
+  "slots": [
+    {
+      "slot_key": "P4802",
+      "section_key": "body_76f5066e90",
+      "kind": "static",
+      "required": false,
+      "name": "（五）实践教学基地",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[676]",
+        "expected_text_hash": "76f5066e90eab1ab50e399c54e4009ceb1d2d144daac1463b202792bc69ee381"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4803",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.与国际一流企业共建的产教融合型实训基地1个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[677]",
+        "expected_text_hash": "16e473e784395553f7f2bad3b51945f33667f0535fcf8d688140a25dd4b75996"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4804",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.与国际一流企业共建的ICT先进技术校内实训平台5个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[678]",
+        "expected_text_hash": "8adbbedae4df37c1e25a969cb41d11faba5a6ce34dc7be9256cd430e0c172818"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4805",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.智慧教室或未来课堂受益学生人数占比91%",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[679]",
+        "expected_text_hash": "6bc2c6099d8bdb46e70854f9e70edf853cac2602d15569fd6e4bcb48523b7fe8"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4806",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.省级以上实训基地数量1个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[680]",
+        "expected_text_hash": "9d61fee6689cd80863881de649cc00a4e47b71f720de6f4b0f1a2bd777c5b142"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4807",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.企业投入比例13.7%",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[681]",
+        "expected_text_hash": "65caa78b50594e13afbb9318b507bb11af051f2ca8a4912441f644d086d9b229"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4808",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.教学科研仪器设备值7170万元",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[682]",
+        "expected_text_hash": "f8051f6c4c3aba01bdeecc2eb06baef0fb10352bf87984dc1b6fddf7f1ec2f69"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4891",
+      "section_key": "body_76f5066e90",
+      "kind": "static",
+      "required": false,
+      "name": "（五）实践教学基地",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[765]",
+        "expected_text_hash": "76f5066e90eab1ab50e399c54e4009ceb1d2d144daac1463b202792bc69ee381"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4892",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．产教融合实训基地2个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[766]",
+        "expected_text_hash": "23dbfe15b339e80feebccf999b3ed44371de5993495721db1158072125468068"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4893",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．虚拟仿真实训中心1个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[767]",
+        "expected_text_hash": "382e388516bdd68ca31e30a5334ef6e3c02da109b35140e295e3ec6c23391f85"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4894",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "3．智慧教室或未来课堂受益学生9380人/日",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[768]",
+        "expected_text_hash": "5fdaacd8d3e99135f357e82a965162711cd2a1297c04aae50c9e552c257fdbf9"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4895",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "4．开发结合企业生产和新技术、新工艺的实训项目50个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[769]",
+        "expected_text_hash": "29397bf7939488816db81690605bdd6e1b0783d2174fbcbebf211f1857f0c4dc"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4896",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "5．实训基地新增工位数60个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[770]",
+        "expected_text_hash": "ffda136ca9a0fb216731026d4803b4182c3c3840f6a347a1f5e00726a876e5e2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4945",
+      "section_key": "body_76f5066e90",
+      "kind": "static",
+      "required": false,
+      "name": "（五）实践教学基地",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[819]",
+        "expected_text_hash": "76f5066e90eab1ab50e399c54e4009ceb1d2d144daac1463b202792bc69ee381"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4946",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．智慧教室或未来课堂受益学生人数占比77%",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[820]",
+        "expected_text_hash": "6554ed240ca1c5ca25ce042cb23406decc74537ba2c28ed838034cdac77d562c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4947",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．省级以上实训基地数量1个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[821]",
+        "expected_text_hash": "14153d0275750b31bb6b4346e7e424487a7679b32be638fe15f29fd4b104dbf1"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4948",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "3．企业投入比例14.7%",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[822]",
+        "expected_text_hash": "351f84c29410f9c9c5ae922585d1fd18ca9ba66f8934bbab7297e7930f6b01fb"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4949",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "4．教学科研仪器设备值13652万元",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[823]",
+        "expected_text_hash": "2c61ee25fcfb9d1ffa803f85e4859ae05f5359d480d3fa3cd4a5de26e7e9fdbb"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4950",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "5．国家级产教融合型实训基地1个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[824]",
+        "expected_text_hash": "5f14864e5d29dcc1fd52eb6b1940f2475dcb64a46818169abb1acec203b96f16"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4951",
+      "section_key": "body_76f5066e90",
+      "kind": "narrative",
+      "required": true,
+      "name": "6．知名企业联合实验室4个",
+      "business_context": "（五）实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[825]",
+        "expected_text_hash": "e5bb2cf747bfbd661e9d7a77d63700f6868153e5c3f57f969116ccf5fd549012"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

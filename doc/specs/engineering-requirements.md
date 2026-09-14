@@ -44,7 +44,7 @@
 
 ### 必须满足
 
-1. 前端只提交服务端公布的 `capabilityRef` 和该能力允许的业务输入、会话/文件引用；显示名称可以描述业务功能，但不能把底层执行名称当作可任意运行的指令。
+1. 前端只提交服务端公布的可选capabilityRef和获准业务输入/会话/文件引用。2026-09-14用户确认普通会话省略能力，内部归一为conversation并照常授权；选择能力按当前消息生效。显示名不能把底层执行名称当任意指令。
 2. Java 校验用户、租户、会话、文件和 Capability 权限；未经授权、未知或已停用的能力必须拒绝。前端隐藏按钮不能代替后端授权。
 3. 可信服务端将 Capability 解析为内部执行配置。前端不得直接提交或通过嵌套字段、文本前缀覆盖 Workflow 名称、Skill 路径、Agent 配置、工具/MCP 地址、工作目录或权限。
 4. Capability 标识与 Workflow 标识语义独立，不要求一一对应或字符串相等。同一 Workflow/Skill 可复用到多个能力；内部配置调整不应迫使前端改用另一个执行入口。
@@ -61,11 +61,10 @@
 
 ### 当前状态与待明确项
 
-- **部分实现，2026-09-07 源码核对**：已有 `capabilityRef`、Run JWT 绑定与受控 profile；但 `python/runtime/protocol.py` 的 `Execution.capability_ref` 来自 Workflow ID，`AgentRunRequest` 要求两者相符。此 MVP 约束尚不满足标识独立的目标，不能写成已完成 Capability 解耦。
+- **部分实现，2026-09-14源码核对**：Capability已通过capabilities.py映射内部Workflow，协议拒绝外部执行配置；普通会话省略capabilityRef，JWT仍绑定conversation。同业务会话按能力隔离Client，外部Java的旧请求工厂与前端选择器尚未闭环。
 - 本地自测已迁至独立 ScribePlayground，仅提交 `capabilityRef`；Workflow 名称只存在于 Python 内部执行配置，Runtime 不再暴露本地 `/api/*` 接口或识别测试身份直读附件（2026-09-09，ADR-018）。
 - [Runtime 规范](ccsdk-runtime-interface.md) 与 [Java 接入方案](java-control-plane.md) 中现有 Workflow/Capability 映射、注册职责和审计约定需在后续方案修改时与本条对齐；Java 端到端授权未在本次验证。
-- 2026-09-14 已确认预制模板业务输入仅需 `payload.templateKey`，年份与要求放 `input.text`；Python 维护模板及数据源绑定，内部记录实际配置版本，见[能力 payload 映射](capability-payload.md)。模板解析、按能力校验及版本审计待实现；其他 Capability 的业务粒度与注册配置归属仍待接入方案明确。
-- 2026-09-14 已沉淀[共享 QuerySpec](../../.claude/query-specs/README.md)：确定口径固定查询，未命中且语义/权限明确时才动态生成 SQL；资产内部化，模板仅引用查询标识。本轮验证不包含工具端授权、Runtime 装配或报告源生成验收。
-- 2026-09-14用户确认当前唯一数据库为校本数据库，按[ADR-022](../ADR/022-school-database-single-tenant.md)先做单租户；来源统一school、受控静态策略及可信DataContext均为待实施设计。单租户不取消Java业务授权，不删tenant参数；如存在用户/部门范围差异，静态策略必须覆盖或接入真实授权，不能默认为全库可读。
-- 2026-09-14按[ADR-023](../ADR/023-database-scoped-asset-packages.md)确定以数据库包集中登记、语义、指标和查询，第一版支持单租户多来源；模型/模板只引用source_key+domain+query_id。来源发现不代替授权，各源连接/策略/结果分别解析与审计；本轮仅设计，未搬迁资产或实现多来源工具。
-- 2026-09-14用户进一步明确唯一来源名称为“校双高数据库”，内部标识定为schoolDoubleHigh，替代此前泛称校本库及拟议school键；hpm业务域、学校范围角色及现有国/校双高查询筛选规则不因改名而改变。报告工具是模板计划的调用入口，复用数据和DOCX能力，仍待实现。
+- 2026-09-14预制模板仅需payload.templateKey，年份/要求在input.text；Python已解析模板、核验能力/来源并记录配置版本，见[能力payload映射](capability-payload.md)。原40表规则未全部绑定，年度适配模板已完成实库生成与SDK发布。
+- 2026-09-14已接入[数据库包](../../.claude/databases/README.md)、固定/动态查询、静态来源策略及逐Run上下文。合成测试覆盖多来源同名查询、用户/租户/范围隔离及取消；真实Java授权、撤销和生产多租户仍未验收。
+- 当前唯一来源为校双高数据库schoolDoubleHigh，[ADR-022](../ADR/022-school-database-single-tenant.md)保留单租户边界，[ADR-023](../ADR/023-database-scoped-asset-packages.md)的按库目录已实施。单租户不删tenant过滤，来源发现不授权，selected项目范围不能扩大为全校。
+- 固定模板SDK只挂data/reports工具，报告工具复用Artifact发布；普通Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成。

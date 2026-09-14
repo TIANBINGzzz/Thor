@@ -18,9 +18,6 @@
   "engines": {
     "node": ">=22"
   },
-  "dependencies": {
-    "@bytebase/dbhub": "^1.2.0"
-  },
   "overrides": {
     "@modelcontextprotocol/node": {
       "@hono/node-server": "^2.1.0"

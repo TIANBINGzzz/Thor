@@ -1,0 +1,143 @@
+{
+  "section_key": "body_d2e0314c62",
+  "slots": [
+    {
+      "slot_key": "P4842",
+      "section_key": "body_d2e0314c62",
+      "kind": "static",
+      "required": false,
+      "name": "五、满意度情况",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[716]",
+        "expected_text_hash": "75da11f3e67796b1822c946c7309edb39e105bc2d0583240d02e083ec889844f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4985",
+      "section_key": "body_d2e0314c62",
+      "kind": "static",
+      "required": false,
+      "name": "五、满意度情况",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[859]",
+        "expected_text_hash": "d2e0314c6203404503f160bc80e3f9e6515e6055d0dd558805f724b37f580b49"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4986",
+      "section_key": "body_d2e0314c62",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．在校生满意度95.94%",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[860]",
+        "expected_text_hash": "9f3b5e3808f9b220c1ec379c7de7ff2936e66f57b8fa43d33548601fe45df670"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4987",
+      "section_key": "body_d2e0314c62",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．毕业生满意度94.92%",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[861]",
+        "expected_text_hash": "eadfc1883e4cfbc3dc82646bc0a1fc759f9f4b080c71655035e41e39b49bcedd"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4988",
+      "section_key": "body_d2e0314c62",
+      "kind": "narrative",
+      "required": true,
+      "name": "3．教职工满意度96.43%",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[862]",
+        "expected_text_hash": "85505c0687cc6da989dda0719d3ef773636a8d0bfdbf6f0fa606855b90f63ad8"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4989",
+      "section_key": "body_d2e0314c62",
+      "kind": "narrative",
+      "required": true,
+      "name": "4．用人单位满意度97.06%",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[863]",
+        "expected_text_hash": "f1e62ea10d2cb684f75973904f734cfd2bcf15acdec7b7c9e26fbe76d018319f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4990",
+      "section_key": "body_d2e0314c62",
+      "kind": "narrative",
+      "required": true,
+      "name": "5．家长满意度97.75%",
+      "business_context": "五、满意度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[864]",
+        "expected_text_hash": "6c8c3fba648ba72c3b92ed1cd85a527f8de375e75e641b6ea14d9510e6460ad2"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

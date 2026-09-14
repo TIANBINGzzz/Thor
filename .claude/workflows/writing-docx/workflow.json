@@ -7,9 +7,18 @@
   "runtime": {
     "mode": "client"
   },
-  "skills": ["writing-documents"],
+  "skills": [
+    "writing-documents"
+  ],
   "documents": {
     "constraints": [],
     "semantics": []
+  },
+  "data_sources": [
+    "schoolDoubleHigh"
+  ],
+  "templates": {
+    "szpt-midterm": "templates/szpt-midterm/template.json",
+    "double-high-annual": "templates/double-high-annual/template.json"
   }
 }

@@ -1,0 +1,43 @@
+{
+  "section_key": "body_dc043ae0b3",
+  "slots": [
+    {
+      "slot_key": "P4343",
+      "section_key": "body_dc043ae0b3",
+      "kind": "static",
+      "required": false,
+      "name": "（一）地方支持，多渠道保障“双高”建设",
+      "business_context": "（一）地方支持，多渠道保障“双高”建设",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[242]",
+        "expected_text_hash": "dc043ae0b32e6ea39eaf86864d13bb6480b05427296ae5dbe820d971cb26756f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4344",
+      "section_key": "body_dc043ae0b3",
+      "kind": "narrative",
+      "required": true,
+      "name": "深圳市将学校“双高”建设纳入部省共建深圳职业教育高端发展、深圳市国民经济和社会发展“十四五”规划、深圳市教育发展“十四五”规划等重大政策文件，作为省市重点工作由市领导督办。学校研究制定了《中",
+      "business_context": "（一）地方支持，多渠道保障“双高”建设",
+      "scope_role": "school",
+      "source_rules": [
+        "X"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[243]",
+        "expected_text_hash": "e585b3ac172c6dd3bff1a79cb5b02190e63f68853cdc31d87ee0400737b1ee88"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

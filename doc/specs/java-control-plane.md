@@ -55,7 +55,7 @@ Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabili
 | 路径 conversationId | Java 校验归属后转为 businessSessionId，已有业务会话不需再造会话 ID。 |
 | content | 转为 Python input.text，也对应 Dify query；query() 本身是 SDK 调用，不是业务 ID。 |
 | attachmentIds[] | Java 校验文件归属后转为 input.attachmentRefs[]，缺省 purpose 使用 input。 |
-| capabilityRef | 可省略并由 Java 取 Agent 默认值；Java 发给 Python 时必须确定具体值。 |
+| capabilityRef | 普通会话可省略，Python内部归一为conversation，JWT仍绑定conversation；用户选择能力只作用于当前消息。Python后端路由由可信配置决定，不能以该字段是否非空决定。 |
 | payload | Java 按[能力映射记录](capability-payload.md)校验后传递；预制模板只需 templateKey，年份和撰写要求用 content。现有 Java 的 Dify inputs 不等同于此字段，Python 模板解析待实现。 |
 | Java messageId | 沿用当前 Bridge 的助手消息 ID，关联输出；用户消息通过现有回复关系关联。 |
 | Java runId | 一次执行；网络重提交复用，新执行/重新生成使用新值；无需 turnId。 |

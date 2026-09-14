@@ -1,0 +1,62 @@
+{
+  "section_key": "body_5affd35193",
+  "slots": [
+    {
+      "slot_key": "P4564",
+      "section_key": "body_5affd35193",
+      "kind": "static",
+      "required": false,
+      "name": "（一）加强党的建设",
+      "business_context": "（一）加强党的建设",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[438]",
+        "expected_text_hash": "5affd35193aff3ec5d4efa532a13650ca5b41dac792be721dc94df04194a7208"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4565",
+      "section_key": "body_5affd35193",
+      "kind": "static",
+      "required": false,
+      "name": "1.形成了完善的党建工作机制（成熟定型）",
+      "business_context": "（一）加强党的建设",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[439]",
+        "expected_text_hash": "fe1d36020824d89b1960c1db279fc6c9f8cc482ae6436ce41b26fbf2ffd6b915"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4566",
+      "section_key": "body_5affd35193",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.获得了丰硕的党建业绩成果（累计17个）",
+      "business_context": "（一）加强党的建设",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[440]",
+        "expected_text_hash": "8e42e85897b863d363eb75e1351803b351b41e88841aed2fcb7cd423fccd566b"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

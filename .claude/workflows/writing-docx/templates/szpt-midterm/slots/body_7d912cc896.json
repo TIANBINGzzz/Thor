@@ -1,0 +1,161 @@
+{
+  "section_key": "body_7d912cc896",
+  "slots": [
+    {
+      "slot_key": "P1858",
+      "section_key": "body_7d912cc896",
+      "kind": "static",
+      "required": false,
+      "name": "（二）贡献度情况  (暂无 根据后续需求对接)",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[135]",
+        "expected_text_hash": "7d912cc896cebe602101d870ae86087b4a6417226b9ebb389fd64078bb6de0bb"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1859",
+      "section_key": "body_7d912cc896",
+      "kind": "narrative",
+      "required": true,
+      "name": "高水平学校社会效益指标和可持续影响指标中期目标值34项，完成度均超100%。自评等级优。",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[136]",
+        "expected_text_hash": "7e99d87e049afe9281e2db0ffa4a973874dbcb9ca47c5da15cf093e3eff86c94"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1863",
+      "section_key": "body_7d912cc896",
+      "kind": "static",
+      "required": false,
+      "name": "表 4 效益指标中期自评表",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[140]",
+        "expected_text_hash": "2a50fc355a689600cd333e602dc3d088dfa05283b90200e05f717562186bdf10"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2152",
+      "section_key": "body_7d912cc896",
+      "kind": "static",
+      "required": false,
+      "name": "1.引领职业教育改革发展和人才培养",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "固定保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[141]",
+        "expected_text_hash": "4ef17475cc73933f21c2d9c3b3857ec11b15c068d616c58a6ffd0cfdf04bf4a8"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2153",
+      "section_key": "body_7d912cc896",
+      "kind": "narrative",
+      "required": true,
+      "name": "做出了思政“金课”建设的“深职探索”。学校深入落实习近平总书记在思想政治理论课教师座谈会上的讲话精神，充分利用深圳改革开放“活教材”，推动把思想政治理论课讲透、讲深、讲活。一是围绕“深圳奇迹",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[142]",
+        "expected_text_hash": "cd0b7d5e3f5a93f3ae46e7bb8dc0a33d9f88268b0b67b0b6bef6ce987c201be7"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2154",
+      "section_key": "body_7d912cc896",
+      "kind": "narrative",
+      "required": true,
+      "name": "《深圳案例100篇》为全国高校开展思政课教学提供了生动案例。学校党委主要领导在教育部召开的全国教育系统学习贯彻习近平总书记在中国人民大学考察时重要讲话精神座谈会上，围绕相关成果作交流发言，为",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[143]",
+        "expected_text_hash": "5d9677c70f2a49eaa568c62a1527662190e54ecec2afac29c42c5c9b8db5eb82"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2155",
+      "section_key": "body_7d912cc896",
+      "kind": "narrative",
+      "required": true,
+      "name": "提供了“三教”改革的“深职方案”。学校依据成果导向（OBE）的教育教学理论，以特色产业学院为载体，深化产教融合、校企合作，建构了深职特色的“三教”改革体系。一是变革教师队伍。学校在企业设立实",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[144]",
+        "expected_text_hash": "8085f31cefec005afc5025f3ec30418c2c429cc17f0ad565c9bd315faceb1a22"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2156",
+      "section_key": "body_7d912cc896",
+      "kind": "narrative",
+      "required": true,
+      "name": "建构了技术技能人才培养的“深职标准”。学校始终把教学工作作为安身立命之基，高度重视教育教学改革和专业教学标准体系建设。2019年出台“深职教学改革30条”，提出以职业教育国家教学标准为基本遵",
+      "business_context": "（二）贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[145]",
+        "expected_text_hash": "3fd8dfa83240ada720e9aa92f43843a842f4266d0af5d2c9d753f10b283e0c89"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

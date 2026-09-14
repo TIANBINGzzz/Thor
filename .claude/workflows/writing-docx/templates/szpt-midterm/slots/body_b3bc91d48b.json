@@ -1,0 +1,234 @@
+{
+  "section_key": "body_b3bc91d48b",
+  "slots": [
+    {
+      "slot_key": "P4568",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[442]",
+        "expected_text_hash": "b3bc91d48b511753aa12c8518f80cbc4fe611a1292333d8e7a9830101bcc4ad1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4569",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.毕业生在世界500强企业、行业龙头企业、领军企业就业比例达16%",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[443]",
+        "expected_text_hash": "146074e1d73b1881648cf419f8fa926d90e76e70fa36118a810d3e6c5acc946f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4570",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.毕业生毕业一年后月薪高于全国示范院校平均值33.2%",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[444]",
+        "expected_text_hash": "10fcfd1e655a92c13d9257023a777ee181f44b329fcaa3835daaefb6e4fb5e12"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4571",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "3.学校影响力、学校公信度提升（显著提升）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[445]",
+        "expected_text_hash": "5447ae121b1bcaf60a11e8ba0de5ff6fdef5ac78d4036db68263f2a9b57d8fb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4572",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "4.国际组织开展的活动对国际职业教育人才培养培训与经验分享（作用突出）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[446]",
+        "expected_text_hash": "868893aaf95e0c9e5b8212a90c4941c8c9a17bed3cf8ad867172ce6b11b2ffe5"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4573",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "5.海外职业教育培训中心的作用（作用显著）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[447]",
+        "expected_text_hash": "6f1a54546a88b061bb16151e3bd4089eb97b49af21677eb274ca547f5f77aeae"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4574",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.应用深职双创课程、教材的境内外院校（170个）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[448]",
+        "expected_text_hash": "cd53cc3c78f240aa86bcf3e5951c0dc7fbcec2a3dff006a7ac777744a068bc5a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4575",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "7.出版《高职院校书院制建设研究》专著（部）（形成初稿）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[449]",
+        "expected_text_hash": "56e9dd1971905dd3d9dc87e4f871e3cf9b01f8d86b9cebb92e152b01417e2fc9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4576",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "8.举办劳动教育导师研修培训班（246人次）",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[450]",
+        "expected_text_hash": "71190cb2229a81e4a572d905ad77da2e2638e2aeb89ada5d980b3f67d59cca29"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4974",
+      "section_key": "body_b3bc91d48b",
+      "kind": "static",
+      "required": false,
+      "name": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[848]",
+        "expected_text_hash": "b3bc91d48b511753aa12c8518f80cbc4fe611a1292333d8e7a9830101bcc4ad1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4975",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．培养专业对口的智能硬件产业人才2012人",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[849]",
+        "expected_text_hash": "113e312d8e3a9be2b22182aef711329688bf21ba36dd5483a24635f9bea209c2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4976",
+      "section_key": "body_b3bc91d48b",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．智能硬件精英人才185人",
+      "business_context": "（一）引领职业教育改革发展和人才培养的贡献度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[850]",
+        "expected_text_hash": "c295e53df751eb7717aac913a6eeccdb04a9e74d32a7c0ed717f8612a2fb0e0f"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

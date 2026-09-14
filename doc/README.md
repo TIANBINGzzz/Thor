@@ -7,10 +7,12 @@
 | 项目边界、目录和生命周期 | [ARCHITECTURE.md](../ARCHITECTURE.md) | 当前架构 | 目录职责、系统边界或运行数据生命周期变化 | 受影响的 README、规范；保持九部分结构 |
 | 本地启动、配置、测试 | [README.md](../README.md) | 当前入口 | 启动命令、依赖、通用配置或测试入口变化 | 对应脚本、配置示例和文档链接 |
 | Java ↔ Python Runtime 契约 | [Runtime 接口](specs/ccsdk-runtime-interface.md) | 当前契约 | 实际请求、鉴权、响应、事件或文件协议变化 | Java 控制面实现部分、API 页面和相关测试 |
-| 不同能力的 payload 字段 | [能力 payload 映射](specs/capability-payload.md) | 已确认业务约定；模板解析待实现 | 新增能力、专属字段、预制模板绑定或字段实现状态变化 | Java 接入建议、对应模板来源说明；实现后再同步 Runtime 契约与 API 页面 |
-| 共享查询与数据源 | [QuerySpec](../.claude/query-specs/README.md) | 资产及验证已落地；运行时待接入 | 数据源、指标口径、参数、SQL、输出或验证范围变化 | 查询目录、18问覆盖、模板绑定和相应语义依据 |
-| 数据库包管理与查询工具 | [目录与修改方案](specs/data-source-connections.md) | 按库集中，首期单租户多来源；设计待实施 | 数据库包、静态策略、可信Context、工具和租户扩展边界变化 | ADR-020/021/022/023、QuerySpec说明；实现后同步接口与配置 |
-| 固定模板批量取数 | [绑定与取数计划](specs/template-batch-data-plan.md) | 方案一已选择；校双高库及报告工具待接入 | 模板槽位、参数传递、批量执行、动态补数与结果契约变化 | ADR-021/022/023、数据源方案、能力payload；实现后同步Runtime/API |
+| 能力payload | [业务字段](specs/capability-payload.md) | 模板解析已实现，普通能力可省略 | 能力及模板契约变化 | Runtime/API、Java |
+| 共享数据库资产 | [数据库包](../.claude/databases/README.md) | 已接入运行时，原23项查询搬迁验证通过 | 来源、口径、SQL、输出和验证变化 | 18问覆盖及模板 |
+| 数据库管理与工具 | [管理方案](specs/data-source-connections.md) | 单租户多来源工具已实现，生产隔离仍待验收 | 策略、工具、连接变化 | ADR-023、配置与API |
+| 模板批量取数 | [模板计划](specs/template-batch-data-plan.md) | 年度适配版实库生成；原40表仍有缺定义 | 绑定及报告契约变化 | 数据源、能力payload、测试 |
+| 对话与报告产品流程 | [产品文档](specs/conversation-reporting-product.md) | 已核对主前端、嵌入页、Java和Playground | 选择能力、会话、附件及成果交互变化 | Python协议及外部接入差距 |
+| 原报告数据来源核验 | [SQL与来源](verification/report-source-audit.md) | 5组原SQL实库对照 | 原来源、字段及查询验证变化 | 共享语义、QuerySpec和模板 |
 | Java 业务控制面接入 | [Java 控制面](specs/java-control-plane.md) | 推荐设计 + 源码核实的实现 | Java/Python 请求、鉴权、文件、事件、适配边界或前端展示变化；设计被采纳；联调发现差异。纯内部重构不扩写 | 实际协议变化同步 Runtime 规范、API 页面和测试；纯建议只更新设计及差异记录；重要已采纳决策另记 ADR |
 | 持续工程约束 | [工程要求](specs/engineering-requirements.md) | 必须持续检查 | 新增或调整要求，或实现证据、差距变化；每次方案变更均须检查 | 受影响的方案、规范及实施总结；已实现要求仍保留 |
 | 架构取舍和替代关系 | [ADR 索引](ADR/README.md) | 当前决策 + 历史索引 | 重要决策新增、替代或状态变化 | 对应 ADR、索引、替代链接及受影响的规范 |

@@ -17,6 +17,7 @@ from typing import Any
 
 from runtime.config import (
     build_options,
+    create_run_services,
     isolated_sdk_environment,
     load_runtime_environment,
     missing_environment,
@@ -355,7 +356,8 @@ async def run_client(initial: dict[str, Any]) -> None:
     if missing:
         emit({"type": "client_error", "code": "configuration_error"})
         return
-    options = build_options(initial)
+    data_services = create_run_services(initial)
+    options = build_options(initial, data_services=data_services)
     direct_workflow = options.tools == [] and options.strict_mcp_config
     client = ClaudeSDKClient(
         options,
@@ -392,6 +394,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                     emit({"type": "client_error", "run_id": run_id, "code": "configuration_error"})
                     continue
                 try:
+                    if data_services:
+                        await data_services.bind(command)
                     deadline = time.monotonic() + timeout_value / 1000
                     async with asyncio.timeout(timeout_value / 1000):
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
@@ -410,6 +414,9 @@ async def run_client(initial: dict[str, Any]) -> None:
                 except Exception as error:
                     emit({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)})
                     return
+                finally:
+                    if data_services:
+                        await data_services.close()
         except asyncio.CancelledError:
             raise
         except Exception as error:
@@ -437,17 +444,24 @@ async def run(payload: dict[str, Any]) -> None:
     missing = missing_environment()
     if missing:
         raise RuntimeError(f"请先在项目根目录的 .env 中配置：{', '.join(missing)}")
-    options = build_options(payload)
+    data_services = create_run_services(payload)
+    if data_services:
+        await data_services.bind(payload)
+    options = build_options(payload, data_services=data_services)
     direct_workflow = options.tools == [] and options.strict_mcp_config
     streaming: dict[str, str] = {}
     # The SDK merges ``options.env`` with the worker process environment.  Keep
     # secrets loaded for configuration construction out of the provider CLI.
     timeout_ms = payload.get("timeout_ms", payload.get("timeoutMs", DEFAULT_TIMEOUT_MS))
-    with isolated_sdk_environment():
-        async for message in stream_query(payload["prompt"], options, timeout_ms=timeout_ms):
-            normalized = normalize_message(message)
-            for event in message_events(message, streaming):
-                emit(direct_workflow_event(event) if direct_workflow else event)
+    try:
+        with isolated_sdk_environment():
+            async for message in stream_query(payload["prompt"], options, timeout_ms=timeout_ms):
+                normalized = normalize_message(message)
+                for event in message_events(message, streaming):
+                    emit(direct_workflow_event(event) if direct_workflow else event)
+    finally:
+        if data_services:
+            await data_services.close()
 
 
 async def main() -> None:

@@ -2,7 +2,7 @@
 
 供 Java 开发接入的 Python Claude Agent SDK Runtime。通过 Anthropic 兼容接口连接模型，按受信 Capability 调用 Workflow、Skill、MCP 和文件工具。Java 负责业务身份、租户、授权、会话和文件，Python 负责执行及 Run 生命周期。
 
-当前唯一数据库为校双高数据库（2026-09-14用户最新确认），内部标识定为schoolDoubleHigh；此前“校本库”指同一来源。目标按库集中管理，第一版支持单租户、多数据源；旧qa_db/report_db待统一，hpm保留为当前已整理业务域，现有筛选口径不随命名改变。
+当前唯一数据库为校双高数据库，标识为schoolDoubleHigh。已按库集中管理登记、语义、指标和查询，业务域为hpm；先支持单租户多来源，保留可信身份、来源策略和连接选择边界。
 
 ## 快速开始
 
@@ -24,34 +24,34 @@ npm test
 
 ```text
 python/       FastAPI Runtime、SDK Worker、文件 Broker 和执行工具
-.claude/      Skills、Agents、Commands、Workflow 配置与共享 QuerySpec
+.claude/      Skills、Agents、Commands、Workflow、模板和databases数据库资产
 deploy/       云效 ECS 容器构建、配置示例与部署脚本
 doc/          接口规范、工程要求、ADR 和静态 API 文档
 ```
 
 HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 创建、查询、订阅事件、控制执行和下载产物；固定附件经 Java HTTPS File Broker 获取。默认监听 `127.0.0.1:4310`，`SCRIBE_PORT` 可调整端口。
 
-测试 UI、模拟 Java 服务、测试会话和上传已迁至独立项目 `../ScribePlayground`，不再是 Runtime 的运行依赖。Node 仅用于仍需 Node 的 MCP（例如 DBHub）；需要内置 DBHub 时执行 `npm ci`。
+测试UI、模拟Java服务、测试会话及上传位于独立项目 `../ScribePlayground`，不是Runtime运行依赖。Node用于SDK CLI及项目脚本，数据库查询已由进程内data MCP替代DBHub。
 
 ## 当前能力
 
-- `conversation`：普通对话
+- 普通对话：请求可省略capabilityRef，内部解析为conversation
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
-撰写模板资产放在 `.claude/workflows/writing-docx/templates/`；[双高中期自评模板与逐段来源](.claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md)已整理，模板数据绑定尚未接入 Runtime。
+撰写模板放在 `.claude/workflows/writing-docx/templates/`。szpt-midterm登记原40表位置及待补规则；double-high-annual按所选两个项目批量生成年度建设报告。模板解析、固定取数、填表及发布已接入Runtime，原40表不能视为已全部自动绑定。
 
-各能力的业务字段统一维护在[能力 payload 映射记录](doc/specs/capability-payload.md)；预制模板约定只传 `payload.templateKey`，年份和要求放 `input.text`，模板解析待实现。
+业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 
-[共享查询资产 QuerySpec](.claude/query-specs/README.md)已整理数据源、参数化 SQL、口径及输出字段，覆盖现有 18 问和报告表格来源；已验证校双高库问数字段与部分数值，运行时查询执行和报告模板取数待接入。
+[共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
 
-后续采用[固定模板绑定与批量取数计划](doc/specs/template-batch-data-plan.md)，并保留模型动态只读查询；[数据库目录与修改方案](doc/specs/data-source-connections.md)以 `.claude/databases/<source_key>/` 集中source.json及 `query-specs/<domain>/`，单租户静态策略起步。目录及SQLAlchemy后端均待实施，当前仍使用DBHub和旧查询目录。
+[模板批量计划](doc/specs/template-batch-data-plan.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
 
-前端和 Java 只提交受控 `capabilityRef`，不能提交 Workflow、Skill、模型、MCP 地址或工作目录。
+前端和Java按消息提交可选capabilityRef；不能提交Workflow、Skill、模型、MCP地址或工作目录。同一业务会话切换能力时，Python隔离各能力Client和工具上下文。
 
 ## 配置与安全
 
-模型配置写在根 `.env`；数据库专属配置写在 `.claude/workflows/database-qa/workflow.env`，该文件已被 Git 忽略。不要把密钥、真实 Token、租户值、内部 ID 或真实查询结果写入代码、文档、日志或提交。当前入口仍启用 `bypassPermissions`，只适合本地或内网验证。
+模型配置写在根.env，数据库连接/静态策略由CCSDK_DATA_CONFIG指向受保护JSON，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
 ## 文档入口
 

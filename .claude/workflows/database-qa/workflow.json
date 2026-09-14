@@ -1,7 +1,6 @@
 {
   "name": "database-qa",
   "description": "Answer a business question from the configured HPM database",
-  "env_file": "workflow.env",
   "execution": {
     "mode": "direct"
   },
@@ -12,44 +11,9 @@
       "constraints/ambiguity-resolution.md",
       "constraints/output-contract.md"
     ],
-    "semantics": [
-      "semantics/glossary.md",
-      "semantics/entity-grain.md",
-      "semantics/join-rules.md",
-      "semantics/metric-definitions.md",
-      "semantics/sql-patterns.md",
-      "semantics/tables/t_hpm_project.md",
-      "semantics/tables/t_hpm_project_stage.md",
-      "semantics/tables/t_hpm_project_module.md",
-      "semantics/tables/t_hpm_project_member.md",
-      "semantics/tables/t_hpm_project_task.md",
-      "semantics/tables/t_hpm_project_task_feedback.md",
-      "semantics/tables/t_hpm_project_task_member.md",
-      "semantics/tables/t_hpm_project_task_org.md",
-      "semantics/tables/t_hpm_project_performance.md",
-      "semantics/tables/t_hpm_project_performance_feedback.md",
-      "semantics/tables/t_hpm_project_performance_org.md",
-      "semantics/tables/t_hpm_project_fund.md"
-    ]
+    "semantics": []
   },
-  "database": {
-    "type": "mysql",
-    "name": "test_hpm_dev",
-    "provider_config": "dbhub.readonly.toml",
-    "read_only": true,
-    "allowed_tables": [
-      "t_hpm_project",
-      "t_hpm_project_fund",
-      "t_hpm_project_member",
-      "t_hpm_project_module",
-      "t_hpm_project_performance",
-      "t_hpm_project_performance_feedback",
-      "t_hpm_project_performance_org",
-      "t_hpm_project_stage",
-      "t_hpm_project_task",
-      "t_hpm_project_task_feedback",
-      "t_hpm_project_task_member",
-      "t_hpm_project_task_org"
-    ]
-  }
+  "data_sources": [
+    "schoolDoubleHigh"
+  ]
 }

@@ -1,0 +1,100 @@
+{
+  "section_key": "body_102a602e39",
+  "slots": [
+    {
+      "slot_key": "P4696",
+      "section_key": "body_102a602e39",
+      "kind": "static",
+      "required": false,
+      "name": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "business_context": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[570]",
+        "expected_text_hash": "97fc09e0d1c44e3f3f73160821922d6e41e56a058a6bf65bb066b21f563608c8"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4697",
+      "section_key": "body_102a602e39",
+      "kind": "static",
+      "required": false,
+      "name": "1.中共深圳市委办公厅 深圳市人民政府办公厅关于印发《深圳市建设中国特色社会主义先行示范区重点工作计划（2020-2022年）》的通知（三年工作计划）》",
+      "business_context": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[571]",
+        "expected_text_hash": "683cbeaefe25a772e956fc399eefd5596a278c3ef2e6c17a0e4d8a5b543f8ec1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4698",
+      "section_key": "body_102a602e39",
+      "kind": "static",
+      "required": false,
+      "name": "2.深圳市人民政府关于印发2020年重点工作责任分工一览表的通知",
+      "business_context": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[572]",
+        "expected_text_hash": "f9bdfb9999ba0c0d545bbe8a1c69fffb31871976d50d10ebc802b89001b452f1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4699",
+      "section_key": "body_102a602e39",
+      "kind": "static",
+      "required": false,
+      "name": "3.广东省人民政府关于印发2021年省《政府工作报告》重点任务分工方案的通知",
+      "business_context": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[573]",
+        "expected_text_hash": "c77922b683281a99107926ee64bad812e972512fa3bf23726186900120f5fba0"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4700",
+      "section_key": "body_102a602e39",
+      "kind": "static",
+      "required": false,
+      "name": "4.任务表单（省重点工作和民生实事）",
+      "business_context": "（二）地方政府主要领导联系学校机制的建立与运行",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[574]",
+        "expected_text_hash": "3ab969918505247a4c24e30eeab3fa9b9194850b7acd65a25ffab307340f3b5a"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

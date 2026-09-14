@@ -1,0 +1,1015 @@
+{
+  "version": 1,
+  "metrics": [
+    {
+      "metric_key": "completed_task_count.task_count",
+      "name": "所有层级有效年度任务数",
+      "kind": "direct",
+      "query_id": "completed_task_count",
+      "field": "task_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "completed_task_count.completed_count",
+      "name": "其中进度>=100的任务数",
+      "kind": "direct",
+      "query_id": "completed_task_count",
+      "field": "completed_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "completed_tasks_without_material.completed_count",
+      "name": "所有层级已完成任务数",
+      "kind": "direct",
+      "query_id": "completed_tasks_without_material",
+      "field": "completed_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "completed_tasks_without_material.missing_material_count",
+      "name": "没有合格支撑材料的已完成任务数",
+      "kind": "direct",
+      "query_id": "completed_tasks_without_material",
+      "field": "missing_material_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.total_fund_count",
+      "name": "全部有效项目资金节点数（不限层级）",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "total_fund_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.fund_with_task_count",
+      "name": "task_id 非空的资金数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "fund_with_task_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.matched_task_count",
+      "name": "成功关联有效任务的资金数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "matched_task_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.matched_department_fund_count",
+      "name": "成功关联主部门的去重资金数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "matched_department_fund_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.coverage_rate",
+      "name": "资金到主部门覆盖率",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "coverage_rate",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.department_count",
+      "name": "可归属主部门数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "department_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.zero_execute_department_count",
+      "name": "按 Q16 NULL 视0规则的零执行部门数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "zero_execute_department_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.all_missing_department_count",
+      "name": "全部执行金额未填报部门数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "all_missing_department_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_department_coverage.incomplete_department_count",
+      "name": "存在执行金额未填报的部门数",
+      "kind": "direct",
+      "query_id": "fund_department_coverage",
+      "field": "incomplete_department_count",
+      "grain": "fund relationship coverage + department diagnostic",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.fund_count",
+      "name": "资金节点数",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "fund_count",
+      "grain": "funding source kind",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.budget_amount",
+      "name": "预算已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "budget_amount",
+      "grain": "funding source kind",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.budget_observed_count",
+      "name": "预算非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "budget_observed_count",
+      "grain": "funding source kind",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.investment_amount",
+      "name": "投入已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "investment_amount",
+      "grain": "funding source kind",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.investment_observed_count",
+      "name": "投入非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "investment_observed_count",
+      "grain": "funding source kind",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.execute_amount",
+      "name": "执行已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "execute_amount",
+      "grain": "funding source kind",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.execute_observed_count",
+      "name": "执行非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "execute_observed_count",
+      "grain": "funding source kind",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.arrival_amount",
+      "name": "到位已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "arrival_amount",
+      "grain": "funding source kind",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.arrival_observed_count",
+      "name": "到位非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "arrival_observed_count",
+      "grain": "funding source kind",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.budget_execution_rate",
+      "name": "完整执行合计/完整预算合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "budget_execution_rate",
+      "grain": "funding source kind",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.arrival_rate",
+      "name": "完整到位合计/完整预算合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "arrival_rate",
+      "grain": "funding source kind",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_source_amounts.arrival_execution_rate",
+      "name": "完整执行合计/完整到位合计",
+      "kind": "direct",
+      "query_id": "fund_source_amounts",
+      "field": "arrival_execution_rate",
+      "grain": "funding source kind",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.fund_count",
+      "name": "资金节点数",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "fund_count",
+      "grain": "selected level-1 annual funds",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.budget_amount",
+      "name": "预算已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "budget_amount",
+      "grain": "selected level-1 annual funds",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.budget_observed_count",
+      "name": "预算非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "budget_observed_count",
+      "grain": "selected level-1 annual funds",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.investment_amount",
+      "name": "投入已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "investment_amount",
+      "grain": "selected level-1 annual funds",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.investment_observed_count",
+      "name": "投入非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "investment_observed_count",
+      "grain": "selected level-1 annual funds",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.execute_amount",
+      "name": "执行已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "execute_amount",
+      "grain": "selected level-1 annual funds",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.execute_observed_count",
+      "name": "执行非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "execute_observed_count",
+      "grain": "selected level-1 annual funds",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.arrival_amount",
+      "name": "到位已填金额合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "arrival_amount",
+      "grain": "selected level-1 annual funds",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.arrival_observed_count",
+      "name": "到位非空金额记录数",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "arrival_observed_count",
+      "grain": "selected level-1 annual funds",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.budget_execution_rate",
+      "name": "完整执行合计/完整预算合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "budget_execution_rate",
+      "grain": "selected level-1 annual funds",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.arrival_rate",
+      "name": "完整到位合计/完整预算合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "arrival_rate",
+      "grain": "selected level-1 annual funds",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "fund_totals.arrival_execution_rate",
+      "name": "完整执行合计/完整到位合计",
+      "kind": "direct",
+      "query_id": "fund_totals",
+      "field": "arrival_execution_rate",
+      "grain": "selected level-1 annual funds",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.performance_count",
+      "name": "真实指标数",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "performance_count",
+      "grain": "selected current performance scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.reached_count",
+      "name": "progress>=100 指标数",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "reached_count",
+      "grain": "selected current performance scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.not_reached_count",
+      "name": "progress<100 或未填报指标数",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "not_reached_count",
+      "grain": "selected current performance scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.missing_progress_count",
+      "name": "未填报进度指标数",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "missing_progress_count",
+      "grain": "selected current performance scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.avg_progress",
+      "name": "NULL 视0平均进度",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "avg_progress",
+      "grain": "selected current performance scope",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_current_summary.reached_rate",
+      "name": "按条数达标率",
+      "kind": "direct",
+      "query_id": "performance_current_summary",
+      "field": "reached_rate",
+      "grain": "selected current performance scope",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.max_indicator_name_variants",
+      "name": "同指标部门名版本数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "max_indicator_name_variants",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.department_name_variants",
+      "name": "跨指标部门名版本数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "department_name_variants",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.performance_count",
+      "name": "真实指标数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "performance_count",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.reached_count",
+      "name": "progress>=100 指标数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "reached_count",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.not_reached_count",
+      "name": "progress<100 或未填报指标数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "not_reached_count",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.missing_progress_count",
+      "name": "未填报进度指标数",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "missing_progress_count",
+      "grain": "performance main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.avg_progress",
+      "name": "NULL 视0平均进度",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "avg_progress",
+      "grain": "performance main department",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_department_metrics.reached_rate",
+      "name": "按条数达标率",
+      "kind": "direct",
+      "query_id": "performance_department_metrics",
+      "field": "reached_rate",
+      "grain": "performance main department",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_feedback_candidates.year_progress",
+      "name": "反馈版本年度进度",
+      "kind": "direct",
+      "query_id": "performance_feedback_candidates",
+      "field": "year_progress",
+      "grain": "project + performance + feedback",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_feedback_candidates.total_progress",
+      "name": "反馈版本累计进度",
+      "kind": "direct",
+      "query_id": "performance_feedback_candidates",
+      "field": "total_progress",
+      "grain": "project + performance + feedback",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_feedback_candidates.has_attachment",
+      "name": "是否存在候选附件",
+      "kind": "direct",
+      "query_id": "performance_feedback_candidates",
+      "field": "has_attachment",
+      "grain": "project + performance + feedback",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_module_status.module_count",
+      "name": "有效模块记录数",
+      "kind": "direct",
+      "query_id": "performance_module_status",
+      "field": "module_count",
+      "grain": "project",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_module_status.distinct_flag_count",
+      "name": "不同非空开关数",
+      "kind": "direct",
+      "query_id": "performance_module_status",
+      "field": "distinct_flag_count",
+      "grain": "project",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.performance_count",
+      "name": "真实指标数",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "performance_count",
+      "grain": "selected year staged performance",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.reached_count",
+      "name": "progress>=100 指标数",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "reached_count",
+      "grain": "selected year staged performance",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.not_reached_count",
+      "name": "progress<100 或未填报指标数",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "not_reached_count",
+      "grain": "selected year staged performance",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.missing_progress_count",
+      "name": "未填报进度指标数",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "missing_progress_count",
+      "grain": "selected year staged performance",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.avg_progress",
+      "name": "NULL 视0平均进度",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "avg_progress",
+      "grain": "selected year staged performance",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_stage_summary.reached_rate",
+      "name": "按条数达标率",
+      "kind": "direct",
+      "query_id": "performance_stage_summary",
+      "field": "reached_rate",
+      "grain": "selected year staged performance",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_tree.performance_level",
+      "name": "1/2 分类，>=3 实绩节点",
+      "kind": "direct",
+      "query_id": "performance_tree",
+      "field": "performance_level",
+      "grain": "project + performance node",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "performance_tree.current_progress",
+      "name": "当前进度",
+      "kind": "direct",
+      "query_id": "performance_tree",
+      "field": "current_progress",
+      "grain": "project + performance node",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "project_catalog.current_progress",
+      "name": "项目当前进度，不能替代任务均值",
+      "kind": "direct",
+      "query_id": "project_catalog",
+      "field": "current_progress",
+      "grain": "project",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "project_leaders.name_variants",
+      "name": "姓名版本数",
+      "kind": "direct",
+      "query_id": "project_leaders",
+      "field": "name_variants",
+      "grain": "project + user",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_cycle_budget.fund_count",
+      "name": "全周期一级资金行数",
+      "kind": "direct",
+      "query_id": "report_cycle_budget",
+      "field": "fund_count",
+      "grain": "authorized project and declared period",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_cycle_budget.budget_observed_count",
+      "name": "已填预算行数",
+      "kind": "direct",
+      "query_id": "report_cycle_budget",
+      "field": "budget_observed_count",
+      "grain": "authorized project and declared period",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_cycle_budget.cycle_budget_amount",
+      "name": "当前登记全周期预算",
+      "kind": "direct",
+      "query_id": "report_cycle_budget",
+      "field": "cycle_budget_amount",
+      "grain": "authorized project and declared period",
+      "unit": "万元",
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_performance_titles.current_progress",
+      "name": "当前进度",
+      "kind": "direct",
+      "query_id": "report_performance_titles",
+      "field": "current_progress",
+      "grain": "project + performance",
+      "unit": "%",
+      "status": "blocked"
+    },
+    {
+      "metric_key": "report_task_sections.task_count",
+      "name": "下属三级任务数",
+      "kind": "direct",
+      "query_id": "report_task_sections",
+      "field": "task_count",
+      "grain": "authorized project and declared period",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_task_sections.current_average_progress",
+      "name": "主表当前平均进度，不是历史实绩",
+      "kind": "direct",
+      "query_id": "report_task_sections",
+      "field": "current_average_progress",
+      "grain": "authorized project and declared period",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "report_task_sections.period_feedback_count",
+      "name": "期内已审核反馈记录数，不是成果数",
+      "kind": "direct",
+      "query_id": "report_task_sections",
+      "field": "period_feedback_count",
+      "grain": "authorized project and declared period",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.max_task_name_variants",
+      "name": "单任务同部门的最多名称版本",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "max_task_name_variants",
+      "grain": "main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.department_name_variants",
+      "name": "跨任务部门名称版本数",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "department_name_variants",
+      "grain": "main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.task_count",
+      "name": "本部门去重任务数",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "task_count",
+      "grain": "main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.completed_count",
+      "name": "本部门已完成数",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "completed_count",
+      "grain": "main department",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.avg_progress",
+      "name": "平均进度",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "avg_progress",
+      "grain": "main department",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.completion_rate",
+      "name": "按条数完成率",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "completion_rate",
+      "grain": "main department",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_department_metrics.progress_rank",
+      "name": "平均进度降序并列排名",
+      "kind": "direct",
+      "query_id": "task_department_metrics",
+      "field": "progress_rank",
+      "grain": "main department",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_feedback_candidates.progress",
+      "name": "本次反馈进度",
+      "kind": "direct",
+      "query_id": "task_feedback_candidates",
+      "field": "progress",
+      "grain": "project + task + feedback",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_feedback_candidates.complete_progress",
+      "name": "完成进度字段原值",
+      "kind": "direct",
+      "query_id": "task_feedback_candidates",
+      "field": "complete_progress",
+      "grain": "project + task + feedback",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_feedback_candidates.has_attachment",
+      "name": "是否有候选附件",
+      "kind": "direct",
+      "query_id": "task_feedback_candidates",
+      "field": "has_attachment",
+      "grain": "project + task + feedback",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_level_counts.task_level",
+      "name": "任务层级",
+      "kind": "direct",
+      "query_id": "task_level_counts",
+      "field": "task_level",
+      "grain": "task level",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_level_counts.task_count",
+      "name": "该层级任务数",
+      "kind": "direct",
+      "query_id": "task_level_counts",
+      "field": "task_count",
+      "grain": "task level",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_members.name_variants",
+      "name": "姓名版本数",
+      "kind": "direct",
+      "query_id": "task_members",
+      "field": "name_variants",
+      "grain": "project + task + user + role",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.task_count",
+      "name": "有效任务数",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "task_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.completed_count",
+      "name": "已完成任务数",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "completed_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.avg_progress",
+      "name": "NULL 按 0 的平均进度",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "avg_progress",
+      "grain": "selected task scope",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.completion_rate",
+      "name": "已完成条数占比",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "completion_rate",
+      "grain": "selected task scope",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.threshold_count",
+      "name": "达到参数阈值数量",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "threshold_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.threshold_rate",
+      "name": "达到阈值条数占比",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "threshold_rate",
+      "grain": "selected task scope",
+      "unit": "%",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.zero_or_missing_count",
+      "name": "零进度或未填报数量",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "zero_or_missing_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_progress_summary.missing_progress_count",
+      "name": "未填报进度数量",
+      "kind": "direct",
+      "query_id": "task_progress_summary",
+      "field": "missing_progress_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_project_candidates.task_count",
+      "name": "按任务自身范围的任务数",
+      "kind": "direct",
+      "query_id": "task_project_candidates",
+      "field": "task_count",
+      "grain": "task project",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_project_flag_diagnostics.task_count",
+      "name": "任务口径总数",
+      "kind": "direct",
+      "query_id": "task_project_flag_diagnostics",
+      "field": "task_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_project_flag_diagnostics.missing_project_count",
+      "name": "无对应项目数",
+      "kind": "direct",
+      "query_id": "task_project_flag_diagnostics",
+      "field": "missing_project_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_project_flag_diagnostics.inactive_project_count",
+      "name": "关联非有效项目数",
+      "kind": "direct",
+      "query_id": "task_project_flag_diagnostics",
+      "field": "inactive_project_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_project_flag_diagnostics.different_flag_count",
+      "name": "项目双高标记不同数",
+      "kind": "direct",
+      "query_id": "task_project_flag_diagnostics",
+      "field": "different_flag_count",
+      "grain": "selected task scope",
+      "unit": "条",
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_tree.task_level",
+      "name": "任务层级",
+      "kind": "direct",
+      "query_id": "task_tree",
+      "field": "task_level",
+      "grain": "project + stage + task",
+      "unit": null,
+      "status": "defined"
+    },
+    {
+      "metric_key": "task_tree.current_progress",
+      "name": "当前进度",
+      "kind": "direct",
+      "query_id": "task_tree",
+      "field": "current_progress",
+      "grain": "project + stage + task",
+      "unit": "%",
+      "status": "defined"
+    }
+  ]
+}

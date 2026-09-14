@@ -1,0 +1,119 @@
+{
+  "section_key": "body_00c812286e",
+  "slots": [
+    {
+      "slot_key": "P4767",
+      "section_key": "body_00c812286e",
+      "kind": "static",
+      "required": false,
+      "name": "国际交流与合作",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[641]",
+        "expected_text_hash": "00c812286e7e5c0d06b35e58b7e604c241cb9cd55d7f865ab356cddb837de949"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4768",
+      "section_key": "body_00c812286e",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.培训海外员工2050人/日",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[642]",
+        "expected_text_hash": "d045dc4d20bf171c9b5453f6f87ebce541980bf61296a415191927faecda9bd7"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4769",
+      "section_key": "body_00c812286e",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.国际技能大赛奖项4个",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[643]",
+        "expected_text_hash": "70fe583edc024e277a181b2b8b120cab637e0149b7774b6c01b01d1301905324"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4770",
+      "section_key": "body_00c812286e",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.国际化课程4门",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[644]",
+        "expected_text_hash": "af1086871c9a7d493fd81308cad08fef584c6c3dc7d26e411861db7132a6ac39"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4771",
+      "section_key": "body_00c812286e",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.海外实习基地1个",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[645]",
+        "expected_text_hash": "868b3c99e9858d2e2cd8a0d6e539f11aa788bdd80ff8874e7a689693d581372f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4772",
+      "section_key": "body_00c812286e",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.海外ICT培训基地4个",
+      "business_context": "国际交流与合作",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[646]",
+        "expected_text_hash": "080550290f09e222d01c4a8998aadcc329de8a943af53d5020d434c2505837ef"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

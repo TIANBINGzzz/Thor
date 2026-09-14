@@ -1,0 +1,104 @@
+{
+  "section_key": "body_a47efa037b",
+  "slots": [
+    {
+      "slot_key": "P1173",
+      "section_key": "body_a47efa037b",
+      "kind": "static",
+      "required": false,
+      "name": "6.提升校企合作水平",
+      "business_context": "6.提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[94]",
+        "expected_text_hash": "a47efa037bdd1107efd607329595c81dd1ffa9013a77d43a353d9a4c748388ad"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1174",
+      "section_key": "body_a47efa037b",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值5项，完成度均超100%。取得独创性成果5项。自评等级优。",
+      "business_context": "6.提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[95]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1175",
+      "section_key": "body_a47efa037b",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-5 “提升校企合作水平”中期自评表",
+      "business_context": "6.提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[96]",
+        "expected_text_hash": "2d0b7ecbcfccfc8878f99ea587d12c30a707c6489471bbd17238443d27590d29"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1224",
+      "section_key": "body_a47efa037b",
+      "kind": "narrative",
+      "required": true,
+      "name": "合作层次更趋高端。与18个世界500强企业缔结命运共同体，联合世界500强企业及行业龙头企业，共建华为ICT学院、比亚迪应用技术学院等14个特色产业学院。44家合作企业被认定为产教融合型企业",
+      "business_context": "6.提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[97]",
+        "expected_text_hash": "df25f1edc794b2f1869968010b99a511557f659e008cda17a39baf87a8eee569"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1225",
+      "section_key": "body_a47efa037b",
+      "kind": "narrative",
+      "required": true,
+      "name": "合作模式日益成熟。开展现代学徒制试点专业23个，开办现代学徒制订单班13个，建设现代职教集团1个。738名教师进入企业挂岗工作，132名骨干教师在跨国企业或行业领军企业兼职。3000余名企业",
+      "business_context": "6.提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[98]",
+        "expected_text_hash": "c46a97f9048f44dc89930ba8b54e5fb5ee2c69e17008bb2d0899c0e296f172b5"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

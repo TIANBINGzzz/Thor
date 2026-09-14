@@ -79,7 +79,7 @@ Content-Type: application/json</pre></div>
 <tr><td>runId</td><td>string</td><td>是</td><td>一次执行的幂等键；同一 ID 的不同请求会被拒绝。</td></tr>
 <tr><td>messageId</td><td>string</td><td>是</td><td>关联 Java 业务消息；不等同于 Provider Session ID。</td></tr>
 <tr><td>businessSessionId</td><td>string</td><td>否</td><td>关联连续业务会话；Python 用它选择内部 Session，但不把它当作 Provider ID。</td></tr>
-<tr><td>capabilityRef</td><td>string</td><td>是</td><td>稳定的业务入口；只传业务标识，不提交内部执行配置。</td></tr>
+<tr><td>capabilityRef</td><td>string / null</td><td>否</td><td>普通会话省略或null，内部使用conversation，JWT仍须绑定conversation；选择能力只作用于当前消息，空字符串拒绝。</td></tr>
 <tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；文字、附件、payload 至少一个非空；input 对象仍必填，可以为 {}。</td></tr>
 <tr><td>payload</td><td>object</td><td>否</td><td>默认空对象；业务数据追加到当前模型输入，参与幂等比较。支持 JSON 对象、数组和基本值；最多 64 KiB UTF-8 JSON、16 层。不是执行配置，不自动获取其中的文件引用。</td></tr>
 <tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>

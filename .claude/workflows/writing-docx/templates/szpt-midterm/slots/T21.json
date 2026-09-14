@@ -1,0 +1,1316 @@
+{
+  "section_key": "T21",
+  "slots": [
+    {
+      "slot_key": "T21_R001_C01_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C02_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C04_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C05_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C06_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C07_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R001_C08_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R002_C01_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R002_C02_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R002_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "产教融合实训基地（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "b6efc88e0a1661c0ddb2dbce3ed9d5050637d9b8f1fc1e8258a58f65e997d384"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R002_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R002_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "8",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R002_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R002_C07_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R002_C08_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 产教融合实训基地（个） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R003_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "虚拟仿真实训中心（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 虚拟仿真实训中心（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "1bfb668e26067ef9415007605202e0c9b778f16cec48b80a5875cef500ff5ff4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R003_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 虚拟仿真实训中心（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R003_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 虚拟仿真实训中心（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R003_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 虚拟仿真实训中心（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R004_C01_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C02_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C04_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C05_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C06_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C07_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R004_C08_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[4]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R005_C01_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R005_C02_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R005_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "智慧教室或未来课堂受益学生（人日）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "9e408368460a483156c4ff1601064acad842d0f86e4251683eeb79801de28bb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R005_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "12000",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R005_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "12971",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R005_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生（人日） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R006_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "开发结合企业生产和新技术、新工艺的实训项目（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 开发结合企业生产和新技术、新工艺的实训项目（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "a2f06d25c2726ccded87140d92b2493d33fcb39edfa5bdc604c9c12159194333"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R006_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "30",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 开发结合企业生产和新技术、新工艺的实训项目（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R006_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "30",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 开发结合企业生产和新技术、新工艺的实训项目（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R006_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 开发结合企业生产和新技术、新工艺的实训项目（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R007_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "实训基地新增工位数（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 实训基地新增工位数（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "6d45174af67bda549dabc418e11d2578c65c4b80f552d1466aa50e536da61459"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R007_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "50",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 实训基地新增工位数（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R007_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "80",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 实训基地新增工位数（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R007_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 实训基地新增工位数（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R008_C02_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R008_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "与国际一流企业共建的产教融合型实训基地（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "29aa6f740284c88d770b88c1f14af0d72a592ad2df24c5ed6613d3e6f1d2a079"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R008_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R008_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R008_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R008_C07_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R008_C08_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的产教融合型实训基地（个） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[8]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R009_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "与国际一流企业共建的 ICT先进技术校内实训平台（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的 ICT先进技术校内实训平台（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "3d576f21dbeed69833f0928113366e684561a7a0d9240e7eac547d1acef7acc9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R009_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的 ICT先进技术校内实训平台（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R009_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "5",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的 ICT先进技术校内实训平台（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R009_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 与国际一流企业共建的 ICT先进技术校内实训平台（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R010_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "智慧教室或未来课堂受益学生人数占比",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生人数占比 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "adcbc14bdeae55609d4cc0613df9910ae7cb67d82fd4c3280c51be0a2acbb863"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R010_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "82",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生人数占比 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R010_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "91",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生人数占比 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R010_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 智慧教室或未来课堂受益学生人数占比 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R011_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "省级以上实训基地数量（个）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 省级以上实训基地数量（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "d661c039345406411088887cc1aef6351282ed3d9b696ed58f6302f57999db05"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R011_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 省级以上实训基地数量（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R011_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 省级以上实训基地数量（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R011_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 省级以上实训基地数量（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R012_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "企业投入比例（%）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 企业投入比例（%） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "75106a7fa0efa632554ec4715165246b3f83dc21e39c6cb3cb09ee31d2a0aaca"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R012_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "8",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 企业投入比例（%） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R012_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "13.7",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 企业投入比例（%） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R012_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 企业投入比例（%） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R013_C03_P01",
+      "section_key": "T21",
+      "kind": "static",
+      "required": false,
+      "name": "教学科研仪器设备值（万元）",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 教学科研仪器设备值（万元） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "eb9971bac6a60602868b0974bda38a6ef638c994695722689d922c3dd629a485"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T21_R013_C04_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "6000",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 教学科研仪器设备值（万元） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R013_C05_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "7170",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 教学科研仪器设备值（万元） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T21_R013_C06_P01",
+      "section_key": "T21",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-5 “实践教学基地”中期自评表 / 教学科研仪器设备值（万元） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[21]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+{
+  "section_key": "body_0ba1bd983c",
+  "slots": [
+    {
+      "slot_key": "P4707",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "（四）人财物的投入",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[581]",
+        "expected_text_hash": "0ba1bd983c47c79d1acef2dbd24dc0ddd6f59d579e4fe205a6a57f5bce20e2e7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4708",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "1.专项支持学校高层次人才引进及创新团队建设",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[582]",
+        "expected_text_hash": "572bcaa059d163739fae525b3a6f5195d128758207c5432c1bae1449df34c384"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4709",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "（1）高层次人才和高层次团队一览表",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[583]",
+        "expected_text_hash": "ce9d95eac11a3334be290e095f3c5db40ccf87467c3a9f03fb8428c0363e3c99"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4710",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "2.地方政府充分保障“双高计划”建设资金需求",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[584]",
+        "expected_text_hash": "5b5c209d2348aa0f03eda89af74e90f0b0e76df29377a78faf166b06da2f313b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4711",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "（1）深圳职业技术学院“双高计划”项目专项审计报告",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[585]",
+        "expected_text_hash": "e674c01f32fd0dd09266ce598fa6d2873ef7017d664fd8fb3c4cbff1c803e1bc"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4712",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "（2）深圳市政府对深职院世界一流职业院校建设文件处理表",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[586]",
+        "expected_text_hash": "efac6ef6a34c2659a6b337eb6b89b19ec0fd0316c56d17f09f318dcf0d794b9d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4713",
+      "section_key": "body_0ba1bd983c",
+      "kind": "static",
+      "required": false,
+      "name": "（3）深圳市发展和改革委员会关于调整及下达中山大学﹒深圳教学条件和实验室建设设备购置等项目2020年政府投资计划的通知",
+      "business_context": "（四）人财物的投入",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[587]",
+        "expected_text_hash": "8f61ea3035b4057697643021bfe6cf4b6d5a6a9dfd8de3d69d0a987f82bc6635"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

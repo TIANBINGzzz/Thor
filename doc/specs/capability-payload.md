@@ -1,6 +1,6 @@
 # 能力 payload 映射记录
 
-确认日期：2026-09-14。本文记录已确认的业务字段约定；本轮仅记录规范，模板解析和按能力校验尚未实现。当前 HTTP 行为以 [Runtime 协议](ccsdk-runtime-interface.md#34-业务-payload) 为准。
+确认日期：2026-09-14。模板解析、按能力校验与报告工具已接入Python；普通会话可以省略capabilityRef。HTTP行为见[Runtime协议](ccsdk-runtime-interface.md#34-业务-payload)。
 
 ## 能力映射
 
@@ -11,7 +11,7 @@
 | `conversation` | 通用对话 | 不要求专属字段，省略或 `{}` | 问题放 `input.text`；能力路由已实现 |
 | `national-excellence-data-qa` | 双高问数 | 不要求专属字段，省略或 `{}` | 问题、年份等放 `input.text`；内部映射 `database-qa` 已实现 |
 | `document-writing` | 通用撰写、修改授权附件 | 省略或 `{}` | 要求放 `input.text`，外部文件用 `input.attachmentRefs`；内部映射 `writing-docx` 已实现 |
-| `document-writing` | 使用 Python 预制模板 | `{"templateKey":"szpt-midterm"}` | 按模板标识加载本地 DOCX、数据源及取数映射；此解析待实现 |
+| `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}`或double-high-annual | 已加载本地DOCX、来源及绑定；原40表仍有缺定义，年度适配模板已可批量生成 |
 
 这里只登记能力约定字段；当前 Runtime 仍接受通过通用 JSON 检查的其他业务数据，尚未按此表限制字段。后续新增能力或专属字段时，在此补充类型、必填条件、用途和实现状态，不把未登记的模型输入当成已实现的服务端参数。
 
@@ -28,7 +28,7 @@
 - 同一撰写流程继续用 `writing-docx`，不同模板使用不同绑定配置；不因换模板复制工作流。一次 Run 固定已解析的模板及配置；后续模板撰写请求仍显式传 `templateKey`。
 - 外部上传的材料或待修改文档仍使用 `input.attachmentRefs`；Python 内置模板本身不走 File Broker 下载。
 
-以下为接入后的预制模板请求示例；当前代码可接收其 JSON，但尚不会根据 `templateKey` 装配模板：
+已接入的预制模板请求示例：
 
 ```json
 {
@@ -42,15 +42,15 @@
 }
 ```
 
-`szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX 和逐段数据来源 Markdown；这是本次确认的标识映射，运行时注册尚待实现。
+`szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX 和逐段数据来源 Markdown；运行时注册已实现，原40表仍有未定义绑定。`double-high-annual`为用户批准的当前项目年度适配模板，已完成实库取数、生成和SDK发布。
 
-该模板的查询引用已记录在同目录 `query-bindings.json`，复用[共享 QuerySpec](../../.claude/query-specs/README.md)。查询标识、SQL、数据源连接及授权上下文均由服务端装配，不增加浏览器 `payload` 字段；运行时解析仍待接入。
+模板查询由query-bindings.json引用[数据库资产](../../.claude/databases/README.md)，SQL、连接、权限和版本均在服务端装配；不增加浏览器payload字段。
 
-[数据库包方案](data-source-connections.md)明确按库集中管理，首期支持单租户多来源，当前唯一校双高库标识定为schoolDoubleHigh；采用可信DataContext和各来源静态策略，不引入Java Data Grant回调。模板通过source_key+domain+query_id引用包内查询，路径、连接、DSN、密码与授权范围不加入业务payload，预制模板仍只需templateKey。[批量计划](template-batch-data-plan.md)细化参数与工具传值，均待实施，不增加当前HTTP字段。
+[数据库包](data-source-connections.md)已通过可信DataContext及静态策略接入，当前唯一来源schoolDoubleHigh。模板以source_key+domain+query_id引用查询，路径/DSN/密码/权限不加入payload；[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
 
 ## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
-| REQ-001 | 本轮不适用 | 仅登记业务字段，不修改凭据或 MCP 注入 | 接入时仍按原规则注入本次获准的 MCP |
-| REQ-002 | 部分满足 | 按业务能力解释 payload，模板标识只选择可信映射并复用 Workflow | 模板白名单、Java 授权、按能力校验及版本记录待实现 |
+| REQ-001 | 部分满足 | data/reports不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
+| REQ-002 | 部分满足 | 模板白名单、能力校验、可信映射及版本记录已实现，复用writing-docx | 外部Java授权、旧协议及前端能力选择器待对齐 |

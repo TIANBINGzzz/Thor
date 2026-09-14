@@ -1,0 +1,24 @@
+{
+  "section_key": "body_eeceae3d54",
+  "slots": [
+    {
+      "slot_key": "P4396",
+      "section_key": "body_eeceae3d54",
+      "kind": "static",
+      "required": false,
+      "name": "附件1",
+      "business_context": "附件1",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[270]",
+        "expected_text_hash": "eeceae3d544ea65a4893ff173c59ff6cbe3373f33ec88ed59656f5e604e828c0"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

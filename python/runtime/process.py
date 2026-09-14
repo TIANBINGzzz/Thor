@@ -66,7 +66,7 @@ async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
             await process.wait()
 
 
-async def _spawn_worker_process() -> asyncio.subprocess.Process:
+async def _spawn_worker_process(payload: dict[str, Any]) -> asyncio.subprocess.Process:
     """以受控环境启动 agent_worker.py，返回带标准输入、输出和错误管道的子进程。"""
     creation_flags = 0
     kwargs: dict[str, Any] = {}
@@ -78,7 +78,7 @@ async def _spawn_worker_process() -> asyncio.subprocess.Process:
         sys.executable,
         str(WORKER),
         cwd=str(PROJECT_ROOT),
-        env=worker_environment(),
+        env=worker_environment(payload),
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -93,7 +93,7 @@ async def _spawn_worker_process() -> asyncio.subprocess.Process:
 
 async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
     """将执行 payload 发送给一次性 Worker，逐条产出事件字典，结束或取消时回收进程。"""
-    process = await _spawn_worker_process()
+    process = await _spawn_worker_process(payload)
     saw_done = False
     worker_error: str | None = None
     stderr_task: asyncio.Task[Any] | None = None
@@ -187,7 +187,7 @@ class ClientWorkerProcess:
         if self._process is not None:
             raise ClientWorkerError("Client worker 已经启动")
         self._closed = False
-        self._process = await _spawn_worker_process()
+        self._process = await _spawn_worker_process(payload)
         self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
         self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
         try:

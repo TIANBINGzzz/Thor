@@ -1,0 +1,138 @@
+{
+  "section_key": "body_948be7ec6f",
+  "slots": [
+    {
+      "slot_key": "P4436",
+      "section_key": "body_948be7ec6f",
+      "kind": "static",
+      "required": false,
+      "name": "（五）提升校企合作水平",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[310]",
+        "expected_text_hash": "948be7ec6fcb1bae106ad31984fd94c013be95cb2165f8527b98df84a4ccb9a2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4437",
+      "section_key": "body_948be7ec6f",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.建设特色产业学院14个",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[311]",
+        "expected_text_hash": "7ff03632fb709076c343bdb33cdc59d0ab26442dc85f818260bcea8706bfbb6b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4438",
+      "section_key": "body_948be7ec6f",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.建设示范性职业教育集团1个",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[312]",
+        "expected_text_hash": "acc1531417bc86366667abbfc8d788a6f230418f6422260cacfb54919d8d9aab"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4439",
+      "section_key": "body_948be7ec6f",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.省级以上现代学徒制试点专业20个",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[313]",
+        "expected_text_hash": "7e524f37c08109fcfaa2eedd9c84eadbefa7ea3b32c31e1ec45371bd827ca8bb"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4525",
+      "section_key": "body_948be7ec6f",
+      "kind": "static",
+      "required": false,
+      "name": "（五）提升校企合作水平",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[399]",
+        "expected_text_hash": "948be7ec6fcb1bae106ad31984fd94c013be95cb2165f8527b98df84a4ccb9a2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4526",
+      "section_key": "body_948be7ec6f",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.形成适合中国国情的校企“双元”育人模式（基本形成）",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[400]",
+        "expected_text_hash": "db2379cdfce8a9e48215acb80897847b6cd713c31db2617a936365e84d2f8ad2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4527",
+      "section_key": "body_948be7ec6f",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.形成深职特色的校企深度合作长效机制（基本形成）",
+      "business_context": "（五）提升校企合作水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[401]",
+        "expected_text_hash": "617f7d3d3e83f20049355da2d8d838c2db7a2a6a940bfb1675db7ccb0d617cdf"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

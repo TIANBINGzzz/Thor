@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 from contextlib import contextmanager
 from collections.abc import Iterator
 from pathlib import Path
@@ -19,25 +18,17 @@ from dotenv import load_dotenv
 
 from tools.artifacts import create_artifact_server
 from tools.docx import create_docx_server
+from tools.data import create_data_server
+from tools.reports import create_reports_server
+from data_access.runtime import RunServices, worker_secret_environment
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS_ROOT = PROJECT_ROOT / ".claude" / "workflows"
-DBHUB_ENTRYPOINT = PROJECT_ROOT / "node_modules" / "@bytebase" / "dbhub" / "dist" / "index.js"
 TRUE_VALUES = {"1", "true", "yes"}
 REQUIRED_ENV = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL")
 WORKFLOW_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
-DATABASE_ENV_KEYS = {
-    "DATABASE_URL",
-    "DSN",
-    "DB_TYPE",
-    "DB_HOST",
-    "DB_PORT",
-    "DB_USER",
-    "DB_PASSWORD",
-    "DB_NAME",
-}
 BASE_PROCESS_ENV_KEYS = {
     "PATH",
     "PATHEXT",
@@ -74,15 +65,17 @@ WORKER_CONFIG_ENV_KEYS = {
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
-    "DB_DEMO",
+    "CCSDK_DATA_CONFIG",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
 MAX_WORKFLOW_DOCUMENT_BYTES = 24_000
 MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES = 80_000
 
 DATABASE_APPEND = (
-    "涉及数据库事实时必须使用 db MCP 工具，先检查结构，再执行必要的 SQL，并基于真实结果回答。"
-    "默认只读；除非用户明确授权，不执行写入或结构变更。"
+    "涉及数据库事实时先调用 mcp__data__list_data_sources，并以明确的source_key和domain调用工具。"
+    "先用describe_data_source按需读取字段和语义，再resolve_entities解析授权范围。"
+    "优先find_query_specs和execute_query_spec；缺定义不编造数值。动态SQL仅在工具已授权时使用，"
+    "值使用:name绑定，不能提供租户、凭据或真实内部键。结果不完整时不得作为全量。"
 )
 USER_FACING_APPEND = (
     "回答只面向用户的业务问题和实际操作，不提及内部项目名称、代码仓库、技术框架、模型或供应商、"
@@ -118,15 +111,12 @@ DIRECT_WORKFLOW_APPEND = (
 
 def load_runtime_environment(workflow_name: str | None = None) -> None:
     """接收可选 Workflow 名称，依次加载根目录和流程环境文件到当前进程，无返回值。"""
-    runtime_db_demo = os.environ.get("DB_DEMO")
     load_dotenv(PROJECT_ROOT / ".env", override=True)
     workflow_config = load_workflow_config(workflow_name)
     if workflow_config:
         env_path = workflow_environment_path(workflow_config)
         if env_path.is_file():
             load_dotenv(env_path, override=True)
-    if runtime_db_demo is not None:
-        os.environ["DB_DEMO"] = runtime_db_demo
 
 
 def missing_environment() -> list[str]:
@@ -142,30 +132,29 @@ def missing_environment() -> list[str]:
 def agent_environment() -> dict[str, str]:
     """从当前进程环境返回 SDK 所需变量的白名单字典，不包含 Runtime、UI 和数据库凭据。
 
-    数据库凭据由 database_environment 单独提供给 DBHub 子进程。
+    数据库凭据仅由受保护配置提供给进程内 data 执行器。
     """
     return _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
 
 
-def database_environment() -> dict[str, str]:
-    """从当前进程环境返回 DBHub 子进程所需的基础变量和数据库配置字典。"""
-    return _select_environment(BASE_PROCESS_ENV_KEYS | DATABASE_ENV_KEYS)
-
-
-def worker_environment() -> dict[str, str]:
+def worker_environment(payload: dict[str, Any] | None = None) -> dict[str, str]:
     """从当前进程环境返回可信 JSONL Worker 所需的变量字典。
 
-    保留装配 MCP 所需的数据库配置和能力白名单，排除 Runtime JWT 密钥及本地 API Token。
+    仅附加本轮获准来源登记的秘密变量；SDK 子进程仍使用独立白名单。
     """
-    return _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
-                               | DATABASE_ENV_KEYS | WORKER_CONFIG_ENV_KEYS)
+    environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
+                                      | WORKER_CONFIG_ENV_KEYS)
+    if payload:
+        workflow = load_workflow_config(payload.get("workflow_name")) or {}
+        environment.update(worker_secret_environment(payload, workflow.get("data_sources", []), os.environ))
+    return environment
 
 
 @contextmanager
 def isolated_sdk_environment() -> Iterator[None]:
     """提供无参数上下文管理器，临时将当前 Worker 环境替换为 SDK 白名单，退出时恢复原环境。
 
-    SDK 会合并 os.environ，因此须先装配 MCP 配置，再进入此上下文；DBHub 使用独立环境字典。
+    SDK 会合并 os.environ，因此须先装配 MCP 配置；data服务持有独立配置快照。
     """
     original = dict(os.environ)
     safe = agent_environment()
@@ -259,15 +248,9 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
         raise RuntimeError(f"workflow runtime 配置必须是对象：{config_path}")
     if runtime.get("mode", "query") not in {"query", "client"}:
         raise RuntimeError(f"workflow runtime.mode 配置无效：{config_path}")
-    database = config.get("database")
-    if database is not None:
-        if not isinstance(database, dict):
-            raise RuntimeError(f"workflow database 配置必须是对象：{config_path}")
-        tables = database.get("allowed_tables", [])
-        if not isinstance(tables, list) or any(not isinstance(table, str) or not table.strip() for table in tables):
-            raise RuntimeError(f"workflow allowed_tables 配置无效：{config_path}")
-        if database.get("read_only") is not True:
-            raise RuntimeError(f"database-qa 只允许 read_only=true：{config_path}")
+    sources = config.get("data_sources", [])
+    if not isinstance(sources, list) or any(not isinstance(s, str) or not WORKFLOW_NAME.fullmatch(s) for s in sources):
+        raise RuntimeError("workflow data_sources 配置无效")
     documents = config.get("documents", {})
     if not isinstance(documents, dict):
         raise RuntimeError(f"workflow documents 配置必须是对象：{config_path}")
@@ -299,39 +282,6 @@ def runtime_mode_for(capability_ref: str | None, workflow_config: dict[str, Any]
             return mode
         raise RuntimeError("workflow runtime.mode 配置无效")
     return "client" if capability in _csv_environment("CCSDK_CLIENT_CAPABILITIES") else "query"
-
-
-def _workflow_database(workflow_config: dict[str, Any] | None) -> dict[str, Any] | None:
-    if not workflow_config:
-        return None
-    database = workflow_config.get("database")
-    return database if isinstance(database, dict) else None
-
-
-def _provider_config_path(workflow_config: dict[str, Any]) -> Path | None:
-    database = _workflow_database(workflow_config)
-    if not database:
-        return None
-    provider_value = database.get("provider_config")
-    if not provider_value:
-        return None
-    directory = Path(str(workflow_config["_directory"])).resolve()
-    provider_path = (directory / str(provider_value)).resolve()
-    try:
-        provider_path.relative_to(directory)
-    except ValueError as error:
-        raise RuntimeError("workflow DBHub 配置路径越界") from error
-    if not provider_path.is_file():
-        raise RuntimeError(f"DBHub 配置文件不存在：{provider_path}")
-    return provider_path
-
-
-def configured_database_tables(workflow_config: dict[str, Any] | None = None) -> list[str]:
-    """从 Workflow 数据库配置返回允许的表名列表，无数据库配置时返回空列表。"""
-    database = _workflow_database(workflow_config)
-    if not database:
-        return []
-    return [table.strip() for table in database.get("allowed_tables", []) if table.strip()]
 
 
 def _csv_environment(name: str) -> set[str]:
@@ -381,48 +331,14 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> 
     return "\n\n".join(sections)
 
 
-def create_database_mcp_server(workflow_config: dict[str, Any] | None = None) -> dict[str, Any] | None:
-    """结合 Workflow 数据库策略和当前环境，返回 DBHub stdio MCP 配置；未启用数据库时返回 None。"""
-    demo = os.environ.get("DB_DEMO", "").lower() in TRUE_VALUES
-    database = _workflow_database(workflow_config)
-    database_url = os.environ.get("DATABASE_URL", "").strip()
-    database_name = str(database.get("name", "")).strip() if database else ""
-    db_type = str(database.get("type", "")).strip() if database else os.environ.get("DB_TYPE", "").strip()
-    individual = all(os.environ.get(name, "").strip() for name in ("DB_HOST", "DB_USER", "DB_PASSWORD")) and bool(db_type and (database_name or os.environ.get("DB_NAME", "").strip()))
-    if database and not demo:
-        missing_db_values = [
-            name for name in ("DB_HOST", "DB_USER", "DB_PASSWORD")
-            if not os.environ.get(name, "").strip()
-        ]
-        if missing_db_values:
-            raise RuntimeError(
-                "workflow 数据库配置缺少环境变量：" + ", ".join(missing_db_values)
-            )
-    if not demo and not database_url and not individual:
+def create_run_services(payload):
+    workflow = load_workflow_config(payload.get("workflow_name")) or {}
+    sources = workflow.get("data_sources", [])
+    if not sources:
         return None
-    if not DBHUB_ENTRYPOINT.is_file():
-        raise RuntimeError(f"DBHub MCP 入口不存在：{DBHUB_ENTRYPOINT}")
-
-    env = database_environment()
-    if database_name:
-        env["DB_NAME"] = database_name
-    if db_type:
-        env["DB_TYPE"] = db_type
-    args = [str(DBHUB_ENTRYPOINT), "--transport", "stdio"]
-    provider_path = _provider_config_path(workflow_config or {})
-    if provider_path:
-        env.pop("DSN", None)
-        args.extend(["--config", str(provider_path)])
-    elif database_url:
-        env["DSN"] = database_url
-    if demo:
-        args.append("--demo")
-    return {
-        "type": "stdio",
-        "command": os.environ.get("NODE_BIN") or shutil.which("node") or "node",
-        "args": args,
-        "env": env,
-    }
+    if not is_direct_workflow(workflow) and not payload.get("_template_key") and not os.environ.get("CCSDK_DATA_CONFIG"):
+        return None
+    return RunServices(sources)
 
 
 def build_system_prompt(
@@ -438,9 +354,6 @@ def build_system_prompt(
         ANSWER_REQUIREMENTS_APPEND,
         DATABASE_APPEND if database_enabled else "没有可靠证据时明确说明不确定性。",
     ]
-    tables = configured_database_tables(workflow_config)
-    if database_enabled and tables:
-        parts.append(f"本次问数允许的业务表仅限：{', '.join(tables)}。超出范围时明确说明，不要猜测或访问其他表。")
     documents = workflow_prompt_documents(workflow_config)
     if documents:
         parts.append(documents)
@@ -452,7 +365,7 @@ def build_system_prompt(
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
 
 
-def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
+def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOptions:
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -462,17 +375,29 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
     capability_ref = str(
         payload.get("capability_ref") or payload.get("workflow_name") or "conversation"
     ).strip()
-    database_server = create_database_mcp_server(workflow_config)
-    database_enabled = database_server is not None
+    data_services = data_services or create_run_services(payload)
+    database_enabled = data_services is not None
+    registered_template = database_enabled and bool(payload.get("_template_key"))
+    restricted_tools = direct_workflow or registered_template
     mcp_servers: dict[str, Any] = {}
-    if database_server:
-        mcp_servers["db"] = database_server
+    if data_services:
+        mcp_servers["data"] = create_data_server(data_services)
+        if payload.get("_template_key"):
+            mcp_servers["reports"] = create_reports_server(data_services)
     session_directory = payload.get("session_directory")
     work_directory = payload.get("work_directory")
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
     prompt_append = payload.get("system_prompt_append") or ""
-    if artifact_enabled and not direct_workflow:
+    if registered_template:
+        prompt_append += (
+            "\n本轮已绑定固定报告模板。先调用mcp__reports__get_report_data（无参数）查看模板角色和期间Schema，"
+            "再用data的resolve_entities按用户指定项目名称取得scope_ref。调用prepare_report_data后，"
+            "轮询get_report_data并按章节核验；render_report已包含成果发布，不需再次调用Artifact工具。"
+            "静态正文和已绑定数据由模板生成；无额外叙述时section_drafts传空数组。"
+            "模型不能更改模板、绕过校验改写数据或将当前主表值视为历史实绩。"
+        )
+    if artifact_enabled and not restricted_tools:
         prompt_append += (
             "\n当前执行的受控工作目录：" + str(work_directory)
             + "\n当前执行的交付目录：" + str(deliverables_directory)
@@ -480,7 +405,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
             "完成后必须调用 mcp__artifacts__publish_file 发布，成功后才能告知用户文件可下载。"
             "回复仅提供文件名，不输出服务器本地路径；发布失败必须如实说明。"
         )
-    if artifact_enabled and not direct_workflow:
+    if artifact_enabled and not restricted_tools:
         mcp_servers["artifacts"] = create_artifact_server(
             session_directory,
             work_directory,
@@ -499,7 +424,7 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
     business_allowed = capability_ref in business_capabilities
     if business_mcp_url and business_allowed:
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
-    if not direct_workflow:
+    if not restricted_tools:
         docx_server = create_docx_server(
             payload.get("cwd") or Path.cwd(),
             [
@@ -511,10 +436,12 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
     # Credentials are request-scoped. Rules decide which registered MCP may
     # receive the bearer; no process-global environment is changed.
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
-    allowed_tools = [] if direct_workflow else ["mcp__docx__*"]
+    allowed_tools = [] if restricted_tools else ["mcp__docx__*"]
     if database_enabled:
-        allowed_tools.append("mcp__db__*")
-    if artifact_enabled and not direct_workflow:
+        allowed_tools.append("mcp__data__*")
+        if payload.get("_template_key"):
+            allowed_tools.append("mcp__reports__*")
+    if artifact_enabled and not restricted_tools:
         allowed_tools.append("mcp__artifacts__*")
     requested_skills = (workflow_config or {}).get("skills", payload.get("skill_refs") or [])
     if not isinstance(requested_skills, list) or any(not isinstance(item, str) or not WORKFLOW_NAME.fullmatch(item) for item in requested_skills):
@@ -528,28 +455,28 @@ def build_options(payload: dict[str, Any]) -> ClaudeAgentOptions:
                 raise RuntimeError("skill 路径越界") from error
             if not (skill_directory / "SKILL.md").is_file():
                 raise RuntimeError(f"skill 不存在：{skill}")
-        skills = [] if direct_workflow else requested_skills
+        skills = [] if restricted_tools else requested_skills
     else:
-        skills = [] if direct_workflow else None
+        skills = [] if restricted_tools else None
     return build_agent_options(
         model=payload.get("model") or os.environ.get("ANTHROPIC_MODEL"),
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
         max_turns=payload.get("max_turns") or int(os.environ.get("SCRIBE_MAX_TURNS", "30")),
         include_partial_messages=bool(payload.get("include_partial_messages")),
-        setting_sources=[] if direct_workflow else ["project", "local"],
+        setting_sources=[] if restricted_tools else ["project", "local"],
         system_prompt=build_system_prompt(
             prompt_append,
             database_enabled,
             workflow_config,
         ),
-        tools=[] if direct_workflow else {"type": "preset", "preset": "claude_code"},
+        tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
         disallowed_tools=["WebSearch"],
         allowed_tools=allowed_tools,
         skills=skills,
         permission_mode="bypassPermissions",
         mcp_servers=mcp_servers,
-        strict_mcp_config=direct_workflow,
+        strict_mcp_config=restricted_tools,
         add_dirs=payload.get("additional_directories") or [],
         env=agent_environment(),
     )

@@ -1,0 +1,100 @@
+{
+  "section_key": "body_0c093a397a",
+  "slots": [
+    {
+      "slot_key": "P4398",
+      "section_key": "body_0c093a397a",
+      "kind": "static",
+      "required": false,
+      "name": "“双高计划”中期自评报告佐证材料目录",
+      "business_context": "“双高计划”中期自评报告佐证材料目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[272]",
+        "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4717",
+      "section_key": "body_0c093a397a",
+      "kind": "static",
+      "required": false,
+      "name": "“双高计划”中期自评报告佐证材料目录",
+      "business_context": "“双高计划”中期自评报告佐证材料目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[591]",
+        "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4718",
+      "section_key": "body_0c093a397a",
+      "kind": "static",
+      "required": false,
+      "name": "（通信技术专业群）",
+      "business_context": "“双高计划”中期自评报告佐证材料目录",
+      "scope_role": "school",
+      "source_rules": [
+        "P"
+      ],
+      "instruction": "原项目标题保留；生成时按报告所选项目名称替换",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[592]",
+        "expected_text_hash": "d34976bcd04f82aaecc9c81100f16c7f1890dc1073d6b90599f997770e9e3eeb"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4851",
+      "section_key": "body_0c093a397a",
+      "kind": "static",
+      "required": false,
+      "name": "“双高计划”中期自评报告佐证材料目录",
+      "business_context": "“双高计划”中期自评报告佐证材料目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[725]",
+        "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4852",
+      "section_key": "body_0c093a397a",
+      "kind": "static",
+      "required": false,
+      "name": "（电子信息工程技术专业群）",
+      "business_context": "“双高计划”中期自评报告佐证材料目录",
+      "scope_role": "school",
+      "source_rules": [
+        "P"
+      ],
+      "instruction": "原项目标题保留；生成时按报告所选项目名称替换",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[726]",
+        "expected_text_hash": "70ea3b9b19aaeab9f6fe24f5bcf55cce90de90361f21897a1fa3510f21cd9866"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "section_key": "body_f90d3eb337",
+  "slots": [
+    {
+      "slot_key": "P4750",
+      "section_key": "body_f90d3eb337",
+      "kind": "static",
+      "required": false,
+      "name": "实践教学基地",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[624]",
+        "expected_text_hash": "f90d3eb337d96b2e544219c224d5b2d5c7934d080f9c9b492cb5cce4275bc83b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4751",
+      "section_key": "body_f90d3eb337",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.产教融合实训基地8个",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[625]",
+        "expected_text_hash": "1a84b4ad00044ae955ceba7f2360dbaebff555a296be3d4cde6a64c73b3ab1b5"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4752",
+      "section_key": "body_f90d3eb337",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.虚拟仿真实训中心3个",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[626]",
+        "expected_text_hash": "6e67308cee84432e6602ed2337fb7fee54b95914fa2b3d52d61ba5acdfbe74a0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4753",
+      "section_key": "body_f90d3eb337",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.智慧教室或未来课堂受益学生12971人/日",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[627]",
+        "expected_text_hash": "e2d8408ac018d7cad07290ea2ad5ad432aaa8257dfdbb640b3a2a9caeaccd730"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4754",
+      "section_key": "body_f90d3eb337",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.开发结合企业生产和新技术、新工艺的实训项目30个",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[628]",
+        "expected_text_hash": "8ac6559c35a4c15169990a17359ecfd43018cd69748759bc804c3b91e05f67e7"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4755",
+      "section_key": "body_f90d3eb337",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.实训基地新增工位数80个",
+      "business_context": "实践教学基地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[629]",
+        "expected_text_hash": "83acc3c890f8120763f6de903fdf0c8a8a3fbe1f9816eb9abce26eb1392ff4b9"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

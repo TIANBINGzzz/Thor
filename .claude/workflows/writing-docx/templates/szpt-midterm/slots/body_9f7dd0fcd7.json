@@ -1,0 +1,24 @@
+{
+  "section_key": "body_9f7dd0fcd7",
+  "slots": [
+    {
+      "slot_key": "P4607",
+      "section_key": "body_9f7dd0fcd7",
+      "kind": "static",
+      "required": false,
+      "name": "六、基于“双高绩效目标实现贡献度”信息采集表",
+      "business_context": "六、基于“双高绩效目标实现贡献度”信息采集表",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[481]",
+        "expected_text_hash": "9f7dd0fcd78ac9f9fa3d2765ec8dedef395b287edc1c55981b736983e927bc32"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

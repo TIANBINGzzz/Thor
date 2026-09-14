@@ -1,0 +1,290 @@
+{
+  "section_key": "T40",
+  "slots": [
+    {
+      "slot_key": "T40_R001_C01_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "类别",
+      "business_context": "表 8 项目管理指标中期自评表 / 二级指标 / 第1列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "0d12cbd6562bfbff0a014d1aa01f0238922600b42553d0c198f2564bbea25fee"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R001_C02_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 二级指标 / 第2列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R001_C03_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 二级指标 / 第3列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R001_C04_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 8 项目管理指标中期自评表 / 二级指标 / 第4列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R001_C05_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 8 项目管理指标中期自评表 / 二级指标 / 第5列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R002_C01_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "高水平学校",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第1列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "8731106dfeafa659992632e2af72d1584fa1616b3a6392fe6a7271abf7f7af0e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R002_C02_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "管理与执行指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第2列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "19a80d1c227e7f13b4222040625030d652c2418fb21f5cba36e34ae1397a6802"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R002_C03_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "资金管理指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第3列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "e60cc2b1d5acccbfe5fdbce8418f3dc0dcbf4bd07f4c1c8941cb4e103d60cf8f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R002_C04_P01",
+      "section_key": "T40",
+      "kind": "scalar",
+      "required": true,
+      "name": "10",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第4列",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "分值及得分待评分规则",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T40_R002_C05_P01",
+      "section_key": "T40",
+      "kind": "scalar",
+      "required": true,
+      "name": "10",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第5列",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "分值及得分待评分规则",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T40_R003_C03_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "项目管理指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 项目管理指标 / 第3列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "b7d8c3ad11487ed245f284da921dad55b57854c31cd078f10bc09373417a5f56"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R004_C01_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "高水平专业群",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第1列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[4]/w:tc[1]/w:p",
+        "expected_text_hash": "a7c1137ece19e1c2ed2da263fc49cb93f0324ba9ad0bfc3cd302a85592d765c3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R004_C02_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "管理与执行指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第2列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[4]/w:tc[2]/w:p",
+        "expected_text_hash": "19a80d1c227e7f13b4222040625030d652c2418fb21f5cba36e34ae1397a6802"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R004_C03_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "资金管理指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 资金管理指标 / 第3列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "e60cc2b1d5acccbfe5fdbce8418f3dc0dcbf4bd07f4c1c8941cb4e103d60cf8f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T40_R005_C03_P01",
+      "section_key": "T40",
+      "kind": "static",
+      "required": false,
+      "name": "项目管理指标",
+      "business_context": "表 8 项目管理指标中期自评表 / 项目管理指标 / 第3列",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "管理分类保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[40]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "b7d8c3ad11487ed245f284da921dad55b57854c31cd078f10bc09373417a5f56"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

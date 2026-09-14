@@ -1,0 +1,104 @@
+{
+  "section_key": "body_c0e6b69c44",
+  "slots": [
+    {
+      "slot_key": "P1506",
+      "section_key": "body_c0e6b69c44",
+      "kind": "static",
+      "required": false,
+      "name": "10.提升国际化水平",
+      "business_context": "10.提升国际化水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[115]",
+        "expected_text_hash": "c0e6b69c447d36f60f3f0696e8eca797c3b5e1e4c9ed360ee26c6951adb33de8"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1507",
+      "section_key": "body_c0e6b69c44",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值8项，完成度均超100%，取得标志性成果9项，其中，国际级2项、国家级1项、省级1项、独创4项。自评等级优。",
+      "business_context": "10.提升国际化水平",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[116]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1508",
+      "section_key": "body_c0e6b69c44",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-9 “提升国际化水平”中期自评表",
+      "business_context": "10.提升国际化水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[117]",
+        "expected_text_hash": "d8a418e306d4267c507ff8cd8e86cf033eef5c5095287cb774c0b63e299ad6f5"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1582",
+      "section_key": "body_c0e6b69c44",
+      "kind": "narrative",
+      "required": true,
+      "name": "交流平台不断拓展。联合国教科文组织职业教育创新中心（全球首批十大联合国教科文组织职业教育创新中心之一、中国唯一入选高职院校）和世界职业院校与技术大学联盟（WFCP）教师专业发展委员会等2个国",
+      "business_context": "10.提升国际化水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[119]",
+        "expected_text_hash": "d3c3c1f1e5e9fb15a414ab36ff72dc1dc36b262bb8458df7f874c8f506ab98ec"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1583",
+      "section_key": "body_c0e6b69c44",
+      "kind": "narrative",
+      "required": true,
+      "name": "深职标准走向世界。累计在5个国家建立7个海外职业教育培训中心。开展“中文+职业技能”培训累计达20万人日。与华为合作为2288名“一带一路”沿线国家相关人员提供5G通信培训。国际职业培训和合",
+      "business_context": "10.提升国际化水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[120]",
+        "expected_text_hash": "c62e5863be537d91df8a386a856f96527012c6b1155f0c94e960ab14c97b4ca6"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

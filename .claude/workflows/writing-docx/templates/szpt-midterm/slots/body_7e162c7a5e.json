@@ -1,0 +1,62 @@
+{
+  "section_key": "body_7e162c7a5e",
+  "slots": [
+    {
+      "slot_key": "P4349",
+      "section_key": "body_7e162c7a5e",
+      "kind": "static",
+      "required": false,
+      "name": "（四）注重质量，形成了项目资金从投入到执行的闭环管理",
+      "business_context": "（四）注重质量，形成了项目资金从投入到执行的闭环管理",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[248]",
+        "expected_text_hash": "7e162c7a5e8762ec42ac9bfc3f7da99a82634948a167eecd9ad7d3c2002d3d32"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4350",
+      "section_key": "body_7e162c7a5e",
+      "kind": "narrative",
+      "required": true,
+      "name": "一是在项目经费投入方面，市政府通过教育专项拨款足额下达建设经费。学校深化校企合作，引导行业企业投入双高建设，保障建设资金及时、足额到位。二是在管理制度方面，制定《“双高计划”专项资金管理办法",
+      "business_context": "（四）注重质量，形成了项目资金从投入到执行的闭环管理",
+      "scope_role": "school",
+      "source_rules": [
+        "X"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[249]",
+        "expected_text_hash": "4358cd4ec31f8fb1e4a964f00799e0443195388b4335c257d63441ed948f9ac5"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4351",
+      "section_key": "body_7e162c7a5e",
+      "kind": "static",
+      "required": false,
+      "name": "表 8 项目管理指标中期自评表",
+      "business_context": "（四）注重质量，形成了项目资金从投入到执行的闭环管理",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[250]",
+        "expected_text_hash": "600e87a69bb36123f4ab833727494edeff555b9967acfa31ad6f1a8abc9f6f3a"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "section_key": "body_7fdff155b1",
+  "slots": [
+    {
+      "slot_key": "P4347",
+      "section_key": "body_7fdff155b1",
+      "kind": "static",
+      "required": false,
+      "name": "（三）建章立制，健全了“双高”建设与运行机制",
+      "business_context": "（三）建章立制，健全了“双高”建设与运行机制",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[246]",
+        "expected_text_hash": "7fdff155b19d34758adb51805a8b8a5647db447b0d1baa6dd41f0c7722c8e3f1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4348",
+      "section_key": "body_7fdff155b1",
+      "kind": "narrative",
+      "required": true,
+      "name": "一是建立健全项目管理机制。成立“双高计划”建设办公室，负责建设任务的进度跟踪检查、总结考核；相关业务管理部门形成联席工作制，建立月度、季度、年度检查制度，定期总结工作进展；实施“双高计划”专",
+      "business_context": "（三）建章立制，健全了“双高”建设与运行机制",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[247]",
+        "expected_text_hash": "ef6ab6249ffa8aaa70a2af5dd8de8f4359e46aa3dc8cb2e1ed98708c5c2afcc0"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

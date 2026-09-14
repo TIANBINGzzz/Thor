@@ -1,0 +1,100 @@
+{
+  "section_key": "body_b9448bbea3",
+  "slots": [
+    {
+      "slot_key": "P4691",
+      "section_key": "body_b9448bbea3",
+      "kind": "static",
+      "required": false,
+      "name": "（一）地方性政策制度",
+      "business_context": "（一）地方性政策制度",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[565]",
+        "expected_text_hash": "b9448bbea36e2d399b81bb485f2c1c6c3f9a8a9a2f2bf6123e4fa72f24a3c989"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4692",
+      "section_key": "body_b9448bbea3",
+      "kind": "static",
+      "required": false,
+      "name": "1.教育部 广东省人民政府关于推进深圳职业教育高端发展 争创世界一流的实施意见",
+      "business_context": "（一）地方性政策制度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[566]",
+        "expected_text_hash": "2cc4dc3c4bdcac2f46977354838fdd24ad2369067168b7b05b6b9f8816fc42c0"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4693",
+      "section_key": "body_b9448bbea3",
+      "kind": "static",
+      "required": false,
+      "name": "2.深圳市国民经济和社会发展第十四个五年规划和二〇三五年远景目标纲要",
+      "business_context": "（一）地方性政策制度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[567]",
+        "expected_text_hash": "d00104e5dfa08d878d8562d6ee349eb7870b123b760d1fa75a6e7a086954080a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4694",
+      "section_key": "body_b9448bbea3",
+      "kind": "static",
+      "required": false,
+      "name": "3.深圳市教育发展“十四五”规划",
+      "business_context": "（一）地方性政策制度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[568]",
+        "expected_text_hash": "1a6405e415d76030daf3b2d00feb723747d4f132a284277533f7b7d893f90643"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4695",
+      "section_key": "body_b9448bbea3",
+      "kind": "static",
+      "required": false,
+      "name": "4.深圳高等教育先行示范行动方案（2021-2025）",
+      "business_context": "（一）地方性政策制度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[569]",
+        "expected_text_hash": "d20a94df17f828378979604bc18ce0c607426e6f3d02ec24f7b92972d4e2f9e9"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

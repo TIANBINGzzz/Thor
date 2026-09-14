@@ -1,0 +1,101 @@
+{
+  "section_key": "body_91f8d007d6",
+  "slots": [
+    {
+      "slot_key": "P4446",
+      "section_key": "body_91f8d007d6",
+      "kind": "static",
+      "required": false,
+      "name": "（七）提升学校治理水平",
+      "business_context": "（七）提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[320]",
+        "expected_text_hash": "91f8d007d6885cad9fcb44dd866c06f80661b511a68898192796d3d910c0a538"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4447",
+      "section_key": "body_91f8d007d6",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.以校企深度融通为导向的现代职业学校制度体系（套）（基本形成）",
+      "business_context": "（七）提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[321]",
+        "expected_text_hash": "5c3edf363c103fda6546192249d1200e0abbc69d4b88a9472ecff305267be4a7"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4448",
+      "section_key": "body_91f8d007d6",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.全业务范畴互联互通的学校内控系统（基本建成）",
+      "business_context": "（七）提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[322]",
+        "expected_text_hash": "5500036ff666b413deb9cd741bb1a5016d7b46ae406078e4173c04f4f280ff42"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4534",
+      "section_key": "body_91f8d007d6",
+      "kind": "static",
+      "required": false,
+      "name": "（七）提升学校治理水平",
+      "business_context": "（七）提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[408]",
+        "expected_text_hash": "91f8d007d6885cad9fcb44dd866c06f80661b511a68898192796d3d910c0a538"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4535",
+      "section_key": "body_91f8d007d6",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.以用户体验为导向的服务效能评价体系（基本形成）",
+      "business_context": "（七）提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[409]",
+        "expected_text_hash": "2a975ad55afff4a161c9e75392bae92a79d837c688ee0de2d41834820f7e6261"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

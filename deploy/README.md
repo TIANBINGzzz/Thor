@@ -10,7 +10,7 @@
 
 构建失败时先区分：申请构建环境失败是构建容器/网络问题，`docker build` 拉基础镜像或 pip/npm 超时是出网问题，部署阶段下载制品失败是 97 到云效制品服务的问题。完全离线客户使用本流水线生成的 `image.tar` 制品，现场 `docker load`。
 
-本项目构建会访问基础镜像仓库、`registry.npmjs.org`、`pypi.org`/`files.pythonhosted.org`、Debian 软件源和云效代码/制品服务。Docker Hub 不通时，在 Flow 普通变量中设置 `NODE_IMAGE`、`PYTHON_IMAGE` 为组织同步的官方 Bookworm 镜像（建议固定 digest）。本机官方 ECR 镜像源构建成功不代表云效也能访问；锁文件内 npm 下载地址、pip 传递依赖和 apt 下载仍需连通。镜像运行后无需临时安装 SDK/Node/DBHub。
+构建访问基础镜像仓库、PyPI、Debian源及云效代码/制品服务。Docker Hub不通时配置NODE_IMAGE/PYTHON_IMAGE为组织同步的官方Bookworm镜像。镜像已包含SDK、Node和Python数据库依赖，移除DBHub及npm依赖安装；本机构建成功不代表云效目标网络已验收。
 
 ## 运行前置条件
 
@@ -27,7 +27,7 @@
 python deploy/encode-secret.py scratch/ccsdkscribe.secret.json scratch/ccsdkscribe.secret.b64
 ```
 
-先复制 `secrets.example.json` 为被 `.gitignore` 忽略的 `*.secret.json`，填写实际值，再把生成的 `.secret.b64` 单行内容粘贴到 Flow。该包至少包含 `ANTHROPIC_AUTH_TOKEN`、HTTPS 的 `ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、32 字节以上的 `CCSDK_RUNTIME_JWT_SECRET`；可选填 JWT issuer/audience、代理、File Broker 和 `DB_HOST`/`DB_USER`/`DB_PASSWORD`。数据库变量只有在部署任务设置 `CCSDK_WITH_DATABASE=1` 时才会生成 Workflow 文件。
+复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库部署另提供CCSDK_DATA_CONFIG_JSON（参照data-access.example.json）、CCSDK_DATABASE_USER、CCSDK_DATABASE_PASSWORD、CCSDK_DATABASE_CA。启用CCSDK_WITH_DATABASE=1后生成受限data/data-access.json及独立密钥文件，compose将CCSDK_DATA_DIRECTORY只读挂载为容器内/app/data-config，设置CCSDK_DATA_CONFIG；不再生成Workflow数据库环境文件。
 
 在“编辑流水线 → 变量和缓存 → 字符变量 → 新建变量”填写 `CCSDK_DEPLOY_ENV_B64`，打开私密模式，粘贴编码文件内容（不加引号）并保存。JSON 不要使用在线编码网站；用 JSON 字符串规则转义反斜线/双引号，值不能含换行。Base64 是传输编码，不是加密；编码文件和原 JSON 都按密钥保管，Windows 还需限制本地文件 ACL。
 

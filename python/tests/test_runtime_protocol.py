@@ -8,6 +8,16 @@ class RuntimeProtocolTests(unittest.TestCase):
         request=AgentRunRequest.from_dict(self.payload())
         self.assertEqual(request.capability_ref,"document-writing")
         self.assertNotIn("credentials",request.to_dict())
+    def test_conversation_omits_capability_and_cannot_select_tools(self):
+        from runtime.capabilities import resolve_capability
+        body=self.payload()
+        body.pop('capabilityRef')
+        request=AgentRunRequest.from_dict(body)
+        self.assertIsNone(request.capability_ref)
+        self.assertNotIn('capabilityRef',request.to_dict())
+        self.assertEqual(resolve_capability(request.capability_ref).ref,'conversation')
+        with self.assertRaises(ProtocolError):
+            AgentRunRequest.from_dict({**body,'capabilityRef':''})
     def test_execution_fields_rejected(self):
         payload=self.payload(); payload["workflowRef"]="writing-docx"
         with self.assertRaises(ProtocolError): AgentRunRequest.from_dict(payload)

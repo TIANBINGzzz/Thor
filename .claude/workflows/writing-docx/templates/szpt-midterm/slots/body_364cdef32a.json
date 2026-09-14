@@ -1,0 +1,144 @@
+{
+  "section_key": "body_364cdef32a",
+  "slots": [
+    {
+      "slot_key": "P1686",
+      "section_key": "body_364cdef32a",
+      "kind": "static",
+      "required": false,
+      "name": "12.提升学生综合素质",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[127]",
+        "expected_text_hash": "364cdef32a1f0295b2a724de7e685209ea1a7f5095b056d9389fb0196ac9da00"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1687",
+      "section_key": "body_364cdef32a",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值15项，完成度均超100%。取得标志性成果6项，其中，国家级2项、省级4项。自评等级优。",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[128]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1688",
+      "section_key": "body_364cdef32a",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-11 “提升学生综合素质”中期自评表",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[129]",
+        "expected_text_hash": "e3b62152a179fec3708e3e1b2cfee2487900c173f14a36fdcc122132b7613eca"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1825",
+      "section_key": "body_364cdef32a",
+      "kind": "narrative",
+      "required": true,
+      "name": "育人体系不断健全。构建了“一核两翼六轮驱动”学生工作体系。开发《幸福课》，培养师资100人、学生心理骨干4000人。出版《高职生劳动教育教程》教材，开发《劳动教育课》慕课，点击量破77万人次",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[130]",
+        "expected_text_hash": "f77eb3052f90fa1048ba925d7f2772af1d7e3116fc328fdead676b75cf0de268"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1826",
+      "section_key": "body_364cdef32a",
+      "kind": "narrative",
+      "required": true,
+      "name": "学生素养显著提升。获评省大学生年度人物2人。在第十六届“挑战杯”广东大学生课外学术科技作品竞赛中获奖14项，其中特等奖3项。获教育部文化素质教指委“红色故事”大赛一等奖2项。省级以上体育赛事",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[131]",
+        "expected_text_hash": "f95d2d90552d08c83e820924424dc65af5a91138b4a0e327db2a39ecf9ce5da1"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1828",
+      "section_key": "body_364cdef32a",
+      "kind": "narrative",
+      "required": true,
+      "name": "综上，我校高水平学校建设任务中期完成度均超100%，终期累计完成度达82.6%，自评等级优。",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "T",
+        "U",
+        "S"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[133]",
+        "expected_text_hash": "faccac379524956fa87b732ce7ada95477fe80e3756dfe1923635fd5014d1b89"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1829",
+      "section_key": "body_364cdef32a",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-12 深职院“双高”建设时效指标中期自评表",
+      "business_context": "12.提升学生综合素质",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[134]",
+        "expected_text_hash": "e4081976009a7c37664d90393c0b7e8932d1a5ecccfcfd4e95447d0f2fdc2ced"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

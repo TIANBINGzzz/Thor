@@ -1,0 +1,1506 @@
+{
+  "section_key": "T10",
+  "slots": [
+    {
+      "slot_key": "T10_R001_C01_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C02_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C04_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C05_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C06_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C07_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R001_C08_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 三级指标 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R002_C01_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R002_C02_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R002_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "5G 示范应用校园（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "105ecc66dace7c3519a799cc2a679a1eb5867afd99924ecadd637d9039ccfcae"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R002_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R002_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R002_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R002_C07_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R002_C08_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G 示范应用校园（个） / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R003_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "互联互通共享大数据中心（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 互联互通共享大数据中心（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "fc500b841da1397bb84ac291a98443a0c0acd839c84f208b2ba73a62f82601b2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R003_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 互联互通共享大数据中心（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R003_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 互联互通共享大数据中心（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R003_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 互联互通共享大数据中心（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R004_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "一体化“互联网+教育”大平台（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“互联网+教育”大平台（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "d114177bfc94b2fd6c8d65ff8c459f17d8b2fec4d24766108b80e2752c0e285b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R004_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“互联网+教育”大平台（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R004_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“互联网+教育”大平台（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R004_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“互联网+教育”大平台（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R005_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "一体化“一网通办”校务服务事项（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务事项（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "07f88d600e7470dee14cf3d81d1aa6039fbf46063c87b270002266be7d2cf191"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R005_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "532",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务事项（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R005_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "536",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务事项（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R005_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务事项（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R006_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "智慧校园统一管控中心（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 智慧校园统一管控中心（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "501b93feec6a58049af4ce97b1f9212ba6d91552125669e9707c5ef3172d50aa"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R006_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 智慧校园统一管控中心（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R006_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 智慧校园统一管控中心（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R006_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 智慧校园统一管控中心（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R007_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "金融级全实时在线一卡通系统（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 金融级全实时在线一卡通系统（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "a3864f4526c7d0828b15472e134e33c1a28d7efe9dd2f4012e4707aa524acf60"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R007_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 金融级全实时在线一卡通系统（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R007_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 金融级全实时在线一卡通系统（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R007_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 金融级全实时在线一卡通系统（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R008_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "STEAM 创新学习实验室（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 创新学习实验室（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "a87a2830741ca6ee581b7ba76704797a350f43ce576cc9eb47ccdd3d3db19442"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R008_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 创新学习实验室（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R008_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 创新学习实验室（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R008_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 创新学习实验室（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R009_C02_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R009_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "省级以上虚拟仿真实训中心（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "c1447f3675f879508501565a64766ced944287de10c67f67d7e9f7d88b6f28bf"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R009_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R009_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R009_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R009_C07_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R009_C08_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 省级以上虚拟仿真实训中心（个） / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[9]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R010_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "5G+VR/AR 应用中心（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G+VR/AR 应用中心（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "0beb69b7b69564aa44efb601c399e451f46dd9ee5115a5dade24c543bc1f014e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R010_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G+VR/AR 应用中心（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R010_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G+VR/AR 应用中心（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R010_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 5G+VR/AR 应用中心（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R011_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "大数据智能专题应用（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 大数据智能专题应用（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "cf559984130daca73c716d1f0e78940f981f75bb4de85703201a2da9c99296fe"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R011_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "45",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 大数据智能专题应用（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R011_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "47",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 大数据智能专题应用（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R011_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 大数据智能专题应用（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R012_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "学生画像分析覆盖学生占比（%）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学生画像分析覆盖学生占比（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "592a4e70ad43dc10a348d7b2e4994ed22dae861a28521d6526cdfdd4f0f9ddaa"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R012_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "80",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学生画像分析覆盖学生占比（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R012_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学生画像分析覆盖学生占比（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R012_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学生画像分析覆盖学生占比（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R013_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "学情分析覆盖的课程数量（门）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学情分析覆盖的课程数量（门） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "ab6726921da61adf29630a5ee295b77e6d335ae6f84ad4fa925eaa23a7bb537e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R013_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "300",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学情分析覆盖的课程数量（门） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R013_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "419",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学情分析覆盖的课程数量（门） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R013_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学情分析覆盖的课程数量（门） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R014_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "一体化“一网通办”校务服务网上可办率（%）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务网上可办率（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[14]/w:tc[3]/w:p",
+        "expected_text_hash": "e5825eb4e92fb67d71c4fc379cc2a5aac7fcc74aad918046228ad2009fb3da3c"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R014_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "68",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务网上可办率（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[14]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R014_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "69.03",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务网上可办率（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[14]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R014_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 一体化“一网通办”校务服务网上可办率（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[14]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R015_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "学校运行状态接入统一管控中心比例（%）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学校运行状态接入统一管控中心比例（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[15]/w:tc[3]/w:p",
+        "expected_text_hash": "462fb69c72bde6d338958ff8b2a8951feaa2a2a4af271c80cc732230ce9de395"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R015_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "70",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学校运行状态接入统一管控中心比例（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[15]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R015_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "90",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学校运行状态接入统一管控中心比例（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[15]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R015_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 学校运行状态接入统一管控中心比例（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[15]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R016_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "校园线下生活服务掌上通行覆盖率（%）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 校园线下生活服务掌上通行覆盖率（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[16]/w:tc[3]/w:p",
+        "expected_text_hash": "fe7ab2ebb7a10f2b4b8c616378f3b54ba01f598b7370ab5cd7d3e78bda0a3e07"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R016_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "90",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 校园线下生活服务掌上通行覆盖率（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[16]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R016_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 校园线下生活服务掌上通行覆盖率（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[16]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R016_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / 校园线下生活服务掌上通行覆盖率（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[16]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R017_C03_P01",
+      "section_key": "T10",
+      "kind": "static",
+      "required": false,
+      "name": "STEAM 教学模块（个）",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 教学模块（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[17]/w:tc[3]/w:p",
+        "expected_text_hash": "701976b407ba76f06444940f634ec54e152a29675c53685fd58d65d0bb49e198"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T10_R017_C04_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "30",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 教学模块（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[17]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R017_C05_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "50",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 教学模块（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[17]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T10_R017_C06_P01",
+      "section_key": "T10",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-8 “提升信息化水平”中期自评表 / STEAM 教学模块（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[10]/w:tr[17]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

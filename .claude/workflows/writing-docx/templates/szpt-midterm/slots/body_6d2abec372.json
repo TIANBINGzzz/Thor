@@ -1,0 +1,24 @@
+{
+  "section_key": "body_6d2abec372",
+  "slots": [
+    {
+      "slot_key": "P4377",
+      "section_key": "body_6d2abec372",
+      "kind": "static",
+      "required": false,
+      "name": "五、特色经验与做法",
+      "business_context": "五、特色经验与做法",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[251]",
+        "expected_text_hash": "6d2abec3728cce274ce874b5f61fb1332eaac21080be1a1cbde38c2c21854bb9"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

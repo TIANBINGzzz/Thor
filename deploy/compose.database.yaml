@@ -1,10 +1,12 @@
 services:
   runtime:
+    environment:
+      # Fixed paths in this file belong to the container deployment contract.
+      CCSDK_DATA_CONFIG: /app/data-config/data-access.json
     volumes:
       - type: bind
-        source: ${CCSDK_DATABASE_ENV_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/database-qa.env}
-        # Container path owned by the writing/runtime image, not the host.
-        target: /app/.claude/workflows/database-qa/workflow.env
+        source: ${CCSDK_DATA_DIRECTORY:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/data}
+        target: /app/data-config
         read_only: true
         bind:
           create_host_path: false

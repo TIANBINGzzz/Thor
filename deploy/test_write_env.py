@@ -29,9 +29,13 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         self.assertEqual(parsed["ANTHROPIC_AUTH_TOKEN"], environment["ANTHROPIC_AUTH_TOKEN"])
         self.assertNotIn("UNRELATED_SECRET", parsed)
 
-    def test_workflow_dotenv_special_characters(self):
-        environment = {"DB_HOST": "db.internal", "DB_USER": "readonly", "DB_PASSWORD": " '$test # \\ ` = "}
-        self.assertEqual(dict(dotenv_values(stream=StringIO(writer.render(environment, database=True)))), environment)
+    def test_protected_database_json_and_separate_secrets(self):
+        import json
+        config={'version':1,'connections':{'source':{'password_ref':'file:database-password.secret'}},'policies':{'source':{'users':[]}}}
+        environment={'CCSDK_DATA_CONFIG_JSON':json.dumps(config),'CCSDK_DATABASE_USER':'readonly',
+                     'CCSDK_DATABASE_PASSWORD':" '$test # \\ ` = ",'CCSDK_DATABASE_CA':'certificate\ncontent'}
+        self.assertEqual(json.loads(writer.render(environment,database=True)),config)
+        self.assertNotIn(environment['CCSDK_DATABASE_PASSWORD'],writer.render(environment,database=True))
 
     def test_rejects_missing_multiline_and_interpolation_without_values(self):
         for value in ("", "sensitive\nINJECTED=yes", "sensitive\rvalue", "sensitive\x00value"):
@@ -41,7 +45,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
                 writer.render(environment)
             self.assertNotIn("sensitive", str(raised.exception))
         with self.assertRaises(ValueError):
-            writer.render({"DB_HOST": "db", "DB_USER": "u", "DB_PASSWORD": "${PASSWORD}"}, database=True)
+            writer.render({'CCSDK_DATA_CONFIG_JSON':'{}'}, database=True)
 
     def test_missing_directory_fails_before_reading_secrets(self):
         with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", ["write-env.py"]):
@@ -77,7 +81,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             binary = root / "bin"
             binary.mkdir()
             docker = binary / "docker"
-            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_DATABASE_ENV_FILE" "$*" >> "$TEST_DOCKER_LOG"\n')
+            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_DATA_DIRECTORY" "$*" >> "$TEST_DOCKER_LOG"\n')
             docker.chmod(0o700)
             config = root / "config with spaces"
             log = root / "docker.log"
@@ -85,12 +89,12 @@ class DeploymentEnvironmentTests(unittest.TestCase):
                            "CCSDK_IMAGE": "test:paths", "CCSDK_GENERATE_ENV": "0",
                            "CCSDK_WITH_DATABASE": "1", "CCSDK_PULL_IMAGE": "0",
                            "CCSDK_CONFIG_DIRECTORY": os.path.relpath(config, script.parent), "TEST_DOCKER_LOG": str(log)}
-            for key in ("CCSDK_ENV_FILE", "CCSDK_DATABASE_ENV_FILE", "CCSDK_DEPLOY_LOCK_FILE"):
+            for key in ("CCSDK_ENV_FILE", "CCSDK_DATA_DIRECTORY", "CCSDK_DEPLOY_LOCK_FILE"):
                 environment.pop(key, None)
             result = subprocess.run(["sh", str(script)], cwd=root, env=environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text().splitlines()
-            self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}/database-qa.env|") for line in calls))
+            self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}/data|") for line in calls))
             self.assertIn("-f compose.database.yaml config --quiet", calls[0])
             self.assertIn("up -d --force-recreate --wait", calls[-1])
             with (config / "deploy.lock").open("w") as lock:

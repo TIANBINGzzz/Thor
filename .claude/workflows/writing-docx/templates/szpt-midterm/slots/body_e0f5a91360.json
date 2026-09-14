@@ -1,0 +1,1196 @@
+{
+  "section_key": "body_e0f5a91360",
+  "slots": [
+    {
+      "slot_key": "P2212",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "1.产出情况",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[159]",
+        "expected_text_hash": "e0f5a91360cf88d6012613ab2e888aa43e71964e494861ae5e763c1f1ba6f931"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2213",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "人才培养成效显著。校企联合建成联通5G示范实训基地和5G思政教学课程模块。深入推进“课证共生共长”人才培养模式改革，培养了一批高素质ICT技能人才。2000余人通过华为各等级认证，300余名",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[160]",
+        "expected_text_hash": "01fabe432d507a3b8cd8ede15a32b355b6c3c3fbc0b38490396ed86d0bccb966"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2214",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值17项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[161]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2215",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-1 “人才培养模式创新”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[162]",
+        "expected_text_hash": "616a1c7378d3cb482dd0ba5a8e358e1640cd2934c126f06581654bc98acb8302"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2368",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "教学资源丰富优质。完成了通信技术国家级专业教学资源库的升级与应用推广，构建模块化课程体系，设置13个课程模块。联合华为等企业设置更新10门认证课程，联合华为开发31门专业核心课程。建成省级精",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[163]",
+        "expected_text_hash": "3b5682a36289d3923935e61184d380dba92c28bf8dff7151215418fb04ee5668"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2369",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值12项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[164]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2370",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-2 “课程教学资源建设”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[165]",
+        "expected_text_hash": "29b50e12ee5f9d0d6bafe6ead26f98dbfd7b21bbfb8e99ed326cc15d06929f3a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2483",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "教材建设深入推进。校企共建18门金课、2门数字课程。入选国家“十三五”规划教材3部，开发1+X认证教材3部，活页式、工作手册式教材6部，ICT技术英文讲义2部。入选工信部“十四五”规划教材3",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[166]",
+        "expected_text_hash": "68f0d8e8b949c838b92e1840011d7e7c82c9a93a668fb6f4588327615707c108"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2484",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值7项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[167]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2485",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-3 “教材与教法改革”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[168]",
+        "expected_text_hash": "72b3cc60aedf89ede3fb1394ca145c1930268bf57aff94666d25cb8c13b7d398"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2550",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "师资水平不断提升。培养国家领军人才3人、省级教学名师1人、南粤优秀教师1人、珠江学者1名、省级名教师工作室1个。建成1+X省级师资培训基地2个。获国家教师教学能力大赛二等奖1项，省信息化教学",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[169]",
+        "expected_text_hash": "737e9b3d250c0561bc689362f7888a7288c4e778672e6df29628ffdb10dc86c1"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2551",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值13项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[170]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2553",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-4 “教师教学创新团队”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[172]",
+        "expected_text_hash": "41dbe45ae46bd8972545f528fc5aafc66ddad11096e1decb4e6924ed7f4202de"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2666",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "实践基地提档升级。建成国家首批虚拟仿真示范基地1个，建成覆盖“云、管、端”三个领域的产教融合实训基地8个，与华为共建“5G+人才数字化产教融合基地”，与中国信息通信研究院共建“5G终端入网测",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[173]",
+        "expected_text_hash": "3d5fb2ff612b0c5bc6b6fc6fc0308e926c9e428ffeab3d012e85cef166a6ed0e"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2667",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值11项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[174]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2668",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-5 “实践教学基地”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[175]",
+        "expected_text_hash": "14aae49b68f3c6483972f4a22829af9ca7f410be7e326cf0e42c0758f2063413"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2773",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "技术创新再创佳绩。建成工业物联网省级技术创新平台3个，获批国家自然科学基金5项，承担省级以上课题9项，获得国家发明专利29项，累计发表高水平论文51篇，荣获广东省科技进步二等奖。与行业领军企",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[176]",
+        "expected_text_hash": "2a9948c6dc7df9d9146a483a9f0a7e27f4f984d38f71e5da94d1cdc60714fd49"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2774",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值11项，任务完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[177]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2775",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-6 “技术技能平台”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[178]",
+        "expected_text_hash": "95d7252bfaef15dffcd3bfa9caecce12cc7f8ff2074fd878679a60fa7bb7b08f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2880",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "社会服务贡献突出。为中小企业开展技术服务212次，为中小微企业员工等群体开展技术技能培训3万余人次。承担师资培训国培项目，培养高水平专业领军人才30人。开展对口支援，招收云南等贫困地区学生1",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[179]",
+        "expected_text_hash": "f00f005fb5a8ee144789cd9d450d731958057c4aaefc1265aa7e989c577c0051"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2881",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值10项，任务完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[180]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2882",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-7 “社会服务”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[181]",
+        "expected_text_hash": "5ad13aacfe09345bbe7407d45e3e6ee0da23a48a98604c3ae3f5e614dfe089ea"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P2971",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "国际影响持续扩大。依托海外职业教育培训中心，携手华为等一流企业，面向“一带一路”沿线国家开展国际培训和交流30余场；开发ICT新技术国际课程4门，覆盖20多个国家，累计培训国际学员500余人",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[182]",
+        "expected_text_hash": "1d20f1543423e7bfda7c2647921f7126aa452d618c6023178659453623a27875"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2972",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值10项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[183]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P2973",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-8 “国际交流与合作”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[184]",
+        "expected_text_hash": "9d836e1c985808dc6e5368a2908087e8be71056502365f5e564d4d4497a573a9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3062",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "建立健全了可持续发展保障机制。成立人才培养质量保障小组，保障专业人才培养质量。建立毕业生跟踪反馈机制，为教学改革提供依据。携手行业领军企业，建立了广东省信息通信协同育人平台、华为ICT学院、",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[185]",
+        "expected_text_hash": "b43c9d15edeb22f79288f34bb630aff385c2ea73e62776bf338f29555233c40e"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3063",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "精英计划成效卓著。批量培养HCIE（华为认证ICT专家）、RHCA（红帽认证架构师），200余名毕业生通过认证，平均年薪超10万元。毕业生获HCIE认证人数占全球总数的2%。全国首试HCIE",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[186]",
+        "expected_text_hash": "88538f17045cdc944e97a5026e984c536e54c49e3063c5c8c22a212cdf4c87b1"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3065",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "综上，通信技术专业群建设任务中期完成度均超100%，终期完成度达88.3%。专业群总预算1.39亿元，2019-2021年度资金到位1.22亿元，其中中央财政0.55亿元、地方财政0.48亿",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "B",
+        "T",
+        "U",
+        "S"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[188]",
+        "expected_text_hash": "eba0319384caf35b989ef9d6eb6e2097fa69fe4ac3786fb668ad7157267ab9e4"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3066",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-9 通信技术专业群时效指标中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[189]",
+        "expected_text_hash": "c816541533d4badb5ca61b9b2d972dd2f9c1bdf302a0f2e1ab6f0dc0a98f523c"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3239",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "1.产出情况",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[198]",
+        "expected_text_hash": "e0f5a91360cf88d6012613ab2e888aa43e71964e494861ae5e763c1f1ba6f931"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3240",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "创建了分层分类培养模式。为不同类别的学生设计不同的成长路径，制定分层培养方案，校企合作开办现代学徒制班1个，开发1+X证书标准1项，实施鉴定试点3项。获省级教学成果奖2项。学生获国家级竞赛一",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[199]",
+        "expected_text_hash": "360aeb3cc327e397046f6d2b73f5558a8f67d3c80fece2c32b78c2ccb15d732b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3241",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "图2  分类分层人才培养模式",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "G"
+      ],
+      "instruction": "图和图题保留，按年度更新图片",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[200]",
+        "expected_text_hash": "961b63b4ffff89788f6a9e24167b235b0ebcd3e1c6b84e94b841d1d5e2b0ff47"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3242",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值20项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[201]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3243",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-1 “人才培养模式创新”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[202]",
+        "expected_text_hash": "7587185b0482e158905985f97d8ab6b3465cee538f66c4b3a6d62c79c4607aa5"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3420",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "开发了优质教学资源。建成国家专业教学资源库1个，重点打造了在线开放课程4门、全英文在线开放课程2门、线上线下混合式教学课程41门。与arm、Google、比亚迪、华为等行业领先企业合作建成优",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[203]",
+        "expected_text_hash": "87a5b96b4496e98631658d46651bbd3947497365d429579b85b583363b40702e"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3421",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值13项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[204]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3422",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-2 “课程教学资源建设”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[205]",
+        "expected_text_hash": "f0cc64c28c90c61c9e232f509b61e97d13ddfad7861b3891017597b4d5b923d4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3543",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "实现了教材教法改革重大突破。《单片机应用技术（C语言版）第4版》获国家优秀教材特等奖，入选国家“十三五”规划教材4部，开发新形态一体化教材6部、新型活页式教材5部。开展项目教学、案例教学、情",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[206]",
+        "expected_text_hash": "271626760d03241599e287368a3d8d653d63be2f1ab80504679ed547f4c39fbf"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3544",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值7项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[207]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3545",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-3 “教材与教法改革”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[208]",
+        "expected_text_hash": "65a99a2e0433f9a640b04c35ff142e475d63c64312c2f1e837c32b6fb05fc431"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3610",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "培育了高水平教师教学创新团队。新增国家级职业教育教师教学创新团队1个，培育省技术能手3人、市技能菁英1人、鹏城学者1人、达到深圳市认定标准的国家级领军人才2人。获省级职业院校教师教学能力大赛",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[209]",
+        "expected_text_hash": "97442fb72f1ce24f9a791b66ac1dbe19bc50cee859386bfbeb23d23e07007d7f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3611",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值15项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[210]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3612",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-4 “教师教学创新团队”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[211]",
+        "expected_text_hash": "b1fe6a119162ddfb7c90c1a9088cda5ac51d0e91aa40877ddfa137387bdeb195"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3741",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "提升了实践教学基地层次。建设产教融合实训基地2个、“集成电路工艺”虚拟仿真实训中心1个、智慧实训室17间，仪器设备总值1.365亿元。开发结合企业生产和新技术、新工艺的实训项目50个。与ar",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[212]",
+        "expected_text_hash": "e6bcbf02c7a360e80dcadd6a0ac8ef374f100eed0695897f9fef604bb0e674a0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3742",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值11项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[213]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3747",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-5 “实践教学基地”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[218]",
+        "expected_text_hash": "74764f7fadc8470cb0a6a06bfe0ccea618a388997abc9f6abe3e1b6eb76eb386"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3844",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "打造了高水准技术技能创新平台。校企共建高水平技术技能平台1个、技术技能大师工作室2个。技术研发服务项目85项、省级以上科研项目7项，纵向到账经费580万元，横向到账经费1982.86万元，获",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[219]",
+        "expected_text_hash": "00ea4f987ce771000af36911e77d88a468859b7665e87e99d6183b33a7778395"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3845",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值11项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[220]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3846",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-6 “技术技能平台”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[221]",
+        "expected_text_hash": "841bb6c73611aa9aaf5a1b02dde4b2d2ec00171a2c24221fb5c3cdef9b9ac2ae"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3952",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "做优了社会服务。建成“汽车电子产品及新能源汽车检测实验室”并获得CNAS认证；为职业院校开展师资培训3020人日；为中小企业开展技术服务213次，培训员工3500人日；面向社会开展职业启蒙教",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[223]",
+        "expected_text_hash": "538ddb7f8f9788474e543e5c936c54691c00fe633825ea2ff4dbd7597425e14d"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3953",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值14项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[224]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3954",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-7 “社会服务”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[225]",
+        "expected_text_hash": "6b436b124fc9a5bf8c95cfa513964db007dee232800b5c5fea6151f14fdc1fbd"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4083",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "扩大了国际影响力。教师赴国（境）外访学或研修培训12人次，学生赴国（境）外访学或实习14人次。与香港职业训练局合作开发了双语专业标准和课程体系，共建“传感器综合实训”“电子线路板设计”专业课",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[226]",
+        "expected_text_hash": "4092f4e2eba33fd3010b7af2b4714498f181b99c219d54646b5f159897a866ef"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4084",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值11项，完成度均超100%。自评等级优。",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[227]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4085",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-8 “国际交流与合作”中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[228]",
+        "expected_text_hash": "f3cb5ecf70f8a8bd5729a830aed855a20af9d7ada545f9186bdad6ec8dd5e6e3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4182",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "建立了完善的可持续发展保障机制。建立了校企合作长效机制，深入推进依托特色产业学院的双主体协同育人。建立了专业群与产业发展同步调整机制，绘制专业对接产业的“映射图”，动态调整专业设置。建立和完",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[229]",
+        "expected_text_hash": "ce7d4107605ab3c1298c20b27454145cf9e0120df2805aa297b8ae3eadc6f071"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4183",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "提升了学生“双创”能力。打造了立体化的双创基地，每年吸纳130多名学生进驻科技社团、精英班、教师工作室、应用研究中心等平台。构建了以“大赛”为牵引的“双创”能力培养体系，学生获“互联网+”双",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[230]",
+        "expected_text_hash": "11bfa21bec29e877fbcb3f365e847f4db8d21967cdb5989b20d8a90228a9bd1e"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4185",
+      "section_key": "body_e0f5a91360",
+      "kind": "narrative",
+      "required": true,
+      "name": "综上，电子信息工程技术专业群建设任务中期完成度均超100%，终期完成度达86.5%。专业群总预算1.12亿元，2019-2021年度资金到位0.9亿元，其中中央财政0.44亿元、地方财政0.",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "B",
+        "T",
+        "U",
+        "S"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[232]",
+        "expected_text_hash": "533816a0e8be0ebaee00f7cbee8c269152fac80f2dc0b9d885f2ef117051db88"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4186",
+      "section_key": "body_e0f5a91360",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-9 电子信息工程技术专业群时效指标中期自评表",
+      "business_context": "1.产出情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[233]",
+        "expected_text_hash": "2300189be95c2e4913c97b8b3422c04ad8be74a528321d514a8a3dd7f250fe93"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "source_key": "schoolDoubleHigh",
+  "defaults": "未列出的参数按 QuerySpec 显式绑定；Q1/Q13/Q15 年度来自用户，Q9-Q11 部门须唯一解析，Q17 专业群项目须唯一解析并授权",
+  "questions": {
+    "Q1": {
+      "query_id": "task_level_counts",
+      "bindings": {},
+      "result": "task_level/task_count"
+    },
+    "Q2": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "avg_progress"
+    },
+    "Q3": {
+      "query_id": "completed_task_count",
+      "bindings": {},
+      "result": "completed_count"
+    },
+    "Q4": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "threshold_count/threshold_rate"
+    },
+    "Q5": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "zero_or_missing_count"
+    },
+    "Q6": {
+      "query_id": "completed_tasks_without_material",
+      "bindings": {},
+      "result": "missing_material_count"
+    },
+    "Q7": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "结果部门行数"
+    },
+    "Q8": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "completed_count=0 的部门行数"
+    },
+    "Q9": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "task_count"
+    },
+    "Q10": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "completed_count"
+    },
+    "Q11": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "completion_rate+avg_progress"
+    },
+    "Q12": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "progress_rank；披露所有层级默认，明确三级时改3"
+    },
+    "Q13": {
+      "query_id": "fund_totals",
+      "bindings": {},
+      "result": "budget_amount+budget_observed_count+fund_count"
+    },
+    "Q14": {
+      "query_id": "fund_totals",
+      "bindings": {
+        "year": null
+      },
+      "result": "budget_execution_rate"
+    },
+    "Q15": {
+      "query_id": "fund_totals",
+      "bindings": {},
+      "result": "budget_execution_rate"
+    },
+    "Q16": {
+      "query_id": "fund_department_coverage",
+      "bindings": {},
+      "result": "coverage_rate+zero_execute_department_count+未填报诊断"
+    },
+    "Q17": {
+      "query_id": "performance_current_summary",
+      "bindings": {},
+      "result": "avg_progress+reached_rate"
+    },
+    "Q18": {
+      "query_id": "performance_current_summary",
+      "bindings": {},
+      "result": "not_reached_count"
+    }
+  },
+  "tables": {
+    "t_hpm_project": [
+      "project_catalog",
+      "stage_catalog",
+      "performance_module_status",
+      "project_leaders",
+      "task_project_flag_diagnostics",
+      "fund_totals",
+      "fund_source_amounts",
+      "fund_department_coverage",
+      "performance_current_summary",
+      "performance_stage_summary",
+      "performance_tree",
+      "performance_department_metrics",
+      "performance_feedback_candidates",
+      "report_performance_titles",
+      "task_project_candidates",
+      "report_cycle_budget",
+      "report_task_performance_links"
+    ],
+    "t_hpm_project_fund": [
+      "fund_totals",
+      "fund_source_amounts",
+      "fund_department_coverage",
+      "report_cycle_budget"
+    ],
+    "t_hpm_project_member": [
+      "project_leaders"
+    ],
+    "t_hpm_project_module": [
+      "performance_module_status",
+      "performance_current_summary",
+      "performance_stage_summary",
+      "performance_department_metrics",
+      "performance_feedback_candidates",
+      "report_task_performance_links"
+    ],
+    "t_hpm_project_performance": [
+      "performance_current_summary",
+      "performance_stage_summary",
+      "performance_tree",
+      "performance_department_metrics",
+      "performance_feedback_candidates",
+      "report_performance_titles",
+      "report_task_performance_links"
+    ],
+    "t_hpm_project_performance_feedback": [
+      "performance_feedback_candidates"
+    ],
+    "t_hpm_project_performance_org": [
+      "performance_department_metrics"
+    ],
+    "t_hpm_project_stage": [
+      "stage_catalog",
+      "task_level_counts",
+      "task_progress_summary",
+      "completed_task_count",
+      "completed_tasks_without_material",
+      "task_department_metrics",
+      "task_tree",
+      "task_feedback_candidates",
+      "task_members",
+      "task_project_flag_diagnostics",
+      "fund_totals",
+      "fund_source_amounts",
+      "fund_department_coverage",
+      "performance_stage_summary",
+      "task_project_candidates",
+      "task_department_candidates",
+      "report_task_performance_links",
+      "report_task_sections"
+    ],
+    "t_hpm_project_task": [
+      "task_level_counts",
+      "task_progress_summary",
+      "completed_task_count",
+      "completed_tasks_without_material",
+      "task_department_metrics",
+      "task_tree",
+      "task_feedback_candidates",
+      "task_members",
+      "task_project_flag_diagnostics",
+      "fund_department_coverage",
+      "task_project_candidates",
+      "task_department_candidates",
+      "report_task_performance_links",
+      "report_task_sections"
+    ],
+    "t_hpm_project_task_feedback": [
+      "completed_tasks_without_material",
+      "task_feedback_candidates",
+      "report_task_sections"
+    ],
+    "t_hpm_project_task_member": [
+      "task_members"
+    ],
+    "t_hpm_project_task_org": [
+      "task_department_metrics",
+      "fund_department_coverage",
+      "task_department_candidates"
+    ],
+    "t_hpm_project_task_performance_relation": [
+      "report_task_performance_links"
+    ]
+  }
+}

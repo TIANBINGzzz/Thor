@@ -1,0 +1,385 @@
+{
+  "section_key": "body_5fd9bd9fee",
+  "slots": [
+    {
+      "slot_key": "P4809",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "static",
+      "required": false,
+      "name": "（六）技术技能平台",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[683]",
+        "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4810",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.纵向到账经费613万元",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[684]",
+        "expected_text_hash": "4b7d2d0f4c6a65404269ab3dd53a4176d3af0b4b9064012839a00813459be567"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4811",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.横向到账经费600.8万元",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[685]",
+        "expected_text_hash": "8353cd92a1e31a2327b904aa6147062ba748f0ba1d89b51781a17ea0a993caba"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4812",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.PCT国际专利、国家发明专利29项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[686]",
+        "expected_text_hash": "3b9f0b3ed133229aa67fc6fa86baa47dd129046e921e0f922a16862fd5571330"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4813",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.SCI、EI索引及中文核心论文30篇",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[687]",
+        "expected_text_hash": "abab96d8c47762e83839673db676b301162d87392e14ffb8abefcae9e658ac1a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4814",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.省级以上科研项目9项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[688]",
+        "expected_text_hash": "e821142dff1436baf94c11037e041d9fd589011c0c40a00657d671dd12aba15b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4815",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.科研成果转化率37.3%",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[689]",
+        "expected_text_hash": "84b776ab8903bbe4428ddbe9ae5f405f12489b56eede26ae3f0e57e6aaa0585c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4897",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "static",
+      "required": false,
+      "name": "（六）技术技能平台",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[771]",
+        "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4898",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．与行业领军企业共建高水平技术技能平台1个",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[772]",
+        "expected_text_hash": "6a95691ea438aecacff0ad80880e4d7dfd37869a476fc0eb1cdf2ab4695788d5"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4899",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．技术技能大师工作室1个",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[773]",
+        "expected_text_hash": "8009cb5725480666fc0c396a50d0261b84aa5bee695c6f5835175429e817e21d"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4900",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "3．由骨干教师领衔、师生共同组成的技术团队3个",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[774]",
+        "expected_text_hash": "f90742fd57865ddd240120738b16a4c8d6eeca75fb4a78d12a343233b3b32455"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4901",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "4．完成技术研发和技术服务项目85项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[775]",
+        "expected_text_hash": "13dc84cc35f9d90fc166d17c162b38d73569c6a309f6e8dfbc350f42329bc38b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4902",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "5．国家发明专利授权数18项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[776]",
+        "expected_text_hash": "17a173853af142166df39083dcbf5a75646c58073a8c7a20fcd7a2af6c42bf7b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4952",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "static",
+      "required": false,
+      "name": "（六）技术技能平台",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[826]",
+        "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4953",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "1．纵向到账经费580万元",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[827]",
+        "expected_text_hash": "1f04b8c8522f52a96c8cc4c691985ae56380fef36fe469b065e4de59b45b6efc"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4954",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "2．横向到账经费1982.86万元",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[828]",
+        "expected_text_hash": "5df8c1c4ebf06435d4d1c09d29fb83a5cf977c78eade9e21151a0f388238a66b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4955",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "3．PCT国际专利、国家发明专利18项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[829]",
+        "expected_text_hash": "cb8437ca439e8022438578044fc275759a1ebd9b353bded127d81d10dbd21209"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4956",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "4．SCI、EI索引及中文核心论文28篇",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[830]",
+        "expected_text_hash": "452dd433f8fc04bb9c598b3d9e2760cd72a994a48f7496abb2426306cb1db330"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4957",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "5．省级以上科研项目7项",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[831]",
+        "expected_text_hash": "8c9e6e67c93081554880068a252f83067a6d623114ca5555ad1f6a949a58d187"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4958",
+      "section_key": "body_5fd9bd9fee",
+      "kind": "narrative",
+      "required": true,
+      "name": "6．科研成果转化率37.5%",
+      "business_context": "（六）技术技能平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[832]",
+        "expected_text_hash": "1bba94054aec9191ccf3d395ee86dd11939fa989e381f38288c91077d0b1ffe0"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

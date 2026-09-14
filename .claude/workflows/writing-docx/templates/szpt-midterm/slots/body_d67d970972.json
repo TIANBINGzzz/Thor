@@ -1,0 +1,81 @@
+{
+  "section_key": "body_d67d970972",
+  "slots": [
+    {
+      "slot_key": "P4739",
+      "section_key": "body_d67d970972",
+      "kind": "static",
+      "required": false,
+      "name": "教材与教法改革",
+      "business_context": "教材与教法改革",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[613]",
+        "expected_text_hash": "d67d970972a76eea97740a18a8174ffc6de9ec031bee1244010cd782cbb6aa45"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4740",
+      "section_key": "body_d67d970972",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.累计出版教材8部",
+      "business_context": "教材与教法改革",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[614]",
+        "expected_text_hash": "6021b9ba5862fb828f74e148f35cac2278eba8d88a081e700cb5fd6e44e43eda"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4741",
+      "section_key": "body_d67d970972",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.数字课程2门",
+      "business_context": "教材与教法改革",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[615]",
+        "expected_text_hash": "708071b2bee12d26104a9e01bdce0407d578b086f9798bd856d166ff0f4feda9"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4742",
+      "section_key": "body_d67d970972",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.新型活页式、工作手册式教材6部",
+      "business_context": "教材与教法改革",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[616]",
+        "expected_text_hash": "5914356cab878db64ff55d0e1b384727ed8c31a1dc40fc4a4c30beb2e986fe43"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

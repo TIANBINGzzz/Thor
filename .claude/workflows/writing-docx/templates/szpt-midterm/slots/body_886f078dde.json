@@ -1,0 +1,104 @@
+{
+  "section_key": "body_886f078dde",
+  "slots": [
+    {
+      "slot_key": "P1226",
+      "section_key": "body_886f078dde",
+      "kind": "static",
+      "required": false,
+      "name": "7.提升服务发展水平",
+      "business_context": "7.提升服务发展水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[99]",
+        "expected_text_hash": "886f078ddeeea6b8171a431d326356490d65695194fa90c71282c64b897e721d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1227",
+      "section_key": "body_886f078dde",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值10项，完成度均超100%。取得标志性成果4项，其中，国家级1项、省级3项。自评等级优。",
+      "business_context": "7.提升服务发展水平",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[100]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1228",
+      "section_key": "body_886f078dde",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-6 “提升服务发展水平”中期自评表",
+      "business_context": "7.提升服务发展水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[101]",
+        "expected_text_hash": "e50d36565ec2d7966ac081c4fbaf37b7ac95beb21e02692841633d012cb9e041"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1325",
+      "section_key": "body_886f078dde",
+      "kind": "narrative",
+      "required": true,
+      "name": "技术赋能提质增效。建成行业培训学院5个、社区学院2个，开展在职人员技术赋能培训。面向企事业单位高等学历继续教育1万余人；非学历培训数达60余万人日。获评全国退役军人服务保障先进单位。",
+      "business_context": "7.提升服务发展水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[102]",
+        "expected_text_hash": "8929415864fc1eaa64f459e4e8d4dd95f1289e13b67a1e8c497f91aff4cc1a19"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1326",
+      "section_key": "body_886f078dde",
+      "kind": "narrative",
+      "required": true,
+      "name": "师资培训延伸覆盖。建成省职业院校“双师型”教师培训基地，新增师资培训精品项目14个，其中国培项目3个。在沈阳、吉安、呼伦贝尔等地建设“三教”改革师资培训基地5个，面向全国开展职教师资与干部培",
+      "business_context": "7.提升服务发展水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[103]",
+        "expected_text_hash": "50f93d8d919ce752f9a6d1296fbae1442d3ec4ca4f40d667c5638b8541b8488c"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

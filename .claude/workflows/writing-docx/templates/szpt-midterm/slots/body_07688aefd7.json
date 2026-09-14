@@ -1,0 +1,24 @@
+{
+  "section_key": "body_07688aefd7",
+  "slots": [
+    {
+      "slot_key": "P4563",
+      "section_key": "body_07688aefd7",
+      "kind": "static",
+      "required": false,
+      "name": "三、其它",
+      "business_context": "三、其它",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[437]",
+        "expected_text_hash": "07688aefd778c99b90d2907e3b05d399155f5a541e14d49e87bfcd4044b5075c"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

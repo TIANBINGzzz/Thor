@@ -70,7 +70,7 @@ Content-Type: application/json
 | `runId` | 是 | 幂等和恢复执行；同一 ID 的非同形请求会被拒绝。 |
 | `messageId` | 是 | 关联 Java 业务消息，不作为 Provider 会话 ID。 |
 | `businessSessionId` | 否 | 关联连续业务会话；不传则按无业务会话执行。 |
-| `capabilityRef` | 是 | 稳定的业务入口；由 Python 映射到内部 Workflow/Skill/MCP。 |
+| `capabilityRef` | 否 | 普通会话省略或null，内部归一为conversation；选择能力时传稳定业务标识，空字符串拒绝。 |
 | `input.text` | 条件必填 | 文本输入；与附件、payload 至少一个非空，最长 1,000,000 字符；input 对象仍必填。 |
 | `payload` | 否 | 业务 JSON 对象，默认空；作为本次用户业务数据追加到模型输入，参与 Run 幂等比较。 |
 | `input.attachmentRefs` | 条件必填 | 固定文件引用，最多 64 项；`purpose` 为 `input` 或 `reference`。 |
@@ -93,7 +93,7 @@ Content-Type: application/json
 
 ### 3.2 Capability 字段
 
-创建 Run 使用 `capabilityRef` 选择能力。目录接口返回当前登记的全部 SDK 能力，不代表用户已获得业务授权，也不是模型/MCP 健康检查。当前已实现值为：
+创建Run可省略capabilityRef进行普通会话；选择能力仅作用于当前消息。同一businessSessionId保留业务连续性，各能力使用隔离Client，跨能力摘要须由Java作为已授权输入提供。目录返回全部登记能力，不代表用户授权或模型/MCP健康检查。当前值为：
 
 | `capabilityRef` | Python 内部映射 | 附件 |
 | --- | --- | --- |
@@ -273,7 +273,7 @@ Java 对每次 Runtime 请求生成短期 JWT。必须包含：
 }
 ```
 
-必需 Claim：`iss`、`aud`、`iat`、`exp`、`jti`、`sub`、`tenant`、`runId`、`capabilityRef`、`scope`。创建时还必须包含与请求一致的 `messageId`；使用业务会话时包含与请求一致的 `businessSessionId`。
+必需Claim：`iss`、`aud`、`iat`、`exp`、`jti`、`sub`、`tenant`、`runId`、`capabilityRef`、`scope`。正文省略或null能力时，JWT仍绑定conversation；不能省略授权Claim。创建时另须绑定messageId，使用业务会话时绑定businessSessionId。
 
 scope 与接口的关系：
 

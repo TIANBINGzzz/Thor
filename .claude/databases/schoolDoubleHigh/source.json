@@ -1,0 +1,11 @@
+{
+  "source_key": "schoolDoubleHigh",
+  "name": "校双高数据库",
+  "profiles": {
+    "hpm": "query-specs/hpm"
+  },
+  "connection_ref": "schoolDoubleHigh_primary",
+  "policy_ref": "schoolDoubleHigh_readonly",
+  "version": 1,
+  "enabled": true
+}

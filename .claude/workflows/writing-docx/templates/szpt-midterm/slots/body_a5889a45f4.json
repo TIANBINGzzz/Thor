@@ -1,0 +1,102 @@
+{
+  "section_key": "body_a5889a45f4",
+  "slots": [
+    {
+      "slot_key": "P0033",
+      "section_key": "body_a5889a45f4",
+      "kind": "static",
+      "required": false,
+      "name": "（一）总体目标的实现程度及效果概述",
+      "business_context": "（一）总体目标的实现程度及效果概述",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[26]",
+        "expected_text_hash": "a5889a45f4bb0a4d67efa7125457ca818f9769f380356435f81801292357da63"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0034",
+      "section_key": "body_a5889a45f4",
+      "kind": "narrative",
+      "required": true,
+      "name": "截至2021年12月31日，高水平学校179(未知)项指标中期完成度(中期完成度不知道计算逻辑)均超100%，终期累计完成度(累计完成度不知道计算逻辑)达82.6%；通信技术专业群(项目名称",
+      "business_context": "（一）总体目标的实现程度及效果概述",
+      "scope_role": "school",
+      "source_rules": [
+        "T",
+        "U",
+        "S"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[27]",
+        "expected_text_hash": "895390a3a16a043235a7f0f9185d43a6eebef7d0dc03e62fbcda9b0a780c7a9b"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0041",
+      "section_key": "body_a5889a45f4",
+      "kind": "static",
+      "required": false,
+      "name": "表 1 深职院“双高”建设中期绩效评价自评得分表",
+      "business_context": "（一）总体目标的实现程度及效果概述",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[34]",
+        "expected_text_hash": "44e8f7cd1c8322069a6792f144d3f96935ff374db6a1478489d76199d9059f43"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0111",
+      "section_key": "body_a5889a45f4",
+      "kind": "static",
+      "required": false,
+      "name": "经过三年建设，学校办学水平显著提升，服务国家战略和深圳经济社会发展能力显著增强，国际影响力持续提升，取得了一系列标志性成果，形成了一批可复制的模式、可借鉴的机制、可推广的经验，在全国同类院校",
+      "business_context": "（一）总体目标的实现程度及效果概述",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "概括文字已写",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[36]",
+        "expected_text_hash": "cfe2e5f2ac87cb250d5a2b24ef1faff7c1ff3ce0c2a01c70b155567fedc88bd6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0113",
+      "section_key": "body_a5889a45f4",
+      "kind": "static",
+      "required": false,
+      "name": "表 2 深职院“双高”建设 2024—2026年主要标志性成果一览表该表数据目前未知需要根据需求最终确定",
+      "business_context": "（一）总体目标的实现程度及效果概述",
+      "scope_role": "school",
+      "source_rules": [
+        "A"
+      ],
+      "instruction": "表题期间占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[38]",
+        "expected_text_hash": "d61033345b8564389f98d65653a67ba3d944c0e8f570485322aac8cb0ba8a0aa"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

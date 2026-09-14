@@ -1,0 +1,537 @@
+{
+  "section_key": "body_db5089ccbf",
+  "slots": [
+    {
+      "slot_key": "P4401",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "（一）打造技术技能人才培养高地",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[275]",
+        "expected_text_hash": "db5089ccbff4e149586d99b3ccbed75079351abb9683cd0a9278a1293002132d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4402",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.建设国家级专业教学资源库5个",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[276]",
+        "expected_text_hash": "322219045aae74d3f79e752c247fa9d3b5fb27d06cd21c0b1687dff55bb08cfe"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4403",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.建设国家级“金课”6门",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[277]",
+        "expected_text_hash": "a0bb76766efc217a19232b901791d5c267637ee1948506dfaac6d0ce1d7e8917"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4404",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.获批国家规划教材47部",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[278]",
+        "expected_text_hash": "b5c0ac464d1c1daac0640713a81e14c79b1b982518d162e5d0085492f4a50b01"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4405",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.与企业共建高水平校内实训基地10个",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[279]",
+        "expected_text_hash": "22f52d613cd2f5f05f8b2e695d2e3af0ea48d0f07b16160ec4626d8872365f68"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4406",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.学生获得国际公认或行业公认的高质量证书比例达到53.2%",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[280]",
+        "expected_text_hash": "2ade3178ac843c77067abbb1a898ec575c7d7d92b870843e6370f0dab83e7d14"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4407",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.平均每届获得全国职业院校技能大赛一等奖11.67个",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[281]",
+        "expected_text_hash": "f15825d0eb5624f67532813959549ac3646cd38c66d6abe34158c40cdfbcca8e"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4483",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "（一）打造技术技能人才培养高地",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[357]",
+        "expected_text_hash": "db5089ccbff4e149586d99b3ccbed75079351abb9683cd0a9278a1293002132d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4484",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.国家“1+X”试点对应专业的参与率达90%",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[358]",
+        "expected_text_hash": "ad54cae8b9ab22595800e05dca839dfc7f0b18136937e3d0325e50ec0a33fac2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4485",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.形成“六个融合”教育理念的方法论体系（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[359]",
+        "expected_text_hash": "4f353b32353e43e7dbb759f33a3cf9263513babace45925f0740be2681953bc5"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4486",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.提炼“六融合”实践案例49个",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[360]",
+        "expected_text_hash": "bc70398aa2c8a7dff18347792f21bf385b78dced9289357811f204a0e27ff86a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4487",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.建成深职特色的标准体系（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[361]",
+        "expected_text_hash": "6ba5f568468f9ee15070212e3216ceabe5ecd71823b8c48de178c48be996fcf4"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4488",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.形成深职特色的技能人才培养质量保证体系（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[362]",
+        "expected_text_hash": "c51b1605c568b01611d323b76a7c1e6dff511e5fa3cf3953ce3130562f773716"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4489",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.形成“2+8+N”专业群布局（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[363]",
+        "expected_text_hash": "dfc60cd0a63a02bb2da78497f82cc3328c37dd7c6cf363c7dbfb7507dc4528c0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4593",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "（一）打造技术技能人才培养高地",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[467]",
+        "expected_text_hash": "db5089ccbff4e149586d99b3ccbed75079351abb9683cd0a9278a1293002132d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4594",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.专业设置与区域重点产业匹配度达到100%",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[468]",
+        "expected_text_hash": "9e816ac4b2f98a0e7723533276943c3b2ea1c4ce58728c42041a96d5f21b337d"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4595",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "2.深职特色的质量保证体系（成熟定型）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[469]",
+        "expected_text_hash": "f1da5a76f337a80062dcf0e3a3a492b840146501396f73f721fb0060dd9aa29a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4596",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "3.人才培养的持续进阶机制（成熟定型）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[470]",
+        "expected_text_hash": "b0466a27023c3ca5c0e7754e358b214cb59e7d75924c1f44ccdbf9302cbf6c8a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4597",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.从技术开发、技术服务到成果转化的一体化技术技能创新机制（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[471]",
+        "expected_text_hash": "2855c6a2e99b13f8651f689728ec97b22a6cc54aa37cdbf225cda910a79f6e2c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4598",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.高水平专业群建设的深职路径（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[472]",
+        "expected_text_hash": "7b48a1dd7d336dcd964e099185ba065bed8610f7a4122d01c786a80522ba7d38"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4599",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.职业教育高水平双师队伍建设路径与模式创新体系（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[473]",
+        "expected_text_hash": "e00aadcebffa774be10c579490c2d7cf44e600c6e356997da0c672d88decff10"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4600",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "7.形成“八个共同”校企合作路径（成熟定型）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[474]",
+        "expected_text_hash": "b5102381b4a715bd28827d3557d7dfd19a004793b5fefed62f78e915f5bfe634"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4601",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "8.形成“互惠双赢”的校企合作机制（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[475]",
+        "expected_text_hash": "7e26654987fe4528f20a4180c884bb37f4e62e7f697f0734c38ae5349d4a0611"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4602",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "9.东西协作推进高职教育事业内涵发展的时间与探索-以深圳职业学院为例（形成初稿）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[476]",
+        "expected_text_hash": "9ac9191e3b34b41b07f916a5845440e4ce6858633bfbbe627a39d11fa6761856"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4603",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "10“面向人人”的立体式全方位社会模式（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[477]",
+        "expected_text_hash": "1e2fce84365e78877e20aae43d4bfcdcf5b52640ac3ab95fcc21377ab8e35a5d"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4604",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "11.5G智慧校园实践与探索成果影响（持续影响）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[478]",
+        "expected_text_hash": "36f98cd4d64431b3da884d9096f432108f96080be2e31f588468e15037897396"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4605",
+      "section_key": "body_db5089ccbf",
+      "kind": "static",
+      "required": false,
+      "name": "12.与专业教育深度融合的进阶式创业教育模式（成熟定型）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[479]",
+        "expected_text_hash": "5244e47b489b49dbe6ad1b12cb94e1158d3c0bbf64710e7c94cca76acdf69aa1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4606",
+      "section_key": "body_db5089ccbf",
+      "kind": "narrative",
+      "required": true,
+      "name": "13.“五位一体”的学生综合素质培养模式（基本形成）",
+      "business_context": "（一）打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[480]",
+        "expected_text_hash": "e0ebaecc71087a0d233d1d43232d0294f44241680c237ce75b32bcb358df5c70"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

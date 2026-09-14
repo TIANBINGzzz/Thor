@@ -1,0 +1,24 @@
+{
+  "section_key": "body_3ecee319fb",
+  "slots": [
+    {
+      "slot_key": "P4661",
+      "section_key": "body_3ecee319fb",
+      "kind": "static",
+      "required": false,
+      "name": "七、基于“高水平学校和专业群社会认可度”信息采集表",
+      "business_context": "七、基于“高水平学校和专业群社会认可度”信息采集表",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[535]",
+        "expected_text_hash": "3ecee319fb0ccbfa8b6c48c72f10b302e4dc2693bb905eadf3b5e8f2584a5645"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

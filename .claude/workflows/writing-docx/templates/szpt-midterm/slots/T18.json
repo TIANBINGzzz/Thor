@@ -1,0 +1,1373 @@
+{
+  "section_key": "T18",
+  "slots": [
+    {
+      "slot_key": "T18_R001_C01_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C02_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C04_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C05_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C06_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C07_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R001_C08_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R002_C01_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R002_C02_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R002_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "优质在线教学资源数量（条）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "aabda02a70bb9eba620dc38e8b48ac0349058078dc98bbe9dfa7cec4853dc792"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R002_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "12000",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R002_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "17917",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R002_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R002_C07_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R002_C08_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源数量（条） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R003_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "优质在线教学资源受益院校（所）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源受益院校（所） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "7e1e0505863836d061c83c1980c93d3c61e95c8ccc47ef92fc51b349808e0774"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R003_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源受益院校（所） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R003_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "120",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源受益院校（所） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R003_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 优质在线教学资源受益院校（所） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R004_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "紧密关联职业能力的国际可借鉴课程标准（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 紧密关联职业能力的国际可借鉴课程标准（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "8f63d5aabec2ece62bb97c7b848131b235228ad65a8b0da6d67ac728721e462c"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R004_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "5",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 紧密关联职业能力的国际可借鉴课程标准（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R004_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "7",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 紧密关联职业能力的国际可借鉴课程标准（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R004_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 紧密关联职业能力的国际可借鉴课程标准（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R005_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "应用资源库运行平台受益学生数量（人）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 应用资源库运行平台受益学生数量（人） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "490907298f7af8274400e30d1e5553bfc30a78554e6034f47f0a5f17691577b6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R005_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "11900",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 应用资源库运行平台受益学生数量（人） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R005_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "21951",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 应用资源库运行平台受益学生数量（人） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R005_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 应用资源库运行平台受益学生数量（人） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R006_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "精品在线课程（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 精品在线课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "bf7cc08ac8b22da119ac452cbfeb9306cd1ecf5dabdd5bd5c4c771d6573c56e1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R006_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "15",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 精品在线课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R006_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "18",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 精品在线课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R006_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 精品在线课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R007_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "线上线下混合式教学课程（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上线下混合式教学课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "48368e9997df2e614da1f3025e2ff3d0dc427383056ff06730e51c712db9db5a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R007_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "21",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上线下混合式教学课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R007_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "39",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上线下混合式教学课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R007_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上线下混合式教学课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R008_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "校企合作开发课程（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 校企合作开发课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "4720395bd2431aa7bc621129da159cb54026bee057b4b7003e98d8735a43ed02"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R008_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "16",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 校企合作开发课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R008_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "31",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 校企合作开发课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R008_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 校企合作开发课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R009_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "英文在线核心课程（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 英文在线核心课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "d98821690a31ca6357eb530eb7ec357860a21547cda7b9057848831f39974632"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R009_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 英文在线核心课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R009_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 英文在线核心课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R009_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 英文在线核心课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R010_C01_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C02_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C04_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C05_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C06_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C07_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R010_C08_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[10]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R011_C01_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R011_C02_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R011_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "国家级专业（群）教学资源库（个）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "260b47de38d5987db9f256cea4b8dfa97190327a2e9cea4e0c8d47d508e683d8"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R011_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R011_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R011_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R011_C07_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R011_C08_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级专业（群）教学资源库（个） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[11]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R012_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "国家级精品在线开放课程、国家资源库在线课程（门）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级精品在线开放课程、国家资源库在线课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "920c38698eb2444cd97f4a062b5033dbd910020e775a6bf13644a1d239211d26"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R012_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级精品在线开放课程、国家资源库在线课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R012_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级精品在线开放课程、国家资源库在线课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R012_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 国家级精品在线开放课程、国家资源库在线课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R013_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "日常教学应用资源库运行平台受益学生数量占比（%）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 日常教学应用资源库运行平台受益学生数量占比（%） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "e40ae2b589890740898e4f4f9c8f9cb0919676ba12d8c795a4f3d6eefa206081"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R013_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "85",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 日常教学应用资源库运行平台受益学生数量占比（%） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R013_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 日常教学应用资源库运行平台受益学生数量占比（%） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R013_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 日常教学应用资源库运行平台受益学生数量占比（%） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R014_C03_P01",
+      "section_key": "T18",
+      "kind": "static",
+      "required": false,
+      "name": "线上课程开设比（%）",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上课程开设比（%） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[14]/w:tc[3]/w:p",
+        "expected_text_hash": "0401da8617f6c44ea806aa11fc0f918e8db1ccc0e8744c1fcf79c31c287c7dfd"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T18_R014_C04_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "75",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上课程开设比（%） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[14]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R014_C05_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上课程开设比（%） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[14]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T18_R014_C06_P01",
+      "section_key": "T18",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-2 “课程教学资源建设”中期自评表 / 线上课程开设比（%） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[18]/w:tr[14]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

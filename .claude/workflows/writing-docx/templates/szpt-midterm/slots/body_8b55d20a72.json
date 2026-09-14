@@ -1,0 +1,43 @@
+{
+  "section_key": "body_8b55d20a72",
+  "slots": [
+    {
+      "slot_key": "P4380",
+      "section_key": "body_8b55d20a72",
+      "kind": "static",
+      "required": false,
+      "name": "（二）担当职业教育数字化转型的引领者",
+      "business_context": "（二）担当职业教育数字化转型的引领者",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[254]",
+        "expected_text_hash": "8b55d20a72ce2c52ab4043649198d418893e46c1b7d51474972c2477740f2fb5"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4381",
+      "section_key": "body_8b55d20a72",
+      "kind": "narrative",
+      "required": true,
+      "name": "学校深入学习贯彻习近平总书记关于建设数字中国、智慧社会的重要指示，全力推动教育教学数字化转型，促进学校高质量发展。一是大力推进专业转型，基于“+数字”和“数字+”理念，积极开展交叉专业试点，",
+      "business_context": "（二）担当职业教育数字化转型的引领者",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[255]",
+        "expected_text_hash": "1334124f88cc673c9a1feae1bf23b4f9413479a6ecab9276cc3ab8e5c1a601f4"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

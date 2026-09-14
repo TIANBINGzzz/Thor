@@ -1,0 +1,81 @@
+{
+  "section_key": "body_65517fe547",
+  "slots": [
+    {
+      "slot_key": "P4385",
+      "section_key": "body_65517fe547",
+      "kind": "static",
+      "required": false,
+      "name": "（一）存在问题",
+      "business_context": "（一）存在问题",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[259]",
+        "expected_text_hash": "65517fe54708aa6809c73ff6a9de906438a9a437e088d7e0adf6e87d061eb499"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4386",
+      "section_key": "body_65517fe547",
+      "kind": "narrative",
+      "required": true,
+      "name": "一是对标《关于推动现代职业教育高质量发展的意见》，学校“双高”建设还需进一步提升质量、加快进程。",
+      "business_context": "（一）存在问题",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[260]",
+        "expected_text_hash": "e3295857c99d253bbc37102f650fa7ab6548e5e4e6efbad6a89a476fd0205318"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4387",
+      "section_key": "body_65517fe547",
+      "kind": "narrative",
+      "required": true,
+      "name": "二是突破性指标、高峰成果不够多，体现“高”“强”“特”的标志性核心成果数量有待进一步增长。",
+      "business_context": "（一）存在问题",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[261]",
+        "expected_text_hash": "4c68a1fbd4c0519df1d999698938f92e264993cd2d932865810c81809a85c672"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4388",
+      "section_key": "body_65517fe547",
+      "kind": "narrative",
+      "required": true,
+      "name": "三是专业群发展存在不平衡不充分问题。整体办学实力强，但在国内外有影响力的专业群数量还需进一步提高。",
+      "business_context": "（一）存在问题",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[262]",
+        "expected_text_hash": "af4f7847c1906ff639aa4c0c4761ab6a0d3fa6466d109a83f843f0739207e5c5"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

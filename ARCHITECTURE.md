@@ -16,16 +16,18 @@ CCSDKScribe 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话
 
 Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相同 Runtime HTTP 契约接入。
 
-2026-09-14用户最新确认当前唯一数据库为校双高数据库，内部标识定为schoolDoubleHigh；此前校本库/school指向同一来源。目标按库集中管理，第一版支持单租户、多数据源；qa_db/report_db是旧资产标识，hpm保留为已整理业务域。命名不改变查询筛选口径，来源/目录变更尚未实施。
+当前唯一数据库为校双高数据库schoolDoubleHigh，hpm为业务域。资产已按库集中，首期单租户多来源；旧qa_db/report_db仅在历史核验中保留，命名不改变查询筛选口径。
 
 ## 3. Top-level codemap
 
 ```text
 python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
-  tools/      DOCX、Artifact 工具
+  tools/      data、reports、DOCX、Artifact工具入口
+  data_access/ 来源授权、连接、查询、结果及Run上下文
+  reporting/  模板绑定、计划及渲染
   tests/      后端测试
-.claude/      skills/、agents/、commands/、workflows/ 执行资产；query-specs/ 共享查询资产
+.claude/      skills/、agents/、commands/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
 doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 ```
@@ -36,18 +38,18 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
-- 当前 `.claude/query-specs/<domain>/` 及问数公共语义待集中到 `.claude/databases/<source_key>/`：source.json登记数据库，`query-specs/<domain>/` 保存语义、指标、规则、查询和验证；供问数/撰写共享，运行时尚未接入。
-- 目标 `python/data_access/` 统一管理来源、授权、连接、查询和结果；`python/reporting/` 解析模板绑定、编译批量计划及校验填表，`tools/reports.py`仅提供Agent调用入口，复用DOCX/Artifact基础能力；均待实现，数据库业务知识留在资产包。
+- `.claude/databases/<source_key>/`登记数据库，query-specs/<domain>/维护语义、指标、规则、查询和验证；授权后按主题提供给问数和报告工具。
+- `data_access/`管理来源授权、连接、查询及物化结果；`reporting/`编译模板计划、填值、展开表格及验证；tools/reports.py复用Artifact发布，业务知识留数据库/模板资产。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
 
 调用方向：入口 → Runtime → SDK Worker → 模型 / MCP；Runtime 配置层加载执行资产并装配工具。
-核心运行时不依赖 Web 展示；流程专属知识留在 Workflow，数据库公共知识目标放数据库包，不写入通用 Python 代码。业务授权来自 Java，模型与工具不得反向提升权限；发现数据库包不等于授予访问权。
+核心运行时不依赖Web展示；流程知识留在Workflow，共享数据库知识留数据库包，不写入通用Python。授权来自可信控制面/静态配置，模型不得提升权限；发现数据库包不等于获得访问权。
 
 ## 6. Architectural invariants
 
-- 生产前端只触发已授权 Capability；Workflow、Skill、Agent 是内部组成，不接受前端任意执行配置。
+- 普通会话可省略capabilityRef，内部归一为conversation；选择能力仅作用于本轮，JWT仍绑定具体能力。Workflow/Skill/Agent/连接均为内部组成。
 - 业务 Token、Run JWT、模型密钥用途分离；业务 Token 仅按规则注入选定 MCP，不进入模型输入或持久化。
 - 业务会话、Run、SDK session、Client 和浏览器连接生命周期分离；断开 SSE 不等于取消 Run。
 - 公共事件统一脱敏，凭据和执行状态不得跨用户/租户串用。
@@ -69,10 +71,10 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 
 - 安全：当前 `bypassPermissions` 和路径约定不构成生产沙箱；多租户需文件、进程、网络及凭据隔离。
 - 可靠性与观测：Run 状态、事件回放、超时、取消和 Client 恢复分别管理；运行事件通过 RunStore 管理。
-- 数据生命周期：`.scribe-runs/` 含运行记录、SDK 会话及工作数据；业务会话、上传由 Java 管理，历史测试 `.scribe-sessions/` 已迁至 ScribePlayground。运行数据不是可整体删除的缓存。
+- 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和report计划/成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
-- 部署：`deploy/` 提供云效内网 Linux 试运行模板；构建机测试并导出镜像制品，部署主机校验、导入后用镜像内 Python 将保密变量写入受限配置文件，无需宿主机 Python 或镜像仓库连接。镜像排除密钥，运行时注入环境与 Workflow 文件，命名卷保留运行数据和 SDK 会话。换 Key 需排空任务并重建容器。单副本、单 HTTP worker，容器不构成租户隔离或生产验收。
+- 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像，部署主机校验/导入后由镜像内Python写受限配置。数据库配置与秘密目录通过CCSDK_DATA_CONFIG只读挂载，资产随镜像交付，命名卷保存运行数据。换Key需排空并重建；单副本单HTTP worker，容器不代表租户隔离或生产验收。
 
 ## 9. Where to look for X
 
@@ -87,5 +89,5 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | Client 与存储 | `python/runtime/session_actor.py`、`run_store.py` |
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与技能 | `.claude/workflows/`、`.claude/skills/` |
-| 数据源与共享查询资产 | [.claude/query-specs/README.md](.claude/query-specs/README.md) |
-| 数据源管理与模板批量计划（待实施） | [数据库包与修改方案](doc/specs/data-source-connections.md)、[模板绑定与取数计划](doc/specs/template-batch-data-plan.md)、[按库组织决策](doc/ADR/023-database-scoped-asset-packages.md)；当前资产目录/生命周期未改 |
+| 数据源与共享查询资产 | [.claude/databases/README.md](.claude/databases/README.md) |
+| 数据管理、报告与产品流程 | [数据库管理](doc/specs/data-source-connections.md)、[模板计划](doc/specs/template-batch-data-plan.md)、[产品流程](doc/specs/conversation-reporting-product.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |

@@ -10,6 +10,7 @@
 !deploy/
 !deploy/*.py
 !deploy/*.sh
+!deploy/data-access.example.json
 !deploy/compose*.yaml
 **/__pycache__/
 **/*.pyc
@@ -20,6 +21,10 @@
 **/*.env.*
 **/*.pem
 **/*.key
+**/*.secret
+**/*.secret.json
+**/*.secret.b64
+deploy/data-access.json
 **/*.log
 **/settings.local.json
 .claude/launch.json

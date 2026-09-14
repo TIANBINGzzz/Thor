@@ -2,8 +2,6 @@ ARG NODE_IMAGE=node:22-bookworm-slim
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 FROM ${NODE_IMAGE} AS node-deps
 WORKDIR /deps
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
 
 FROM ${PYTHON_IMAGE} AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 \
@@ -16,7 +14,6 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-deps /deps/node_modules ./node_modules
 COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./

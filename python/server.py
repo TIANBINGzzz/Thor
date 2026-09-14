@@ -389,6 +389,16 @@ def _clear_runtime_input(directory: Path) -> None:
             LOGGER.warning("Runtime 临时输入清理失败：%s", child.name)
 
 
+def _data_config_fingerprint():
+    config = os.environ.get("CCSDK_DATA_CONFIG")
+    if not config:
+        return None
+    path = Path(config)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
     """根据请求凭据及执行配置生成哈希指纹，返回供会话管理器判断 Client 是否可复用的字符串。"""
     credentials = run_request.credentials.platform_bearer
@@ -399,6 +409,8 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
         "model": payload.get("model"),
         "skills": payload.get("skill_refs") or [],
         "credentialDigest": credential_digest,
+        "templateKey": payload.get("_template_key"),
+        "dataConfiguration": _data_config_fingerprint(),
     }
     return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
@@ -440,6 +452,7 @@ def _internal_worker_payload(
     runtime_mode: str = "query",
     session_directory: Path | None = None,
     attachment_files: tuple[FetchedFile, ...] = (),
+    claims: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
     model = MODELS[0] if MODELS else ""
@@ -484,7 +497,14 @@ def _internal_worker_payload(
     workflow_name = capability.workflow_ref
     if workflow_name and load_workflow_config(workflow_name) is None:
         raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
+    template_key = (run_request.payload or {}).get("templateKey")
+    if template_key is not None:
+        from reporting.bindings import load_template
+        load_template(template_key, run_request.capability_ref)
     payload: dict[str, Any] = {
+        "_template_key": template_key,
+        "_data_identity": {"tenant_id": (claims or {}).get("tenant"), "user_id": (claims or {}).get("sub")},
+        "_data_run_directory": str(run_directory),
         "prompt": prompt,
         "run_id": run_request.run_id,
         "business_session_id": run_request.business_session_id,
@@ -547,6 +567,7 @@ async def _execute_internal_run(
             worker_payload = _internal_worker_payload(
                 run_request,
                 run_directory,
+                claims=claims,
                 runtime_mode=runtime_mode,
                 session_directory=session_directory,
             )
@@ -560,12 +581,13 @@ async def _execute_internal_run(
                 prepared_payload = _internal_worker_payload(
                     run_request,
                     run_directory,
+                    claims=claims,
                     runtime_mode=runtime_mode,
                     session_directory=session_directory,
                     attachment_files=prepared_files,
                 )
                 await _run_phase(run_id, {"name": "model_starting"})
-                return {"prompt": prepared_payload["prompt"], "timeout_ms": RUN_EXECUTION_TIMEOUT_MS}
+                return {**prepared_payload, "timeout_ms": RUN_EXECUTION_TIMEOUT_MS}
 
             async def cleanup_client_run() -> None:
                 # Accepted Client commands are cleaned inside the Actor. This
@@ -577,6 +599,7 @@ async def _execute_internal_run(
             worker_payload = _internal_worker_payload(
                 run_request,
                 run_directory,
+                claims=claims,
                 runtime_mode=runtime_mode,
                 session_directory=session_directory,
                 attachment_files=attachment_files,

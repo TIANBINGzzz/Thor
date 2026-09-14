@@ -1,0 +1,43 @@
+{
+  "section_key": "body_7687a2b501",
+  "slots": [
+    {
+      "slot_key": "P4382",
+      "section_key": "body_7687a2b501",
+      "kind": "static",
+      "required": false,
+      "name": "（三）担当产教融合模式创新的探索者",
+      "business_context": "（三）担当产教融合模式创新的探索者",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[256]",
+        "expected_text_hash": "7687a2b5016c07bb38d20f0e9ca076a7181f50c99e28a51a7ee2b6a25a0b2853"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4383",
+      "section_key": "body_7687a2b501",
+      "kind": "narrative",
+      "required": true,
+      "name": "中国特色的市场经济体制决定了中国要走自己的产教融合道路。学校以立德树人为根本，以高质量发展为核心，以校企共赢为动力，确定了校企双主体育人的九个“关键抓手”：一是共同开展党建和思政教育，通过企",
+      "business_context": "（三）担当产教融合模式创新的探索者",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[257]",
+        "expected_text_hash": "ac62fcc54f08a97a24819986f440d2d13d33ad2962ba8aed9c67e7d95ad28219"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

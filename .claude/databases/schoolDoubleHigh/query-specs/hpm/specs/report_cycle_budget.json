@@ -1,0 +1,93 @@
+{
+  "id": "report_cycle_budget",
+  "name": "建设全周期预算",
+  "description": "原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。",
+  "status": "defined",
+  "dialect": "mysql8",
+  "grain": "authorized project and declared period",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    }
+  },
+  "tables": [
+    "t_hpm_project",
+    "t_hpm_project_fund"
+  ],
+  "sql_file": "sql/report_cycle_budget.sql",
+  "output": [
+    {
+      "name": "fund_count",
+      "description": "全周期一级资金行数",
+      "type": "integer",
+      "nullable": true
+    },
+    {
+      "name": "budget_observed_count",
+      "description": "已填预算行数",
+      "type": "integer",
+      "nullable": true
+    },
+    {
+      "name": "cycle_budget_amount",
+      "description": "当前登记全周期预算",
+      "type": "number",
+      "nullable": true,
+      "unit": "万元"
+    }
+  ],
+  "semantics": [
+    "原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。",
+    "当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。",
+    "详见 semantics/report-lineage.md；同项目及租户关联，内部ID不进入报告。"
+  ],
+  "prerequisites": [
+    "授权租户与项目范围已由服务端确定；不能从库内发现的租户值推导用户权限"
+  ],
+  "validation": [],
+  "evidence": [
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/metric-definitions.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/join-rules.md",
+    ".claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md"
+  ],
+  "verification": {
+    "qa_db": "not_applicable",
+    "report_db": "connection_unbound",
+    "schoolDoubleHigh": {
+      "method": "source DOCX SQL and readonly live schema audit",
+      "reference_sha256": "5525eeb5e346873493c5468cc4fb6328bc5a0552d49bdf6e799b3e6da357270e",
+      "result": "schema_checked",
+      "numeric_baseline": "pending"
+    }
+  },
+  "blockers": [],
+  "version": 2,
+  "path_base": "query_catalog_root",
+  "result_policy": {
+    "internal_keys": "只用于取数、去重和授权材料解析，不进入正文、公共事件或普通日志",
+    "completeness": "执行端必须标记结果是否完整；发现行数截断时分页或缩小授权范围，不把部分行作全量聚合",
+    "nulls": "无记录、未填报和数值0分别处理；以本资产的数量/非空数量和语义说明为准"
+  },
+  "candidate_tables": [
+    "t_hpm_project_fund"
+  ],
+  "candidate_queries": [
+    "fund_totals",
+    "fund_source_amounts"
+  ],
+  "batch": {
+    "mode": "scalar_expansion"
+  }
+}

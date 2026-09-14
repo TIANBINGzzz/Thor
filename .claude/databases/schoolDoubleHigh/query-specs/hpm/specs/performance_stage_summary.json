@@ -1,0 +1,141 @@
+{
+  "id": "performance_stage_summary",
+  "name": "指定年度阶段绩效统计",
+  "description": "仅用于明确启用阶段绩效的项目；无阶段绩效需另行确认反馈年度，不静默排除。",
+  "status": "defined",
+  "dialect": "mysql8",
+  "grain": "selected year staged performance",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": "string",
+      "required": true,
+      "origin": "user_intent",
+      "description": "必须明确的业务阶段名称"
+    }
+  },
+  "tables": [
+    "t_hpm_project",
+    "t_hpm_project_module",
+    "t_hpm_project_performance",
+    "t_hpm_project_stage"
+  ],
+  "sql_file": "sql/performance_stage_summary.sql",
+  "output": [
+    {
+      "name": "performance_count",
+      "description": "真实指标数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "reached_count",
+      "description": "progress>=100 指标数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "not_reached_count",
+      "description": "progress<100 或未填报指标数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "missing_progress_count",
+      "description": "未填报进度指标数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "avg_progress",
+      "description": "NULL 视0平均进度",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "reached_rate",
+      "description": "按条数达标率",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    }
+  ],
+  "semantics": [
+    "有效国双高项目+唯一有效模块；不使用 performance.high_flag_",
+    "真实指标 level_>=3；模块1取非空阶段，模块0取无阶段",
+    "当前指标快照，不能用来证明历史截止日实绩；目标/完成值可为定性文字",
+    "完成进度与按条数达标率同时提供；达标 progress_>=100，不按 state_ 排除"
+  ],
+  "prerequisites": [
+    "授权租户与项目范围已由服务端确定；不能从库内发现的租户值推导用户权限",
+    "先执行 performance_module_status；所选项目存在 module_count!=1 或无效 stage_flag 时停止，不能将过滤后的子集当全量",
+    "所选项目全部 stage_flag=1；含无阶段项目时不能执行后把子集当年度全量"
+  ],
+  "validation": [
+    "year 必须明确；阶段当前值仍不是历史快照"
+  ],
+  "evidence": [
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/metric-definitions.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/join-rules.md",
+    ".claude/workflows/writing-docx/templates/szpt-midterm/深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/tables/t_hpm_project.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/tables/t_hpm_project_module.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/tables/t_hpm_project_performance.md",
+    ".claude/databases/schoolDoubleHigh/query-specs/hpm/semantics/tables/t_hpm_project_stage.md"
+  ],
+  "verification": {
+    "qa_db": {
+      "date": "2026-09-14",
+      "method": "MySQL read-only zero-row projection of full query; output aliases checked",
+      "result": "passed",
+      "numeric_baseline": "not_checked"
+    },
+    "report_db": "connection_unbound"
+  },
+  "version": 1,
+  "path_base": "query_catalog_root",
+  "result_policy": {
+    "internal_keys": "只用于取数、去重和授权材料解析，不进入正文、公共事件或普通日志",
+    "completeness": "执行端必须标记结果是否完整；发现行数截断时分页或缩小授权范围，不把部分行作全量聚合",
+    "nulls": "无记录、未填报和数值0分别处理；以本资产的数量/非空数量和语义说明为准"
+  },
+  "requires_queries": [
+    "performance_module_status"
+  ],
+  "checks": [
+    {
+      "query_id": "performance_module_status",
+      "type": "all_rows",
+      "allowed": {
+        "module_count": [
+          1
+        ],
+        "stage_flag": [
+          "1"
+        ]
+      }
+    }
+  ],
+  "batch": {
+    "mode": "scalar_expansion"
+  }
+}

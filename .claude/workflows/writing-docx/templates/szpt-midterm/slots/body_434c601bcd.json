@@ -1,0 +1,142 @@
+{
+  "section_key": "body_434c601bcd",
+  "slots": [
+    {
+      "slot_key": "P0756",
+      "section_key": "body_434c601bcd",
+      "kind": "static",
+      "required": false,
+      "name": "4.打造高水平专业群",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[61]",
+        "expected_text_hash": "434c601bcd348bca3eb0c2f3a2fcb78a0c93c48b1cb6c47a38a4ddaec48c3a8f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0757",
+      "section_key": "body_434c601bcd",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值27项，完成度均超100%。取得标志性成果5项，其中，国家级1项、省级3项、独创1项。自评等级优。",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[62]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0758",
+      "section_key": "body_434c601bcd",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-3 “打造高水平专业群”中期自评表",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[63]",
+        "expected_text_hash": "31f1608317f395f2e77f9ffaa9bbb9b182354372fca67267a8d5e1a79c6ffec7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1000",
+      "section_key": "body_434c601bcd",
+      "kind": "narrative",
+      "required": true,
+      "name": "专业布局紧跟前沿。对接深圳区域高端产业，打造“2+8+N”专业群发展格局。对不同层次专业群实施分类管理，依托专业发展和产业契合度模型以及学生就业率等开展专业预警和动态调整，形成了专业建设与区",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[65]",
+        "expected_text_hash": "c68db183d7768938118c1a93c7e22bcf816b5a3b23158b78e74dd724cf258d59"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1004",
+      "section_key": "body_434c601bcd",
+      "kind": "static",
+      "required": false,
+      "name": "嵌入图片",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "G"
+      ],
+      "instruction": "图片保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[69]",
+        "expected_text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1021",
+      "section_key": "body_434c601bcd",
+      "kind": "static",
+      "required": false,
+      "name": "图1  专业群与产业集群对接图",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "G"
+      ],
+      "instruction": "图和图题保留，按年度更新图片",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[86]",
+        "expected_text_hash": "72048bb96bfd550853e1181f913345307d78baae0d2182925eb873d324eb2bd8"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1022",
+      "section_key": "body_434c601bcd",
+      "kind": "narrative",
+      "required": true,
+      "name": "建设水平持续领先。新增省级高水平专业群9个，建成省一流重点建设专业12个、省品牌专业25个。通信技术专业群不断强化对外交流合作，开发4门ICT国际课程，培训覆盖30多个国家，获世界职教联盟校",
+      "business_context": "4.打造高水平专业群",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[87]",
+        "expected_text_hash": "2c058f03abcaba410d33c07d604365c3c7fb201639556d8a81ae3ea0668dce4d"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

@@ -1,0 +1,1050 @@
+{
+  "section_key": "T24",
+  "slots": [
+    {
+      "slot_key": "T24_R001_C01_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C02_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C04_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C05_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C06_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C07_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R001_C08_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R002_C01_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 一级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R002_C02_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R002_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "培训海外员工（人日）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "2099a8e5b91db8da8460f8288d9d5155b12dd644e375e740887049e19276bc36"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R002_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "1500",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R002_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2050",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R002_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R002_C07_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R002_C08_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 培训海外员工（人日） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R003_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "国际技能大赛奖项（个）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际技能大赛奖项（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "712804a9b67bb7ecef2fe48b649c56d79f38a76d16e9ecfda64fe212a69cab01"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R003_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际技能大赛奖项（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R003_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际技能大赛奖项（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R003_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际技能大赛奖项（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R004_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "国际化课程（门）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际化课程（门） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "b242ec50ebc8a70b9575788c9077fe0572909aa8f3b4a5a92041704553f3e947"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R004_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际化课程（门） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R004_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际化课程（门） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R004_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际化课程（门） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R005_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "海外实习基地（个）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外实习基地（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "af3d1e453693600c02bb5fa503cd127b63de8cce8907e8c3006a0b313ec2809b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R005_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外实习基地（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R005_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外实习基地（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R005_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外实习基地（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R006_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "海外 ICT 培训基地（个）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外 ICT 培训基地（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "9ce45b952e4d47677e91075433a41cc9c18bc78f66bdc253238e37cbb3c6f97e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R006_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外 ICT 培训基地（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R006_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外 ICT 培训基地（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R006_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 海外 ICT 培训基地（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R007_C02_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 二级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R007_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "专业标准在境外国家落地数（个）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "d4d1fbf732ce3925c34716480668ae59d9cf9821552bdbc26081feb78d7728d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R007_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R007_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R007_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R007_C07_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 分值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R007_C08_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 专业标准在境外国家落地数（个） / 得分",
+      "scope_role": "group_a",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[7]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R008_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "国际课程覆盖国家和地区数（个）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际课程覆盖国家和地区数（个） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "1646601b412ff4bafe9ae54d700e0c1ae23c790f457b876b39c19d4ef44a6154"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R008_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "12",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际课程覆盖国家和地区数（个） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R008_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "20",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际课程覆盖国家和地区数（个） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R008_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 国际课程覆盖国家和地区数（个） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R009_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "在校生参与国际交流占比（%）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 在校生参与国际交流占比（%） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "7e7eec18b899f8a25c6a1a3c5a763e1ac571ebaaad1af6939b22e29b58319b94"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R009_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 在校生参与国际交流占比（%） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R009_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "7",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 在校生参与国际交流占比（%） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R009_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 在校生参与国际交流占比（%） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R010_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "累计培训的国际学员人数（人）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 累计培训的国际学员人数（人） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "ed0ee56d349efbdf4e204de184f70d1072f56fea606984d74f102cb38401eb0a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R010_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "380",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 累计培训的国际学员人数（人） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R010_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "510",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 累计培训的国际学员人数（人） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R010_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 累计培训的国际学员人数（人） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R011_C03_P01",
+      "section_key": "T24",
+      "kind": "static",
+      "required": false,
+      "name": "开展非全日制国外人员培训合格率（%）",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 开展非全日制国外人员培训合格率（%） / 三级指标",
+      "scope_role": "group_a",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "5eae56aa044fcc48ba5e49c090c7f4b1c92d083cf1ab8ca14c12c80016af5944"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T24_R011_C04_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "92",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 开展非全日制国外人员培训合格率（%） / 目标值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R011_C05_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 开展非全日制国外人员培训合格率（%） / 完成值",
+      "scope_role": "group_a",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T24_R011_C06_P01",
+      "section_key": "T24",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 6-8 “国际交流与合作”中期自评表 / 开展非全日制国外人员培训合格率（%） / 完成率",
+      "scope_role": "group_a",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[24]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

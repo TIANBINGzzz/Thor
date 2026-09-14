@@ -1,0 +1,1696 @@
+{
+  "section_key": "T06",
+  "slots": [
+    {
+      "slot_key": "T06_R001_C01_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C02_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C04_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C05_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C06_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C07_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R001_C08_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R002_C01_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R002_C02_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R002_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "引培应用研发领军人才（名）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "f348438595c8d8e62716b8109903c124c962574d753d286814104269d749ad47"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R002_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "13",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R002_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "16",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R002_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R002_C07_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R002_C08_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培应用研发领军人才（名） / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R003_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "打造高端应用研发创新团队（个）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 打造高端应用研发创新团队（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "bbf928c8fb3797d6dd40d1fc1824dd39c8edc8dfa1e25c057ae60ad130073410"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R003_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "13",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 打造高端应用研发创新团队（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R003_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "16",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 打造高端应用研发创新团队（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R003_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 打造高端应用研发创新团队（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R004_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "引培行业有权威、国际有影响力的专业群建设带头人（名）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培行业有权威、国际有影响力的专业群建设带头人（名） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "abbf1133fc67b110b5258f570a55870f25590a561e52b6fc218e89ebdec9a373"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R004_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "14",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培行业有权威、国际有影响力的专业群建设带头人（名） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R004_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "16",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培行业有权威、国际有影响力的专业群建设带头人（名） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R004_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培行业有权威、国际有影响力的专业群建设带头人（名） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R005_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "建设教师教学创新团队（个）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 建设教师教学创新团队（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "06bd95b7bd427d2f5ac056c2434211376353734d08fa3475ed4a8d2b9a12b209"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R005_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "18",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 建设教师教学创新团队（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R005_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "20",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 建设教师教学创新团队（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R005_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 建设教师教学创新团队（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R006_C01_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C02_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C04_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C05_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C06_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C07_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R006_C08_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 三级指标 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[6]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R007_C01_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R007_C02_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R007_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "引培绝技绝艺大师名匠（名）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "f36524bfe56fe99b9ecc77cbdd80c6ca444f93bc809df2f02eeab124022bed18"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R007_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "21",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R007_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "24",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R007_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引培绝技绝艺大师名匠（名） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R008_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "组建技能大师工作室（个）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 组建技能大师工作室（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "87848ab17c7497624d7906b61caa1ddb0f4aab07a67bd550d3ea22d076622ecf"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R008_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "12",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 组建技能大师工作室（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R008_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "13",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 组建技能大师工作室（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R008_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 组建技能大师工作室（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R009_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "校企共建高层次技能型兼职教师“流动站”",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 校企共建高层次技能型兼职教师“流动站” / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "216a4866f1daec2e0e6c454092c49f044f084a90b4c50443bb346504bf78828f"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R009_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "13",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 校企共建高层次技能型兼职教师“流动站” / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R009_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "14",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 校企共建高层次技能型兼职教师“流动站” / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R009_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 校企共建高层次技能型兼职教师“流动站” / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R010_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "引进高层次技能型兼职教师“流动岗”（人）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引进高层次技能型兼职教师“流动岗”（人） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "21011cbc8b6607f730fdbe0612a9858e7138b6567fdf3d4061fb50914fb4e1dd"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R010_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "55",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引进高层次技能型兼职教师“流动岗”（人） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R010_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "62",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引进高层次技能型兼职教师“流动岗”（人） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R010_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 引进高层次技能型兼职教师“流动岗”（人） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R011_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "专任教师每年赴企业实践数（人/日）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 专任教师每年赴企业实践数（人/日） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "e7b3b24052f4e4cb99d2041688ba3ca4d8bb45eb9257c6f1436431becccfd7a9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R011_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "21600",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 专任教师每年赴企业实践数（人/日） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R011_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "24060",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 专任教师每年赴企业实践数（人/日） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R011_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 专任教师每年赴企业实践数（人/日） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R012_C02_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R012_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "以杰出人才领衔的应用研发团队（个）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "584129674e4f4bb9070e57f61f30ab9bfa0eecbfb9e7a6897de5f52be8d620d9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R012_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R012_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R012_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R012_C07_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R012_C08_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 以杰出人才领衔的应用研发团队（个） / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[12]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R013_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "入选国家级人才、教学名师等（人）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 入选国家级人才、教学名师等（人） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "4b985bfd0a1a5db2226085ef7c559679480c3e31063eea0c0b4e29b671b744d3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R013_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 入选国家级人才、教学名师等（人） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R013_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 入选国家级人才、教学名师等（人） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R013_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 入选国家级人才、教学名师等（人） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R014_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "全国教学能力比赛获奖者（人）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 全国教学能力比赛获奖者（人） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[14]/w:tc[3]/w:p",
+        "expected_text_hash": "fe3971a27de398ccf04536f61f7878da8c7c72396dfbe75016777ddde816336d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R014_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "4",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 全国教学能力比赛获奖者（人） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[14]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R014_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 全国教学能力比赛获奖者（人） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[14]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R014_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 全国教学能力比赛获奖者（人） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[14]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R015_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（%）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[15]/w:tc[3]/w:p",
+        "expected_text_hash": "e39226c2c365eea92fd8269bee2001c9d76eba21d7040b5305aa5a8dcdb9a877"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R015_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[15]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R015_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "3.7",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[15]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R015_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[15]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R016_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "具有半年以上境外学习工作经历的专任教师比例（%）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 具有半年以上境外学习工作经历的专任教师比例（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[16]/w:tc[3]/w:p",
+        "expected_text_hash": "695035850fa52f6158bc4afd11e52e1e46b3721e47871f5a70d1f9e528b8f070"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R016_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 具有半年以上境外学习工作经历的专任教师比例（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[16]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R016_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "32.81",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 具有半年以上境外学习工作经历的专任教师比例（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[16]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R016_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 具有半年以上境外学习工作经历的专任教师比例（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[16]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R017_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "“双师型”教师比例（%）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / “双师型”教师比例（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[17]/w:tc[3]/w:p",
+        "expected_text_hash": "e99e563402c8ce334f2a935f819bcb958c4d0e30f6b8f3cf97e144b1268d032d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R017_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "86",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / “双师型”教师比例（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[17]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R017_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "90.41",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / “双师型”教师比例（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[17]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R017_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / “双师型”教师比例（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[17]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R018_C03_P01",
+      "section_key": "T06",
+      "kind": "static",
+      "required": false,
+      "name": "聘请企业兼职教师比例（%）",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 聘请企业兼职教师比例（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[18]/w:tc[3]/w:p",
+        "expected_text_hash": "bfea3fc966ed3d32c02490f3993aebfab7ddc8db009a9855bcabedf355850003"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T06_R018_C04_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "18",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 聘请企业兼职教师比例（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[18]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R018_C05_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "19",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 聘请企业兼职教师比例（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[18]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T06_R018_C06_P01",
+      "section_key": "T06",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-4 “打造高水平双师队伍”中期自评表 / 聘请企业兼职教师比例（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[6]/w:tr[18]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

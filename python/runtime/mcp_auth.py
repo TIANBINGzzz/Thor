@@ -21,7 +21,8 @@ MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
         "header": "Authorization",
         "prefix": "Bearer ",
     },
-    "db": {"required": False, "transport": "stdio"},
+    "data": {"required": False, "transport": "sdk"},
+    "reports": {"required": False, "transport": "sdk"},
     "docx": {"required": False, "transport": "stdio"},
     "artifacts": {"required": False, "transport": "stdio"},
 }

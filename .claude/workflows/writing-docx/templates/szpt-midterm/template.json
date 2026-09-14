@@ -1,0 +1,57 @@
+{
+  "template_key": "szpt-midterm",
+  "name": "双高计划中期自评报告",
+  "version": 1,
+  "enabled": true,
+  "capabilities": [
+    "document-writing"
+  ],
+  "docx_file": "深圳职业技术学院双高计划中期自评报告规范化模板.docx",
+  "docx_sha256": "0bfe299226c714ac9d583ca4377851e00135ece988e933207d6b63a27c03ad2c",
+  "bindings_file": "query-bindings.json",
+  "source_roles": {
+    "hpm": "schoolDoubleHigh"
+  },
+  "scope_roles": {
+    "hpm": [
+      "school",
+      "group_a",
+      "group_b"
+    ]
+  },
+  "missing_policy": "annotated_draft",
+  "parameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "years": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 10,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$"
+        }
+      },
+      "as_of": {
+        "type": "string",
+        "format": "date"
+      },
+      "period_mode": {
+        "enum": [
+          "annual",
+          "cumulative"
+        ]
+      },
+      "timezone": {
+        "const": "Asia/Shanghai"
+      }
+    },
+    "required": [
+      "years",
+      "period_mode",
+      "timezone"
+    ]
+  }
+}

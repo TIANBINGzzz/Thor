@@ -70,6 +70,30 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(self.client.get("/internal/v1/runs/run-test").status_code, 401)
         self.assertEqual(self.client.post("/internal/v1/runs/run-test/cancel").status_code, 401)
 
+    def test_omitted_capability_binds_only_to_conversation_jwt(self):
+        body={k:v for k,v in self.body.items() if k!='capabilityRef'}
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
+            self.assertEqual(self.client.post('/internal/v1/runs',json=body,
+                headers=self.headers('run.execute',capabilityRef='document-writing')).status_code,401)
+            self.assert_public_run(self.client.post('/internal/v1/runs',json=body,
+                headers=self.headers('run.execute')),202)
+
+    def test_same_business_session_routes_capabilities_to_isolated_clients(self):
+        claims={'tenant':'tenant-test','sub':'user-test'}
+        keys=[]
+        for capability in (None,'document-writing','national-excellence-data-qa'):
+            request=AgentRunRequest.from_dict({**self.body,'capabilityRef':capability})
+            keys.append(server._client_session_key(request,claims))
+        self.assertEqual(len(set(keys)),3)
+
+    def test_trusted_data_identity_does_not_enter_model_prompt(self):
+        with patch.object(server, 'MODELS', ['test-model']):
+            payload=server._internal_worker_payload(AgentRunRequest.from_dict(self.body),Path(self.temp.name),
+                claims={'tenant':'trusted-secret-tenant','sub':'trusted-secret-user'})
+        self.assertEqual(payload['_data_identity']['tenant_id'],'trusted-secret-tenant')
+        self.assertNotIn('trusted-secret-tenant',payload['prompt'])
+        self.assertNotIn('trusted-secret-user',payload['prompt'])
+
     def test_payload_reaches_query_and_client_prompt_and_binds_retry(self):
         body = {**self.body, "payload": {"reportTitle": "Annual report", "year": 2026,
                                        "sections": [{"name": "Budget", "amount": 120}]}}

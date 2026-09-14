@@ -1,0 +1,1601 @@
+{
+  "section_key": "T13",
+  "slots": [
+    {
+      "slot_key": "T13_R001_C01_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C02_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C04_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C05_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C06_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C07_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R001_C08_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R002_C01_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R002_C02_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R002_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "“一站式”社区育人创新案例成果（个）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "e9003014fa9fd8f614a88c113af94a6d6115c172fa8a3570544c281df271f097"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R002_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "23",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R002_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "26",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R002_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R002_C07_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R002_C08_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / “一站式”社区育人创新案例成果（个） / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R003_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "研发深职《幸福课》教材（部）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 研发深职《幸福课》教材（部） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "1e5e33265d44707005c7d7a35e533d2d89fe1a4409fb1c702df6cedfc5437153"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R003_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "正式出版",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 研发深职《幸福课》教材（部） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R003_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 研发深职《幸福课》教材（部） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R003_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 研发深职《幸福课》教材（部） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R004_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "建设深职《幸福课》慕课（门）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设深职《幸福课》慕课（门） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "2d9c9fc97602687c746e8b85f05c1a7b1b22a6d86b8bef186bb660ee878297f4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R004_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设深职《幸福课》慕课（门） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R004_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设深职《幸福课》慕课（门） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R004_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设深职《幸福课》慕课（门） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R005_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "培养“学生精英成长培养计划”（人）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 培养“学生精英成长培养计划”（人） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "ff5ba37b2d58c0e828517ff51b75633743edf234f716d38f4ef3d9ac1bae0f5b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R005_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "605",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 培养“学生精英成长培养计划”（人） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R005_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "609",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 培养“学生精英成长培养计划”（人） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R005_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 培养“学生精英成长培养计划”（人） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R006_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "社团精品项目（个）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团精品项目（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "050792e7bf0a907762ae0bac29eb25bdf04c34831d551369e924308de93cfec2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R006_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "35",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团精品项目（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R006_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "35",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团精品项目（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R006_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团精品项目（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R007_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "校内、外社团实践基地（个）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 校内、外社团实践基地（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "5bdff741b76d894bcd18e1813b468f095cfdd717da4bd98eaec5678c5599f4a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R007_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 校内、外社团实践基地（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R007_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 校内、外社团实践基地（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R007_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 校内、外社团实践基地（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R008_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "学生可持续发展能力培养网络课程资源库（个）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 学生可持续发展能力培养网络课程资源库（个） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "5c27649813ad822afe35031b03b3ac79fa181dc2796696e955415aa2155db1a1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R008_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "基本建成",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 学生可持续发展能力培养网络课程资源库（个） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R008_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 学生可持续发展能力培养网络课程资源库（个） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R008_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 学生可持续发展能力培养网络课程资源库（个） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R009_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "出版社团案例集（套）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版社团案例集（套） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "a22429334a8874680daebef108b460ef3f00d005bade633ff39c2931f2216b54"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R009_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "出版 3 本",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版社团案例集（套） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R009_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版社团案例集（套） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R009_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版社团案例集（套） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R010_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "出版《高职院校学生非专业能力培养研究》等相关社团专著（部）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版《高职院校学生非专业能力培养研究》等相关社团专著（部） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "de759d2d97588e0d9715755eb4260ea9a8dcd7b50db5e2154797efd780f060c3"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R010_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "形成初稿",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版《高职院校学生非专业能力培养研究》等相关社团专著（部） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R010_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版《高职院校学生非专业能力培养研究》等相关社团专著（部） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R010_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版《高职院校学生非专业能力培养研究》等相关社团专著（部） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R011_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "建设劳动教育慕课（门）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设劳动教育慕课（门） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "47a991e206da7c9848359c467ccbf8f8599855b60f4b7f178ff539bd4f539319"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R011_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设劳动教育慕课（门） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R011_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设劳动教育慕课（门） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R011_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 建设劳动教育慕课（门） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R012_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "出版劳动与职业读本（部）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版劳动与职业读本（部） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "40fdb175425b72e25db8ea5ea1eab63c91ce35fc2694419ea01b0e2dde55e5ff"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R012_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "正式出版",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版劳动与职业读本（部） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R012_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版劳动与职业读本（部） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R012_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 出版劳动与职业读本（部） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R013_C01_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C02_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C04_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C05_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C06_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C07_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R013_C08_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 三级指标 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[13]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R014_C01_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 一级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R014_C02_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 二级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R014_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[3]/w:p",
+        "expected_text_hash": "1895aba3e66764a04f4486a1f76fa4e8eefa125f28ff1f7f622a1f655e991104"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R014_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "基本形成",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R014_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "达成目标",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R014_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R014_C07_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 分值",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R014_C08_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "1.82",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验 / 得分",
+      "scope_role": "school",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[14]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R015_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "深职“幸福课”慕课网上点击数（万）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“幸福课”慕课网上点击数（万） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[15]/w:tc[3]/w:p",
+        "expected_text_hash": "eb87944b988cdca903bc7810637f409fb2944c3644d7ced9d87efe85f2681679"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R015_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "80",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“幸福课”慕课网上点击数（万） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[15]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R015_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "80",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“幸福课”慕课网上点击数（万） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[15]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R015_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“幸福课”慕课网上点击数（万） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[15]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R016_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "社团特色活动学生参与度（%）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团特色活动学生参与度（%） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[16]/w:tc[3]/w:p",
+        "expected_text_hash": "f3c6e6f0c23974eb6a2ea9a3f1e9ea4fe7236ea1e514938564ecadac255e6eb7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R016_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "95",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团特色活动学生参与度（%） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[16]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R016_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "95",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团特色活动学生参与度（%） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[16]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R016_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 社团特色活动学生参与度（%） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[16]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R017_C03_P01",
+      "section_key": "T13",
+      "kind": "static",
+      "required": false,
+      "name": "深职“劳动教育课”慕课网上点击数（万）",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“劳动教育课”慕课网上点击数（万） / 三级指标",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[17]/w:tc[3]/w:p",
+        "expected_text_hash": "dcb4415a6d967852434dcdc41e8ef9886c5b1451e20c55d901aacd76b4733c43"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T13_R017_C04_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "78",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“劳动教育课”慕课网上点击数（万） / 目标值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[17]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R017_C05_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "78",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“劳动教育课”慕课网上点击数（万） / 完成值",
+      "scope_role": "school",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[17]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T13_R017_C06_P01",
+      "section_key": "T13",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 3-11 “提升学生综合素质”中期自评表 / 深职“劳动教育课”慕课网上点击数（万） / 完成率",
+      "scope_role": "school",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[13]/w:tr[17]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

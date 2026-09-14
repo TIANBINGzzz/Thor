@@ -1,0 +1,24 @@
+{
+  "section_key": "body_68752e2928",
+  "slots": [
+    {
+      "slot_key": "P4690",
+      "section_key": "body_68752e2928",
+      "kind": "static",
+      "required": false,
+      "name": "八、基于“地方政府（含举办方）重视程度”信息采集表",
+      "business_context": "八、基于“地方政府（含举办方）重视程度”信息采集表",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[564]",
+        "expected_text_hash": "68752e2928a82018a67ba68d464a5e99d17efa394e40badaeeb02a041f3c7bc2"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

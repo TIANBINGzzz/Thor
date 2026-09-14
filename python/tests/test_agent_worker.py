@@ -9,9 +9,8 @@ from agent_worker import direct_workflow_event, event_from_stream, events_from_a
 from runtime.config import (
     build_options,
     build_system_prompt,
-    create_database_mcp_server,
+    create_run_services,
     agent_environment,
-    database_environment,
     worker_environment,
     load_workflow_config,
     load_runtime_environment,
@@ -33,72 +32,38 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("mcp__artifacts__publish_file", prompt)
         self.assertIn("不输出服务器本地路径", prompt)
 
-    def test_database_mcp_is_disabled_without_connection(self):
+    def test_data_tools_are_capability_selected(self):
         with patch.dict("os.environ", {}, clear=True):
-            self.assertIsNone(create_database_mcp_server())
-
-    def test_database_mcp_uses_python_owned_environment(self):
-        values = {
-            "DB_TYPE": "mysql",
-            "DB_HOST": "192.0.2.10",
-            "DB_USER": "qa_user",
-            "DB_PASSWORD": "p@ss",
-            "DB_NAME": "test_hpm_dev",
-            "NODE_BIN": "node-test",
-        }
-        with patch.dict("os.environ", values, clear=True):
-            server = create_database_mcp_server()
-        self.assertIsNotNone(server)
-        self.assertEqual(server["command"], "node-test")
-        self.assertIn("DB_PASSWORD", server["env"])
-        self.assertNotIn("DSN", server["env"])
-
-    def test_database_config_uses_workflow_owned_readonly_profile(self):
-        values = {
-            "DB_HOST": "192.0.2.10",
-            "DB_USER": "qa_user",
-            "DB_PASSWORD": "secret",
-            "NODE_BIN": "node-test",
-        }
-        with patch.dict("os.environ", values, clear=True):
+            self.assertIsNone(create_run_services({}))
             config = load_workflow_config("database-qa")
-            server = create_database_mcp_server(config)
-        self.assertIsNotNone(server)
-        self.assertNotIn("DSN", server["env"])
-        self.assertIn("--config", server["args"])
-        self.assertEqual(Path(server["args"][-1]).parts[-4:],
-                         (".claude", "workflows", "database-qa", "dbhub.readonly.toml"))
-
-    def test_database_prompt_contains_workflow_table_scope(self):
-        config = load_workflow_config("database-qa")
-        prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
-        self.assertIn("t_hpm_project, t_hpm_project_fund", prompt)
-
-    def test_database_prompt_contains_hpm_scope_guards(self):
-        config = load_workflow_config("database-qa")
-        prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
-        self.assertIn("禁止用 `performance.high_flag_` 过滤", prompt)
-        self.assertIn("Q6 的支撑材料必须来自任务反馈", prompt)
-        self.assertIn("包括“国双高项目的三级任务”", prompt)
-        self.assertIn("DBHub `execute_sql` 不支持参数绑定", prompt)
-        self.assertIn("DBHub 最小调用协议", prompt)
-
-    def test_database_workflow_runs_directly_with_only_db_tools(self):
-        values = {
-            "DB_HOST": "192.0.2.10",
-            "DB_USER": "qa_user",
-            "DB_PASSWORD": "secret",
-            "NODE_BIN": "node-test",
-        }
-        with patch.dict("os.environ", values, clear=True):
+            self.assertEqual(config["data_sources"], ["schoolDoubleHigh"])
             options = build_options({"workflow_name": "database-qa"})
         self.assertEqual(options.tools, [])
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
         self.assertTrue(options.strict_mcp_config)
-        self.assertEqual(list(options.mcp_servers), ["db"])
-        self.assertEqual(options.allowed_tools, ["mcp__db__*"])
+        self.assertEqual(list(options.mcp_servers), ["data"])
+        self.assertEqual(options.allowed_tools, ["mcp__data__*"])
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
+
+    def test_database_prompt_contains_guards_and_explicit_semantic_loading(self):
+        config = load_workflow_config("database-qa")
+        prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
+        self.assertIn("包括“国双高项目的三级任务”", prompt)
+        self.assertIn("describe_data_source", prompt)
+        self.assertIn("metric-definitions", prompt)
+        self.assertNotIn("DBHub", prompt)
+        self.assertEqual(config["documents"]["semantics"], [])
+
+    def test_fixed_template_only_mounts_data_and_report_tools(self):
+        with patch.dict("os.environ", {}, clear=True):
+            options = build_options({"workflow_name":"writing-docx", "capability_ref":"document-writing",
+                "_template_key":"double-high-annual", "session_directory":"session",
+                "work_directory":"work", "deliverables_directory":"output"})
+        self.assertEqual(set(options.mcp_servers), {"data", "reports"})
+        self.assertEqual(options.tools, [])
+        self.assertEqual(options.setting_sources, [])
+        self.assertTrue(options.strict_mcp_config)
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -117,11 +82,6 @@ class AgentWorkerTests(unittest.TestCase):
     def test_unknown_workflow_is_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "workflow 不存在"):
             load_workflow_config("does-not-exist")
-
-    def test_workflow_database_requires_runtime_credentials(self):
-        with patch.dict("os.environ", {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "DB_HOST"):
-                create_database_mcp_server(load_workflow_config("database-qa"))
 
     def test_workflow_credentials_are_not_in_prompt(self):
         values = {
@@ -160,14 +120,11 @@ class AgentWorkerTests(unittest.TestCase):
         }
         with patch.dict("os.environ", values, clear=True):
             provider = agent_environment()
-            dbhub = database_environment()
             worker = worker_environment()
         self.assertEqual(provider["ANTHROPIC_AUTH_TOKEN"], "model-secret")
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", provider)
         self.assertNotIn("SCRIBE_TOKEN", provider)
         self.assertNotIn("DB_PASSWORD", provider)
-        self.assertIn("DB_PASSWORD", dbhub)
-        self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", dbhub)
         self.assertIn("BUSINESS_MCP_URL", worker)
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", worker)
 
@@ -200,7 +157,7 @@ class AgentWorkerTests(unittest.TestCase):
         config = load_workflow_config("database-qa")
         documents = workflow_prompt_documents(config)
         self.assertIn("问数约束", documents)
-        self.assertIn("HPM 术语与指标语义层", documents)
+        self.assertNotIn("HPM 术语与指标语义层", documents)
 
     def test_workflow_environment_path_is_colocated(self):
         config = load_workflow_config("database-qa")

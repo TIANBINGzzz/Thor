@@ -1,0 +1,176 @@
+{
+  "section_key": "body_83718df316",
+  "slots": [
+    {
+      "slot_key": "P4681",
+      "section_key": "body_83718df316",
+      "kind": "static",
+      "required": false,
+      "name": "（四）国际影响力",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[555]",
+        "expected_text_hash": "83718df316cc2ffd44da7324796de38bd8262aa08ac56b5784a197c2a357af00"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4682",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.职业教育国际组织落地数（2个）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[556]",
+        "expected_text_hash": "62dd9695f96d7f350cbdc0778b0ade39384e65dcdae256ba47b91b84bc2d190f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4683",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.境外合作院校机构数（累计185所）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[557]",
+        "expected_text_hash": "a690b16d49bc764fed966f775ddea2cf5ad115497e6a283a5e58bd271e90180c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4684",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.职业教育国际培训与合作覆盖“一带一路”沿线国家数量占比（35%）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[558]",
+        "expected_text_hash": "dcb910265a055b05a33fb6b677e5f79a6bd6a521fdee8b7fa1d1042e6ad23318"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4685",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.举办高水平职业教育国际论坛（“一带一路”职业教育国际研讨会2次）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[559]",
+        "expected_text_hash": "92068e6798d52000c2087c23ab25a8b4073d94a28edbfb698e27b8391b8ed0ba"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4686",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.海外职业教育培训中心（累计7个）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[560]",
+        "expected_text_hash": "0fdb97c3dc8e0ee81ae4169510a4856b12756d05a460bb44fbd6b2134a553a05"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4687",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.专业和课程标准被认可采纳的国家或地区数（6个）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[561]",
+        "expected_text_hash": "070c644eb55c47f758515e0e2273b6f94c0c9a1aaedfac46dd3a2baa81c508d9"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4688",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "7.境外人员培训量（20.1923万人日）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[562]",
+        "expected_text_hash": "b9f3b87b22a2317157464ec91be484905cc386a0682757cb2f961fcc34290da9"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4689",
+      "section_key": "body_83718df316",
+      "kind": "narrative",
+      "required": true,
+      "name": "8.中外合作办学项目数（4个）",
+      "business_context": "（四）国际影响力",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[563]",
+        "expected_text_hash": "fa609340cbb87b7c16267c5d2995d22956e29d079fe1bec2d4b792f25caa7f62"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

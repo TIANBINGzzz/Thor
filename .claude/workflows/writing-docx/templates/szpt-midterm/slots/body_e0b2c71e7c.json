@@ -1,0 +1,24 @@
+{
+  "section_key": "body_e0b2c71e7c",
+  "slots": [
+    {
+      "slot_key": "P2211",
+      "section_key": "body_e0b2c71e7c",
+      "kind": "static",
+      "required": false,
+      "name": "（一）通信技术专业群 (项目名称 t_hpm_project表的name_)",
+      "business_context": "（一）通信技术专业群",
+      "scope_role": "group_a",
+      "source_rules": [
+        "P"
+      ],
+      "instruction": "原项目标题保留；生成时按报告所选项目名称替换",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[158]",
+        "expected_text_hash": "e0b2c71e7c02517811511b3170763907977f678e5dc8a55c7995d3f640c388ec"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

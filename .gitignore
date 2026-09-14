@@ -3,6 +3,9 @@ node_modules/
 **/workflow.env
 deploy/*.env
 *.secret.json
+*.secret
+*.pem
+deploy/data-access.json
 *.secret.b64
 /dist/
 *.log

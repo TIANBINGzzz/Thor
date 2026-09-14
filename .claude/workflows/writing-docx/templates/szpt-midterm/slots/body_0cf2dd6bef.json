@@ -1,0 +1,104 @@
+{
+  "section_key": "body_0cf2dd6bef",
+  "slots": [
+    {
+      "slot_key": "P1327",
+      "section_key": "body_0cf2dd6bef",
+      "kind": "static",
+      "required": false,
+      "name": "8.提升学校治理水平",
+      "business_context": "8.提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[104]",
+        "expected_text_hash": "0cf2dd6bef6ea73bb5324fe7f03360d0d7113a2859d96ef282379aa046bb42f1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1328",
+      "section_key": "body_0cf2dd6bef",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值3项，完成度均超100%，取得国家级标志性成果1项，在社会各类综合排行榜中排名第一。自评等级优。",
+      "business_context": "8.提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[105]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1329",
+      "section_key": "body_0cf2dd6bef",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-7 “提升学校治理水平”中期自评表",
+      "business_context": "8.提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[106]",
+        "expected_text_hash": "2bedfcc40753b207a7053e0ae4a47842ff59853db815d89d115e89111daf4cc4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P1362",
+      "section_key": "body_0cf2dd6bef",
+      "kind": "narrative",
+      "required": true,
+      "name": "治理体系不断健全。完成《章程》修订。全方位开展“废、改、立、留”工作，新出台制度84项，清理废除制度37项，整合形成了系统性强、层次清晰、内容规范、具有学校特色的现代大学制度体系。推进专业群",
+      "business_context": "8.提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[107]",
+        "expected_text_hash": "e26a7b022cb4c1e0b507cb957ac80b9871aabd5bff69e88e8c9e6dfc74143175"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P1363",
+      "section_key": "body_0cf2dd6bef",
+      "kind": "narrative",
+      "required": true,
+      "name": "服务效能显著提升。建成一体化信息系统平台，学校信息系统达75个，全面涵盖主流业务。“一网通办”平台在线办理事项达370项，“i深职”APP接入事项410项，实现了管理服务移动化、智能化。建成",
+      "business_context": "8.提升学校治理水平",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[108]",
+        "expected_text_hash": "f5eb5dea4da0a51e7b9f6623045891621b3cc2427f391d9a96ec7f8412b1ff05"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

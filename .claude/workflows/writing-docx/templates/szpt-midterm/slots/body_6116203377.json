@@ -1,0 +1,43 @@
+{
+  "section_key": "body_6116203377",
+  "slots": [
+    {
+      "slot_key": "P0510",
+      "section_key": "body_6116203377",
+      "kind": "static",
+      "required": false,
+      "name": "（二）项目经费到位和执行情况概述",
+      "business_context": "（二）项目经费到位和执行情况概述",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[39]",
+        "expected_text_hash": "611620337736490849bf05c9ffc4bb45174851b0d4b88ccda664c2addd5ac5b9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0511",
+      "section_key": "body_6116203377",
+      "kind": "narrative",
+      "required": true,
+      "name": "学校“双高”建设总预算(budget_total_money_)9.8亿元，其中，中央资金(budget_centre_money_)2.5亿元，地方(budget_place_money_",
+      "business_context": "（二）项目经费到位和执行情况概述",
+      "scope_role": "school",
+      "source_rules": [
+        "B"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[40]",
+        "expected_text_hash": "976aa714d04b856b26723cef727a340ef673583fcbcde078a4ed4e7a0895def5"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

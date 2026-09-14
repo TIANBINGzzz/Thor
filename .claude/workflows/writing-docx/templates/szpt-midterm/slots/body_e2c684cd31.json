@@ -1,0 +1,290 @@
+{
+  "section_key": "body_e2c684cd31",
+  "slots": [
+    {
+      "slot_key": "P4408",
+      "section_key": "body_e2c684cd31",
+      "kind": "static",
+      "required": false,
+      "name": "（二）打造技术技能创新服务平台",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[282]",
+        "expected_text_hash": "e2c684cd31c78c2df2d035aacfd1422a3216c54fc843863887f13e8233d1633b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4409",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.高水平应用技术创新平台（建设期新增8个）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[283]",
+        "expected_text_hash": "15a256f653db68156f4cb03896c804f956aa62a66bb4e1185c44030a2f7253f6"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4410",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.高水平公共技术服务平台（建设期新增7个）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[284]",
+        "expected_text_hash": "0ea15291e667ff15f99f8656121e3ed5c7e2616fef21fe52918519b6b414d05a"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4411",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.高端智库和创意中心（建设期新增8个）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[285]",
+        "expected_text_hash": "09e49074e205755b7452a45703d85c14bba51492bcc4fd9c4588ebb2ce4ace19"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4412",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.技术研发、服务和咨询团队（建设期新增52个）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[286]",
+        "expected_text_hash": "9dcc999d21919c8cf945c7cff52209773890a5e56741e86f37c1a9b9dc9041ea"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4413",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.国家级科研项目（建设期新增52项）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[287]",
+        "expected_text_hash": "3a1def1cdd51984b0539d242f81c6c9cb7949f02b4cf439a2b1854caff9bce18"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4490",
+      "section_key": "body_e2c684cd31",
+      "kind": "static",
+      "required": false,
+      "name": "（二）打造技术技能创新服务平台",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[364]",
+        "expected_text_hash": "e2c684cd31c78c2df2d035aacfd1422a3216c54fc843863887f13e8233d1633b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4491",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.到账科研经费（建设期新增6亿元）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[365]",
+        "expected_text_hash": "6c47338d0b493c90bc43b8350e9738c06cc217d0ade278dd9b4374aad6b71af0"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4492",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.应用型研究项目到账经费占科研到账经费总量比例（建设期新增75%）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[366]",
+        "expected_text_hash": "59e70cb1cc33abca25e03683f57b9684e374848b44f742d112f16f4dd4337a58"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4493",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.成果转化经费（建设期新增4203.5万元）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[367]",
+        "expected_text_hash": "ec942f4131146b2033f08f3150b23c3aa309b863ce09200dd6fceef2f4c80493"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4494",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.获批省部级科研平台（建设期新增5个）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[368]",
+        "expected_text_hash": "da9034cddfd868ad796e13544d8d5664640c2ca4875183e7625f6dd235345d0f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4495",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.制定或参与制定国际、国内行业标准总数达100项以上（建设期新增 68项）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[369]",
+        "expected_text_hash": "6700b98fe70de4280faf9696b54e9e4167783f2ff46358e7de455bd72a3df333"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4496",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.发明专利数量（建设期新增179件）（其中PCT专利23件）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[370]",
+        "expected_text_hash": "fbb9bf73779c4f58d9bd0d4a509cd2befcc8cad98824564119f8887a7528f2bb"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4497",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "7.获省部级及以上科研成果奖（建设期新增5项）",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[371]",
+        "expected_text_hash": "7c4b33a4977184789456e447c10a3720ec3b2178c833a07584a5984360180462"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4498",
+      "section_key": "body_e2c684cd31",
+      "kind": "narrative",
+      "required": true,
+      "name": "8.发表JCR二区及以上论文（建设期新增 篇）（其中《Nature》《Science》及其子刊或相当期刊）（ 121（3篇））",
+      "business_context": "（二）打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[372]",
+        "expected_text_hash": "9b03cbd7618afc545de1835c3f2bfe91f2d15212bcd05c50d484863c5d1a5546"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "section_key": "body_c29cbc78d7",
+  "slots": [
+    {
+      "slot_key": "P4743",
+      "section_key": "body_c29cbc78d7",
+      "kind": "static",
+      "required": false,
+      "name": "教师教学创新团队",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[617]",
+        "expected_text_hash": "c29cbc78d790e8133c5a40a0215ea8defb087d7fd020c224b69df124ecab4d53"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4744",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.教师教学创新团队1个",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[618]",
+        "expected_text_hash": "afcfe4769045290aca36b4c6531e6840d3d02fd770ed79d90e80cc22050c9669"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4745",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量12人",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[619]",
+        "expected_text_hash": "9c444df155279b3e1044ada08fd2715f003a3c8e5137ff4ca2ee842082764a87"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4746",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.培养专业带头人和骨干教师20人",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[620]",
+        "expected_text_hash": "3e01e50fb177bc1586f88da58b80d157f4d5ec12cdf84fe35ddf41d618b7d758"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4747",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.技能大师/技能菁英工作室1个",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[621]",
+        "expected_text_hash": "c3775e43d52e118b546715cac321bb0c5139ff1b8e6815ac5e41961f653f3760"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4748",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "5.具有境外学习工作经历的专任教师比70%",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[622]",
+        "expected_text_hash": "8580b9db25dbb17cea5bd89176e3d3084d5529287832ecadf9240d0a379132ab"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4749",
+      "section_key": "body_c29cbc78d7",
+      "kind": "narrative",
+      "required": true,
+      "name": "6.三年以上教龄一师多证的双师教师比95%",
+      "business_context": "教师教学创新团队",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[623]",
+        "expected_text_hash": "3fb095c9ce4bffd2e20b63bd2c9fa9ffc03f1dae75d6294ba4477726cb13fdbf"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

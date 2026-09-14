@@ -1,0 +1,165 @@
+{
+  "section_key": "body_f9fce2a976",
+  "slots": [
+    {
+      "slot_key": "P3095",
+      "section_key": "body_f9fce2a976",
+      "kind": "static",
+      "required": false,
+      "name": "2.贡献度情况",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[190]",
+        "expected_text_hash": "f9fce2a976153b13835a528da4215fd7ca2ab3ee1af8a6b377bee957c407675c"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P3096",
+      "section_key": "body_f9fce2a976",
+      "kind": "narrative",
+      "required": true,
+      "name": "一是国家教学成果特等奖“深职院—华为培养信息通信技术技能人才‘课证共生共长’模式研制与实践”在全国推广，持续引领ICT专业群改革与发展。二是累计培养2000多名学生通过华为各等级认证，其中3",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[191]",
+        "expected_text_hash": "4aa70596b077f4208d62a5c1a0d488abd6045c687a9b36f42a42a63878970823"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3097",
+      "section_key": "body_f9fce2a976",
+      "kind": "narrative",
+      "required": true,
+      "name": "本专业群社会效益指标和可持续影响指标中期目标值9项，完成度均超100%。自评等级优。",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[192]",
+        "expected_text_hash": "fd5347c7d294fb179a45a3a45d20cdf784505e1fc4b06119844a43f233d29e10"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P3098",
+      "section_key": "body_f9fce2a976",
+      "kind": "static",
+      "required": false,
+      "name": "表 6-10 “社会效益指标和可持续影响指标”中期自评表",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[193]",
+        "expected_text_hash": "daa7608cd0741e4a6f394c44a3ac6eb983218e0ffa56c1507af70beebc3406a1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4215",
+      "section_key": "body_f9fce2a976",
+      "kind": "static",
+      "required": false,
+      "name": "2.贡献度情况",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[234]",
+        "expected_text_hash": "f9fce2a976153b13835a528da4215fd7ca2ab3ee1af8a6b377bee957c407675c"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4216",
+      "section_key": "body_f9fce2a976",
+      "kind": "narrative",
+      "required": true,
+      "name": "一是形成了可复制、可推广的校企“双元”、分层分类人才培养模式，先后推广到吉安职院、河源职院等12所院校。二是为深圳电子信息产业输送了包括省技术能手在内的2000多名高素质技术技能人才。三是建",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[235]",
+        "expected_text_hash": "0d4951d61200e8309418e9d4c37a9035273c1b045dbb0db2f2babb836fc8faf3"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4217",
+      "section_key": "body_f9fce2a976",
+      "kind": "narrative",
+      "required": true,
+      "name": "本专业群社会效益指标和可持续影响指标中期目标值8项，任务完成度均超100%。自评等级优。",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[236]",
+        "expected_text_hash": "fd5347c7d294fb179a45a3a45d20cdf784505e1fc4b06119844a43f233d29e10"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4218",
+      "section_key": "body_f9fce2a976",
+      "kind": "static",
+      "required": false,
+      "name": "表 7-10 社会效益指标和可持续影响指标中期自评表",
+      "business_context": "2.贡献度情况",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[237]",
+        "expected_text_hash": "e413fd52b5d5d80a019d6bfd6d62a2476355898b3085e9e4f2f6be7c16dbbd73"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

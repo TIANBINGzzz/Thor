@@ -24,7 +24,7 @@ RUNTIME_KEYS = (
     "CCSDK_CLIENT_CAPABILITIES", "CCSDK_BUSINESS_MCP_CAPABILITIES", "SCRIBE_MAX_TURNS",
 )
 REQUIRED_KEYS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "CCSDK_RUNTIME_JWT_SECRET")
-DATABASE_KEYS = ("DB_HOST", "DB_USER", "DB_PASSWORD")
+DATABASE_KEYS = ("CCSDK_DATA_CONFIG_JSON", "CCSDK_DATABASE_USER", "CCSDK_DATABASE_PASSWORD", "CCSDK_DATABASE_CA")
 
 
 def parse_bundle(content):
@@ -54,6 +54,17 @@ def load_environment(environment):
 
 
 def render(environment, *, database=False):
+    if database:
+        try:
+            config = json.loads(environment["CCSDK_DATA_CONFIG_JSON"])
+            if config.get("version") != 1 or not config.get("connections") or not config.get("policies"):
+                raise ValueError()
+            for value in DATABASE_KEYS[1:]:
+                if not environment.get(value):
+                    raise ValueError()
+            return json.dumps(config, ensure_ascii=False, indent=2) + "\n"
+        except (KeyError, ValueError, TypeError):
+            raise ValueError("Invalid protected data configuration or missing database secrets") from None
     keys = DATABASE_KEYS if database else RUNTIME_KEYS
     required = DATABASE_KEYS if database else REQUIRED_KEYS
     for key in required:
@@ -76,11 +87,6 @@ def render(environment, *, database=False):
         value = environment[key]
         if any(char in value for char in ("\r", "\n", "\x00")):
             raise ValueError("Multiline or NUL deployment variable: " + key)
-        if database:
-            # Workflow dotenv interpolation is enabled, even inside quoted values.
-            if "${" in value:
-                raise ValueError("Workflow dotenv interpolation is unsupported in: " + key)
-            value = "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
         lines.append(key + "=" + value + "\n")
     return "".join(lines)
 
@@ -124,7 +130,15 @@ def main():
         os.chmod(args.directory, 0o700)
         atomic_write(args.directory / "runtime.env", runtime)
         if database is not None:
-            atomic_write(args.directory / "database-qa.env", database, database=True)
+            directory = args.directory / "data"
+            directory.mkdir(mode=0o700, exist_ok=True)
+            os.chown(directory, 10001, 10001)
+            os.chmod(directory, 0o700)
+            atomic_write(directory / "data-access.json", database, database=True)
+            for name, variable in (("database-user.secret", "CCSDK_DATABASE_USER"),
+                                   ("database-password.secret", "CCSDK_DATABASE_PASSWORD"),
+                                   ("database-ca.pem", "CCSDK_DATABASE_CA")):
+                atomic_write(directory / name, environment[variable], database=True)
     except (ValueError, OSError) as error:
         if isinstance(error, ValueError):
             parser.exit(1, str(error) + "\n")

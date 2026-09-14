@@ -1,0 +1,252 @@
+{
+  "section_key": "body_7d8ac56d5f",
+  "slots": [
+    {
+      "slot_key": "P0001",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "嵌入图片",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "G"
+      ],
+      "instruction": "图片保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[1]",
+        "expected_text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0008",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "深圳职业技术学院",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "M"
+      ],
+      "instruction": "固定保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[8]",
+        "expected_text_hash": "127474eb408e3a1900a39d5a220bba98c37235009265c431b004809c1dc4cc61"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0009",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "“双高计划”中期自评报告",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "报告题名保留；年度取自报告期间",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[9]",
+        "expected_text_hash": "79b46cb3c995ed4d33eaa17ea1686c0219c93fdcc8aa6bf3a634b159fc2dfe18"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0017",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "2022年5月29日",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "M"
+      ],
+      "instruction": "日期占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[17]",
+        "expected_text_hash": "6a46f88fde00914cd83a53fece7b24097366efdbcd0ee9341a4ceabb22cb6854"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0019",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "目录",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "固定保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[1]",
+        "expected_text_hash": "52daa71ebc31058156b21dc21c01ed18eb4e9a723749259cacd1558afe32dfea"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0020",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 1 级)1",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[2]",
+        "expected_text_hash": "24a10c789de08ff35565f3a648d18be01610f26854b7069a8bcb5115ded22d6e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0021",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 2 级)2",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[3]",
+        "expected_text_hash": "253e3f0b87fef5e546f2ef86540fa50b4a72a72ec4db35053c4d7e9e35d0529a"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0022",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 3 级)3",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[4]",
+        "expected_text_hash": "76e45ec32f96c658f63debf8b4d7f5fd20dbfe10b23f910482d15ffb050c53f9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0023",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 1 级)4",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[5]",
+        "expected_text_hash": "e299a345c9c1c6587ba9a0ec4db4ff97b5fba70d3884637e114fac97d0650c35"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0024",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 2 级)5",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[6]",
+        "expected_text_hash": "6d2abec3728cce274ce874b5f61fb1332eaac21080be1a1cbde38c2c21854bb9"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0025",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "键入章标题(第 3 级)6",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "目录改为实际章名；不沿用旧假页码",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:sdt/w:sdtContent/w:p[7]",
+        "expected_text_hash": "7f721c71083694668bb8e5763728ca9ec1ddf60bf02cba6747d467ef1f6be0a4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0029",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "深圳职业技术学院",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "M"
+      ],
+      "instruction": "固定保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[22]",
+        "expected_text_hash": "127474eb408e3a1900a39d5a220bba98c37235009265c431b004809c1dc4cc61"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0030",
+      "section_key": "body_7d8ac56d5f",
+      "kind": "static",
+      "required": false,
+      "name": "“双高计划”中期自评报告",
+      "business_context": "封面与目录",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "报告题名保留；年度取自报告期间",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[23]",
+        "expected_text_hash": "79b46cb3c995ed4d33eaa17ea1686c0219c93fdcc8aa6bf3a634b159fc2dfe18"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

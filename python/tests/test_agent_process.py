@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
-from runtime.process import prompt_without_workflow_prefix, stream_agent, workflow_name_from_prompt
+from runtime.process import _spawn_worker_process, prompt_without_workflow_prefix, stream_agent, workflow_name_from_prompt
 
 
 class HangingPipe:
@@ -59,6 +59,16 @@ class FakeProcess:
 
 
 class AgentProcessTests(unittest.TestCase):
+    def test_worker_spawn_passes_trusted_payload_to_environment_selection(self):
+        async def exercise():
+            payload = {"workflow_name":"qa", "_data_identity":{"tenant_id":"tenant"}}
+            with patch("runtime.process.worker_environment", return_value={"SELECTED_SECRET":"test"}) as select, \
+                 patch("runtime.process.asyncio.create_subprocess_exec", return_value=FakeProcess()) as spawn:
+                await _spawn_worker_process(payload)
+                select.assert_called_once_with(payload)
+                self.assertEqual(spawn.call_args.kwargs["env"], {"SELECTED_SECRET":"test"})
+        asyncio.run(exercise())
+
     def test_workflow_prefix(self):
         self.assertEqual(workflow_name_from_prompt("/database-qa 统计项目数"), "database-qa")
         self.assertEqual(workflow_name_from_prompt("  /professional-report 写报告"), "professional-report")

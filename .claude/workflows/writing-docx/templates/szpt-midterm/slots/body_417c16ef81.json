@@ -1,0 +1,104 @@
+{
+  "section_key": "body_417c16ef81",
+  "slots": [
+    {
+      "slot_key": "P0636",
+      "section_key": "body_417c16ef81",
+      "kind": "static",
+      "required": false,
+      "name": "3.打造技术技能创新服务平台",
+      "business_context": "3.打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[53]",
+        "expected_text_hash": "417c16ef8159729046334195fde2feafa3c56184a7fc00785381ead4b44127a7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0637",
+      "section_key": "body_417c16ef81",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值13项，完成度均超100%，取得标志性成果17项，其中，国家级3项、省级5项、独创9项。自评等级优。",
+      "business_context": "3.打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[54]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0639",
+      "section_key": "body_417c16ef81",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-2 “打造技术技能创新服务平台”中期自评表",
+      "business_context": "3.打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[56]",
+        "expected_text_hash": "c0878e6d1343b856a3db441c36a38380dd229eb0b095f77f72a98ebdbe16efd5"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0753",
+      "section_key": "body_417c16ef81",
+      "kind": "narrative",
+      "required": true,
+      "name": "技术研发持续发力。新增国家级科研项目52项，省部级项目84项，其中国家自然科学基金项目38项。2021年在自然指数（Nature Index）学术机构全国高校排名中位列199位。新增省、市级",
+      "business_context": "3.打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[58]",
+        "expected_text_hash": "67c00520b54778eed7768c299627dd71dee1f5a0ef30736eab38b536fefa075f"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0754",
+      "section_key": "body_417c16ef81",
+      "kind": "narrative",
+      "required": true,
+      "name": "服务能力大幅提升。技术研发和技术服务覆盖中小企业1600余家。新增专利授权901件；新增国际、国家、行业及地方标准68项；新增横向课题1123项，到账经费1.62亿元；新增成果转化经费420",
+      "business_context": "3.打造技术技能创新服务平台",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[59]",
+        "expected_text_hash": "3e040f51dd160843215856bfa247f11eecca51dc8ca77e162ad9b8af234e3a44"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

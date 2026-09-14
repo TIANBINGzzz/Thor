@@ -1,0 +1,2000 @@
+{
+  "section_key": "T28",
+  "slots": [
+    {
+      "slot_key": "T28_R001_C01_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C02_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C04_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C05_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C06_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C07_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R001_C08_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[1]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R002_C01_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 一级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R002_C02_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "数量指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 二级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[2]/w:p",
+        "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R002_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "分类分层培养模式推广院校（所）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[3]/w:p",
+        "expected_text_hash": "1f4f727f0f7f0765dc05c1d20b0b8a076a69bcec25d4a837fe2ac811b2348bca"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R002_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R002_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R002_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R002_C07_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 分值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R002_C08_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 得分",
+      "scope_role": "group_b",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[2]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R003_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "人才培养方案包含毕业生职业能力清单的专业数量（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 人才培养方案包含毕业生职业能力清单的专业数量（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[3]/w:tc[3]/w:p",
+        "expected_text_hash": "56b9793f2317fad8850544538d3aef4e734f42284af1a99f099d677f12e3fc47"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R003_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 人才培养方案包含毕业生职业能力清单的专业数量（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[3]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R003_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 人才培养方案包含毕业生职业能力清单的专业数量（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[3]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R003_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 人才培养方案包含毕业生职业能力清单的专业数量（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[3]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R004_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "专业群对应的产业发展及人才需求分析报告（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群对应的产业发展及人才需求分析报告（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[4]/w:tc[3]/w:p",
+        "expected_text_hash": "3822c72053f0d4d3dac03f067ff069e6303e48d20abdf2fcc736ddbe258390c2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R004_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群对应的产业发展及人才需求分析报告（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[4]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R004_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群对应的产业发展及人才需求分析报告（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[4]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R004_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群对应的产业发展及人才需求分析报告（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[4]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R005_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "专业群发展规划",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群发展规划 / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[5]/w:tc[3]/w:p",
+        "expected_text_hash": "497e8253eac77253b9318c0a8b42cbc477240a518f21546fb8e32eaf59cf6a2d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R005_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群发展规划 / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[5]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R005_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群发展规划 / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[5]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R005_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群发展规划 / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[5]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R006_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "实施“1+X”证书试点（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 实施“1+X”证书试点（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[6]/w:tc[3]/w:p",
+        "expected_text_hash": "ed0a9a520fc3cda846cc5493745bc08c17bf706c361e9aec72b2d1d7b89eaef1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R006_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 实施“1+X”证书试点（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[6]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R006_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 实施“1+X”证书试点（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[6]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R006_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 实施“1+X”证书试点（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[6]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R007_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "学生参加技能大赛（项）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 学生参加技能大赛（项） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[7]/w:tc[3]/w:p",
+        "expected_text_hash": "8c9779e58fa4a03e6a73251126a258ccadb0f3efaf9fba0ee69e8d79bc53a3cc"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R007_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 学生参加技能大赛（项） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[7]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R007_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 学生参加技能大赛（项） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[7]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R007_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 学生参加技能大赛（项） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[7]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R008_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "专业群在校生数（人）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群在校生数（人） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[8]/w:tc[3]/w:p",
+        "expected_text_hash": "f788984135f4540f4513b9999e5943f9efd99da0108cb4da65002a122cfad6ba"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R008_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1000",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群在校生数（人） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[8]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R008_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1200",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群在校生数（人） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[8]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R008_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群在校生数（人） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[8]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R009_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "高端应用型人才培养平台（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高端应用型人才培养平台（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[9]/w:tc[3]/w:p",
+        "expected_text_hash": "df81e438c0fb24fe1b135e66679ec7aba86ac4155455457c7b31c2f7ac480dfd"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R009_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高端应用型人才培养平台（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[9]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R009_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高端应用型人才培养平台（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[9]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R009_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高端应用型人才培养平台（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[9]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R010_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "高职四年制毕业生数（人）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高职四年制毕业生数（人） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[10]/w:tc[3]/w:p",
+        "expected_text_hash": "fcb24cf35a5af581c68ad3e7e6ae208ed8eaedcc1821bb64c155388d629bb2ae"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R010_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "135",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高职四年制毕业生数（人） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[10]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R010_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "135",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高职四年制毕业生数（人） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[10]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R010_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 高职四年制毕业生数（人） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[10]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R011_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "校企共同开发 1+X 证书（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 校企共同开发 1+X 证书（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[11]/w:tc[3]/w:p",
+        "expected_text_hash": "c81c74b2f7831d9abea57e1ff329d202001faa5a51ef2dfec21fb443f0c01f92"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R011_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 校企共同开发 1+X 证书（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[11]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R011_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 校企共同开发 1+X 证书（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[11]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R011_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 校企共同开发 1+X 证书（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[11]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R012_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "现代学徒制试点专业数（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 现代学徒制试点专业数（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[12]/w:tc[3]/w:p",
+        "expected_text_hash": "e8971f45f37d9c1e42cb8b297d4a4efca189f7de9dbd0879a287f7c79412bd4e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R012_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 现代学徒制试点专业数（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[12]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R012_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 现代学徒制试点专业数（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[12]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R012_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 现代学徒制试点专业数（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[12]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R013_C02_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 建成省级一、二类品牌专业数（个） / 二级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[13]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R013_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "建成省级一、二类品牌专业数（个）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 建成省级一、二类品牌专业数（个） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[13]/w:tc[3]/w:p",
+        "expected_text_hash": "4910d6f4eeec4c4562040c8a124f5b8e25c8276072c0f044d837aae0f050c814"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R013_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 建成省级一、二类品牌专业数（个） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[13]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R013_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 建成省级一、二类品牌专业数（个） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[13]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R013_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 建成省级一、二类品牌专业数（个） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[13]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R014_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "毕业生在世界 500 强企业、行业龙头企业就业比（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生在世界 500 强企业、行业龙头企业就业比（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[14]/w:tc[3]/w:p",
+        "expected_text_hash": "f60cfca6ec5d80e640f9ce0d712d89e82c8c1a982ae28eca50c7d0df8d545457"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R014_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "12",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生在世界 500 强企业、行业龙头企业就业比（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[14]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R014_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "22",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生在世界 500 强企业、行业龙头企业就业比（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[14]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R014_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生在世界 500 强企业、行业龙头企业就业比（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[14]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R015_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "毕业生毕业一年后月薪高于全国同类院校平均值（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生毕业一年后月薪高于全国同类院校平均值（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[15]/w:tc[3]/w:p",
+        "expected_text_hash": "848dd42253a307e77997295dc785185facd333d559f8151a1fdeb900541b5dfe"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R015_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "20",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生毕业一年后月薪高于全国同类院校平均值（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[15]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R015_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "40.58",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生毕业一年后月薪高于全国同类院校平均值（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[15]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R015_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生毕业一年后月薪高于全国同类院校平均值（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[15]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R016_C01_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "一级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 一级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[1]/w:p",
+        "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C02_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "二级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 二级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[2]/w:p",
+        "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "三级指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[3]/w:p",
+        "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C04_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "中期目标值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[4]/w:p",
+        "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C05_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "中期完成值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[5]/w:p",
+        "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C06_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "完成率",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[6]/w:p",
+        "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C07_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "分值",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 分值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[7]/w:p",
+        "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R016_C08_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "得分",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 三级指标 / 得分",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表头保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[16]/w:tc[8]/w:p",
+        "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R017_C01_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "产出指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 一级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[1]/w:p",
+        "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R017_C02_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "质量指标",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 二级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[2]/w:p",
+        "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R017_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "职业技能大赛及学科竞赛国家一等奖奖项（项）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[3]/w:p",
+        "expected_text_hash": "962a08ab875d0ef2a31e6562090c73209b0e28e3ffaf30a6a68299bb6c88cc61"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R017_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "3",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R017_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "6",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R017_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R017_C07_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 分值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[7]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R017_C08_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2.5",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 得分",
+      "scope_role": "group_b",
+      "source_rules": [
+        "S"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[17]/w:tc[8]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R018_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "累计获得国家级/省级以上教学成果奖（项）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 累计获得国家级/省级以上教学成果奖（项） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[18]/w:tc[3]/w:p",
+        "expected_text_hash": "870f6abd0a7eed9087da7ecb4b4fb707362248870ece674aa3cfdc40a19e9d2d"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R018_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "1",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 累计获得国家级/省级以上教学成果奖（项） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[18]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R018_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 累计获得国家级/省级以上教学成果奖（项） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[18]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R018_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 累计获得国家级/省级以上教学成果奖（项） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[18]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R019_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "专业群学生年度职业能力达标率（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群学生年度职业能力达标率（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[19]/w:tc[3]/w:p",
+        "expected_text_hash": "bca6cdf45b9278859767b6e4bf277c2acf428f4deff273c299d9ddfc87eaa885"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R019_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "85",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群学生年度职业能力达标率（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[19]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R019_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "90.2",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群学生年度职业能力达标率（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[19]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R019_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 专业群学生年度职业能力达标率（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[19]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R020_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "开展“1+X”证书试点专业毕业生获证率（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 开展“1+X”证书试点专业毕业生获证率（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[20]/w:tc[3]/w:p",
+        "expected_text_hash": "1e3fbbc1d3d57c7676bc29a40e07d674be1b22d47d8ca11a153de492398c8a10"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R020_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "50",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 开展“1+X”证书试点专业毕业生获证率（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[20]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R020_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "98.31",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 开展“1+X”证书试点专业毕业生获证率（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[20]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R020_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 开展“1+X”证书试点专业毕业生获证率（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[20]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R021_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "毕业生就业率（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生就业率（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[21]/w:tc[3]/w:p",
+        "expected_text_hash": "af22976c087082b60a9cde9f0f71895e1f659442434d9484b3669f7b649f7e1b"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R021_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "91",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生就业率（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[21]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R021_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "98.64",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生就业率（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[21]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R021_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 毕业生就业率（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[21]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R022_C03_P01",
+      "section_key": "T28",
+      "kind": "static",
+      "required": false,
+      "name": "雇主满意度（%）",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 雇主满意度（%） / 三级指标",
+      "scope_role": "group_b",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "指标名称保留；按绩效树绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[22]/w:tc[3]/w:p",
+        "expected_text_hash": "9e465d23e896ec7db81cf89713e05063190c6d53693cffc99e82837831ee91de"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "T28_R022_C04_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "92",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 雇主满意度（%） / 目标值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[22]/w:tc[4]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R022_C05_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "97.06",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 雇主满意度（%） / 完成值",
+      "scope_role": "group_b",
+      "source_rules": [
+        "V"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[22]/w:tc[5]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "T28_R022_C06_P01",
+      "section_key": "T28",
+      "kind": "scalar",
+      "required": true,
+      "name": "100%",
+      "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 雇主满意度（%） / 完成率",
+      "scope_role": "group_b",
+      "source_rules": [
+        "R"
+      ],
+      "instruction": "实值留空高亮",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:tbl[28]/w:tr[22]/w:tc[6]/w:p",
+        "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

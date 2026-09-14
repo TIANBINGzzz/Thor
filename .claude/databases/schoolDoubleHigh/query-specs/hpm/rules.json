@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "rule_key": "performance_historical_snapshot",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "performance_historical_snapshot"
+    },
+    {
+      "rule_key": "report_achievement_count",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "report_achievement_count"
+    },
+    {
+      "rule_key": "report_income_budget_rate",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "report_income_budget_rate"
+    },
+    {
+      "rule_key": "report_indicator_completion_rate",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "report_indicator_completion_rate"
+    },
+    {
+      "rule_key": "report_performance_titles",
+      "version": 1,
+      "status": "blocked",
+      "query_id": "report_performance_titles"
+    },
+    {
+      "rule_key": "report_scoring",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "report_scoring"
+    },
+    {
+      "rule_key": "report_terminal_completion",
+      "version": 1,
+      "status": "needs_definition",
+      "query_id": "report_terminal_completion"
+    }
+  ]
+}

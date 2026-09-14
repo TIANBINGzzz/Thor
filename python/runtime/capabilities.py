@@ -32,10 +32,10 @@ CAPABILITIES: dict[str, Capability] = {
 }
 
 
-def resolve_capability(ref: str) -> Capability:
+def resolve_capability(ref: str | None) -> Capability:
     """根据业务能力标识返回登记的 Capability，未登记时抛出 CapabilityError。"""
     try:
-        return CAPABILITIES[ref]
+        return CAPABILITIES["conversation" if ref is None else ref]
     except KeyError as error:
         raise CapabilityError("capability_not_found") from error
 

@@ -1,0 +1,83 @@
+{
+  "section_key": "body_a04672bdf2",
+  "slots": [
+    {
+      "slot_key": "P4662",
+      "section_key": "body_a04672bdf2",
+      "kind": "static",
+      "required": false,
+      "name": "（一）学生家长认可度",
+      "business_context": "（一）学生家长认可度",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[536]",
+        "expected_text_hash": "a04672bdf223a6bc6dce491451abe00a42395763044197b64ea8863eed8034da"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4663",
+      "section_key": "body_a04672bdf2",
+      "kind": "static",
+      "required": false,
+      "name": "1.2019-2021年超本人数和超本率",
+      "business_context": "（一）学生家长认可度",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[537]",
+        "expected_text_hash": "db18ae86e2c190a5dedc9d38c966ace8d5e17e363c592b44967470dc2f4402d0"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4664",
+      "section_key": "body_a04672bdf2",
+      "kind": "static",
+      "required": false,
+      "name": "2.深圳职业技术学院2019-2021广东省内录取排位情况",
+      "business_context": "（一）学生家长认可度",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[538]",
+        "expected_text_hash": "9cada1d17aa4531583804ff365663f949aa8a85a8cff14413b5811f3d60a3eb4"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4665",
+      "section_key": "body_a04672bdf2",
+      "kind": "static",
+      "required": false,
+      "name": "3.第三方家长满意度调查",
+      "business_context": "（一）学生家长认可度",
+      "scope_role": "school",
+      "source_rules": [
+        "E",
+        "X"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[539]",
+        "expected_text_hash": "663549ad25830c6f70f8c68353f6a51face0119ce609e5fdd4a643c083c5709a"
+      },
+      "binding_status": "static"
+    }
+  ]
+}

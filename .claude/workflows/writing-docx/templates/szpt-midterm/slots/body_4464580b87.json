@@ -1,0 +1,100 @@
+{
+  "section_key": "body_4464580b87",
+  "slots": [
+    {
+      "slot_key": "P4762",
+      "section_key": "body_4464580b87",
+      "kind": "static",
+      "required": false,
+      "name": "社会服务",
+      "business_context": "社会服务",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "附件分类标题保留",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[636]",
+        "expected_text_hash": "4464580b878b6934e24cbe5b18c7f7dc1489651efb7ef8914d5be1fb2a80b5e7"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P4763",
+      "section_key": "body_4464580b87",
+      "kind": "narrative",
+      "required": true,
+      "name": "1.高端技术技能培训2457人/日",
+      "business_context": "社会服务",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[637]",
+        "expected_text_hash": "c65a5f54725df1e266368ec0f7258b99605966d5fe54461e772df60b0772a698"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4764",
+      "section_key": "body_4464580b87",
+      "kind": "narrative",
+      "required": true,
+      "name": "2.职业院校师资培训3157人/日",
+      "business_context": "社会服务",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[638]",
+        "expected_text_hash": "cde560e564c1825b450aa6ebaa859735b08f47dd7bf1ee37bf8bd0bfeb477c9c"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4765",
+      "section_key": "body_4464580b87",
+      "kind": "narrative",
+      "required": true,
+      "name": "3.招收贫困地区学生数168人",
+      "business_context": "社会服务",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[639]",
+        "expected_text_hash": "139e4bea0e88ca4d406e6d9cf4af4d7b7837c1357d89629864bbc47679e4c648"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P4766",
+      "section_key": "body_4464580b87",
+      "kind": "narrative",
+      "required": true,
+      "name": "4.在线技术技能培训38195人次",
+      "business_context": "社会服务",
+      "scope_role": "school",
+      "source_rules": [
+        "E"
+      ],
+      "instruction": "保留材料主题；实值及当期附件待填",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[640]",
+        "expected_text_hash": "b0919b47346257c5dba22432d075fccf8ee41d390b8944ef03a3d302660584a8"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}

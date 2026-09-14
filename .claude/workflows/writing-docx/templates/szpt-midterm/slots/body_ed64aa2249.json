@@ -1,0 +1,104 @@
+{
+  "section_key": "body_ed64aa2249",
+  "slots": [
+    {
+      "slot_key": "P0518",
+      "section_key": "body_ed64aa2249",
+      "kind": "static",
+      "required": false,
+      "name": "2.打造技术技能人才培养高地(应该是国双高专业群下t_hpm_project_task表中code为2 的任务相关的数据)",
+      "business_context": "2.打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "标题保留；按任务名称绑定",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[47]",
+        "expected_text_hash": "ed64aa2249d0fda36497cae6766a89cdd7fc80a903b59b4a345b92d72a59ac27"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0519",
+      "section_key": "body_ed64aa2249",
+      "kind": "narrative",
+      "required": true,
+      "name": "本建设任务中期目标值12项，完成度均超100%。取得标志性成果17项，其中，国家级12项、省级4项、独创1项。自评等级优。",
+      "business_context": "2.打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "K",
+        "V",
+        "R",
+        "A",
+        "S"
+      ],
+      "instruction": "指标统计与等级占位",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[48]",
+        "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0520",
+      "section_key": "body_ed64aa2249",
+      "kind": "static",
+      "required": false,
+      "name": "表 3-1 “打造技术技能人才培养高地”中期自评得分表",
+      "business_context": "2.打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "F"
+      ],
+      "instruction": "表题保留；任务名称按绑定映射",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[49]",
+        "expected_text_hash": "77a15ca51b1490f13d5d977c1f18c7be5e8af4163e67429271cec4ef5a5f2efe"
+      },
+      "binding_status": "static"
+    },
+    {
+      "slot_key": "P0634",
+      "section_key": "body_ed64aa2249",
+      "kind": "narrative",
+      "required": true,
+      "name": "培养质量不断攀升。1+X证书试点专业参与率达90%，学生考取高质量证书比例达53.2%。学生获全国职业院校技能大赛等重大赛事一等奖35项。三年平均就业率超97%。毕业生在世界500强企业、行",
+      "business_context": "2.打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[51]",
+        "expected_text_hash": "e67e5a1523f250046a8d57fa24e1ee3959e3be32e186150e3467802332ee6938"
+      },
+      "binding_status": "definition_missing"
+    },
+    {
+      "slot_key": "P0635",
+      "section_key": "body_ed64aa2249",
+      "kind": "narrative",
+      "required": true,
+      "name": "教学成果持续领先。获批国家专业教学资源库5个，建成校级资源库25个。2021年启动“金课”建设工程，三年拟投入2亿元，已立项建设首批“金课”283门。获全国高校就业创业“金课”1门，重点打造",
+      "business_context": "2.打造技术技能人才培养高地",
+      "scope_role": "school",
+      "source_rules": [
+        "N"
+      ],
+      "instruction": "概括文字已写；业务实值高亮留空",
+      "locator": {
+        "part": "word/document.xml",
+        "path": "/w:document/w:body/w:p[52]",
+        "expected_text_hash": "e4f3620a934f05e2ba806ccc26c9469d12dc5dddf06d304e93a358eb41726a26"
+      },
+      "binding_status": "definition_missing"
+    }
+  ]
+}
