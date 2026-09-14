@@ -1,7 +1,7 @@
 {
   "template_key": "szpt-midterm",
   "name": "双高计划中期自评报告",
-  "version": 1,
+  "version": 2,
   "enabled": true,
   "capabilities": [
     "document-writing"
@@ -14,12 +14,11 @@
   },
   "scope_roles": {
     "hpm": [
-      "school",
       "group_a",
       "group_b"
     ]
   },
-  "missing_policy": "annotated_draft",
+  "missing_policy": "reject",
   "parameters": {
     "type": "object",
     "additionalProperties": false,
@@ -27,7 +26,7 @@
       "years": {
         "type": "array",
         "minItems": 1,
-        "maxItems": 10,
+        "maxItems": 1,
         "uniqueItems": true,
         "items": {
           "type": "string",
@@ -39,10 +38,7 @@
         "format": "date"
       },
       "period_mode": {
-        "enum": [
-          "annual",
-          "cumulative"
-        ]
+        "const": "annual"
       },
       "timezone": {
         "const": "Asia/Shanghai"
@@ -51,7 +47,45 @@
     "required": [
       "years",
       "period_mode",
-      "timezone"
+      "timezone",
+      "as_of"
     ]
-  }
+  },
+  "preserve_structure": true,
+  "clear_fill_markers": true,
+  "file_name": "双高计划${years}年度自评报告.docx",
+  "outline": [
+    {
+      "section_key": "overview",
+      "title": "一、总体实现程度"
+    },
+    {
+      "section_key": "school",
+      "title": "二、学校层面任务及绩效指标完成情况"
+    },
+    {
+      "section_key": "group_a",
+      "title": "三、专业群层面任务及绩效指标完成情况（一）"
+    },
+    {
+      "section_key": "group_b",
+      "title": "三、专业群层面任务及绩效指标完成情况（二）"
+    },
+    {
+      "section_key": "measures",
+      "title": "四、实现绩效目标采取的措施"
+    },
+    {
+      "section_key": "experience",
+      "title": "五、特色经验与做法"
+    },
+    {
+      "section_key": "improvements",
+      "title": "六、问题与改进措施"
+    },
+    {
+      "section_key": "appendix",
+      "title": "附件：佐证材料目录清单"
+    }
+  ]
 }

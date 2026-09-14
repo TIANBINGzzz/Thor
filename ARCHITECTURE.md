@@ -25,7 +25,7 @@ python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
   tools/      data、reports、DOCX、Artifact工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
-  reporting/  模板绑定、计划及渲染
+  reporting/  模板绑定、计划、正文、原位回填及全文核验
   tests/      后端测试
 .claude/      skills/、agents/、commands/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
@@ -39,7 +39,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/`登记数据库，query-specs/<domain>/维护语义、指标、规则、查询和验证；授权后按主题提供给问数和报告工具。
-- `data_access/`管理来源授权、连接、查询及物化结果；`reporting/`编译模板计划、填值、展开表格及验证；tools/reports.py复用Artifact发布，业务知识留数据库/模板资产。
+- `data_access/`管理来源授权、连接、查询及物化结果；`reporting/`编译计划、分批正文、原位回填和全文核验；tools/reports.py提供页面审阅并复用Artifact发布，业务知识留数据库/模板资产。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions

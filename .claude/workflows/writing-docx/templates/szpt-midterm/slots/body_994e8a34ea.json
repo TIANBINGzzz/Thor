@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P2161",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[150]",
         "expected_text_hash": "994e8a34ea13d14a8962d4d372db10b4d1800b2f7a98107090b13e94f0a75254"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "3.推动形成国家层面支撑职业教育高质量发展的政策、制度、标准"
     },
     {
       "slot_key": "P2162",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "参与国家政策制定。参与《国家职业教育改革实施方案》《教育部 广东省关于推动深圳职业教育高端发展争创世界一流的意见》《职业教育提质培优行动计划（2020—2023年）》《职业学校学生实习管理规",
@@ -37,11 +38,35 @@
         "path": "/w:document/w:body/w:p[151]",
         "expected_text_hash": "f00f381266978f1c33b95b6dcf046f224682332e15c635637b14754f017b160a"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "政策研究与制度建设应总结实际办学经验，形成可供决策参考的研究成果。报告期内参与政策文件制定与研究咨询情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2163",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "参与国家标准制定。学校25名专家在全国行（教）指委担任主任委员、副主任委员和委员等职务，积极推动职业教育国家教学标准体系建设。2020年，学校作为电子与信息大类牵头单位，深度参与教育部职业教",
@@ -56,11 +81,35 @@
         "path": "/w:document/w:body/w:p[152]",
         "expected_text_hash": "8bce2bf23957065261fbb79047639002eb2bee903f1a55ba7a3ad5da96403cf0"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "标准建设通过专业研究和行业协作开展，将教学实践与产业要求形成衔接。报告期内参与标准制定【待填】项，具体成果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2164",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "（三）社会认可度情况",
@@ -75,11 +124,12 @@
         "path": "/w:document/w:body/w:p[153]",
         "expected_text_hash": "7612cffeb2e95fe05d93f843342fa5e6d457ea50ae17824676b25066708790b7"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）社会认可度情况"
     },
     {
       "slot_key": "P2165",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "学校连续三年录取分数线达本科线比例60%以上，连续三年广东省内普通高考各类别招生录取分数线稳居全省第一。在社会各类综合排行榜中，均位列第一。根据第三方调查，服务对象满意度均超中期目标值，详见",
@@ -94,11 +144,35 @@
         "path": "/w:document/w:body/w:p[154]",
         "expected_text_hash": "69e6a3a3d6e17c52583744d0a14cb748f04652d88b3e87fcb3263a97fa9c9f32"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "学校社会认可度结合招生、就业和第三方调查综合分析。报告期内招生录取、毕业生发展及服务对象满意度情况见相应指标，具体说明：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2167",
-      "section_key": "body_994e8a34ea",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 5 服务对象满意度中期自评表",
@@ -113,7 +187,8 @@
         "path": "/w:document/w:body/w:p[156]",
         "expected_text_hash": "f1984cd4368025e4ae3d5675ce41fef577c97996d44bddbadbd194eb869ef620"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 5 服务对象满意度中期自评表"
     }
   ]
 }

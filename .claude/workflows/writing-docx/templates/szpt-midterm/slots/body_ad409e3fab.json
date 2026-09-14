@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4701",
-      "section_key": "body_ad409e3fab",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
@@ -18,13 +18,14 @@
         "path": "/w:document/w:body/w:p[575]",
         "expected_text_hash": "ad409e3fab07afa04b1a4a4457e7ff9866ac74cd17754279036b7cad1cb78a28"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台"
     },
     {
       "slot_key": "P4702",
-      "section_key": "body_ad409e3fab",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "1.地方政府支持建设技术技能人才培养平台",
       "business_context": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
       "scope_role": "school",
@@ -38,13 +39,44 @@
         "path": "/w:document/w:body/w:p[576]",
         "expected_text_hash": "673bd13788136baa575a4a273b2fd46f801f38483115c868946547863b47da3c"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "1.地方政府支持建设技术技能人才培养平台【材料待补】",
+      "resolution": {
+        "text": "1.地方政府支持建设技术技能人才培养平台（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4703",
-      "section_key": "body_ad409e3fab",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "（1）深圳市发展改革委 深圳市教育局关于拟纳入深圳市首批产教融合型企业培育建设储备库名单的公示",
       "business_context": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
       "scope_role": "school",
@@ -57,13 +89,44 @@
         "path": "/w:document/w:body/w:p[577]",
         "expected_text_hash": "cb3dd8019447df5bf27e7f5d65b770c31a886e922528c1aeca678e4b75b17ce8"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "（1）深圳市发展改革委 深圳市教育局关于拟纳入深圳市首批产教融合型企业培育建设储备库名单的公示【材料待补】",
+      "resolution": {
+        "text": "（1）深圳市发展改革委 深圳市教育局关于拟纳入深圳市首批产教融合型企业培育建设储备库名单的公示（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4704",
-      "section_key": "body_ad409e3fab",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "（2）2019年深圳市职业教育校外公共实训基地名单",
       "business_context": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
       "scope_role": "school",
@@ -76,13 +139,44 @@
         "path": "/w:document/w:body/w:p[578]",
         "expected_text_hash": "60d610d13718bd92f7ea6e4c335e23796199edb8ff786ee121152c49874b831e"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "（2）【年度】深圳市职业教育校外公共实训基地名单【材料待补】",
+      "resolution": {
+        "text": "（2）【年度】深圳市职业教育校外公共实训基地名单（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4705",
-      "section_key": "body_ad409e3fab",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "2.地方政府支持建设的创新与服务平台",
       "business_context": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
       "scope_role": "school",
@@ -96,13 +190,44 @@
         "path": "/w:document/w:body/w:p[579]",
         "expected_text_hash": "c0fc670d8149fd192cf045ee0e2d615cd4cdfa5e4d3aedbb1779c31a891d9202"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "2.地方政府支持建设的创新与服务平台【材料待补】",
+      "resolution": {
+        "text": "2.地方政府支持建设的创新与服务平台（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4706",
-      "section_key": "body_ad409e3fab",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "（1）2019年以来地方政府立项资助科研平台团队一览表",
       "business_context": "（三）地方政府主导共建的技术技能人才培养及创新与服务平台",
       "scope_role": "school",
@@ -116,7 +241,38 @@
         "path": "/w:document/w:body/w:p[580]",
         "expected_text_hash": "d4799fc3b64b6e7aa3fffc75d8856275e3cdf498aeda319b71ce6fe9b9af6ee7"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "（1）【年度】以来地方政府立项资助科研平台团队一览表【材料待补】",
+      "resolution": {
+        "text": "（1）【年度】以来地方政府立项资助科研平台团队一览表（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

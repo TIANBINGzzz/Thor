@@ -10,7 +10,7 @@
 | 能力payload | [业务字段](specs/capability-payload.md) | 模板解析已实现，普通能力可省略 | 能力及模板契约变化 | Runtime/API、Java |
 | 共享数据库资产 | [数据库包](../.claude/databases/README.md) | 已接入运行时，原23项查询搬迁验证通过 | 来源、口径、SQL、输出和验证变化 | 18问覆盖及模板 |
 | 数据库管理与工具 | [管理方案](specs/data-source-connections.md) | 单租户多来源工具已实现，生产隔离仍待验收 | 策略、工具、连接变化 | ADR-023、配置与API |
-| 模板批量取数 | [模板计划](specs/template-batch-data-plan.md) | 年度适配版实库生成；原40表仍有缺定义 | 绑定及报告契约变化 | 数据源、能力payload、测试 |
+| 模板批量取数 | [模板计划](specs/template-batch-data-plan.md) | 原40表逐段写作、回填及全文检查；历史缺值显式保留 | 绑定及报告契约变化 | 数据源、能力payload、测试 |
 | 对话与报告产品流程 | [产品文档](specs/conversation-reporting-product.md) | 已核对主前端、嵌入页、Java和Playground | 选择能力、会话、附件及成果交互变化 | Python协议及外部接入差距 |
 | 原报告数据来源核验 | [SQL与来源](verification/report-source-audit.md) | 5组原SQL实库对照 | 原来源、字段及查询验证变化 | 共享语义、QuerySpec和模板 |
 | Java 业务控制面接入 | [Java 控制面](specs/java-control-plane.md) | 推荐设计 + 源码核实的实现 | Java/Python 请求、鉴权、文件、事件、适配边界或前端展示变化；设计被采纳；联调发现差异。纯内部重构不扩写 | 实际协议变化同步 Runtime 规范、API 页面和测试；纯建议只更新设计及差异记录；重要已采纳决策另记 ADR |

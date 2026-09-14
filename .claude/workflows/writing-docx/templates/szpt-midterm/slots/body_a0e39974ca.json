@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4414",
-      "section_key": "body_a0e39974ca",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）打造高水平专业群",
@@ -18,12 +18,13 @@
         "path": "/w:document/w:body/w:p[288]",
         "expected_text_hash": "a0e39974cad15d8509208d76aa19dcc144351fb8ddc6ce07886a0300ae5975a9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）打造高水平专业群"
     },
     {
       "slot_key": "P4415",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.“课证共生共长”复合型人才培养模式推广至40所院校",
       "business_context": "（三）打造高水平专业群",
@@ -37,12 +38,43 @@
         "path": "/w:document/w:body/w:p[289]",
         "expected_text_hash": "896dd53ba0c44ec1af5f805835e4fbcb3aa4df96b304ff860bd035d8611d8e8b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.“课证共生共长”复合型人才培养模式推广至__所院校【材料待补】",
+      "resolution": {
+        "text": "1.“课证共生共长”复合型人才培养模式推广至/所院校（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4416",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.人才培养方案包含毕业生职业能力清单的专业数达7个",
       "business_context": "（三）打造高水平专业群",
@@ -56,12 +88,43 @@
         "path": "/w:document/w:body/w:p[290]",
         "expected_text_hash": "a298392c82bedbdf0fd348671f7b92e5eb86e24972f2f803a581c0a990a2bd96"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.人才培养方案包含毕业生职业能力清单的专业数达__个【材料待补】",
+      "resolution": {
+        "text": "2.人才培养方案包含毕业生职业能力清单的专业数达/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4417",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.专业群对应的产业发展及人才需求分析报告2个",
       "business_context": "（三）打造高水平专业群",
@@ -75,12 +138,43 @@
         "path": "/w:document/w:body/w:p[291]",
         "expected_text_hash": "5361c00d282963e9739a384ed99bad7b48d9cd57b228d9f492c32de446e9bcd8"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.专业群对应的产业发展及人才需求分析报告__个【材料待补】",
+      "resolution": {
+        "text": "3.专业群对应的产业发展及人才需求分析报告/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4418",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.专业群发展规划2个",
       "business_context": "（三）打造高水平专业群",
@@ -94,12 +188,43 @@
         "path": "/w:document/w:body/w:p[292]",
         "expected_text_hash": "b1f62d6f35c3a9b9d0abfee7c869a51ea6994ec4704b42a248cab8c0b53d49ab"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.专业群发展规划__个【材料待补】",
+      "resolution": {
+        "text": "4.专业群发展规划/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4419",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.实施1+X证书试点专业7个",
       "business_context": "（三）打造高水平专业群",
@@ -113,12 +238,43 @@
         "path": "/w:document/w:body/w:p[293]",
         "expected_text_hash": "0a94ef35f484cac454d777f626dbc59cc1e5ba8ca29fe9dc4fcd3b7d74d04d7e"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.实施1+X证书试点专业__个【材料待补】",
+      "resolution": {
+        "text": "5.实施1+X证书试点专业/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4420",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.学生参加技能大赛获奖13项",
       "business_context": "（三）打造高水平专业群",
@@ -132,12 +288,43 @@
         "path": "/w:document/w:body/w:p[294]",
         "expected_text_hash": "c76af2382f1c30ab6473cbe4263bfea6d0477a9aa8b079cbe3f5499820a34928"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.学生参加技能大赛获奖__项【材料待补】",
+      "resolution": {
+        "text": "6.学生参加技能大赛获奖/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4421",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7.专业群在校生3228人",
       "business_context": "（三）打造高水平专业群",
@@ -151,12 +338,43 @@
         "path": "/w:document/w:body/w:p[295]",
         "expected_text_hash": "eee90b4eb7a5af3d1b66cf72ab24b22f5e0b2acee5adb911c8f445fec84b76dd"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7.专业群在校生__人【材料待补】",
+      "resolution": {
+        "text": "7.专业群在校生/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4422",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8.优质在线教学资源37096条",
       "business_context": "（三）打造高水平专业群",
@@ -170,12 +388,43 @@
         "path": "/w:document/w:body/w:p[296]",
         "expected_text_hash": "96ca45472159c3c522861f87714bd78faf44be938c4857b5ba478539fc6fae79"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8.优质在线教学资源__条【材料待补】",
+      "resolution": {
+        "text": "8.优质在线教学资源/条（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4423",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "9.紧密关联职业能力的国际可借鉴课程标准14个",
       "business_context": "（三）打造高水平专业群",
@@ -189,12 +438,43 @@
         "path": "/w:document/w:body/w:p[297]",
         "expected_text_hash": "528e887be2b909c4811e96ca17e5e4aa18c43f771ea4888f6ccd06dc3ab6dfcb"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "9.紧密关联职业能力的国际可借鉴课程标准__个【材料待补】",
+      "resolution": {
+        "text": "9.紧密关联职业能力的国际可借鉴课程标准/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4424",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "10.应用资源库运行平台受益学生数达29648人",
       "business_context": "（三）打造高水平专业群",
@@ -208,12 +488,43 @@
         "path": "/w:document/w:body/w:p[298]",
         "expected_text_hash": "82cb1a4223ae49afaf3875c5936f94c6f09c736fe423f16aefbec0ed45cc827b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "10.应用资源库运行平台受益学生数达__人【材料待补】",
+      "resolution": {
+        "text": "10.应用资源库运行平台受益学生数达/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4425",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "11.累计出版14部教材",
       "business_context": "（三）打造高水平专业群",
@@ -227,11 +538,42 @@
         "path": "/w:document/w:body/w:p[299]",
         "expected_text_hash": "3e9e1251ae340df4423f98e6256346853db8d274918cf63476bd1b9c5244ea30"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "11.累计出版__部教材【材料待补】",
+      "resolution": {
+        "text": "11.累计出版/部教材（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4499",
-      "section_key": "body_a0e39974ca",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）打造高水平专业群",
@@ -246,12 +588,13 @@
         "path": "/w:document/w:body/w:p[373]",
         "expected_text_hash": "a0e39974cad15d8509208d76aa19dcc144351fb8ddc6ce07886a0300ae5975a9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）打造高水平专业群"
     },
     {
       "slot_key": "P4500",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.建成省级以上品牌专业数5个",
       "business_context": "（三）打造高水平专业群",
@@ -265,12 +608,43 @@
         "path": "/w:document/w:body/w:p[374]",
         "expected_text_hash": "0a64d3fc2ca478cf22732c30231092e4300996b44e6ad30f9641f297b6f67318"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.建成省级以上品牌专业数__个【材料待补】",
+      "resolution": {
+        "text": "1.建成省级以上品牌专业数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4501",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.毕业生在世界500强企业、行业龙头企业、领军企业就业比例达22%",
       "business_context": "（三）打造高水平专业群",
@@ -285,12 +659,43 @@
         "path": "/w:document/w:body/w:p[375]",
         "expected_text_hash": "bc2eeefcc6eca6c1f16c66d0a4142902245acda3c0e8ecacc10141252ef706f0"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.毕业生在世界500强企业、行业龙头企业、领军企业就业比例达__%【材料待补】",
+      "resolution": {
+        "text": "2.毕业生在世界500强企业、行业龙头企业、领军企业就业比例达/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4502",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.精英班学生通过HICE顶级认证比例达91.7%",
       "business_context": "（三）打造高水平专业群",
@@ -304,12 +709,43 @@
         "path": "/w:document/w:body/w:p[376]",
         "expected_text_hash": "c564b5999053041322c1b8e733442b8d642f6e7825261e14e67ed19d8faa903b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.精英班学生通过HICE顶级认证比例达__%【材料待补】",
+      "resolution": {
+        "text": "3.精英班学生通过HICE顶级认证比例达/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4503",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.获得技能大赛全国一等奖11项",
       "business_context": "（三）打造高水平专业群",
@@ -323,12 +759,43 @@
         "path": "/w:document/w:body/w:p[377]",
         "expected_text_hash": "2547a37a45afa5147efe46bc3eb20d9bc751488024ae33d2839b66b76ecb0cd6"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.获得技能大赛全国一等奖__项【材料待补】",
+      "resolution": {
+        "text": "4.获得技能大赛全国一等奖/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4504",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.累计获得国家级/省级以上教学成果奖3项",
       "business_context": "（三）打造高水平专业群",
@@ -342,12 +809,43 @@
         "path": "/w:document/w:body/w:p[378]",
         "expected_text_hash": "aa980fdf4d972e8f5db2411e0bebc4a01cac47560c7f54e90e272a8316032656"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.累计获得国家级/省级以上教学成果奖__项【材料待补】",
+      "resolution": {
+        "text": "5.累计获得国家级/省级以上教学成果奖/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4505",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.专业群学生年度职业能力达标率93.2%",
       "business_context": "（三）打造高水平专业群",
@@ -361,12 +859,43 @@
         "path": "/w:document/w:body/w:p[379]",
         "expected_text_hash": "2c998f0a504db50303de932eb415d7c9bd8e5f2a2b52edad05f349dab4b9383c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.专业群学生年度职业能力达标率__%【材料待补】",
+      "resolution": {
+        "text": "6.专业群学生年度职业能力达标率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4506",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7.开展“1+X”证书试点专业毕业生获证率96.8%",
       "business_context": "（三）打造高水平专业群",
@@ -380,12 +909,43 @@
         "path": "/w:document/w:body/w:p[380]",
         "expected_text_hash": "0900d59ea9f327bb7b47ebfdaaadf1f2f02b0d48d425c28a71147a26c89beb4d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7.开展“1+X”证书试点专业毕业生获证率__%【材料待补】",
+      "resolution": {
+        "text": "7.开展“1+X”证书试点专业毕业生获证率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4507",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8.毕业生就业率97.7%",
       "business_context": "（三）打造高水平专业群",
@@ -400,12 +960,43 @@
         "path": "/w:document/w:body/w:p[381]",
         "expected_text_hash": "3a9f9247a74ffbd93275b7c1d1e1235da86fed5ae4aac4a4651ef72a7edd7e25"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8.毕业生就业率__%【材料待补】",
+      "resolution": {
+        "text": "8.毕业生就业率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4508",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "9.雇主满意度97.3%",
       "business_context": "（三）打造高水平专业群",
@@ -420,12 +1011,43 @@
         "path": "/w:document/w:body/w:p[382]",
         "expected_text_hash": "22d1f19b7bad634709c77bbd027681f82610a07745bfdbabe6f1dc1a1aeb16eb"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "9.雇主满意度__%【材料待补】",
+      "resolution": {
+        "text": "9.雇主满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4509",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "10.国家级专业（群）教学资源库2个",
       "business_context": "（三）打造高水平专业群",
@@ -439,12 +1061,43 @@
         "path": "/w:document/w:body/w:p[383]",
         "expected_text_hash": "2b47511093b3bb2bc8f0850ae3b7e7546fd7a652d64fe358f50f18ad3457d4fc"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "10.国家级专业（群）教学资源库__个【材料待补】",
+      "resolution": {
+        "text": "10.国家级专业（群）教学资源库/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4510",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "11.国家级精品在线开放课程、国家资源库在线课程7门",
       "business_context": "（三）打造高水平专业群",
@@ -458,12 +1111,43 @@
         "path": "/w:document/w:body/w:p[384]",
         "expected_text_hash": "8454cabf8e44f6f9c1a7906a50b60a914a0833d65f96c9dcdca79905d5f6cb31"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "11.国家级精品在线开放课程、国家资源库在线课程__门【材料待补】",
+      "resolution": {
+        "text": "11.国家级精品在线开放课程、国家资源库在线课程/门（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4511",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "12.日常教学应用资源库运行平台受益学生数量占比100%",
       "business_context": "（三）打造高水平专业群",
@@ -477,12 +1161,43 @@
         "path": "/w:document/w:body/w:p[385]",
         "expected_text_hash": "b85d12a5ed713a8a51242760611cf2b6e3739e1d0ae7d2674a00ec1280f14d2b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "12.日常教学应用资源库运行平台受益学生数量占比__%【材料待补】",
+      "resolution": {
+        "text": "12.日常教学应用资源库运行平台受益学生数量占比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4512",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "13.线上课程开设比例92%",
       "business_context": "（三）打造高水平专业群",
@@ -496,12 +1211,43 @@
         "path": "/w:document/w:body/w:p[386]",
         "expected_text_hash": "ab7b7d49e38fb9f51c9ae016253d6e083113330713c7420b3d42c61aa4db8205"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "13.线上课程开设比例__%【材料待补】",
+      "resolution": {
+        "text": "13.线上课程开设比例/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4513",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "14.国家规划教材、“1+X”认证教材7部",
       "business_context": "（三）打造高水平专业群",
@@ -515,12 +1261,43 @@
         "path": "/w:document/w:body/w:p[387]",
         "expected_text_hash": "04507fa67b328e69c813ea264752496583371cbffe2284f24554e8f4a09a6151"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "14.国家规划教材、“1+X”认证教材__部【材料待补】",
+      "resolution": {
+        "text": "14.国家规划教材、“1+X”认证教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4514",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "15.省级以上教学能力大赛奖项10人次",
       "business_context": "（三）打造高水平专业群",
@@ -534,12 +1311,43 @@
         "path": "/w:document/w:body/w:p[388]",
         "expected_text_hash": "b6908e4ea11602367ab28f90f3735ab34704466cf2c1854bccc7ebb9035bd22b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "15.省级以上教学能力大赛奖项__人次【材料待补】",
+      "resolution": {
+        "text": "15.省级以上教学能力大赛奖项/人次（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4515",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "16.ICT技术英文教材及讲义2本",
       "business_context": "（三）打造高水平专业群",
@@ -553,12 +1361,43 @@
         "path": "/w:document/w:body/w:p[389]",
         "expected_text_hash": "af2feaac3b7a24ca4e0abf5f4891cc6ab9a75659b0f6a7c33dfbd3ca8fee9306"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "16.ICT技术英文教材及讲义__本【材料待补】",
+      "resolution": {
+        "text": "16.ICT技术英文教材及讲义/本（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4516",
-      "section_key": "body_a0e39974ca",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "17.专业课使用新近更新教材比79.7%",
       "business_context": "（三）打造高水平专业群",
@@ -572,7 +1411,38 @@
         "path": "/w:document/w:body/w:p[390]",
         "expected_text_hash": "9c235c85e5b777a391952d463fba6197b5d14605592ac73f959ec024e1157bbc"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "17.专业课使用新近更新教材比__%【材料待补】",
+      "resolution": {
+        "text": "17.专业课使用新近更新教材比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

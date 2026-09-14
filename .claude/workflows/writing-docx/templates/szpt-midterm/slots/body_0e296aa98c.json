@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4756",
-      "section_key": "body_0e296aa98c",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "技术技能平台",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[630]",
         "expected_text_hash": "0e296aa98cc5afd73834aa484f30ba83c5ef7d0191e87706ec402eb5eabe174c"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "技术技能平台"
     },
     {
       "slot_key": "P4757",
-      "section_key": "body_0e296aa98c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.与行业领军企业共建高水平技术创新中心2个",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[631]",
         "expected_text_hash": "499a25563c2bdb04b9fd6f9d872ae3e4502dc7a167328798aa89e4bd9f9bac1d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.与行业领军企业共建高水平技术创新中心__个【材料待补】",
+      "resolution": {
+        "text": "1.与行业领军企业共建高水平技术创新中心/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4758",
-      "section_key": "body_0e296aa98c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.累计完成的技术研发或技术服务项目61项",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[632]",
         "expected_text_hash": "c2fca6b513ed67abf61efa9e41186495fd526c218f23415d72d378d55de2f184"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.累计完成的技术研发或技术服务项目__项【材料待补】",
+      "resolution": {
+        "text": "2.累计完成的技术研发或技术服务项目/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4759",
-      "section_key": "body_0e296aa98c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.国家发明专利授权数29项",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[633]",
         "expected_text_hash": "4a1644fed73e0c6b5f01827d60c96c2ac589c4fefcb0c385508872967f483a27"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.国家发明专利授权数__项【材料待补】",
+      "resolution": {
+        "text": "3.国家发明专利授权数/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4760",
-      "section_key": "body_0e296aa98c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.累计发表的论文数量51篇",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[634]",
         "expected_text_hash": "35fa19ff98746694aca29187f7716db53090cd0f09c7c564f081ff81ca9513b1"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.累计发表的论文数量__篇【材料待补】",
+      "resolution": {
+        "text": "4.累计发表的论文数量/篇（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4761",
-      "section_key": "body_0e296aa98c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.省级以上科研项目或平台10项",
       "business_context": "技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -113,7 +194,27 @@
         "path": "/w:document/w:body/w:p[635]",
         "expected_text_hash": "0db74d1ee1402ac1138abd0a54dd222cdaeaf118e2593e1892c1ed7615eeadab"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.省级以上科研项目或平台__项【材料待补】",
+      "resolution": {
+        "text": "5.省级以上科研项目或平台/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     }
   ]
 }

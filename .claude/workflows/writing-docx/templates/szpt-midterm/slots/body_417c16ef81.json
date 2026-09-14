@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0636",
-      "section_key": "body_417c16ef81",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "3.打造技术技能创新服务平台",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[53]",
         "expected_text_hash": "417c16ef8159729046334195fde2feafa3c56184a7fc00785381ead4b44127a7"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "3.打造技术技能创新服务平台"
     },
     {
       "slot_key": "P0637",
-      "section_key": "body_417c16ef81",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "本建设任务中期目标值13项，完成度均超100%，取得标志性成果17项，其中，国家级3项、省级5项、独创9项。自评等级优。",
@@ -41,11 +42,35 @@
         "path": "/w:document/w:body/w:p[54]",
         "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本建设任务纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P0639",
-      "section_key": "body_417c16ef81",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 3-2 “打造技术技能创新服务平台”中期自评表",
@@ -60,11 +85,12 @@
         "path": "/w:document/w:body/w:p[56]",
         "expected_text_hash": "c0878e6d1343b856a3db441c36a38380dd229eb0b095f77f72a98ebdbe16efd5"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 3-2 “打造技术技能创新服务平台”中期自评表"
     },
     {
       "slot_key": "P0753",
-      "section_key": "body_417c16ef81",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "技术研发持续发力。新增国家级科研项目52项，省部级项目84项，其中国家自然科学基金项目38项。2021年在自然指数（Nature Index）学术机构全国高校排名中位列199位。新增省、市级",
@@ -79,11 +105,35 @@
         "path": "/w:document/w:body/w:p[58]",
         "expected_text_hash": "67c00520b54778eed7768c299627dd71dee1f5a0ef30736eab38b536fefa075f"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "技术研发坚持需求导向，围绕重点产业和企业技术需求组织科研项目与平台建设。报告期内科研项目【待填】项，新增科研平台【待填】个，科研到账经费【待填】万元；代表性技术攻关成果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P0754",
-      "section_key": "body_417c16ef81",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "服务能力大幅提升。技术研发和技术服务覆盖中小企业1600余家。新增专利授权901件；新增国际、国家、行业及地方标准68项；新增横向课题1123项，到账经费1.62亿元；新增成果转化经费420",
@@ -98,7 +148,31 @@
         "path": "/w:document/w:body/w:p[59]",
         "expected_text_hash": "3e040f51dd160843215856bfa247f11eecca51dc8ca77e162ad9b8af234e3a44"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "通过技术开发、技术服务和成果转化，促进科研成果与产业需求对接。报告期内服务企业【待填】家，专利授权【待填】项，标准制定【待填】项，成果转化经费【待填】万元；具体应用情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

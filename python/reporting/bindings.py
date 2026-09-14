@@ -33,6 +33,10 @@ def locate(xml, locator):
 
 
 def load_template(template_key, capability_ref, root=TEMPLATES):
+    if Path(root).resolve()==TEMPLATES.resolve():
+        registry=read_json(TEMPLATES.parent/'workflow.json').get('templates',{})
+        if template_key not in registry:
+            raise DataError('TEMPLATE_FORBIDDEN')
     directory = asset_path(Path(root), f"{key(template_key)}/template.json").parent
     template = read_json(directory / "template.json")
     if (template.get("template_key") != template_key or template.get("enabled") is not True

@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0510",
-      "section_key": "body_6116203377",
+      "section_key": "overview",
       "kind": "static",
       "required": false,
       "name": "（二）项目经费到位和执行情况概述",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[39]",
         "expected_text_hash": "611620337736490849bf05c9ffc4bb45174851b0d4b88ccda664c2addd5ac5b9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（二）项目经费到位和执行情况概述"
     },
     {
       "slot_key": "P0511",
-      "section_key": "body_6116203377",
+      "section_key": "overview",
       "kind": "narrative",
       "required": true,
       "name": "学校“双高”建设总预算(budget_total_money_)9.8亿元，其中，中央资金(budget_centre_money_)2.5亿元，地方(budget_place_money_",
@@ -37,7 +38,31 @@
         "path": "/w:document/w:body/w:p[40]",
         "expected_text_hash": "976aa714d04b856b26723cef727a340ef673583fcbcde078a4ed4e7a0895def5"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "学校“双高”建设【预算期间】预算总额为【待填】万元，其中中央资金【待填】万元，地方投入【待填】万元，学校自筹【待填】万元，行业企业投入【待填】万元，其他来源【待填】万元。截至【统计截止日期】，预算资金到位【待填】万元，其中中央资金【待填】万元，地方投入【待填】万元，学校自筹【待填】万元，行业企业投入【待填】万元，其他来源【待填】万元。资金到位率为【待填】%；预算执行【待填】万元，预算执行率为【待填】%，到位资金执行率为【待填】%。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

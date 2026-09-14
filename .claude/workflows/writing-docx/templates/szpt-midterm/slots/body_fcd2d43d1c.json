@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4426",
-      "section_key": "body_fcd2d43d1c",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（四）打造高水平双师队伍",
@@ -18,12 +18,13 @@
         "path": "/w:document/w:body/w:p[300]",
         "expected_text_hash": "fcd2d43d1c9f88ea9173c84a8d1d411bcdcfbfea6765a7a1aec6e50c61ea4812"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（四）打造高水平双师队伍"
     },
     {
       "slot_key": "P4427",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.引培应用研发领军人才（16名）",
       "business_context": "（四）打造高水平双师队伍",
@@ -37,12 +38,43 @@
         "path": "/w:document/w:body/w:p[301]",
         "expected_text_hash": "8156cde0e7029183cb5a14a84aa40590094ca6a6a2f04ed2951f25c1f14ed068"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.引培应用研发领军人才（__名）【材料待补】",
+      "resolution": {
+        "text": "1.引培应用研发领军人才（/名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4428",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.打造高端应用研发创新团队（16个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -56,12 +88,43 @@
         "path": "/w:document/w:body/w:p[302]",
         "expected_text_hash": "03ace697e257aca05145987c176081350add1b9b3437f9276cf649c48b3c9a73"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.打造高端应用研发创新团队（__个）【材料待补】",
+      "resolution": {
+        "text": "2.打造高端应用研发创新团队（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4429",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.引培行业有权威、国际有影响力的专业群建设带头人（16名）",
       "business_context": "（四）打造高水平双师队伍",
@@ -75,12 +138,43 @@
         "path": "/w:document/w:body/w:p[303]",
         "expected_text_hash": "2ad8147d8540249fbe7300977232654dda9408539b2e908a0bcdef2686dca632"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.引培行业有权威、国际有影响力的专业群建设带头人（__名）【材料待补】",
+      "resolution": {
+        "text": "3.引培行业有权威、国际有影响力的专业群建设带头人（/名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4430",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.教师教学创新团队（20个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -94,12 +188,43 @@
         "path": "/w:document/w:body/w:p[304]",
         "expected_text_hash": "34551a784162e356a3f8c0dadd76514131b80d80bb5687912669c2fc3a699635"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.教师教学创新团队（__个）【材料待补】",
+      "resolution": {
+        "text": "4.教师教学创新团队（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4431",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.绝技绝艺大师名匠（24名）",
       "business_context": "（四）打造高水平双师队伍",
@@ -113,12 +238,43 @@
         "path": "/w:document/w:body/w:p[305]",
         "expected_text_hash": "c2a4a5b2051b9052fb5e257a744e914cf862e9abd21be3558322baa53734e4a6"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.绝技绝艺大师名匠（__名）【材料待补】",
+      "resolution": {
+        "text": "5.绝技绝艺大师名匠（/名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4432",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.技能大师工作室（13个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -132,12 +288,43 @@
         "path": "/w:document/w:body/w:p[306]",
         "expected_text_hash": "eb342ee1670bba65605a7961ee9e4fdc96691e247e25ea4c490cd0e59f40b0b6"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.技能大师工作室（__个）【材料待补】",
+      "resolution": {
+        "text": "6.技能大师工作室（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4433",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7.校企共建高层次技能型兼职教师“流动站”（14个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -151,12 +338,43 @@
         "path": "/w:document/w:body/w:p[307]",
         "expected_text_hash": "71de3dc2abbd632041e5d430cb2198a9bd04fbc920ec6878ee7050c8821bd41c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7.校企共建高层次技能型兼职教师“流动站”（__个）【材料待补】",
+      "resolution": {
+        "text": "7.校企共建高层次技能型兼职教师“流动站”（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4434",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8.引进高层次技能型兼职教师“流动岗”（62个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -170,12 +388,43 @@
         "path": "/w:document/w:body/w:p[308]",
         "expected_text_hash": "00ef224887abc8c774e7e76202d82c2832b735e57f2661c2d0c112846ad17fad"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8.引进高层次技能型兼职教师“流动岗”（__个）【材料待补】",
+      "resolution": {
+        "text": "8.引进高层次技能型兼职教师“流动岗”（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4435",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "9.专任教师每年赴企业实践年均数（24060人˙日）",
       "business_context": "（四）打造高水平双师队伍",
@@ -189,11 +438,42 @@
         "path": "/w:document/w:body/w:p[309]",
         "expected_text_hash": "698581bbbe94cc595f35218ccc5785143ccfa29286e4f1fe8994c19737b6e164"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "9.专任教师每年赴企业实践年均数（__人˙日）【材料待补】",
+      "resolution": {
+        "text": "9.专任教师每年赴企业实践年均数（/人˙日）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4517",
-      "section_key": "body_fcd2d43d1c",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（四）打造高水平双师队伍",
@@ -208,12 +488,13 @@
         "path": "/w:document/w:body/w:p[391]",
         "expected_text_hash": "fcd2d43d1c9f88ea9173c84a8d1d411bcdcfbfea6765a7a1aec6e50c61ea4812"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（四）打造高水平双师队伍"
     },
     {
       "slot_key": "P4518",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.以杰出人才领衔的应用研发团队（2个）",
       "business_context": "（四）打造高水平双师队伍",
@@ -227,12 +508,43 @@
         "path": "/w:document/w:body/w:p[392]",
         "expected_text_hash": "d066b45e3ad1bebd74c08e16a33bbd8a38b20bb26668910d6465e3a64e4b9c8b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.以杰出人才领衔的应用研发团队（__个）【材料待补】",
+      "resolution": {
+        "text": "1.以杰出人才领衔的应用研发团队（/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4519",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.入选国家级人才、教学名师等（4名）",
       "business_context": "（四）打造高水平双师队伍",
@@ -246,12 +558,43 @@
         "path": "/w:document/w:body/w:p[393]",
         "expected_text_hash": "a16b3aa1282b38afa1e3da7c320a1b73e9f35379a03b549d6cadb217b99f9573"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.入选国家级人才、教学名师等（__名）【材料待补】",
+      "resolution": {
+        "text": "2.入选国家级人才、教学名师等（/名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4520",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.全国教学能力比赛获奖者 （6名）",
       "business_context": "（四）打造高水平双师队伍",
@@ -265,12 +608,43 @@
         "path": "/w:document/w:body/w:p[394]",
         "expected_text_hash": "b72cbce580948a2cd5ffbb4a0313d3caa940b662ece10fcbe4ec910c98b29290"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.全国教学能力比赛获奖者 （__名）【材料待补】",
+      "resolution": {
+        "text": "3.全国教学能力比赛获奖者 （/名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4521",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（3.7%）",
       "business_context": "（四）打造高水平双师队伍",
@@ -284,12 +658,43 @@
         "path": "/w:document/w:body/w:p[395]",
         "expected_text_hash": "fba33d760cb569a010c4d69c04bead3cffc8a1a5e9b4af656d3b5e2872510a27"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（__%）【材料待补】",
+      "resolution": {
+        "text": "4.骨干教师在跨国企业或行业龙头企业、领军企业兼任职务比例（/%）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4522",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.具有半年以上境外学习工作经历的专任教师比例（32.81%）",
       "business_context": "（四）打造高水平双师队伍",
@@ -303,12 +708,43 @@
         "path": "/w:document/w:body/w:p[396]",
         "expected_text_hash": "6cc0a0ef95d7725b37430439931d11fd9afc323da2258d948d9c2c604587279a"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.具有半年以上境外学习工作经历的专任教师比例（__%）【材料待补】",
+      "resolution": {
+        "text": "5.具有半年以上境外学习工作经历的专任教师比例（/%）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4523",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.“双师型”教师比例（90.41%）",
       "business_context": "（四）打造高水平双师队伍",
@@ -322,12 +758,43 @@
         "path": "/w:document/w:body/w:p[397]",
         "expected_text_hash": "4868c647c480c64acc998797c158af69e892a0d5c9c546c3e24e58388f30b4b4"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.“双师型”教师比例（__%）【材料待补】",
+      "resolution": {
+        "text": "6.“双师型”教师比例（/%）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4524",
-      "section_key": "body_fcd2d43d1c",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7.聘请企业兼职教师比例（19%）",
       "business_context": "（四）打造高水平双师队伍",
@@ -341,7 +808,38 @@
         "path": "/w:document/w:body/w:p[398]",
         "expected_text_hash": "1d7b84134f6b3c2ac0411321a462a29ef813a5a3dd9a8cc7f10aba490745e8e9"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7.聘请企业兼职教师比例（__%）【材料待补】",
+      "resolution": {
+        "text": "7.聘请企业兼职教师比例（/%）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

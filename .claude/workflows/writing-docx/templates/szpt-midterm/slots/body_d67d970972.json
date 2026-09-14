@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4739",
-      "section_key": "body_d67d970972",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "教材与教法改革",
       "business_context": "教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[613]",
         "expected_text_hash": "d67d970972a76eea97740a18a8174ffc6de9ec031bee1244010cd782cbb6aa45"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "教材与教法改革"
     },
     {
       "slot_key": "P4740",
-      "section_key": "body_d67d970972",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.累计出版教材8部",
       "business_context": "教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[614]",
         "expected_text_hash": "6021b9ba5862fb828f74e148f35cac2278eba8d88a081e700cb5fd6e44e43eda"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.累计出版教材__部【材料待补】",
+      "resolution": {
+        "text": "1.累计出版教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4741",
-      "section_key": "body_d67d970972",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.数字课程2门",
       "business_context": "教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[615]",
         "expected_text_hash": "708071b2bee12d26104a9e01bdce0407d578b086f9798bd856d166ff0f4feda9"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.数字课程__门【材料待补】",
+      "resolution": {
+        "text": "2.数字课程/门（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4742",
-      "section_key": "body_d67d970972",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.新型活页式、工作手册式教材6部",
       "business_context": "教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,7 +116,27 @@
         "path": "/w:document/w:body/w:p[616]",
         "expected_text_hash": "5914356cab878db64ff55d0e1b384727ed8c31a1dc40fc4a4c30beb2e986fe43"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.新型活页式、工作手册式教材__部【材料待补】",
+      "resolution": {
+        "text": "3.新型活页式、工作手册式教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     }
   ]
 }

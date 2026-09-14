@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4380",
-      "section_key": "body_8b55d20a72",
+      "section_key": "experience",
       "kind": "static",
       "required": false,
       "name": "（二）担当职业教育数字化转型的引领者",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[254]",
         "expected_text_hash": "8b55d20a72ce2c52ab4043649198d418893e46c1b7d51474972c2477740f2fb5"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（二）担当职业教育数字化转型的引领者"
     },
     {
       "slot_key": "P4381",
-      "section_key": "body_8b55d20a72",
+      "section_key": "experience",
       "kind": "narrative",
       "required": true,
       "name": "学校深入学习贯彻习近平总书记关于建设数字中国、智慧社会的重要指示，全力推动教育教学数字化转型，促进学校高质量发展。一是大力推进专业转型，基于“+数字”和“数字+”理念，积极开展交叉专业试点，",
@@ -37,7 +38,31 @@
         "path": "/w:document/w:body/w:p[255]",
         "expected_text_hash": "1334124f88cc673c9a1feae1bf23b4f9413479a6ecab9276cc3ab8e5c1a601f4"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "数字化转型注重专业、课程、教师和质量评价协同推进，将技术应用与教学实际需要相结合。报告期内形成的典型做法及推广条件：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

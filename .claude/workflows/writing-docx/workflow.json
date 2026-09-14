@@ -18,7 +18,6 @@
     "schoolDoubleHigh"
   ],
   "templates": {
-    "szpt-midterm": "templates/szpt-midterm/template.json",
-    "double-high-annual": "templates/double-high-annual/template.json"
+    "szpt-midterm": "templates/szpt-midterm/template.json"
   }
 }

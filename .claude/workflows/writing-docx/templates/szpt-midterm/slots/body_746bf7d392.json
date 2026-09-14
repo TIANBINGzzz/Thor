@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4715",
-      "section_key": "body_746bf7d392",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "附件2",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[589]",
         "expected_text_hash": "746bf7d392c7736952178102eebd34d5de1a9abfc968360db9c1d4b706c74aec"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "附件2"
     }
   ]
 }

@@ -50,7 +50,7 @@ class Planner:
         plan = {"plan_ref": reference, "plan_version": len(self.plans) + 1, "input_fingerprint": identity,
                 "template_revision": self.template["version"], "asset_revision": executor._versions,
                 "report_parameters": report_parameters, "status": "queued", "nodes": [],
-                "slots": [], "coverage": {}, "connection_revisions": {}, "policy_revisions": {}}
+                "slots": [], "drafts":{}, "coverage": {}, "connection_revisions": {}, "policy_revisions": {}}
         self._compile(plan, scope_refs)
         self.plans[reference] = plan
         self.latest = reference
@@ -164,6 +164,11 @@ class Planner:
         for binding in self.template["_slots"]:
             slot = {k: binding[k] for k in ("slot_key", "section_key", "name", "kind", "required")}
             slot["value_status"] = "static" if binding["kind"] == "static" else "definition_missing"
+            if any(k in binding for k in ('resolution','text_template','evidence_datasets')):
+                from .values import resolve_explicit
+                slot.update(resolve_explicit(binding, plan, executor) or {})
+                slots.append(slot)
+                continue
             dataset = binding.get("dataset_key")
             if dataset:
                 nodes = [n for n in plan["nodes"] if dataset in n["dataset_keys"]]
@@ -205,7 +210,8 @@ class Planner:
         plan["slots"] = slots
         counts = dict(Counter(s["value_status"] for s in slots))
         counts.update({"total": len(slots), "dynamic": sum(s["kind"] != "static" for s in slots),
-                       "required_missing": sum(s["required"] and s["value_status"] != "filled" for s in slots)})
+                       "required_missing": sum(s["required"] and s["value_status"] not in {"filled","unavailable","awaiting_draft"} for s in slots),
+                       "narratives_required":sum(s['kind']=='narrative' for s in slots)})
         plan["coverage"] = counts
 
     def _save(self, plan):
@@ -216,12 +222,14 @@ class Planner:
     def summary(self, plan):
         return {k: plan[k] for k in ("plan_ref", "plan_version", "status", "coverage")}
 
-    def get(self, plan_ref, section_key=None, cursor=None):
+    def get(self, plan_ref, section_key=None, cursor=None, writing_only=False):
         plan = self.plans.get(plan_ref)
         if plan is None:
             raise DataError("PLAN_FORBIDDEN")
         sections = sorted({s["section_key"] for s in self.template["_slots"]})
         result = {**self.summary(plan), "sections": sections,
+                  "writing_sections":[s for s in sections if any(v['section_key']==s and v['kind']=='narrative' for v in plan['slots'])],
+                  "drafts_saved":len(plan.get('drafts',{})),
                   "progress": dict(Counter(n["status"] for n in plan["nodes"]))}
         if section_key is None:
             return result
@@ -232,14 +240,20 @@ class Planner:
         offset = 0
         if cursor is not None:
             saved = plan.get("cursors", {}).get(cursor)
-            if not saved or saved[0] != section_key:
+            if not saved or saved[0] != section_key or saved[2] != writing_only:
                 raise DataError("CURSOR_INVALID")
             offset = saved[1]
-        slots = [s for s in plan["slots"] if s["section_key"] == section_key]
+        slots = [s for s in plan["slots"] if s["section_key"] == section_key and (not writing_only or s['kind']=='narrative')]
+        definitions={s['slot_key']:s for s in self.template['_slots']}
+        slots=[{**s, 'name':definitions[s['slot_key']].get('business_context',s['name']),
+                'business_context':definitions[s['slot_key']].get('business_context',''),
+                'write_instruction':definitions[s['slot_key']].get('write_instruction',''),
+                'text':definitions[s['slot_key']].get('template_text',''),
+                'draft_saved':s['slot_key'] in plan.get('drafts',{})} for s in slots]
         next_cursor = None
         if offset + 50 < len(slots):
             next_cursor = "cursor_" + token_urlsafe(18)
-            plan.setdefault("cursors", {})[next_cursor] = (section_key, offset + 50)
+            plan.setdefault("cursors", {})[next_cursor] = (section_key, offset + 50, writing_only)
         result.update({"slots": slots[offset:offset+50], "cursor": next_cursor,
                        "facts": [{"query_id": n["query_id"], "parameters": n["parameters"],
                                   "status": n["status"], "result_ref": n["result_ref"],
@@ -254,8 +268,38 @@ class Planner:
         plan = self.plans[plan_ref]
         if plan["status"] not in {"ready", "blocked"}:
             raise DataError("PLAN_NOT_READY")
-        return await self.services.call(render, self.template, plan, section_drafts,
-                                        self.services.current())
+        keys=[d.get('slot_key',d['section_key']) for d in section_drafts]
+        if len(keys)!=len(set(keys)):
+            raise DataError('DRAFT_DUPLICATE')
+        drafts={**plan.get('drafts',{}), **{d.get('slot_key',d['section_key']):d for d in section_drafts}}
+        output=await self.services.call(render, self.template, plan, list(drafts.values()), self.services.current())
+        plan['drafts']=drafts
+        plan['rendered']=output
+        plan.pop('validation',None)
+        self._save(plan)
+        return output
+
+    def save_drafts(self, plan_ref, section_drafts):
+        if plan_ref != self.latest:
+            raise DataError('PLAN_SUPERSEDED')
+        plan=self.plans[plan_ref]
+        keys=[d['slot_key'] for d in section_drafts]
+        if len(keys)!=len(set(keys)):
+            raise DataError('DRAFT_DUPLICATE')
+        slots={s['slot_key']:s for s in plan['slots']}
+        for draft in section_drafts:
+            slot=slots.get(draft['slot_key'])
+            if not slot or slot['kind']!='narrative' or slot['section_key']!=draft['section_key']:
+                raise DataError('DRAFT_LOCATION_AMBIGUOUS')
+            if not draft['text'].strip() or len(draft['text'])>1200 or not draft['evidence_refs'] or not set(draft['evidence_refs'])<=set(slot.get('evidence_refs',[])):
+                raise DataError('EVIDENCE_REQUIRED')
+            from .rendering import validate_draft_numbers
+            validate_draft_numbers(draft, plan, self.services.current())
+        plan.setdefault('drafts',{}).update({d['slot_key']:d for d in section_drafts})
+        plan.pop('rendered',None)
+        plan.pop('validation',None)
+        self._save(plan)
+        return {'saved':len(plan['drafts']), 'required':plan['coverage']['narratives_required']}
 
     async def close(self):
         for task in list(self.tasks):

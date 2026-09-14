@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P3187",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_a",
       "kind": "static",
       "required": false,
       "name": "3.社会认可度情况",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[194]",
         "expected_text_hash": "bda09191e3342bc7463d17503a38f229407a81341e8e4a4b44b01c422a4d9d35"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "3.社会认可度情况"
     },
     {
       "slot_key": "P3188",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_a",
       "kind": "narrative",
       "required": true,
       "name": "2021年，招生录取分数线超过本科线40多分，毕业生就业率96.8%，2020届毕业生毕业一年后平均月薪高出全国高职平均水平45%。根据调查，本专业群满意度指标中期目标值5项，完成度均超10",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "X"
       ],
@@ -37,16 +38,30 @@
         "path": "/w:document/w:body/w:p[195]",
         "expected_text_hash": "5793eb2eb62b0f22ba8e3ce65706255bea0fd285dc5deabfbe15b9815345414c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "【报告年度】年，通信技术专业群就业率【待填】%，毕业生发展及招生录取情况：【待填】。服务对象满意度以报告期内有效调查结果为依据，具体指标见下表。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P3189",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_a",
       "kind": "static",
       "required": false,
       "name": "表 6-11 “满意度”指标中期自评表",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -56,16 +71,17 @@
         "path": "/w:document/w:body/w:p[196]",
         "expected_text_hash": "f700ca0af763d1b19d8ce7c3e0710efaa60a3ba2c3bf2e538a302c55ec94e746"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 6-11 “满意度”指标中期自评表"
     },
     {
       "slot_key": "P4291",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_b",
       "kind": "static",
       "required": false,
       "name": "3.社会认可度情况",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -75,16 +91,17 @@
         "path": "/w:document/w:body/w:p[238]",
         "expected_text_hash": "bda09191e3342bc7463d17503a38f229407a81341e8e4a4b44b01c422a4d9d35"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "3.社会认可度情况"
     },
     {
       "slot_key": "P4292",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_b",
       "kind": "narrative",
       "required": true,
       "name": "2021年，招生录取分数线超过本科线50多分，毕业生就业率98.64%，2020届毕业生毕业一年后平均月薪高出全国双高院校平均水平40.58％。根据调查，本专业群满意度指标中期目标值5项，完",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "X"
       ],
@@ -94,16 +111,30 @@
         "path": "/w:document/w:body/w:p[239]",
         "expected_text_hash": "37acb24a390bd216b7a57d749099ce5013c5d97816339e1b9b7d843db822c5dc"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "【报告年度】年，电子信息工程技术专业群就业率【待填】%，毕业生发展及招生录取情况：【待填】。服务对象满意度以报告期内有效调查结果为依据，具体指标见下表。",
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P4293",
-      "section_key": "body_bda09191e3",
+      "section_key": "group_b",
       "kind": "static",
       "required": false,
       "name": "表 7-11 满意度指标中期自评表",
       "business_context": "3.社会认可度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -113,7 +144,8 @@
         "path": "/w:document/w:body/w:p[240]",
         "expected_text_hash": "ffd4941ae24198926bfa2dcf4672e0abf97f9ca398041042f4c38cd2a6bb6dcc"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 7-11 满意度指标中期自评表"
     }
   ]
 }

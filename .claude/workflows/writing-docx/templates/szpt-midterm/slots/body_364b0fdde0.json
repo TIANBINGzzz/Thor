@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4676",
-      "section_key": "body_364b0fdde0",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）业内影响力",
@@ -18,13 +18,14 @@
         "path": "/w:document/w:body/w:p[550]",
         "expected_text_hash": "364b0fdde0ae6552cede773876691f8409b91340332bad5a2e4c2501eca63aaa"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）业内影响力"
     },
     {
       "slot_key": "P4677",
-      "section_key": "body_364b0fdde0",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广",
       "business_context": "（三）业内影响力",
       "scope_role": "school",
@@ -37,12 +38,43 @@
         "path": "/w:document/w:body/w:p[551]",
         "expected_text_hash": "2e801b0cf65827acbe028c9afcca5339f44eb14be48352e427b36d4f87d13baa"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广【材料待补】",
+      "resolution": {
+        "text": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4678",
-      "section_key": "body_364b0fdde0",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.自然指数（Nature Index）学术机构排名位列199（全国高校排名）",
       "business_context": "（三）业内影响力",
@@ -56,13 +88,44 @@
         "path": "/w:document/w:body/w:p[552]",
         "expected_text_hash": "74fd43118825e96794abdbf523afc343a4d3d00d34fbe014b27570e7b1168149"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.自然指数（Nature Index）学术机构排名位列__（全国高校排名）【材料待补】",
+      "resolution": {
+        "text": "2.自然指数（Nature Index）学术机构排名位列/（全国高校排名）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4679",
-      "section_key": "body_364b0fdde0",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰",
       "business_context": "（三）业内影响力",
       "scope_role": "school",
@@ -75,13 +138,44 @@
         "path": "/w:document/w:body/w:p[553]",
         "expected_text_hash": "0a4e55d53955c3e3107b9245f8a03af8568a210b9ffe37c2a1a1dd2b8344ebde"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰【材料待补】",
+      "resolution": {
+        "text": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4680",
-      "section_key": "body_364b0fdde0",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）",
       "business_context": "（三）业内影响力",
       "scope_role": "school",
@@ -94,7 +188,38 @@
         "path": "/w:document/w:body/w:p[554]",
         "expected_text_hash": "6d497a48f579e755c65eb9e749973a347dbe2151c8339c648479bd1fbb5d8b49"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）【材料待补】",
+      "resolution": {
+        "text": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

@@ -1,9 +1,9 @@
 {
   "template_key": "szpt-midterm",
-  "version": 2,
+  "version": 3,
   "path_base": "template_root",
   "source_key": "schoolDoubleHigh",
-  "status": "registered_with_definition_gaps",
+  "status": "bound_with_explicit_data_gaps",
   "source_document": "深圳职业技术学院双高计划中期自评报告规范化模板数据来源.md",
   "location_contract": "继承逐段来源MD的规则代码；表格使用Txx/Rxxx/Cxx/Pxx，正文使用原P/新P。具体位置和原始指标名仍以该MD为准",
   "period_policy": [
@@ -645,7 +645,7 @@
     }
   ],
   "unmapped_policy": "已知来源但无SQL或规则时留空高亮/询问；可确定语义但没有匹配QuerySpec时才在授权范围动态生成SQL，动态SQL不能弥补缺失业务定义",
-  "template_version": 1,
+  "template_version": 2,
   "slot_files": [
     "slots/body_7d8ac56d5f.json",
     "slots/body_24a10c789d.json",
@@ -791,35 +791,31 @@
   ],
   "datasets": [
     {
-      "dataset_key": "school_task_project_candidates",
+      "dataset_key": "group_a_project_catalog",
       "source_role": "hpm",
       "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "task_project_candidates",
+      "scope_role": "group_a",
+      "query_id": "project_catalog",
       "parameter_bindings": {
         "name_pattern": {
           "from": "literal",
           "value": null
-        },
-        "year": {
-          "from": "report_parameter",
-          "key": "years",
-          "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "body_364cdef32a",
-        "body_a5889a45f4",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "school_task_tree",
+      "dataset_key": "group_a_task_tree",
       "source_role": "hpm",
       "domain": "hpm",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "query_id": "task_tree",
       "parameter_bindings": {
         "year": {
@@ -828,41 +824,20 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "body_0cf2dd6bef",
-        "body_21a6c8078a",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_43948be9ef",
-        "body_48f9dab3c1",
-        "body_65517fe547",
-        "body_7687a2b501",
-        "body_7d912cc896",
-        "body_7fdff155b1",
-        "body_8080a382f5",
-        "body_886f078dde",
-        "body_8b55d20a72",
-        "body_91432fa35e",
-        "body_994e8a34ea",
-        "body_a47efa037b",
-        "body_a5889a45f4",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "school_task_progress_summary",
+      "dataset_key": "group_a_task_progress_summary",
       "source_role": "hpm",
       "domain": "hpm",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "query_id": "task_progress_summary",
       "parameter_bindings": {
         "level": {
@@ -879,20 +854,21 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "body_364cdef32a",
-        "body_a5889a45f4",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "school_task_project_flag_diagnostics",
+      "dataset_key": "group_a_report_task_sections",
       "source_role": "hpm",
       "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "task_project_flag_diagnostics",
+      "scope_role": "group_a",
+      "query_id": "report_task_sections",
       "parameter_bindings": {
         "year": {
           "from": "report_parameter",
@@ -900,78 +876,20 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "body_364cdef32a",
-        "body_a5889a45f4",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "school_report_terminal_completion",
+      "dataset_key": "group_a_task_feedback_candidates",
       "source_role": "hpm",
       "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_terminal_completion",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T14",
-        "body_364cdef32a",
-        "body_a5889a45f4",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_scoring",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_scoring",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T01",
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08",
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T14",
-        "T15",
-        "T16",
-        "T40",
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a5889a45f4",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_task_feedback_candidates",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "query_id": "task_feedback_candidates",
       "parameter_bindings": {
         "year": {
@@ -980,620 +898,14 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "T02",
-        "body_00c812286e",
-        "body_01b95bedbd",
-        "body_0ba1bd983c",
-        "body_0cf2dd6bef",
-        "body_0e296aa98c",
-        "body_102a602e39",
-        "body_1c1685d526",
-        "body_21a6c8078a",
-        "body_23a1624201",
-        "body_260b424bb3",
-        "body_302fca05ee",
-        "body_30b0e26c19",
-        "body_346843784b",
-        "body_34c421c8b4",
-        "body_364b0fdde0",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_43948be9ef",
-        "body_4464580b87",
-        "body_48f9dab3c1",
-        "body_4d80207ac1",
-        "body_5affd35193",
-        "body_5fd9bd9fee",
-        "body_60ba803bac",
-        "body_6130823376",
-        "body_65517fe547",
-        "body_65a4cf9237",
-        "body_6ae5fdab7d",
-        "body_7687a2b501",
-        "body_76f5066e90",
-        "body_7d912cc896",
-        "body_7fdff155b1",
-        "body_8080a382f5",
-        "body_8210b03b63",
-        "body_83718df316",
-        "body_886f078dde",
-        "body_8b55d20a72",
-        "body_91432fa35e",
-        "body_91f8d007d6",
-        "body_948be7ec6f",
-        "body_994e8a34ea",
-        "body_99d09cfcea",
-        "body_a04672bdf2",
-        "body_a0e39974ca",
-        "body_a47efa037b",
-        "body_a5889a45f4",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_ad409e3fab",
-        "body_b3bc91d48b",
-        "body_b9448bbea3",
-        "body_bbdc5435ac",
-        "body_c0e6b69c44",
-        "body_c29cbc78d7",
-        "body_c3f64f123a",
-        "body_d2e0314c62",
-        "body_d67d970972",
-        "body_db5089ccbf",
-        "body_ddf22aa16b",
-        "body_dfb0193709",
-        "body_e0f5a91360",
-        "body_e2b98fb972",
-        "body_e2c684cd31",
-        "body_ed64aa2249",
-        "body_f4d14519f4",
-        "body_f6ee0e0fa1",
-        "body_f90d3eb337",
-        "body_f9fce2a976",
-        "body_fcd2d43d1c",
-        "body_fefae4a452"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_achievement_count",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_achievement_count",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T02",
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_43948be9ef",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a5889a45f4",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_fund_totals",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "fund_totals",
-      "parameter_bindings": {
-        "year": {
-          "from": "report_parameter",
-          "key": "years",
-          "expand": "each"
-        }
-      },
-      "depends_on": [],
-      "section_keys": [
-        "T14",
-        "body_6116203377",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_fund_source_amounts",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "fund_source_amounts",
-      "parameter_bindings": {
-        "year": {
-          "from": "report_parameter",
-          "key": "years",
-          "expand": "each"
-        }
-      },
-      "depends_on": [],
-      "section_keys": [
-        "T14",
-        "body_6116203377",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_cycle_budget",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_cycle_budget",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T14",
-        "body_6116203377",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_income_budget_rate",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_income_budget_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T14",
-        "body_6116203377",
-        "body_e0f5a91360"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_task_performance_links",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_task_performance_links",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_performance_titles",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_performance_titles",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_performance_module_status",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "performance_module_status",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08",
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T14",
-        "T15",
-        "T16",
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_performance_feedback_candidates",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "performance_feedback_candidates",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08",
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T14",
-        "T15",
-        "T16",
-        "body_00c812286e",
-        "body_01b95bedbd",
-        "body_0ba1bd983c",
-        "body_0cf2dd6bef",
-        "body_0e296aa98c",
-        "body_102a602e39",
-        "body_1c1685d526",
-        "body_23a1624201",
-        "body_260b424bb3",
-        "body_302fca05ee",
-        "body_30b0e26c19",
-        "body_346843784b",
-        "body_34c421c8b4",
-        "body_364b0fdde0",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_4464580b87",
-        "body_4d80207ac1",
-        "body_5affd35193",
-        "body_5fd9bd9fee",
-        "body_60ba803bac",
-        "body_6130823376",
-        "body_65a4cf9237",
-        "body_6ae5fdab7d",
-        "body_76f5066e90",
-        "body_7d912cc896",
-        "body_8210b03b63",
-        "body_83718df316",
-        "body_886f078dde",
-        "body_91f8d007d6",
-        "body_948be7ec6f",
-        "body_99d09cfcea",
-        "body_a04672bdf2",
-        "body_a0e39974ca",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_ad409e3fab",
-        "body_b3bc91d48b",
-        "body_b9448bbea3",
-        "body_bbdc5435ac",
-        "body_c0e6b69c44",
-        "body_c29cbc78d7",
-        "body_c3f64f123a",
-        "body_d2e0314c62",
-        "body_d67d970972",
-        "body_db5089ccbf",
-        "body_ddf22aa16b",
-        "body_dfb0193709",
-        "body_e0f5a91360",
-        "body_e2b98fb972",
-        "body_e2c684cd31",
-        "body_ed64aa2249",
-        "body_f4d14519f4",
-        "body_f6ee0e0fa1",
-        "body_f90d3eb337",
-        "body_f9fce2a976",
-        "body_fcd2d43d1c",
-        "body_fefae4a452"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_performance_historical_snapshot",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "performance_historical_snapshot",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08",
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T14",
-        "T15",
-        "T16",
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_report_indicator_completion_rate",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "report_indicator_completion_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T03",
-        "T04",
-        "T05",
-        "T06",
-        "T07",
-        "T08",
-        "T09",
-        "T10",
-        "T11",
-        "T12",
-        "T13",
-        "T15",
-        "body_0cf2dd6bef",
-        "body_34c421c8b4",
-        "body_364cdef32a",
-        "body_417c16ef81",
-        "body_434c601bcd",
-        "body_7d912cc896",
-        "body_886f078dde",
-        "body_a47efa037b",
-        "body_a971b941fa",
-        "body_ad3bc019a9",
-        "body_c0e6b69c44",
-        "body_e0f5a91360",
-        "body_ed64aa2249",
-        "body_f9fce2a976"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_project_catalog",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "project_catalog",
-      "parameter_bindings": {
-        "name_pattern": {
-          "from": "literal",
-          "value": null
-        }
-      },
-      "depends_on": [],
-      "section_keys": [
-        "body_e0b2c71e7c"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_b_project_catalog",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_b",
-      "query_id": "project_catalog",
-      "parameter_bindings": {
-        "name_pattern": {
-          "from": "literal",
-          "value": null
-        }
-      },
-      "depends_on": [],
-      "section_keys": [
-        "body_a08695c76c"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "school_project_catalog",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "school",
-      "query_id": "project_catalog",
-      "parameter_bindings": {
-        "name_pattern": {
-          "from": "literal",
-          "value": null
-        }
-      },
-      "depends_on": [],
-      "section_keys": [
-        "body_0c093a397a"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_performance_module_status",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "performance_module_status",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T17",
-        "T18",
-        "T19",
-        "T20",
-        "T21",
-        "T22",
-        "T23",
-        "T24",
-        "T25",
-        "T26",
-        "T27"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_performance_feedback_candidates",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "performance_feedback_candidates",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T17",
-        "T18",
-        "T19",
-        "T20",
-        "T21",
-        "T22",
-        "T23",
-        "T24",
-        "T25",
-        "T26",
-        "T27"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_performance_historical_snapshot",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "performance_historical_snapshot",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T17",
-        "T18",
-        "T19",
-        "T20",
-        "T21",
-        "T22",
-        "T23",
-        "T24",
-        "T25",
-        "T26",
-        "T27"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_report_indicator_completion_rate",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "report_indicator_completion_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T17",
-        "T18",
-        "T19",
-        "T20",
-        "T21",
-        "T22",
-        "T23",
-        "T24",
-        "T26",
-        "T27"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_report_scoring",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "report_scoring",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T17",
-        "T18",
-        "T19",
-        "T20",
-        "T21",
-        "T22",
-        "T23",
-        "T24",
-        "T25",
-        "T26",
-        "T27"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_a_report_terminal_completion",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_a",
-      "query_id": "report_terminal_completion",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T25"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_a_fund_totals",
@@ -1608,11 +920,14 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "T25"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_a_fund_source_amounts",
@@ -1627,11 +942,14 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "T25"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_a_report_cycle_budget",
@@ -1640,156 +958,169 @@
       "scope_role": "group_a",
       "query_id": "report_cycle_budget",
       "parameter_bindings": {},
-      "depends_on": [],
       "section_keys": [
-        "T25"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_a_report_income_budget_rate",
+      "dataset_key": "group_a_report_task_performance_links",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_a",
-      "query_id": "report_income_budget_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "report_task_performance_links",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T25"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_performance_module_status",
+      "dataset_key": "group_a_performance_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "performance_tree",
+      "parameter_bindings": {},
+      "section_keys": [
+        "overview",
+        "school",
+        "group_a",
+        "measures",
+        "experience",
+        "improvements"
+      ]
+    },
+    {
+      "dataset_key": "group_b_project_catalog",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "performance_module_status",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "project_catalog",
+      "parameter_bindings": {
+        "name_pattern": {
+          "from": "literal",
+          "value": null
+        }
+      },
       "section_keys": [
-        "T28",
-        "T29",
-        "T30",
-        "T31",
-        "T32",
-        "T33",
-        "T34",
-        "T35",
-        "T36",
-        "T37",
-        "T38",
-        "T39"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_performance_feedback_candidates",
+      "dataset_key": "group_b_task_tree",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "performance_feedback_candidates",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "task_tree",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T28",
-        "T29",
-        "T30",
-        "T31",
-        "T32",
-        "T33",
-        "T34",
-        "T35",
-        "T36",
-        "T37",
-        "T38",
-        "T39"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_performance_historical_snapshot",
+      "dataset_key": "group_b_task_progress_summary",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "performance_historical_snapshot",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "task_progress_summary",
+      "parameter_bindings": {
+        "level": {
+          "from": "literal",
+          "value": 3
+        },
+        "threshold": {
+          "from": "literal",
+          "value": 50
+        },
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T28",
-        "T29",
-        "T30",
-        "T31",
-        "T32",
-        "T33",
-        "T34",
-        "T35",
-        "T36",
-        "T37",
-        "T38",
-        "T39"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_report_indicator_completion_rate",
+      "dataset_key": "group_b_report_task_sections",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "report_indicator_completion_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "report_task_sections",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T28",
-        "T29",
-        "T30",
-        "T31",
-        "T32",
-        "T33",
-        "T34",
-        "T35",
-        "T36",
-        "T38",
-        "T39"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_report_scoring",
+      "dataset_key": "group_b_task_feedback_candidates",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "report_scoring",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "task_feedback_candidates",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T28",
-        "T29",
-        "T30",
-        "T31",
-        "T32",
-        "T33",
-        "T34",
-        "T35",
-        "T36",
-        "T37",
-        "T38",
-        "T39"
-      ],
-      "usage": "candidate_facts"
-    },
-    {
-      "dataset_key": "group_b_report_terminal_completion",
-      "source_role": "hpm",
-      "domain": "hpm",
-      "scope_role": "group_b",
-      "query_id": "report_terminal_completion",
-      "parameter_bindings": {},
-      "depends_on": [],
-      "section_keys": [
-        "T37"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_b_fund_totals",
@@ -1804,11 +1135,14 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "T37"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_b_fund_source_amounts",
@@ -1823,11 +1157,14 @@
           "expand": "each"
         }
       },
-      "depends_on": [],
       "section_keys": [
-        "T37"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
       "dataset_key": "group_b_report_cycle_budget",
@@ -1836,24 +1173,52 @@
       "scope_role": "group_b",
       "query_id": "report_cycle_budget",
       "parameter_bindings": {},
-      "depends_on": [],
       "section_keys": [
-        "T37"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     },
     {
-      "dataset_key": "group_b_report_income_budget_rate",
+      "dataset_key": "group_b_report_task_performance_links",
       "source_role": "hpm",
       "domain": "hpm",
       "scope_role": "group_b",
-      "query_id": "report_income_budget_rate",
-      "parameter_bindings": {},
-      "depends_on": [],
+      "query_id": "report_task_performance_links",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      },
       "section_keys": [
-        "T37"
-      ],
-      "usage": "candidate_facts"
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
+    },
+    {
+      "dataset_key": "group_b_performance_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "performance_tree",
+      "parameter_bindings": {},
+      "section_keys": [
+        "overview",
+        "school",
+        "group_b",
+        "measures",
+        "experience",
+        "improvements"
+      ]
     }
   ]
 }

@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[1]/w:p",
         "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "一级指标"
     },
     {
       "slot_key": "T04_R001_C02_P01",
@@ -37,7 +38,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[2]/w:p",
         "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "二级指标"
     },
     {
       "slot_key": "T04_R001_C03_P01",
@@ -56,7 +58,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[3]/w:p",
         "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "三级指标"
     },
     {
       "slot_key": "T04_R001_C04_P01",
@@ -75,7 +78,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[4]/w:p",
         "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "中期目标值"
     },
     {
       "slot_key": "T04_R001_C05_P01",
@@ -94,7 +98,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[5]/w:p",
         "expected_text_hash": "b4716862fc06c622ac1b631921548f75f0766a85faeb7e00f6c2193a065958a6"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "中期完成值"
     },
     {
       "slot_key": "T04_R001_C06_P01",
@@ -113,7 +118,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[6]/w:p",
         "expected_text_hash": "43ca7616b8cbbe21749424009463c8e89aa79b10a165970c3368e1e9a6c92d19"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "完成率"
     },
     {
       "slot_key": "T04_R001_C07_P01",
@@ -132,7 +138,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[7]/w:p",
         "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "分值"
     },
     {
       "slot_key": "T04_R001_C08_P01",
@@ -151,7 +158,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[1]/w:tc[8]/w:p",
         "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "得分"
     },
     {
       "slot_key": "T04_R002_C01_P01",
@@ -170,7 +178,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[1]/w:p",
         "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "产出指标"
     },
     {
       "slot_key": "T04_R002_C02_P01",
@@ -189,7 +198,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[2]/w:p",
         "expected_text_hash": "7ac9da5388cf04e43b8126c50dfbdf458fb7f690d116c3ee49c3493b41f1999b"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "数量指标"
     },
     {
       "slot_key": "T04_R002_C03_P01",
@@ -208,7 +218,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[3]/w:p",
         "expected_text_hash": "d5e2843eda30341c4b7988917826157e1dd29343f680bc46e1d47a1e84ba4d0f"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "高水平应用技术创新平台（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R002_C04_P01",
@@ -227,7 +238,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R002_C05_P01",
@@ -246,7 +285,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R002_C06_P01",
@@ -265,13 +332,41 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R002_C07_P01",
       "section_key": "T04",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "1.82",
       "business_context": "表 3-2 “打造技术技能创新服务平台”中期自评表 / 高水平应用技术创新平台（建设期新增）（个） / 分值",
       "scope_role": "school",
@@ -284,13 +379,15 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[7]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T04_R002_C08_P01",
       "section_key": "T04",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "1.82",
       "business_context": "表 3-2 “打造技术技能创新服务平台”中期自评表 / 高水平应用技术创新平台（建设期新增）（个） / 得分",
       "scope_role": "school",
@@ -303,7 +400,9 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[2]/w:tc[8]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T04_R003_C03_P01",
@@ -322,7 +421,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[3]/w:tc[3]/w:p",
         "expected_text_hash": "ed39e22429b1c689d2f71dd5515ee1b5a40bf0ccf77d6e59f053d4e23f166ef8"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "高水平公共技术服务平台（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R003_C04_P01",
@@ -341,7 +441,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[3]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R003_C05_P01",
@@ -360,7 +488,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[3]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R003_C06_P01",
@@ -379,7 +535,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[3]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R004_C03_P01",
@@ -398,7 +582,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[4]/w:tc[3]/w:p",
         "expected_text_hash": "830643f4cec74ca2e4f6eed4f4af25ef7e3aee9736ac42f50aa8ae5c1f297ed1"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "高端智库和创意中心（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R004_C04_P01",
@@ -417,7 +602,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[4]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R004_C05_P01",
@@ -436,7 +649,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[4]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R004_C06_P01",
@@ -455,7 +696,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[4]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R005_C03_P01",
@@ -474,7 +743,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[5]/w:tc[3]/w:p",
         "expected_text_hash": "76a03446fb79bc6d308e011902c8f26b2bd9a0d218006c2d6cd194163e329207"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "技术研发、服务和咨询团队（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R005_C04_P01",
@@ -493,7 +763,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[5]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R005_C05_P01",
@@ -512,7 +810,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[5]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R005_C06_P01",
@@ -531,7 +857,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[5]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R006_C03_P01",
@@ -550,7 +904,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[6]/w:tc[3]/w:p",
         "expected_text_hash": "581dda2c58d5e3acea4eb2099a1406cf8bd69b58e8181c9f4d051c1f0d0fc938"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "国家级科研项目（建设期新增）（项）"
     },
     {
       "slot_key": "T04_R006_C04_P01",
@@ -569,7 +924,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[6]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R006_C05_P01",
@@ -588,7 +971,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[6]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R006_C06_P01",
@@ -607,7 +1018,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[6]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R007_C02_P01",
@@ -626,7 +1065,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[2]/w:p",
         "expected_text_hash": "40a2e5d7a21dafa4cc263d322694c13fd06520774a390d04545ea26630d5d00e"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "质量指标"
     },
     {
       "slot_key": "T04_R007_C03_P01",
@@ -645,7 +1085,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[3]/w:p",
         "expected_text_hash": "b6ce6bbf8af742f9d6c0f1dbd6ce61dd9670fa2c7e8e37e9de4cf3cf3b6f11d9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "到账科研经费（建设期新增）（亿元）"
     },
     {
       "slot_key": "T04_R007_C04_P01",
@@ -664,7 +1105,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R007_C05_P01",
@@ -683,7 +1152,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R007_C06_P01",
@@ -702,13 +1199,41 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R007_C07_P01",
       "section_key": "T04",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "1.82",
       "business_context": "表 3-2 “打造技术技能创新服务平台”中期自评表 / 到账科研经费（建设期新增）（亿元） / 分值",
       "scope_role": "school",
@@ -721,13 +1246,15 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[7]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T04_R007_C08_P01",
       "section_key": "T04",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "1.82",
       "business_context": "表 3-2 “打造技术技能创新服务平台”中期自评表 / 到账科研经费（建设期新增）（亿元） / 得分",
       "scope_role": "school",
@@ -740,7 +1267,9 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[7]/w:tc[8]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T04_R008_C03_P01",
@@ -759,7 +1288,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[8]/w:tc[3]/w:p",
         "expected_text_hash": "f2f55e2a5d15d859c14c3aa38c0e8bcaec6b00d58a83d518e6035eb415f14035"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "应用型研究项目到账经费占科研到账经费总量比例（%）"
     },
     {
       "slot_key": "T04_R008_C04_P01",
@@ -778,7 +1308,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[8]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R008_C05_P01",
@@ -797,7 +1355,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[8]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R008_C06_P01",
@@ -816,7 +1402,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[8]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R009_C03_P01",
@@ -835,7 +1449,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[9]/w:tc[3]/w:p",
         "expected_text_hash": "ac848b44f43ce95b5c34d3444ad89e55489c5117559fbd253a38549905db9ab9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "成果转化经费（建设期新增）（万元）"
     },
     {
       "slot_key": "T04_R009_C04_P01",
@@ -854,7 +1469,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[9]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R009_C05_P01",
@@ -873,7 +1516,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[9]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R009_C06_P01",
@@ -892,7 +1563,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[9]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R010_C03_P01",
@@ -911,7 +1610,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[10]/w:tc[3]/w:p",
         "expected_text_hash": "261bc1eba843be2f5ead813ede3a15778aafc59f6b547d467bc8c203680b3d5b"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "获批省部级科研平台（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R010_C04_P01",
@@ -930,7 +1630,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[10]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R010_C05_P01",
@@ -949,7 +1677,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[10]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R010_C06_P01",
@@ -968,7 +1724,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[10]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R011_C03_P01",
@@ -987,7 +1771,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[11]/w:tc[3]/w:p",
         "expected_text_hash": "912cb4ac43c15b6eca5875f5b7ca9142dd2e9e5a32424fcf2074f2249fa0b934"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "制定国际、国家、行业及地方标准（建设期新增）（个）"
     },
     {
       "slot_key": "T04_R011_C04_P01",
@@ -1006,7 +1791,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[11]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R011_C05_P01",
@@ -1025,7 +1838,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[11]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R011_C06_P01",
@@ -1044,7 +1885,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[11]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R012_C03_P01",
@@ -1063,7 +1932,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[12]/w:tc[3]/w:p",
         "expected_text_hash": "394c419b48ba4f6699f985d42333744e3b03cd245fb9aa014f24fbd947dc41b6"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "发明专利（建设期新增）（其中 PCT 专利）（件）"
     },
     {
       "slot_key": "T04_R012_C04_P01",
@@ -1082,7 +1952,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[12]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R012_C05_P01",
@@ -1101,7 +1999,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[12]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R012_C06_P01",
@@ -1120,7 +2046,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[12]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R013_C03_P01",
@@ -1139,7 +2093,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[13]/w:tc[3]/w:p",
         "expected_text_hash": "539ca6037669c4df02cb4b61a9cef38ccd250d84a5c3dd795c30fedb16bcb198"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "获省部级及以上科研成果奖（建设期新增）（项）"
     },
     {
       "slot_key": "T04_R013_C04_P01",
@@ -1158,7 +2113,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[13]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R013_C05_P01",
@@ -1177,7 +2160,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[13]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R013_C06_P01",
@@ -1196,7 +2207,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[13]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R014_C03_P01",
@@ -1215,7 +2254,8 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[14]/w:tc[3]/w:p",
         "expected_text_hash": "96f5d7dceb68bb55d08ffdf391eca88e6c467498b3a134ff01dcb8ceccb023bc"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "发表 JCR 二区及以上论文（建设期新增）（其中《Nature》《Science》及其子刊或相当期刊（篇）"
     },
     {
       "slot_key": "T04_R014_C04_P01",
@@ -1234,7 +2274,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[14]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R014_C05_P01",
@@ -1253,7 +2321,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[14]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "T04_R014_C06_P01",
@@ -1272,7 +2368,35 @@
         "path": "/w:document/w:body/w:tbl[4]/w:tr[14]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "school_project_unbound",
+        "require_empty": []
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

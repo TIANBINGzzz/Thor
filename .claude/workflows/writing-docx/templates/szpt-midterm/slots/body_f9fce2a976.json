@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P3095",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_a",
       "kind": "static",
       "required": false,
       "name": "2.贡献度情况",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[190]",
         "expected_text_hash": "f9fce2a976153b13835a528da4215fd7ca2ab3ee1af8a6b377bee957c407675c"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "2.贡献度情况"
     },
     {
       "slot_key": "P3096",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_a",
       "kind": "narrative",
       "required": true,
       "name": "一是国家教学成果特等奖“深职院—华为培养信息通信技术技能人才‘课证共生共长’模式研制与实践”在全国推广，持续引领ICT专业群改革与发展。二是累计培养2000多名学生通过华为各等级认证，其中3",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "N"
       ],
@@ -37,16 +38,30 @@
         "path": "/w:document/w:body/w:p[191]",
         "expected_text_hash": "4aa70596b077f4208d62a5c1a0d488abd6045c687a9b36f42a42a63878970823"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "专业群贡献度从人才培养、课程资源共享、技术服务和合作推广等方面综合分析。报告期内人才培养与资源推广成果：【待填】；产业服务与合作应用情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P3097",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_a",
       "kind": "narrative",
       "required": true,
       "name": "本专业群社会效益指标和可持续影响指标中期目标值9项，完成度均超100%。自评等级优。",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "K",
         "V",
@@ -60,16 +75,30 @@
         "path": "/w:document/w:body/w:p[192]",
         "expected_text_hash": "fd5347c7d294fb179a45a3a45d20cdf784505e1fc4b06119844a43f233d29e10"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本专业群纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P3098",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_a",
       "kind": "static",
       "required": false,
       "name": "表 6-10 “社会效益指标和可持续影响指标”中期自评表",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -79,16 +108,17 @@
         "path": "/w:document/w:body/w:p[193]",
         "expected_text_hash": "daa7608cd0741e4a6f394c44a3ac6eb983218e0ffa56c1507af70beebc3406a1"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 6-10 “社会效益指标和可持续影响指标”中期自评表"
     },
     {
       "slot_key": "P4215",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_b",
       "kind": "static",
       "required": false,
       "name": "2.贡献度情况",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -98,16 +128,17 @@
         "path": "/w:document/w:body/w:p[234]",
         "expected_text_hash": "f9fce2a976153b13835a528da4215fd7ca2ab3ee1af8a6b377bee957c407675c"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "2.贡献度情况"
     },
     {
       "slot_key": "P4216",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_b",
       "kind": "narrative",
       "required": true,
       "name": "一是形成了可复制、可推广的校企“双元”、分层分类人才培养模式，先后推广到吉安职院、河源职院等12所院校。二是为深圳电子信息产业输送了包括省技术能手在内的2000多名高素质技术技能人才。三是建",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "N"
       ],
@@ -117,16 +148,30 @@
         "path": "/w:document/w:body/w:p[235]",
         "expected_text_hash": "0d4951d61200e8309418e9d4c37a9035273c1b045dbb0db2f2babb836fc8faf3"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "专业群贡献度结合人才培养、资源共享、成果推广和产业服务综合评价。报告期内培养模式推广【待填】所院校，人才培养及产业服务成果：【待填】；教学资源和教材应用情况：【待填】。",
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P4217",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_b",
       "kind": "narrative",
       "required": true,
       "name": "本专业群社会效益指标和可持续影响指标中期目标值8项，任务完成度均超100%。自评等级优。",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "K",
         "V",
@@ -140,16 +185,30 @@
         "path": "/w:document/w:body/w:p[236]",
         "expected_text_hash": "fd5347c7d294fb179a45a3a45d20cdf784505e1fc4b06119844a43f233d29e10"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本专业群纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P4218",
-      "section_key": "body_f9fce2a976",
+      "section_key": "group_b",
       "kind": "static",
       "required": false,
       "name": "表 7-10 社会效益指标和可持续影响指标中期自评表",
       "business_context": "2.贡献度情况",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -159,7 +218,8 @@
         "path": "/w:document/w:body/w:p[237]",
         "expected_text_hash": "e413fd52b5d5d80a019d6bfd6d62a2476355898b3085e9e4f2f6be7c16dbbd73"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 7-10 社会效益指标和可持续影响指标中期自评表"
     }
   ]
 }

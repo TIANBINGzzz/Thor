@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4829",
-      "section_key": "body_0b9f6eab3b",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "社会效益指标",
       "business_context": "社会效益指标",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[703]",
         "expected_text_hash": "d0e649286fc006113009079e441469a06284c11905a8df82c4377a34823737da"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "社会效益指标  "
     }
   ]
 }

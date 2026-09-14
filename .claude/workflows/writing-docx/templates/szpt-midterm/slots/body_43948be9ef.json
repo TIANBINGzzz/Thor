@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0514",
-      "section_key": "body_43948be9ef",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "1.加强党的建设",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[43]",
         "expected_text_hash": "43948be9ef9a5121eff4d699c791e45e5f93a34d82bf6c2b624c96d159ab9134"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "1.加强党的建设"
     },
     {
       "slot_key": "P0515",
-      "section_key": "body_43948be9ef",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "本建设任务取得标志性成果8项，其中，国家级4项、省级4项。(多个国双高专业群t_hpm_project_task表中code为1 的任务下标志性成果获奖情况总结)",
@@ -37,11 +38,35 @@
         "path": "/w:document/w:body/w:p[44]",
         "expected_text_hash": "417f3fb1e05560d82378826a201fe8f0b965c30db76e9a08c5591a7b433f53e8"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本建设任务取得标志性成果【待填】项，其中国家级【待填】项、省级【待填】项，具体成果及佐证材料见对应目录。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P0516",
-      "section_key": "body_43948be9ef",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "党的建设不断深化。学校党委荣获广东省先进基层党组织称号，学校获评全国文明校园、省党建工作示范高校，获全国样板党支部1个、广东省样板党支部3个。与106家企业开展党建共建，探索形成“党建六联”",
@@ -56,11 +81,35 @@
         "path": "/w:document/w:body/w:p[45]",
         "expected_text_hash": "83d0615a334a51ea607d584b5a3589dece6dcb957cd9f12252c227dbb77c4320"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "坚持党建引领，将基层党组织建设与人才培养、校企合作相结合，注重以组织协同带动建设任务落实。报告期内党组织建设、党建共建及相关荣誉情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P0517",
-      "section_key": "body_43948be9ef",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "立德树人成效显著。出版《高校思想政治理论课教学深圳案例100篇》，立足深圳思政大讲堂，讲好大思政课。每年组织开展全校大学生讲思政课、讲述深圳故事大赛，获全国大学生讲思政课一等奖2项。建设课程",
@@ -75,7 +124,31 @@
         "path": "/w:document/w:body/w:p[46]",
         "expected_text_hash": "1b3dcc8cae02bfd7f1d53d01d90a19c3b8a66199ec1b1db4b3388cf47059457d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "围绕立德树人根本任务，统筹思政课程、课程思政与实践育人，推动教学资源和活动载体相互支撑。报告期内课程建设、教材出版及育人活动成果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

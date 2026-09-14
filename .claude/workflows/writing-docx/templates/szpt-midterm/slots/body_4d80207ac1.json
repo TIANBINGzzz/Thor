@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4835",
-      "section_key": "body_4d80207ac1",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "四、可持续影响指标",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[709]",
         "expected_text_hash": "b37c73b5f162bdd5153092cab7c5db92b036c8abf318b023529dd606b6f1d384"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "四、可持续影响指标  "
     },
     {
       "slot_key": "P4979",
-      "section_key": "body_4d80207ac1",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "四、可持续影响指标",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -37,16 +38,17 @@
         "path": "/w:document/w:body/w:p[853]",
         "expected_text_hash": "4d80207ac16e59e353395539beeb3cf5b9bca0e766fafdb4243801bbf5f52f6c"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "四、可持续影响指标"
     },
     {
       "slot_key": "P4980",
-      "section_key": "body_4d80207ac1",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．成立特色产业学院1个",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -56,16 +58,36 @@
         "path": "/w:document/w:body/w:p[854]",
         "expected_text_hash": "361f11905e145fc27dcc22c624f0985fb046f38323d5e73f60f037932d7bbfa2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．成立特色产业学院__个【材料待补】",
+      "resolution": {
+        "text": "1．成立特色产业学院/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4981",
-      "section_key": "body_4d80207ac1",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．高水平行业精英和企业骨干讲授的专业核心课程比42%",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -75,16 +97,36 @@
         "path": "/w:document/w:body/w:p[855]",
         "expected_text_hash": "c93e0f1e9d8dab4302b81c59e36394cb0f050c32646ed1b5c0e269f48a4487c1"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．高水平行业精英和企业骨干讲授的专业核心课程比__%【材料待补】",
+      "resolution": {
+        "text": "2．高水平行业精英和企业骨干讲授的专业核心课程比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4982",
-      "section_key": "body_4d80207ac1",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．产业发展动态研究项目1项",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -94,16 +136,36 @@
         "path": "/w:document/w:body/w:p[856]",
         "expected_text_hash": "78576038c32c8e9b9227b22e033dd3f4287834a095096723bf5594a8e3753669"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．产业发展动态研究项目__项【材料待补】",
+      "resolution": {
+        "text": "3．产业发展动态研究项目/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4983",
-      "section_key": "body_4d80207ac1",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．成立产学研用建设与指导委员会1个",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -113,16 +175,36 @@
         "path": "/w:document/w:body/w:p[857]",
         "expected_text_hash": "30765d36de816751c901bf8aa902c8c47a8e4897a1292fdea9ad375f847f7415"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．成立产学研用建设与指导委员会__个【材料待补】",
+      "resolution": {
+        "text": "4．成立产学研用建设与指导委员会/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4984",
-      "section_key": "body_4d80207ac1",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．教学工作诊断、改进与激励机制系列制度1套",
       "business_context": "四、可持续影响指标",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E",
         "X"
@@ -133,7 +215,27 @@
         "path": "/w:document/w:body/w:p[858]",
         "expected_text_hash": "8e0e892bca00627824685e38d7627f5b51394f96624cc8512ac4e240a217e491"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．教学工作诊断、改进与激励机制系列制度__套【材料待补】",
+      "resolution": {
+        "text": "5．教学工作诊断、改进与激励机制系列制度/套（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

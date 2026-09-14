@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P1023",
-      "section_key": "body_a971b941fa",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "5.打造高水平双师队伍",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[88]",
         "expected_text_hash": "a971b941fa8546266c166d8b3d8d97a3eae5bf787e0f7c86315e19a877026048"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "5.打造高水平双师队伍"
     },
     {
       "slot_key": "P1024",
-      "section_key": "body_a971b941fa",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "本建设任务中期目标值16项，完成度均超100%。取得标志性成果14项，其中，国家级7项、省级6项、独创1项。自评等级优。",
@@ -41,11 +42,35 @@
         "path": "/w:document/w:body/w:p[89]",
         "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本建设任务纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1025",
-      "section_key": "body_a971b941fa",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 3-4 “打造高水平双师队伍”中期自评表",
@@ -60,11 +85,12 @@
         "path": "/w:document/w:body/w:p[90]",
         "expected_text_hash": "7cc01a21e55687374e36276f266ef0a429bf62f5560904789e5fbcb5d2ad02ae"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 3-4 “打造高水平双师队伍”中期自评表"
     },
     {
       "slot_key": "P1171",
-      "section_key": "body_a971b941fa",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "名匠大师不断汇聚。新增市级以上人才141人次，其中国家级6人次、省级18人次，现有高层次人才400余人次。新增国务院特殊津贴专家1人、全国技术能手5人、省技术能手1人、省教学名师3人、省特支",
@@ -79,11 +105,35 @@
         "path": "/w:document/w:body/w:p[92]",
         "expected_text_hash": "a5d5ef3d7c125e305ec2b4575e81ca2721ea216b35f270663af7ec7fa07a4052"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "师资建设兼顾高层次人才引育、骨干教师培养和企业实践能力提升。报告期内引育人才【待填】人次，教师企业实践【待填】人次，代表性人才与教师荣誉：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1172",
-      "section_key": "body_a971b941fa",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "创新团队脱颖而出。新增国家级职业教育教师教学创新团队1个、省教学团队3个，国家级教学团队达4个。新增市级技能大师工作室1个。引培以诺奖获得者、院士等领军人才领衔的应用研发团队38个，获批省级",
@@ -98,7 +148,31 @@
         "path": "/w:document/w:body/w:p[93]",
         "expected_text_hash": "1c36a4825c20010c4792da1ae41b4dc5c58b819c17828e55bc8889eff7e13e46"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "以教学创新与应用研发任务带动团队协作，强化不同专业和校企人员之间的协同。报告期内新增教学团队【待填】个、研发团队【待填】个，团队建设成果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

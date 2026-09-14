@@ -3,9 +3,9 @@
   "slots": [
     {
       "slot_key": "P4398",
-      "section_key": "body_0c093a397a",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "“双高计划”中期自评报告佐证材料目录",
       "business_context": "“双高计划”中期自评报告佐证材料目录",
       "scope_role": "school",
@@ -18,13 +18,20 @@
         "path": "/w:document/w:body/w:p[272]",
         "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "“双高计划”中期自评报告佐证材料目录",
+      "text_template": "“双高计划”${year}年度自评报告佐证材料目录",
+      "values": {
+        "year": {
+          "report_parameter": "years"
+        }
+      }
     },
     {
       "slot_key": "P4717",
-      "section_key": "body_0c093a397a",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "“双高计划”中期自评报告佐证材料目录",
       "business_context": "“双高计划”中期自评报告佐证材料目录",
       "scope_role": "school",
@@ -37,16 +44,23 @@
         "path": "/w:document/w:body/w:p[591]",
         "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "“双高计划”中期自评报告佐证材料目录",
+      "text_template": "“双高计划”${year}年度自评报告佐证材料目录",
+      "values": {
+        "year": {
+          "report_parameter": "years"
+        }
+      }
     },
     {
       "slot_key": "P4718",
-      "section_key": "body_0c093a397a",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "（通信技术专业群）",
       "business_context": "“双高计划”中期自评报告佐证材料目录",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "P"
       ],
@@ -56,16 +70,24 @@
         "path": "/w:document/w:body/w:p[592]",
         "expected_text_hash": "d34976bcd04f82aaecc9c81100f16c7f1890dc1073d6b90599f997770e9e3eeb"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "（通信技术专业群）",
+      "text_template": "（${group_a_name}）",
+      "values": {
+        "group_a_name": {
+          "dataset_key": "group_a_project_catalog",
+          "field": "project_name"
+        }
+      }
     },
     {
       "slot_key": "P4851",
-      "section_key": "body_0c093a397a",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "“双高计划”中期自评报告佐证材料目录",
       "business_context": "“双高计划”中期自评报告佐证材料目录",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -75,16 +97,23 @@
         "path": "/w:document/w:body/w:p[725]",
         "expected_text_hash": "0c093a397a75eef1423cc05c327f95a30877a5b0a45275457e877b6c16a7f37e"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "“双高计划”中期自评报告佐证材料目录",
+      "text_template": "“双高计划”${year}年度自评报告佐证材料目录",
+      "values": {
+        "year": {
+          "report_parameter": "years"
+        }
+      }
     },
     {
       "slot_key": "P4852",
-      "section_key": "body_0c093a397a",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "（电子信息工程技术专业群）",
       "business_context": "“双高计划”中期自评报告佐证材料目录",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "P"
       ],
@@ -94,7 +123,15 @@
         "path": "/w:document/w:body/w:p[726]",
         "expected_text_hash": "70ea3b9b19aaeab9f6fe24f5bcf55cce90de90361f21897a1fa3510f21cd9866"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "（电子信息工程技术专业群）",
+      "text_template": "（${group_b_name}）",
+      "values": {
+        "group_b_name": {
+          "dataset_key": "group_b_project_catalog",
+          "field": "project_name"
+        }
+      }
     }
   ]
 }

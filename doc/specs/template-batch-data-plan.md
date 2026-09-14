@@ -1,6 +1,6 @@
 # 模板绑定与批量取数计划
 
-已实现固定绑定、同源快照、物化结果及DOCX渲染，保留受控动态只读查询。数据库字段见[数据源方案](data-source-connections.md)，界面与SDK边界见[产品流程](conversation-reporting-product.md)。
+固定模板流程：锁定原模板 → 完整章节及位置 → 绑定批量取数 → Agent正文 → 原位置回填 → 数据、结构样式及全文页面检查 → 发布。数据库字段见[数据源方案](data-source-connections.md)，界面与SDK边界见[产品流程](conversation-reporting-product.md)。
 
 ## 目录与职责
 
@@ -8,21 +8,19 @@
 .claude/workflows/writing-docx/
   workflow.json               来源/模板登记，无连接密码
   templates/
-    szpt-midterm/             原40表规范化模板及来源，仍有未绑定规则
+    szpt-midterm/             唯一启用的原40表规范化模板及来源
       template.json          版本、DOCX哈希、能力、角色和期间Schema
       query-bindings.json    数据集、业务参数及槽位文件索引
       slots/                 原表格/正文物理定位及绑定状态
-    double-high-annual/      用户批准的当前两个项目年度适配报告
-      template.docx          按年度任务动态展开的表格原型
-      template.json          两个项目、一个年度及截止日契约
-      query-bindings.json    14个项目数据集绑定
-      slots.json             标量、标题、重复表格及评分空白
-      build_template.py      管理员重建模板、定位及哈希
+      configure_bindings.py  管理员维护数据角色和显式缺值规则，不改原DOCX
 python/reporting/
   bindings.py                权限、路径、版本、位置及重复槽位校验
   register.py                原逐段Markdown映射的结构化登记
   planner.py                 参数展开、查询去重、取数、覆盖和分页
-  rendering.py               确定填值、证据检查、表格展开及OOXML
+  values.py                  公开字段、参数文本及有证据的缺值解析
+  rendering.py               正文证据检查、保留全部run的原位文字替换
+  validation.py              OOXML/ZIP对照、全文渲染及逐页审阅状态
+  render_wps.ps1             Windows WPS导出适配器
 python/tools/reports.py        SDK入口和成果发布，不是另一套写作Agent
 ```
 
@@ -36,12 +34,18 @@ python/tools/reports.py        SDK入口和成果发布，不是另一套写作A
 | --- | --- | --- |
 | get_report_data | 无 | 返回当前模板、report_parameters Schema、source_roles和scope_roles |
 | prepare_report_data | report_parameters, scope_refs | 启动计划，返回plan_ref/plan_version/status/coverage |
-| get_report_data | plan_ref, section_key?, cursor? | 进度、每页最多50个槽位及章节数据集引用 |
-| render_report | plan_ref, section_drafts | 校验最新计划、模板与证据，渲染并发布DOCX及缺项文件 |
+| get_report_data | plan_ref, section_key?, cursor?, writing_only? | 完整章节、每页最多50个位置、主题/写作要求及事实引用；writing_only仅筛正文 |
+| save_report_sections | plan_ref, section_drafts | 分批保存；每段section_key、slot_key、text、evidence_refs必填，更新正文使旧核验失效 |
+| render_report | plan_ref, section_drafts | 合并已存正文，核验证据并原位回填，不发布 |
+| validate_report | plan_ref | 检查结构/样式及全部页面，返回validation_ref和page_count |
+| read_report_pages | plan_ref, validation_ref, page_numbers | 每次最多4页图片，不暴露本地路径 |
+| review_report_pages | 同上，加passed、notes | 记录实际查看页面的检查结论；不是自动视觉判定 |
+| publish_report | plan_ref, validation_ref | 全文审阅通过、文件哈希一致才发布DOCX与缺值清单 |
 
 report_parameters：`{"years":["2025"],"as_of":"2025-12-31","period_mode":"annual","timezone":"Asia/Shanghai"}`。
-scope_refs：`{"hpm":{"group_a":"scope_...","group_b":"scope_..."}}`；原中期模板另需school范围。scope来自本Run获准项目，selected项目策略不能创建全校scope。
-section_drafts元素是section_key、可选slot_key、text、evidence_refs。同章节有多个正文位置时必须传slot_key；空数组仅渲染已有文字及绑定数据。
+scope_refs：`{"hpm":{"group_a":"scope_...","group_b":"scope_..."}}`。学校独立项目未绑定，其章节和表格保留并明确数据缺口，不能将两个项目扩大为全校。
+section_drafts每段指定原slot_key；render传空数组仅使用此前保存的正文，未写完必填正文仍失败。
+可信模板的file_name可引用`${years}`等已校验报告参数；渲染端禁止路径分隔符及非法文件名，年度不固定写死。
 
 ## 数据集与槽位
 
@@ -55,7 +59,7 @@ section_drafts元素是section_key、可选slot_key、text、evidence_refs。同
 | 空白/空值 | intentional_blank且required=false；null_text? | 评分允许空白；仅登记的空值说明可替代NULL，不能默认填0 |
 | Locator | part, path, expected_text_hash | 物理XML位置与文字哈希；文件变化须重新登记 |
 
-原40表共登记3503个位置，表示完整定位，**不代表3503项已可取数**；definition_missing仍只能输出标注草稿。年度模板用重复表格承载指标实例，数据增多不新增工具或逐指标SQL。
+原40表登记3503个位置，其中105个正文；20个数据集支撑项目、任务、资金和历史依据核验。`resolution`记录无法评价的原因及空结果前置检查，`evidence_datasets`限制正文证据。**处理全部位置不等于全部指标有实值**；原表格历史指标缺值显示`/`，评分留空，缺口记入清单。未定义的新口径仍禁止编造。
 
 ## 执行及核验
 
@@ -64,14 +68,14 @@ section_drafts元素是section_key、可选slot_key、text、evidence_refs。同
 3. 同源只读一致性快照；源失败则整组结果失效，截断不能生成完整报告。当前不自动重试，无跨来源事务。
 4. 原始结果物化在Run目录，模型按章节读取；不将几千项数据一次塞入Prompt。
 5. 程序填确定数据格；模型正文必须引用同章节已验证证据，并检查新增数字。此检查不代替业务审核，未定义历史版本不能标为历史事实。
-6. 输出再验文件哈希/位置；复制未修改ZIP部件，重复表格按原型扩展。标量保留首run样式，不保证混合格式无损；最终成果另做视觉检查。
-7. reports复用Artifact发布；原模板必填缺失只交草稿，年度模板拒绝未处理的必填槽位。登记的“未填报/无记录”是明确数据状态。
+6. 输出再验文件哈希/位置；保留全部run、字体字号、段落/表格属性、40表、分节、图片、书签及其他ZIP部件。原模板显式登记clear_fill_markers时仅清除已填位置的黄底及红色编辑标记；对照只豁免这些标记与替换文字，其他漂移失败。
+7. 全文导出PDF和页面图片，再实际逐页审阅；未读页面、未通过页面、旧validation_ref和文件变化均不能发布。Windows显式配置WPS；Linux镜像安装LibreOffice及中文字体，跨引擎仍需实际版面验收。
 
 计划/结果保存在Run的data/report目录，不入Git；引用不跨Run/租户/用户。取消清理后台取数。当前每Run最多5份计划、500节点、600秒；扩大前须验证资源限制。
 
 ## 本次模拟
 
-用户指定2025年至2025-12-31，并批准按当前两个实际项目调整内容，评分留空。年度报告包含项目、一级建设指标、三级任务、资金、期内反馈、绩效关联和评价依据。原模板学校全量统计、历史成果、40张固定评分表不能借用现值填充。
+用户指定2025年至2025-12-31，按当前两个实际项目调整内容，评分留空，明确要求原模板结构及样式。此前5页简版不符合要求，已从可用模板登记移除。当前2025历史反馈不足，保留原评价维度并说明新旧一级指标无法直接对应，不借用主表现值、历史奖项或未核实学校数据填表。
 验证同时比对原QuerySpec结构、旧SQL结果、独立聚合和原文SQL语义；当前值一致不意味着历史事实成立。2026年反馈不能回填2025报告，平均进度也不是评分。
 
 ## 工程要求

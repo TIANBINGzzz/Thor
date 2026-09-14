@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4399",
-      "section_key": "body_53a83591e0",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（高水平学校）",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[273]",
         "expected_text_hash": "53a83591e04b33204204d83dd1b368f915eea87a49abb15cd4c41312a3fa1091"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（高水平学校）"
     }
   ]
 }

@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4564",
-      "section_key": "body_5affd35193",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）加强党的建设",
@@ -18,13 +18,14 @@
         "path": "/w:document/w:body/w:p[438]",
         "expected_text_hash": "5affd35193aff3ec5d4efa532a13650ca5b41dac792be721dc94df04194a7208"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）加强党的建设"
     },
     {
       "slot_key": "P4565",
-      "section_key": "body_5affd35193",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "1.形成了完善的党建工作机制（成熟定型）",
       "business_context": "（一）加强党的建设",
       "scope_role": "school",
@@ -37,12 +38,43 @@
         "path": "/w:document/w:body/w:p[439]",
         "expected_text_hash": "fe1d36020824d89b1960c1db279fc6c9f8cc482ae6436ce41b26fbf2ffd6b915"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "1.形成了完善的党建工作机制（成熟定型）【材料待补】",
+      "resolution": {
+        "text": "1.形成了完善的党建工作机制（成熟定型）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4566",
-      "section_key": "body_5affd35193",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.获得了丰硕的党建业绩成果（累计17个）",
       "business_context": "（一）加强党的建设",
@@ -56,7 +88,38 @@
         "path": "/w:document/w:body/w:p[440]",
         "expected_text_hash": "8e42e85897b863d363eb75e1351803b351b41e88841aed2fcb7cd423fccd566b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.获得了丰硕的党建业绩成果（累计__个）【材料待补】",
+      "resolution": {
+        "text": "2.获得了丰硕的党建业绩成果（累计/个）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

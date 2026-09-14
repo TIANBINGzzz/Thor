@@ -39,7 +39,7 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
-撰写模板放在 `.claude/workflows/writing-docx/templates/`。szpt-midterm登记原40表位置及待补规则；double-high-annual按所选两个项目批量生成年度建设报告。模板解析、固定取数、填表及发布已接入Runtime，原40表不能视为已全部自动绑定。
+撰写模板放在 `.claude/workflows/writing-docx/templates/`。szpt-midterm锁定原40表，20数据集批量取数，Agent撰写105个正文位置并原位回填，结构样式对照和逐页审阅通过后发布。历史实值缺口单独披露；此前简版已停用。
 
 业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 
@@ -52,6 +52,8 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 ## 配置与安全
 
 模型配置写在根.env，数据库连接/静态策略由CCSDK_DATA_CONFIG指向受保护JSON，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
+
+报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可配置`CCSDK_REPORT_RENDERER=wps`使用已安装WPS。无法渲染或逐页审阅未通过时禁止发布。
 
 ## 文档入口
 

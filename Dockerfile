@@ -6,7 +6,7 @@ WORKDIR /deps
 FROM ${PYTHON_IMAGE} AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 \
     HOME=/home/scribe CLAUDE_CONFIG_DIR=/app/.scribe-runs/claude-config
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 libreoffice-writer fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 scribe \
     && useradd --uid 10001 --gid scribe --create-home scribe

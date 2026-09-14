@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0756",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "4.打造高水平专业群",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[61]",
         "expected_text_hash": "434c601bcd348bca3eb0c2f3a2fcb78a0c93c48b1cb6c47a38a4ddaec48c3a8f"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "4.打造高水平专业群"
     },
     {
       "slot_key": "P0757",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "本建设任务中期目标值27项，完成度均超100%。取得标志性成果5项，其中，国家级1项、省级3项、独创1项。自评等级优。",
@@ -41,11 +42,35 @@
         "path": "/w:document/w:body/w:p[62]",
         "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本建设任务纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P0758",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 3-3 “打造高水平专业群”中期自评表",
@@ -60,11 +85,12 @@
         "path": "/w:document/w:body/w:p[63]",
         "expected_text_hash": "31f1608317f395f2e77f9ffaa9bbb9b182354372fca67267a8d5e1a79c6ffec7"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 3-3 “打造高水平专业群”中期自评表"
     },
     {
       "slot_key": "P1000",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "专业布局紧跟前沿。对接深圳区域高端产业，打造“2+8+N”专业群发展格局。对不同层次专业群实施分类管理，依托专业发展和产业契合度模型以及学生就业率等开展专业预警和动态调整，形成了专业建设与区",
@@ -79,11 +105,35 @@
         "path": "/w:document/w:body/w:p[65]",
         "expected_text_hash": "c68db183d7768938118c1a93c7e22bcf816b5a3b23158b78e74dd724cf258d59"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "专业布局以区域产业需求和学生发展为导向，结合人才需求分析、专业评价和就业反馈持续优化。报告期内专业布局调整与产业对接情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1004",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "嵌入图片",
@@ -98,11 +148,12 @@
         "path": "/w:document/w:body/w:p[69]",
         "expected_text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": ""
     },
     {
       "slot_key": "P1021",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "图1  专业群与产业集群对接图",
@@ -117,11 +168,12 @@
         "path": "/w:document/w:body/w:p[86]",
         "expected_text_hash": "72048bb96bfd550853e1181f913345307d78baae0d2182925eb873d324eb2bd8"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "图1  专业群与产业集群对接图（原模板示意）"
     },
     {
       "slot_key": "P1022",
-      "section_key": "body_434c601bcd",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "建设水平持续领先。新增省级高水平专业群9个，建成省一流重点建设专业12个、省品牌专业25个。通信技术专业群不断强化对外交流合作，开发4门ICT国际课程，培训覆盖30多个国家，获世界职教联盟校",
@@ -136,7 +188,31 @@
         "path": "/w:document/w:body/w:p[87]",
         "expected_text_hash": "2c058f03abcaba410d33c07d604365c3c7fb201639556d8a81ae3ea0668dce4d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "专业群建设统筹课程、教材、教师和实训资源，注重专业之间的协同与资源共享。报告期内专业群建设成果、交流合作及示范推广情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

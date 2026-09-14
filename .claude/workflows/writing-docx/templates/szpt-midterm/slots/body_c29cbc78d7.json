@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4743",
-      "section_key": "body_c29cbc78d7",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "教师教学创新团队",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[617]",
         "expected_text_hash": "c29cbc78d790e8133c5a40a0215ea8defb087d7fd020c224b69df124ecab4d53"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "教师教学创新团队"
     },
     {
       "slot_key": "P4744",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.教师教学创新团队1个",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[618]",
         "expected_text_hash": "afcfe4769045290aca36b4c6531e6840d3d02fd770ed79d90e80cc22050c9669"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.教师教学创新团队__个【材料待补】",
+      "resolution": {
+        "text": "1.教师教学创新团队/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4745",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量12人",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[619]",
         "expected_text_hash": "9c444df155279b3e1044ada08fd2715f003a3c8e5137ff4ca2ee842082764a87"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量__人【材料待补】",
+      "resolution": {
+        "text": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4746",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.培养专业带头人和骨干教师20人",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[620]",
         "expected_text_hash": "3e01e50fb177bc1586f88da58b80d157f4d5ec12cdf84fe35ddf41d618b7d758"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.培养专业带头人和骨干教师__人【材料待补】",
+      "resolution": {
+        "text": "3.培养专业带头人和骨干教师/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4747",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.技能大师/技能菁英工作室1个",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[621]",
         "expected_text_hash": "c3775e43d52e118b546715cac321bb0c5139ff1b8e6815ac5e41961f653f3760"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.技能大师/技能菁英工作室__个【材料待补】",
+      "resolution": {
+        "text": "4.技能大师/技能菁英工作室/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4748",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.具有境外学习工作经历的专任教师比70%",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -113,16 +194,36 @@
         "path": "/w:document/w:body/w:p[622]",
         "expected_text_hash": "8580b9db25dbb17cea5bd89176e3d3084d5529287832ecadf9240d0a379132ab"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.具有境外学习工作经历的专任教师比__%【材料待补】",
+      "resolution": {
+        "text": "5.具有境外学习工作经历的专任教师比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4749",
-      "section_key": "body_c29cbc78d7",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.三年以上教龄一师多证的双师教师比95%",
       "business_context": "教师教学创新团队",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -132,7 +233,27 @@
         "path": "/w:document/w:body/w:p[623]",
         "expected_text_hash": "3fb095c9ce4bffd2e20b63bd2c9fa9ffc03f1dae75d6294ba4477726cb13fdbf"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.三年以上教龄一师多证的双师教师比__%【材料待补】",
+      "resolution": {
+        "text": "6.三年以上教龄一师多证的双师教师比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     }
   ]
 }

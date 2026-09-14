@@ -66,6 +66,7 @@ WORKER_CONFIG_ENV_KEYS = {
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
     "CCSDK_DATA_CONFIG",
+    "CCSDK_REPORT_RENDERER",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
 MAX_WORKFLOW_DOCUMENT_BYTES = 24_000
@@ -393,9 +394,12 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
         prompt_append += (
             "\n本轮已绑定固定报告模板。先调用mcp__reports__get_report_data（无参数）查看模板角色和期间Schema，"
             "再用data的resolve_entities按用户指定项目名称取得scope_ref。调用prepare_report_data后，"
-            "轮询get_report_data并按章节核验；render_report已包含成果发布，不需再次调用Artifact工具。"
-            "静态正文和已绑定数据由模板生成；无额外叙述时section_drafts传空数组。"
-            "模型不能更改模板、绕过校验改写数据或将当前主表值视为历史实绩。"
+            "轮询get_report_data并读取完整章节及可写位置，按章节读取事实并撰写正文，用save_report_sections分批保存。"
+            "全部正文保存后render_report仅原位回填，不会发布；随后validate_report检查原模板结构、样式及全文渲染，"
+            "逐页调用read_report_pages查看图片并用review_report_pages记录实际检查，全部通过后publish_report发布。"
+            "不得换模板或清空原文重建，不得以空section_drafts跳过正文撰写。"
+            "模型不能更改模板、绕过校验改写数据或将当前主表值视为历史实绩。缺反馈不证明工作未开展；"
+            "不得从任务名称或进度推断已执行制度、获奖或学校整体成效。正文发布前逐段检查这些事实边界。"
         )
     if artifact_enabled and not restricted_tools:
         prompt_append += (
@@ -455,6 +459,8 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
                 raise RuntimeError("skill 路径越界") from error
             if not (skill_directory / "SKILL.md").is_file():
                 raise RuntimeError(f"skill 不存在：{skill}")
+            if registered_template:
+                prompt_append += '\n\n' + (skill_directory/'SKILL.md').read_text(encoding='utf-8')
         skills = [] if restricted_tools else requested_skills
     else:
         skills = [] if restricted_tools else None

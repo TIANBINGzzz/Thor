@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4843",
-      "section_key": "body_1c1685d526",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）服务对象满意度",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[717]",
         "expected_text_hash": "1c1685d52664dc760e4ca3fd8f1ca93bd2d3c1eb2255e281a8ee9fb543d9eb5d"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）服务对象满意度"
     },
     {
       "slot_key": "P4844",
-      "section_key": "body_1c1685d526",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.在校生满意度99.1%",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E",
         "X"
@@ -38,16 +39,36 @@
         "path": "/w:document/w:body/w:p[718]",
         "expected_text_hash": "904146c3effcdddc842a289e2bd47e2651d7e8778483176fa47bd5576a2ef613"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.在校生满意度__%【材料待补】",
+      "resolution": {
+        "text": "1.在校生满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4845",
-      "section_key": "body_1c1685d526",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.毕业生满意度98.7%",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E",
         "X"
@@ -58,16 +79,36 @@
         "path": "/w:document/w:body/w:p[719]",
         "expected_text_hash": "79d5564d0408e05e3f4a0acb29a4b20c6eac13d261a348bab9232bbc1306e8f7"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.毕业生满意度__%【材料待补】",
+      "resolution": {
+        "text": "2.毕业生满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4846",
-      "section_key": "body_1c1685d526",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.教职工满意度98.4%",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E",
         "X"
@@ -78,16 +119,36 @@
         "path": "/w:document/w:body/w:p[720]",
         "expected_text_hash": "82374e4db78a0db08496ef7e65d0078ae2c2e87eaa2c7020d8a120dfddc78ce6"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.教职工满意度__%【材料待补】",
+      "resolution": {
+        "text": "3.教职工满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4847",
-      "section_key": "body_1c1685d526",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.用人单位满意度98.1%",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E",
         "X"
@@ -98,16 +159,36 @@
         "path": "/w:document/w:body/w:p[721]",
         "expected_text_hash": "21674bd06021410b8e67cdd4e156c6f9f1139c73a8deafbdf7bb4fa239a0e7c7"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.用人单位满意度__%【材料待补】",
+      "resolution": {
+        "text": "4.用人单位满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4848",
-      "section_key": "body_1c1685d526",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.家长满意度99.6%",
       "business_context": "（一）服务对象满意度",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E",
         "X"
@@ -118,7 +199,27 @@
         "path": "/w:document/w:body/w:p[722]",
         "expected_text_hash": "9966ba3a972b04f18c86d423084d124350c7fe637762e1573650b71cb9bdf564"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.家长满意度__%【材料待补】",
+      "resolution": {
+        "text": "5.家长满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0513",
-      "section_key": "body_534fb45787",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "（一）产出情况(应该是国双高专业群下t_hpm_project_task表中code为1 的任务相关的数据)",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[42]",
         "expected_text_hash": "534fb457878fa590d08f1569e4efef6a59742fb497e567910e1f73a9e9e3a780"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）产出情况"
     }
   ]
 }

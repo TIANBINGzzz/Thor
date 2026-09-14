@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4809",
-      "section_key": "body_5fd9bd9fee",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（六）技术技能平台",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[683]",
         "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（六）技术技能平台"
     },
     {
       "slot_key": "P4810",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.纵向到账经费613万元",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[684]",
         "expected_text_hash": "4b7d2d0f4c6a65404269ab3dd53a4176d3af0b4b9064012839a00813459be567"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.纵向到账经费__万元【材料待补】",
+      "resolution": {
+        "text": "1.纵向到账经费/万元（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4811",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.横向到账经费600.8万元",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[685]",
         "expected_text_hash": "8353cd92a1e31a2327b904aa6147062ba748f0ba1d89b51781a17ea0a993caba"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.横向到账经费__万元【材料待补】",
+      "resolution": {
+        "text": "2.横向到账经费/万元（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4812",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.PCT国际专利、国家发明专利29项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[686]",
         "expected_text_hash": "3b9f0b3ed133229aa67fc6fa86baa47dd129046e921e0f922a16862fd5571330"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.PCT国际专利、国家发明专利__项【材料待补】",
+      "resolution": {
+        "text": "3.PCT国际专利、国家发明专利/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4813",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.SCI、EI索引及中文核心论文30篇",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[687]",
         "expected_text_hash": "abab96d8c47762e83839673db676b301162d87392e14ffb8abefcae9e658ac1a"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.SCI、EI索引及中文核心论文__篇【材料待补】",
+      "resolution": {
+        "text": "4.SCI、EI索引及中文核心论文/篇（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4814",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.省级以上科研项目9项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -113,16 +194,36 @@
         "path": "/w:document/w:body/w:p[688]",
         "expected_text_hash": "e821142dff1436baf94c11037e041d9fd589011c0c40a00657d671dd12aba15b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.省级以上科研项目__项【材料待补】",
+      "resolution": {
+        "text": "5.省级以上科研项目/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4815",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.科研成果转化率37.3%",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -132,16 +233,36 @@
         "path": "/w:document/w:body/w:p[689]",
         "expected_text_hash": "84b776ab8903bbe4428ddbe9ae5f405f12489b56eede26ae3f0e57e6aaa0585c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.科研成果转化率__%【材料待补】",
+      "resolution": {
+        "text": "6.科研成果转化率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4897",
-      "section_key": "body_5fd9bd9fee",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（六）技术技能平台",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -151,16 +272,17 @@
         "path": "/w:document/w:body/w:p[771]",
         "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（六）技术技能平台"
     },
     {
       "slot_key": "P4898",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．与行业领军企业共建高水平技术技能平台1个",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -170,16 +292,36 @@
         "path": "/w:document/w:body/w:p[772]",
         "expected_text_hash": "6a95691ea438aecacff0ad80880e4d7dfd37869a476fc0eb1cdf2ab4695788d5"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．与行业领军企业共建高水平技术技能平台__个【材料待补】",
+      "resolution": {
+        "text": "1．与行业领军企业共建高水平技术技能平台/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4899",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．技术技能大师工作室1个",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -189,16 +331,36 @@
         "path": "/w:document/w:body/w:p[773]",
         "expected_text_hash": "8009cb5725480666fc0c396a50d0261b84aa5bee695c6f5835175429e817e21d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．技术技能大师工作室__个【材料待补】",
+      "resolution": {
+        "text": "2．技术技能大师工作室/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4900",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．由骨干教师领衔、师生共同组成的技术团队3个",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -208,16 +370,36 @@
         "path": "/w:document/w:body/w:p[774]",
         "expected_text_hash": "f90742fd57865ddd240120738b16a4c8d6eeca75fb4a78d12a343233b3b32455"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．由骨干教师领衔、师生共同组成的技术团队__个【材料待补】",
+      "resolution": {
+        "text": "3．由骨干教师领衔、师生共同组成的技术团队/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4901",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．完成技术研发和技术服务项目85项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -227,16 +409,36 @@
         "path": "/w:document/w:body/w:p[775]",
         "expected_text_hash": "13dc84cc35f9d90fc166d17c162b38d73569c6a309f6e8dfbc350f42329bc38b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．完成技术研发和技术服务项目__项【材料待补】",
+      "resolution": {
+        "text": "4．完成技术研发和技术服务项目/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4902",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．国家发明专利授权数18项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -246,16 +448,36 @@
         "path": "/w:document/w:body/w:p[776]",
         "expected_text_hash": "17a173853af142166df39083dcbf5a75646c58073a8c7a20fcd7a2af6c42bf7b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．国家发明专利授权数__项【材料待补】",
+      "resolution": {
+        "text": "5．国家发明专利授权数/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4952",
-      "section_key": "body_5fd9bd9fee",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（六）技术技能平台",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -265,16 +487,17 @@
         "path": "/w:document/w:body/w:p[826]",
         "expected_text_hash": "5fd9bd9fee3fe3accebe712136cc5af2882eec3e5cebe03182ae35599c6609b3"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（六）技术技能平台"
     },
     {
       "slot_key": "P4953",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．纵向到账经费580万元",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -284,16 +507,36 @@
         "path": "/w:document/w:body/w:p[827]",
         "expected_text_hash": "1f04b8c8522f52a96c8cc4c691985ae56380fef36fe469b065e4de59b45b6efc"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．纵向到账经费__万元【材料待补】",
+      "resolution": {
+        "text": "1．纵向到账经费/万元（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4954",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．横向到账经费1982.86万元",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -303,16 +546,36 @@
         "path": "/w:document/w:body/w:p[828]",
         "expected_text_hash": "5df8c1c4ebf06435d4d1c09d29fb83a5cf977c78eade9e21151a0f388238a66b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．横向到账经费__万元【材料待补】",
+      "resolution": {
+        "text": "2．横向到账经费/万元（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4955",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．PCT国际专利、国家发明专利18项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -322,16 +585,36 @@
         "path": "/w:document/w:body/w:p[829]",
         "expected_text_hash": "cb8437ca439e8022438578044fc275759a1ebd9b353bded127d81d10dbd21209"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．PCT国际专利、国家发明专利__项【材料待补】",
+      "resolution": {
+        "text": "3．PCT国际专利、国家发明专利/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4956",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．SCI、EI索引及中文核心论文28篇",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -341,16 +624,36 @@
         "path": "/w:document/w:body/w:p[830]",
         "expected_text_hash": "452dd433f8fc04bb9c598b3d9e2760cd72a994a48f7496abb2426306cb1db330"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．SCI、EI索引及中文核心论文__篇【材料待补】",
+      "resolution": {
+        "text": "4．SCI、EI索引及中文核心论文/篇（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4957",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．省级以上科研项目7项",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -360,16 +663,36 @@
         "path": "/w:document/w:body/w:p[831]",
         "expected_text_hash": "8c9e6e67c93081554880068a252f83067a6d623114ca5555ad1f6a949a58d187"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．省级以上科研项目__项【材料待补】",
+      "resolution": {
+        "text": "5．省级以上科研项目/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4958",
-      "section_key": "body_5fd9bd9fee",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6．科研成果转化率37.5%",
       "business_context": "（六）技术技能平台",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -379,7 +702,27 @@
         "path": "/w:document/w:body/w:p[832]",
         "expected_text_hash": "1bba94054aec9191ccf3d395ee86dd11939fa989e381f38288c91077d0b1ffe0"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6．科研成果转化率__%【材料待补】",
+      "resolution": {
+        "text": "6．科研成果转化率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

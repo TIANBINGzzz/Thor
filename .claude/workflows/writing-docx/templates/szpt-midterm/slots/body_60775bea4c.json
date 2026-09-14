@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4592",
-      "section_key": "body_60775bea4c",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "五、项目标志性成果可持续影响的时间",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[466]",
         "expected_text_hash": "60775bea4cd4103652aac8b03a9a69c8fc956e1b51711b2a21f3076943992883"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "五、项目标志性成果可持续影响的时间"
     }
   ]
 }

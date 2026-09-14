@@ -64,7 +64,7 @@ TLS默认要求CA及身份校验。受保护配置可显式声明`tls.mode=disab
 
 调用链：server可信payload → agent_worker → RunServices.bind → Executor。每轮重绑身份、配置和资产快照，关闭时先取消计划/查询再清除上下文；结果记录包、查询、连接、策略版本。原始结果保存在受限Run目录，不跨Run缓存。
 固定SQL经SQLGlot全AST检查和SQLAlchemy绑定，在只读一致性事务中执行；字段顺序必须匹配输出声明。保留Decimal、NULL、无记录和零的区别；行数/字节超限不得填完整报告。一个来源的计划同快照取数，写作不占事务。
-动态SQL还要求database_scope_enforced=true且scope_policy_ref/revision匹配；数据库账号/视图必须限制于整个授权范围，不能靠模型补WHERE。拒绝跨库、写语句、锁、星号、系统对象、未知列/函数及内部键输出；动态结果不能直接覆盖固定模板。
+动态SQL还要求database_scope_enforced=true且scope_policy_ref/revision匹配；数据库账号/视图必须限制于整个授权范围，不能靠模型补WHERE。拒绝跨库、写语句、锁、星号、系统对象、未知列/函数及内部键输出；动态结果不能直接覆盖固定模板。报告的原章节、20个批量数据集、105个正文位置及发布检查见[模板计划](template-batch-data-plan.md)，数据库工具不承担重建模板职责。
 取消会关闭活动MySQL socket或中断SQLite；query/socket/计划均有超时。Run内串行，NullPool无共享池；跨进程额度及账号最大连接数仍需部署约束，不宣称已有全实例限流或跨库一致事务。
 管理员在python目录用`python -m data_access list/validate/probe`，参数见--help。启停及授权通过受保护配置和包发布，变更后重建服务；没有管理网页、热更新或自动改写指标库。
 未来多租户主要替换access.py及connections.py的可信策略/连接查找，工具/模板仍传source_key/domain/query_id；共库行权限、文件/进程/网络隔离和双租户并发需独立实施。

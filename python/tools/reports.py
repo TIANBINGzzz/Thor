@@ -1,7 +1,7 @@
 """Report tools share the current Run's data service and registered template."""
 
 from data_access.context import DataError
-from .data import PARAMETERS, REFERENCE, STRING, tool_server
+from .data import PARAMETERS, REFERENCE, STRING, ToolContent, tool_server
 
 
 def create_reports_server(services):
@@ -19,11 +19,34 @@ def create_reports_server(services):
             template = report().template
             return {"template_key":template["template_key"], "name":template["name"],
                     "report_parameters":template["parameters"], "source_roles":template["source_roles"],
-                    "scope_roles":template["scope_roles"], "missing_policy":template["missing_policy"]}
+                    "scope_roles":template["scope_roles"], "missing_policy":template["missing_policy"],
+                    "outline":template.get('outline',[]), "preserve_structure":template.get('preserve_structure',False)}
         return report().get(**args)
 
     async def render(**args):
         result = await report().render(**args)
+        return {k:result[k] for k in ('status','file_name','missing_count','data_gap_count','layout_validation')}
+
+    async def save(**args):
+        return report().save_drafts(**args)
+
+    async def validate(plan_ref):
+        planner=report()
+        if plan_ref!=planner.latest: raise DataError('PLAN_SUPERSEDED')
+        plan=planner.plans[plan_ref]
+        if not plan.get('rendered'): raise DataError('REPORT_NOT_RENDERED')
+        from reporting.validation import validate_document
+        result=await services.call(validate_document, planner.template, plan['rendered'], services.env)
+        plan['validation']=result
+        planner._save(plan)
+        return {k:v for k,v in result.items() if k not in {'pages','pdf_path'}}
+
+    async def publish(plan_ref, validation_ref):
+        planner=report()
+        from reporting.validation import validated_plan
+        plan,validation=validated_plan(planner,plan_ref,validation_ref)
+        if validation.get('visual_review')!='passed': raise DataError('REPORT_VISUAL_REVIEW_REQUIRED')
+        result=plan['rendered']
         from pathlib import Path
         from .artifacts import publish_artifact
         directories = services.artifact_directories
@@ -36,8 +59,37 @@ def create_reports_server(services):
             folder, directories["deliverables_directory"], directories["session_directory"])
         return {"status": result["status"], "published": published["published"], "file_name": published["name"],
                 "missing_file": missing["name"], "missing_count": result["missing_count"],
-                "layout_validation": result["layout_validation"]}
+                "data_gap_count":result['data_gap_count'],"layout_validation":"structure_and_all_pages_reviewed"}
 
+    async def pages(plan_ref, validation_ref, page_numbers):
+        import base64
+        from pathlib import Path
+        from reporting.validation import validated_plan
+        planner=report()
+        plan,validation=validated_plan(planner,plan_ref,validation_ref)
+        if any(n>validation['page_count'] for n in page_numbers): raise DataError('PAGE_INVALID')
+        content=[]
+        for number in page_numbers:
+            content.append({'type':'text','text':f'Page {number} / {validation["page_count"]}'})
+            content.append({'type':'image','mimeType':'image/png','data':base64.b64encode(Path(validation['pages'][number-1]).read_bytes()).decode('ascii')})
+        validation['pages_read']=sorted(set(validation.get('pages_read',[]))|set(page_numbers))
+        planner._save(plan)
+        return ToolContent(content)
+
+    async def review(plan_ref, validation_ref, page_numbers, passed, notes):
+        from reporting.validation import validated_plan, record_page_review
+        planner=report()
+        plan,validation=validated_plan(planner,plan_ref,validation_ref)
+        result=record_page_review(validation,page_numbers,passed,notes)
+        planner._save(plan)
+        return result
+
+    page_numbers={"type":"array","minItems":1,"maxItems":4,"uniqueItems":True,"items":{"type":"integer","minimum":1}}
+
+    draft_schema={"type":"array","maxItems":100,"items":{"type":"object","additionalProperties":False,
+        "properties":{"section_key":REFERENCE,"slot_key":REFERENCE,"text":{"type":"string","minLength":1,"maxLength":1200},
+                      "evidence_refs":{"type":"array","items":REFERENCE}},
+        "required":["section_key","slot_key","text","evidence_refs"]}}
     return tool_server("reports", [
         ("prepare_report_data", "按可信模板绑定启动批量计划；不传模板路径或数据库连接。",
          {"report_parameters": PARAMETERS, "scope_refs": {"type": "object",
@@ -45,8 +97,19 @@ def create_reports_server(services):
              "additionalProperties": {
              "type": "object", "additionalProperties": REFERENCE}}}, ["report_parameters", "scope_refs"], prepare),
         ("get_report_data", "不传参数读取当前模板角色及期间要求；传plan_ref读取计划、章节事实和缺项。",
-         {"plan_ref": REFERENCE, "section_key": REFERENCE, "cursor": REFERENCE}, [], get),
-        ("render_report", "校验绑定和证据并填充原DOCX；必填缺项只允许标注草稿。",
+         {"plan_ref": REFERENCE, "section_key": REFERENCE, "cursor": REFERENCE, "writing_only":{"type":"boolean"}}, [], get),
+        ("save_report_sections", "分批保存按原章节撰写的正文，保留其他已存段落。每段必须引用该位置获准的事实。",
+         {"plan_ref":REFERENCE,"section_drafts":draft_schema}, ["plan_ref","section_drafts"],save),
+        ("validate_report", "核验原模板结构与样式，渲染全文页面；失败不得发布。",
+         {"plan_ref":REFERENCE},["plan_ref"],validate),
+        ("read_report_pages", "查看已验证报告的页面图片，每次最多四页，检查裁切、重叠、表格和字体。",
+         {"plan_ref":REFERENCE,"validation_ref":REFERENCE,"page_numbers":page_numbers},["plan_ref","validation_ref","page_numbers"],pages),
+        ("review_report_pages", "记录刚查看页面的实际检查结论；全部页面通过后才能发布。",
+         {"plan_ref":REFERENCE,"validation_ref":REFERENCE,"page_numbers":page_numbers,"passed":{"type":"boolean"},"notes":STRING},
+         ["plan_ref","validation_ref","page_numbers","passed","notes"],review),
+        ("publish_report", "仅发布已通过结构与全文渲染检查的同一份报告。",
+         {"plan_ref":REFERENCE,"validation_ref":REFERENCE},["plan_ref","validation_ref"],publish),
+        ("render_report", "校验全部正文及数据绑定，在原DOCX原位置回填；此步不发布。",
          {"plan_ref": REFERENCE, "section_drafts": {"type": "array", "maxItems": 100, "items": {
              "type": "object", "additionalProperties": False, "properties": {"section_key": REFERENCE, "slot_key": REFERENCE,
                  "text": {"type": "string", "maxLength": 20000}, "evidence_refs": {"type": "array", "items": REFERENCE}},

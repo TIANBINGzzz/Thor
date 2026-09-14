@@ -58,12 +58,15 @@ class AgentWorkerTests(unittest.TestCase):
     def test_fixed_template_only_mounts_data_and_report_tools(self):
         with patch.dict("os.environ", {}, clear=True):
             options = build_options({"workflow_name":"writing-docx", "capability_ref":"document-writing",
-                "_template_key":"double-high-annual", "session_directory":"session",
+                "_template_key":"szpt-midterm", "session_directory":"session",
                 "work_directory":"work", "deliverables_directory":"output"})
         self.assertEqual(set(options.mcp_servers), {"data", "reports"})
         self.assertEqual(options.tools, [])
         self.assertEqual(options.setting_sources, [])
         self.assertTrue(options.strict_mcp_config)
+
+        self.assertIn('save_report_sections',options.system_prompt['append'])
+        self.assertIn('publish_report',options.system_prompt['append'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):

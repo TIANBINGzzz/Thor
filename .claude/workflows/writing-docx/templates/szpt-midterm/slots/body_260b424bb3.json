@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4789",
-      "section_key": "body_260b424bb3",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）教材与教法改革",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[663]",
         "expected_text_hash": "260b424bb3fcc608c4d91df45818c16dbc45d2fec4e60fa80395d47360afd641"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）教材与教法改革"
     },
     {
       "slot_key": "P4790",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.国家规划教材、1+X认证教材3部",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[664]",
         "expected_text_hash": "9fda045c4c9cc86b86b1fd090db072ed060d70fcacaa9090af10f7bb70fbb671"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.国家规划教材、1+X认证教材__部【材料待补】",
+      "resolution": {
+        "text": "1.国家规划教材、1+X认证教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4791",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.省级以上教学能力大赛奖项6人次",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[665]",
         "expected_text_hash": "4e7e3daa09627f4b73518a90cbcc50c372f41b0b295eed382b7916028c0c12d8"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.省级以上教学能力大赛奖项__人次【材料待补】",
+      "resolution": {
+        "text": "2.省级以上教学能力大赛奖项/人次（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4792",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.ICT技术英文教材及讲义2本",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[666]",
         "expected_text_hash": "0da899fe0f91fb7708b5cf08960d2e433f71b31c66684fafc25d99a02e35df5b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.ICT技术英文教材及讲义__本【材料待补】",
+      "resolution": {
+        "text": "3.ICT技术英文教材及讲义/本（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4793",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.专业课使用新近更新教材比89.3%",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[667]",
         "expected_text_hash": "66f83870e7ed57689fc01c700488b1f2e6f7e3b7b766ff358223e531055d037c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.专业课使用新近更新教材比__%【材料待补】",
+      "resolution": {
+        "text": "4.专业课使用新近更新教材比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4877",
-      "section_key": "body_260b424bb3",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）教材与教法改革",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -113,16 +194,17 @@
         "path": "/w:document/w:body/w:p[751]",
         "expected_text_hash": "260b424bb3fcc608c4d91df45818c16dbc45d2fec4e60fa80395d47360afd641"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）教材与教法改革"
     },
     {
       "slot_key": "P4878",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．累计出版教材6部",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -132,16 +214,36 @@
         "path": "/w:document/w:body/w:p[752]",
         "expected_text_hash": "4852ba44c0249113f6145bf2f21ff0d7a1a88a4866c85868f716fd5cf5775289"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．累计出版教材__部【材料待补】",
+      "resolution": {
+        "text": "1．累计出版教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4879",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．数字课程2门",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -151,16 +253,36 @@
         "path": "/w:document/w:body/w:p[753]",
         "expected_text_hash": "40cada070e68f965303ee2e84227b9fdcb925918473e378a364a4673c124a14b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．数字课程__门【材料待补】",
+      "resolution": {
+        "text": "2．数字课程/门（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4880",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．新型活页式、工作手册式教材5部",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -170,16 +292,36 @@
         "path": "/w:document/w:body/w:p[754]",
         "expected_text_hash": "e2ed3e8aca11a88a98c58e15aa013fff2a7c69ceaca6ce97d2292d04c254df50"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．新型活页式、工作手册式教材__部【材料待补】",
+      "resolution": {
+        "text": "3．新型活页式、工作手册式教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4881",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．混合式教学模式推广应用比例84%",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -189,16 +331,36 @@
         "path": "/w:document/w:body/w:p[755]",
         "expected_text_hash": "64690423590a14ab6f5cb99e698d108df59d869f01c549099cb9e929f395994d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．混合式教学模式推广应用比例__%【材料待补】",
+      "resolution": {
+        "text": "4．混合式教学模式推广应用比例/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4933",
-      "section_key": "body_260b424bb3",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）教材与教法改革",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -208,16 +370,17 @@
         "path": "/w:document/w:body/w:p[807]",
         "expected_text_hash": "260b424bb3fcc608c4d91df45818c16dbc45d2fec4e60fa80395d47360afd641"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）教材与教法改革"
     },
     {
       "slot_key": "P4934",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．国家规划教材4部",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -227,16 +390,36 @@
         "path": "/w:document/w:body/w:p[808]",
         "expected_text_hash": "33c2105c1a008e432042ff380d7d065260b61614b426f63ff9542ddb585275b3"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．国家规划教材__部【材料待补】",
+      "resolution": {
+        "text": "1．国家规划教材/部（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4935",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．省级以上教学能力大赛奖项4人次",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -246,16 +429,36 @@
         "path": "/w:document/w:body/w:p[809]",
         "expected_text_hash": "0973ea0247d1ceaf117411d8d3e450263a6734525e82e9dc9f2e60c8c4433315"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．省级以上教学能力大赛奖项__人次【材料待补】",
+      "resolution": {
+        "text": "2．省级以上教学能力大赛奖项/人次（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4936",
-      "section_key": "body_260b424bb3",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．专业课使用新近更新教材比70%",
       "business_context": "（三）教材与教法改革",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -265,7 +468,27 @@
         "path": "/w:document/w:body/w:p[810]",
         "expected_text_hash": "bb45e5ba612f7e057113331ab2b888f7c5708ccdcd7802fcefdb9ef4e16fb8f1"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．专业课使用新近更新教材比__%【材料待补】",
+      "resolution": {
+        "text": "3．专业课使用新近更新教材比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

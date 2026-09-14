@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4349",
-      "section_key": "body_7e162c7a5e",
+      "section_key": "measures",
       "kind": "static",
       "required": false,
       "name": "（四）注重质量，形成了项目资金从投入到执行的闭环管理",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[248]",
         "expected_text_hash": "7e162c7a5e8762ec42ac9bfc3f7da99a82634948a167eecd9ad7d3c2002d3d32"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（四）注重质量，形成了项目资金从投入到执行的闭环管理"
     },
     {
       "slot_key": "P4350",
-      "section_key": "body_7e162c7a5e",
+      "section_key": "measures",
       "kind": "narrative",
       "required": true,
       "name": "一是在项目经费投入方面，市政府通过教育专项拨款足额下达建设经费。学校深化校企合作，引导行业企业投入双高建设，保障建设资金及时、足额到位。二是在管理制度方面，制定《“双高计划”专项资金管理办法",
@@ -37,11 +38,35 @@
         "path": "/w:document/w:body/w:p[249]",
         "expected_text_hash": "4358cd4ec31f8fb1e4a964f00799e0443195388b4335c257d63441ed948f9ac5"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "资金管理统筹预算编制、执行监控和绩效评价，将经费使用与建设任务相衔接。报告期内资金制度、内部控制和审计结果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P4351",
-      "section_key": "body_7e162c7a5e",
+      "section_key": "measures",
       "kind": "static",
       "required": false,
       "name": "表 8 项目管理指标中期自评表",
@@ -56,7 +81,8 @@
         "path": "/w:document/w:body/w:p[250]",
         "expected_text_hash": "600e87a69bb36123f4ab833727494edeff555b9967acfa31ad6f1a8abc9f6f3a"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 8 项目管理指标中期自评表"
     }
   ]
 }

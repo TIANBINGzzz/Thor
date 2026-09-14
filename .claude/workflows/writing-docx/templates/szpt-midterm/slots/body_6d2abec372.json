@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4377",
-      "section_key": "body_6d2abec372",
+      "section_key": "experience",
       "kind": "static",
       "required": false,
       "name": "五、特色经验与做法",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[251]",
         "expected_text_hash": "6d2abec3728cce274ce874b5f61fb1332eaac21080be1a1cbde38c2c21854bb9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "五、特色经验与做法"
     }
   ]
 }

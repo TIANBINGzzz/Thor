@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4855",
-      "section_key": "body_65a4cf9237",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）人才培养模式创新",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[729]",
         "expected_text_hash": "65a4cf9237a413b504e733f2f3e8efc8452069d76a899beeeb55c21ab53d38c9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）人才培养模式创新"
     },
     {
       "slot_key": "P4856",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．分类分层培养模式推广院校3所",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[730]",
         "expected_text_hash": "0568edc2a9ab43cd4600ab639d09585109a27dc070d62f61f393da852bae6078"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．分类分层培养模式推广院校__所【材料待补】",
+      "resolution": {
+        "text": "1．分类分层培养模式推广院校/所（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4857",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．人才培养方案包含毕业生职业能力清单的专业数量2个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[731]",
         "expected_text_hash": "b81f856e107d15c264c6211f2cddeef7c234664c11a66c8c0eea399ffdd79862"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．人才培养方案包含毕业生职业能力清单的专业数量__个【材料待补】",
+      "resolution": {
+        "text": "2．人才培养方案包含毕业生职业能力清单的专业数量/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4858",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．专业群对应的产业发展及人才需求分析报告1个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[732]",
         "expected_text_hash": "e34cf50876efc98a4b87e912e5b1d9f550f4c8432151dd7f58c02032ffe24174"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．专业群对应的产业发展及人才需求分析报告__个【材料待补】",
+      "resolution": {
+        "text": "3．专业群对应的产业发展及人才需求分析报告/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4859",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．专业群发展规划1个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[733]",
         "expected_text_hash": "b4fb95267c85e11a837fe2e15f05c661b617006bd1aae77a872abeef2f5770f2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．专业群发展规划__个【材料待补】",
+      "resolution": {
+        "text": "4．专业群发展规划/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4860",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．实施“1+X”证书试点3个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -113,16 +194,36 @@
         "path": "/w:document/w:body/w:p[734]",
         "expected_text_hash": "170e1941c88bc8a6d5416c94a28c5a359a6945f42fea91ea1992c089cdb3d9d9"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．实施“1+X”证书试点__个【材料待补】",
+      "resolution": {
+        "text": "5．实施“1+X”证书试点/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4861",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6．学生参加技能大赛6项",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -132,16 +233,36 @@
         "path": "/w:document/w:body/w:p[735]",
         "expected_text_hash": "dfdfd004d865639e2e91d375fe918613cfac94a5fe8bb7d700ebaca0a1193994"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6．学生参加技能大赛__项【材料待补】",
+      "resolution": {
+        "text": "6．学生参加技能大赛/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4862",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7．专业群在校生数1200人",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -151,16 +272,36 @@
         "path": "/w:document/w:body/w:p[736]",
         "expected_text_hash": "6136ba8a3513a94a4bf388e720d218469df19d1f20110a821192742528743145"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7．专业群在校生数__人【材料待补】",
+      "resolution": {
+        "text": "7．专业群在校生数/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4863",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8．高端应用型人才培养平台3个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -170,16 +311,36 @@
         "path": "/w:document/w:body/w:p[737]",
         "expected_text_hash": "9e9cefa0bdfa91608921b12903f5d2b1c9af79304793461e828662c0c65e2a75"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8．高端应用型人才培养平台__个【材料待补】",
+      "resolution": {
+        "text": "8．高端应用型人才培养平台/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4864",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "9．高职四年制毕业生数135人",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -189,16 +350,36 @@
         "path": "/w:document/w:body/w:p[738]",
         "expected_text_hash": "c594dbc1321031d7f6499861342553c4ecea0492102f4ee195c3d1e4d96c6fa5"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "9．高职四年制毕业生数__人【材料待补】",
+      "resolution": {
+        "text": "9．高职四年制毕业生数/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4865",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "10．校企共同开发1+X证书1个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -208,16 +389,36 @@
         "path": "/w:document/w:body/w:p[739]",
         "expected_text_hash": "a4b69fabfd41fe5c10c098e4c43fc17e378d40c44223d2ad89ad6f9d10ed2b20"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "10．校企共同开发1+X证书__个【材料待补】",
+      "resolution": {
+        "text": "10．校企共同开发1+X证书/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4866",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "11．现代学徒制试点专业数1个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -227,16 +428,36 @@
         "path": "/w:document/w:body/w:p[740]",
         "expected_text_hash": "8705d16b040a8428aaa96fea6d28ad11391f66a1e65f1379ee5de3d3c64b7081"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "11．现代学徒制试点专业数__个【材料待补】",
+      "resolution": {
+        "text": "11．现代学徒制试点专业数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4919",
-      "section_key": "body_65a4cf9237",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）人才培养模式创新",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -246,16 +467,17 @@
         "path": "/w:document/w:body/w:p[793]",
         "expected_text_hash": "65a4cf9237a413b504e733f2f3e8efc8452069d76a899beeeb55c21ab53d38c9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）人才培养模式创新"
     },
     {
       "slot_key": "P4920",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．建成省级一、二类品牌专业数2个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -265,16 +487,36 @@
         "path": "/w:document/w:body/w:p[794]",
         "expected_text_hash": "38d4bd7a0df867f01cfaba28533d1567bab9d92bf75900140e80924e641be212"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．建成省级一、二类品牌专业数__个【材料待补】",
+      "resolution": {
+        "text": "1．建成省级一、二类品牌专业数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4921",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．毕业生在世界500强企业、行业龙头企业就业比22%",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E",
         "X"
@@ -285,16 +527,36 @@
         "path": "/w:document/w:body/w:p[795]",
         "expected_text_hash": "432737adf0c8d2c8011ea888cb4aec218b41269d9d882c2134b4b776732f72d2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．毕业生在世界500强企业、行业龙头企业就业比__%【材料待补】",
+      "resolution": {
+        "text": "2．毕业生在世界500强企业、行业龙头企业就业比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4922",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．毕业生毕业一年后月薪高于全国同类院校平均值40.58",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -304,16 +566,36 @@
         "path": "/w:document/w:body/w:p[796]",
         "expected_text_hash": "21d359b32b8427818fdee01c0514f835ba1cb0fa457d862d1ad24099c865a798"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．毕业生毕业一年后月薪高于全国同类院校平均值__【材料待补】",
+      "resolution": {
+        "text": "3．毕业生毕业一年后月薪高于全国同类院校平均值/（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4923",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．职业技能大赛及学科竞赛国家一等奖奖项6项",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -323,16 +605,36 @@
         "path": "/w:document/w:body/w:p[797]",
         "expected_text_hash": "70991a8ab7d08f4d846626196711ccef94cae1313db953fca786bca3c8153b3d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．职业技能大赛及学科竞赛国家一等奖奖项__项【材料待补】",
+      "resolution": {
+        "text": "4．职业技能大赛及学科竞赛国家一等奖奖项/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4924",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．累计获得国家级/省级以上教学成果奖（项）2个",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -342,16 +644,36 @@
         "path": "/w:document/w:body/w:p[798]",
         "expected_text_hash": "a179e6db7b0172184924153efb2d2e11e5719bc766f90d4c965e583666525b1b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．累计获得国家级/省级以上教学成果奖（项）__个【材料待补】",
+      "resolution": {
+        "text": "5．累计获得国家级/省级以上教学成果奖（项）/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4925",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6．专业群学生年度职业能力达标率90.2%",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -361,16 +683,36 @@
         "path": "/w:document/w:body/w:p[799]",
         "expected_text_hash": "3bea10e0d89857e4863b7b056fcd4fefdd6f684586f88b6267081c5b0bead9e0"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6．专业群学生年度职业能力达标率__%【材料待补】",
+      "resolution": {
+        "text": "6．专业群学生年度职业能力达标率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4926",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7．开展“1+X”证书试点专业毕业生获证率98.31%",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -380,16 +722,36 @@
         "path": "/w:document/w:body/w:p[800]",
         "expected_text_hash": "bd15d58cda218bd2581099c9f3c54507e78dc425baa7f4b8eeffca3e1fa0e615"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7．开展“1+X”证书试点专业毕业生获证率__%【材料待补】",
+      "resolution": {
+        "text": "7．开展“1+X”证书试点专业毕业生获证率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4927",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8．毕业生就业率98.64%",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E",
         "X"
@@ -400,16 +762,36 @@
         "path": "/w:document/w:body/w:p[801]",
         "expected_text_hash": "e244f4768204447ac9cf96b4cf1617ce0bf89f18f65e0f84ed0477d6f9cd790d"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8．毕业生就业率__%【材料待补】",
+      "resolution": {
+        "text": "8．毕业生就业率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4928",
-      "section_key": "body_65a4cf9237",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "9．雇主满意度97.06%",
       "business_context": "（一）人才培养模式创新",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E",
         "X"
@@ -420,7 +802,27 @@
         "path": "/w:document/w:body/w:p[802]",
         "expected_text_hash": "6268da49b05060be492f7e6002a8f23431be8fc519c01384bb47369c8e183705"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "9．雇主满意度__%【材料待补】",
+      "resolution": {
+        "text": "9．雇主满意度/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

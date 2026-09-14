@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P1584",
-      "section_key": "body_34c421c8b4",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "11.打造创新创业教育高地",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[121]",
         "expected_text_hash": "34c421c8b4bfbaf4d2a16dbc3d85ab75c93965455aadf62838d9ae5ebeee0bdb"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "11.打造创新创业教育高地"
     },
     {
       "slot_key": "P1585",
-      "section_key": "body_34c421c8b4",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "本建设任务中期目标值11项，完成度均超100%。取得标志性成果3项，其中，国际级2项、国家级1项。自评等级优。",
@@ -41,11 +42,35 @@
         "path": "/w:document/w:body/w:p[122]",
         "expected_text_hash": "1354f8c1ede564989d78daf3f79a931f562ad7cd5b28e9cec8443973b9115bd2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "本建设任务纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1586",
-      "section_key": "body_34c421c8b4",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 3-10 “打造创新创业教育高地”中期自评表",
@@ -60,11 +85,12 @@
         "path": "/w:document/w:body/w:p[123]",
         "expected_text_hash": "de788d77fb228bdbadd92d6c594146d10156e7fee70051c26234b00e61093f90"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 3-10 “打造创新创业教育高地”中期自评表"
     },
     {
       "slot_key": "P1684",
-      "section_key": "body_34c421c8b4",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "创业课程引领力强。建成国家级双创教学资源库，使用单位3980余个（涉及高校390个），访问量超1.1亿人次。建成国际联盟认证的微观装配实验室，获得MIT Fab-lab（麻省理工学院国际微观",
@@ -79,11 +105,35 @@
         "path": "/w:document/w:body/w:p[125]",
         "expected_text_hash": "cd176d20b35fd2db8f7c5335ce8a0b3c9932fbf4c5197aa8be2179b895b55da7"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "创新创业教育将通识教育、专业学习和项目实践相结合，注重课程资源与实践条件的配套。报告期内双创课程、教学资源及实践基地建设情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1685",
-      "section_key": "body_34c421c8b4",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "创业赛会影响力高。获“互联网+”双创大赛国赛6金5银1铜，省赛20金。承办“UNLEASH2019全球青年创新集训营优质教育主题活动”，来自53个国家和地区105名创新人才参加；与柴火空间联",
@@ -98,7 +148,31 @@
         "path": "/w:document/w:body/w:p[126]",
         "expected_text_hash": "b3373c84f4c6ffc7fba27a9e9a6352b16cee76336add01c04528a32d553c4726"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "通过创新创业训练、竞赛和项目孵化形成实践育人支撑。报告期内竞赛获奖【待填】项，孵化项目【待填】项，相关成果与应用情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

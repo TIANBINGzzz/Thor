@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[1]/w:p",
         "expected_text_hash": "4adf4332f9e44b5f04eb3de4b3abc3400af53a6beaa8d9aa4100039ff75cc3ac"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "一级指标"
     },
     {
       "slot_key": "T25_R001_C02_P01",
@@ -37,7 +38,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[2]/w:p",
         "expected_text_hash": "f4225c863d7ef3655fe64cef7263f3c40f3497c9dfc2f79b8e7516ca3ba544d1"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "二级指标"
     },
     {
       "slot_key": "T25_R001_C03_P01",
@@ -56,7 +58,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[3]/w:p",
         "expected_text_hash": "4b3b8c61e705450eeee6624badba3b578944d64d3de3874a89ee2f1902c6eeb2"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "三级指标"
     },
     {
       "slot_key": "T25_R001_C04_P01",
@@ -75,7 +78,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[4]/w:p",
         "expected_text_hash": "bdb65bffeeca67ee926875e3adf135569480c732aa86f5f880edcb4213eb5231"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "中期目标值"
     },
     {
       "slot_key": "T25_R001_C05_P01",
@@ -94,7 +98,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[5]/w:p",
         "expected_text_hash": "916126cf40e65030e24fef3741c4b8d1f597c3c0f5eebe9853de65134b416f88"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "终期完成值"
     },
     {
       "slot_key": "T25_R001_C06_P01",
@@ -113,7 +118,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[6]/w:p",
         "expected_text_hash": "546ac9e7b44229934dd707654a758ad281cc3032f65886b0ac82389a687ee075"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "分值"
     },
     {
       "slot_key": "T25_R001_C07_P01",
@@ -132,7 +138,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[1]/w:tc[7]/w:p",
         "expected_text_hash": "1251e35c137ac764740b8d53aefad650e9a5f430d5967ca689e85569bf8c72d6"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "得分"
     },
     {
       "slot_key": "T25_R002_C01_P01",
@@ -151,7 +158,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[1]/w:p",
         "expected_text_hash": "b37675b4c4062c772d1a170de6e1fd39e1a5d2b4d7f6c034c4909287d450301e"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "产出指标"
     },
     {
       "slot_key": "T25_R002_C02_P01",
@@ -170,7 +178,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[2]/w:p",
         "expected_text_hash": "8f8640089c387f79936a1e56cfcde8452ab536fdcdc0123834057571052944c0"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "时效指标"
     },
     {
       "slot_key": "T25_R002_C03_P01",
@@ -189,7 +198,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[3]/w:p",
         "expected_text_hash": "83d15f7abe77ba6c7874d5014b01a913824b401a0f20efc7953a1ce5f7397064"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "任务终期完成度（%）"
     },
     {
       "slot_key": "T25_R002_C04_P01",
@@ -208,7 +218,28 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "T25_R002_C05_P01",
@@ -227,13 +258,34 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "T25_R002_C06_P01",
       "section_key": "T25",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "10",
       "business_context": "表 6-9 通信技术专业群时效指标中期自评表 / 任务终期完成度（%） / 分值",
       "scope_role": "group_a",
@@ -246,13 +298,15 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[6]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T25_R002_C07_P01",
       "section_key": "T25",
       "kind": "scalar",
-      "required": true,
+      "required": false,
       "name": "10",
       "business_context": "表 6-9 通信技术专业群时效指标中期自评表 / 任务终期完成度（%） / 得分",
       "scope_role": "group_a",
@@ -265,7 +319,9 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[2]/w:tc[7]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "intentional_blank": true
     },
     {
       "slot_key": "T25_R003_C03_P01",
@@ -284,7 +340,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[3]/w:tc[3]/w:p",
         "expected_text_hash": "49cd57803ab640393c8852dc587b4b77f70569bd4475fb1ee4415e56a2b3877f"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "收入预算执行率（%）"
     },
     {
       "slot_key": "T25_R003_C04_P01",
@@ -303,7 +360,28 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[3]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "T25_R003_C05_P01",
@@ -322,7 +400,28 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[3]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "T25_R004_C03_P01",
@@ -341,7 +440,8 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[4]/w:tc[3]/w:p",
         "expected_text_hash": "e6ae72a5718c8d76e6f9c3d52df27f3c7b595c8435ca8a9fe77bdd7ba00e83d9"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "支出预算执行率（%）"
     },
     {
       "slot_key": "T25_R004_C04_P01",
@@ -360,7 +460,28 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[4]/w:tc[4]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "T25_R004_C05_P01",
@@ -379,7 +500,28 @@
         "path": "/w:document/w:body/w:tbl[25]/w:tr[4]/w:tc[5]/w:p",
         "expected_text_hash": "9911f4d2b18457c4726664d309385072d295ca69062e99e66250033c13d09441"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "__",
+      "resolution": {
+        "text": "/",
+        "reason": "historical_metric_unavailable",
+        "require_empty": [
+          "group_a_report_task_performance_links",
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     }
   ]
 }

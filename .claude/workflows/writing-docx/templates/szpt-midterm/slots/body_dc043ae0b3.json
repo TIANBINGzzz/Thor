@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4343",
-      "section_key": "body_dc043ae0b3",
+      "section_key": "measures",
       "kind": "static",
       "required": false,
       "name": "（一）地方支持，多渠道保障“双高”建设",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[242]",
         "expected_text_hash": "dc043ae0b32e6ea39eaf86864d13bb6480b05427296ae5dbe820d971cb26756f"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）地方支持，多渠道保障“双高”建设"
     },
     {
       "slot_key": "P4344",
-      "section_key": "body_dc043ae0b3",
+      "section_key": "measures",
       "kind": "narrative",
       "required": true,
       "name": "深圳市将学校“双高”建设纳入部省共建深圳职业教育高端发展、深圳市国民经济和社会发展“十四五”规划、深圳市教育发展“十四五”规划等重大政策文件，作为省市重点工作由市领导督办。学校研究制定了《中",
@@ -37,7 +38,31 @@
         "path": "/w:document/w:body/w:p[243]",
         "expected_text_hash": "e585b3ac172c6dd3bff1a79cb5b02190e63f68853cdc31d87ee0400737b1ee88"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "地方支持围绕政策、资源与协同机制展开，为学校建设提供条件保障。报告期内适用政策、支持事项及经费安排：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

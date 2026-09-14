@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P1858",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "（二）贡献度情况  (暂无 根据后续需求对接)",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[135]",
         "expected_text_hash": "7d912cc896cebe602101d870ae86087b4a6417226b9ebb389fd64078bb6de0bb"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（二）贡献度情况"
     },
     {
       "slot_key": "P1859",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "高水平学校社会效益指标和可持续影响指标中期目标值34项，完成度均超100%。自评等级优。",
@@ -41,11 +42,35 @@
         "path": "/w:document/w:body/w:p[136]",
         "expected_text_hash": "7e99d87e049afe9281e2db0ffa4a973874dbcb9ca47c5da15cf093e3eff86c94"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "高水平学校纳入评价的指标【待填】项，已达标【待填】项，平均完成进度【待填】%，按条数达标率【待填】%。标志性成果【待填】项，自评等级【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P1863",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "表 4 效益指标中期自评表",
@@ -60,11 +85,12 @@
         "path": "/w:document/w:body/w:p[140]",
         "expected_text_hash": "2a50fc355a689600cd333e602dc3d088dfa05283b90200e05f717562186bdf10"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "表 4 效益指标中期自评表"
     },
     {
       "slot_key": "P2152",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "1.引领职业教育改革发展和人才培养",
@@ -79,11 +105,12 @@
         "path": "/w:document/w:body/w:p[141]",
         "expected_text_hash": "4ef17475cc73933f21c2d9c3b3857ec11b15c068d616c58a6ffd0cfdf04bf4a8"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "1.引领职业教育改革发展和人才培养"
     },
     {
       "slot_key": "P2153",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "做出了思政“金课”建设的“深职探索”。学校深入落实习近平总书记在思想政治理论课教师座谈会上的讲话精神，充分利用深圳改革开放“活教材”，推动把思想政治理论课讲透、讲深、讲活。一是围绕“深圳奇迹",
@@ -98,11 +125,35 @@
         "path": "/w:document/w:body/w:p[142]",
         "expected_text_hash": "cd0b7d5e3f5a93f3ae46e7bb8dc0a33d9f88268b0b67b0b6bef6ce987c201be7"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "思政教育将理论学习与实践体验相结合，注重课程内容、教学资源和实践活动的有机衔接。报告期内形成的课程案例与教学做法：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2154",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "《深圳案例100篇》为全国高校开展思政课教学提供了生动案例。学校党委主要领导在教育部召开的全国教育系统学习贯彻习近平总书记在中国人民大学考察时重要讲话精神座谈会上，围绕相关成果作交流发言，为",
@@ -117,11 +168,35 @@
         "path": "/w:document/w:body/w:p[143]",
         "expected_text_hash": "5d9677c70f2a49eaa568c62a1527662190e54ecec2afac29c42c5c9b8db5eb82"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "思政教学经验的推广需结合实际交流活动、课程使用和应用反馈进行评价。报告期内成果推广与交流情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2155",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "提供了“三教”改革的“深职方案”。学校依据成果导向（OBE）的教育教学理论，以特色产业学院为载体，深化产教融合、校企合作，建构了深职特色的“三教”改革体系。一是变革教师队伍。学校在企业设立实",
@@ -136,11 +211,35 @@
         "path": "/w:document/w:body/w:p[144]",
         "expected_text_hash": "8085f31cefec005afc5025f3ec30418c2c429cc17f0ad565c9bd315faceb1a22"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "“三教”改革围绕教师、教材和教法协同推进，将产业技术、真实项目和岗位要求融入人才培养。报告期内改革项目、实践案例及教学成果：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     },
     {
       "slot_key": "P2156",
-      "section_key": "body_7d912cc896",
+      "section_key": "school",
       "kind": "narrative",
       "required": true,
       "name": "建构了技术技能人才培养的“深职标准”。学校始终把教学工作作为安身立命之基，高度重视教育教学改革和专业教学标准体系建设。2019年出台“深职教学改革30条”，提出以职业教育国家教学标准为基本遵",
@@ -155,7 +254,31 @@
         "path": "/w:document/w:body/w:p[145]",
         "expected_text_hash": "3fd8dfa83240ada720e9aa92f43843a842f4266d0af5d2c9d753f10b283e0c89"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "专业与课程标准建设以人才培养目标为依据，结合产业需求和教学反馈持续更新。报告期内标准制修订、应用范围及推广情况：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

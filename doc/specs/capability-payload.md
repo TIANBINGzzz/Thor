@@ -11,7 +11,7 @@
 | `conversation` | 通用对话 | 不要求专属字段，省略或 `{}` | 问题放 `input.text`；能力路由已实现 |
 | `national-excellence-data-qa` | 双高问数 | 不要求专属字段，省略或 `{}` | 问题、年份等放 `input.text`；内部映射 `database-qa` 已实现 |
 | `document-writing` | 通用撰写、修改授权附件 | 省略或 `{}` | 要求放 `input.text`，外部文件用 `input.attachmentRefs`；内部映射 `writing-docx` 已实现 |
-| `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}`或double-high-annual | 已加载本地DOCX、来源及绑定；原40表仍有缺定义，年度适配模板已可批量生成 |
+| `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 锁定原40表DOCX，批量取数、逐段正文、原位回填及全文检查后发布 |
 
 这里只登记能力约定字段；当前 Runtime 仍接受通过通用 JSON 检查的其他业务数据，尚未按此表限制字段。后续新增能力或专属字段时，在此补充类型、必填条件、用途和实现状态，不把未登记的模型输入当成已实现的服务端参数。
 
@@ -42,7 +42,7 @@
 }
 ```
 
-`szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX 和逐段数据来源 Markdown；运行时注册已实现，原40表仍有未定义绑定。`double-high-annual`为用户批准的当前项目年度适配模板，已完成实库取数、生成和SDK发布。
+`szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX、逐段来源和绑定；缺历史实值必须明确标记，不能编造。此前简版不符合原模板要求，已停用且不可从入口选择。
 
 模板查询由query-bindings.json引用[数据库资产](../../.claude/databases/README.md)，SQL、连接、权限和版本均在服务端装配；不增加浏览器payload字段。
 

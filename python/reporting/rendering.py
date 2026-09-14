@@ -5,6 +5,8 @@ import json
 import re
 from zipfile import ZipFile
 from copy import deepcopy
+from difflib import SequenceMatcher
+from string import Template
 
 from lxml import etree
 
@@ -12,25 +14,69 @@ from data_access.context import DataError
 from .bindings import NS, document_xml, load_template, locate
 
 
+class DraftNumberError(DataError):
+    def __init__(self, slot_key, numbers):
+        super().__init__('DRAFT_NUMBER_UNSUPPORTED')
+        self.public_details = {'slot_key':slot_key, 'unsupported_numbers':sorted(numbers)}
+
+
+def validate_draft_numbers(draft, plan, executor):
+    facts = str(plan.get('report_parameters', {}))
+    for ref in draft['evidence_refs']:
+        record = executor.results.get(ref)
+        public = {c['name'] for c in record['output'] if c.get('visibility')!='internal_only'}
+        facts += ' ' + str([{k:v for k,v in row.items() if k in public} for row in record['rows']])
+    def numbers(text):
+        return {Decimal(n) for n in re.findall(r'\d+(?:\.\d+)?', text)}
+    unsupported = numbers(draft['text']) - numbers(facts)
+    if unsupported:
+        raise DraftNumberError(draft.get('slot_key',''), {str(n) for n in unsupported})
+
+
 def replace_paragraph(node, text, *, missing=False):
-    runs = node.findall("w:r", NS)
-    if any(r.find("w:drawing", NS) is not None for r in runs):
-        raise DataError("IMAGE_SLOT_PROTECTED")
-    for child in list(node):
-        if child.tag != "{" + NS["w"] + "}pPr":
-            node.remove(child)
-    run = etree.SubElement(node, "{" + NS["w"] + "}r")
-    if runs and runs[0].find("w:rPr", NS) is not None:
-        from copy import deepcopy
-        run.append(deepcopy(runs[0].find("w:rPr", NS)))
-    if missing:
-        properties = run.find("w:rPr", NS)
-        if properties is None:
-            properties = etree.SubElement(run, "{" + NS["w"] + "}rPr")
-        etree.SubElement(properties, "{" + NS["w"] + "}highlight", {"{" + NS["w"] + "}val": "yellow"})
-    content = etree.SubElement(run, "{" + NS["w"] + "}t")
-    content.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
-    content.text = text
+    nodes = node.xpath('.//w:t[not(ancestor::w:txbxContent)]', namespaces=NS)
+    if not nodes:
+        if text:
+            raise DataError("TEXT_SLOT_REQUIRED")
+        return
+    original = [n.text or '' for n in nodes]
+    offsets, position = [], 0
+    for value in original:
+        offsets.append(position)
+        position += len(value)
+    # Patch text only, backwards in original coordinates. Run formatting,
+    # bookmarks, links, fields, drawings and section properties stay intact.
+    for operation, start, end, a, b in reversed(SequenceMatcher(None, ''.join(original), text, autojunk=False).get_opcodes()):
+        if operation == 'equal':
+            continue
+        first = next((i for i in range(len(nodes)) if offsets[i] + len(original[i]) > start), len(nodes)-1)
+        last = next((i for i in range(len(nodes)) if offsets[i] + len(original[i]) >= end and i >= first), len(nodes)-1)
+        prefix = (nodes[first].text or '')[:start-offsets[first]]
+        suffix = (nodes[last].text or '')[end-offsets[last]:]
+        nodes[first].text = prefix + text[a:b] + (suffix if first == last else '')
+        if first != last:
+            for i in range(first+1,last): nodes[i].text = ''
+            nodes[last].text = suffix
+    for content in nodes:
+        content.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
+
+
+def clear_fill_markers(node):
+    for marker in node.xpath('.//w:rPr/w:highlight | .//w:rPr/w:color', namespaces=NS):
+        if marker.tag == '{' + NS['w'] + '}highlight' or marker.get('{' + NS['w'] + '}val', '').upper() in {'FF0000', 'EE0000'}:
+            marker.getparent().remove(marker)
+
+
+def report_file_name(template, parameters):
+    values = {key: '-'.join(map(str, value)) if isinstance(value, list) else str(value)
+              for key, value in parameters.items()}
+    try:
+        name = Template(template.get('file_name', 'report.docx')).substitute(values)
+    except (KeyError, ValueError):
+        raise DataError('REPORT_FILE_NAME_INVALID') from None
+    if not name.endswith('.docx') or re.search(r'[<>:"/\\|?*\x00-\x1f]', name):
+        raise DataError('REPORT_FILE_NAME_INVALID')
+    return name
 
 
 def format_value(value, formatting, unit):
@@ -85,27 +131,34 @@ def render(template, plan, section_drafts, executor):
             raise DataError("DRAFT_LOCATION_AMBIGUOUS")
         # Only validated slot evidence is eligible; query candidates alone do
         # not establish the applicability of an historical business fact.
-        evidence = {s.get("evidence_ref") for s in plan["slots"] if s["section_key"] == key and s["value_status"] == "filled"}
+        evidence = set(candidates[0].get('evidence_refs', []))
+        evidence.update(next((s.get('evidence_refs', []) for s in plan['slots'] if s['slot_key'] == candidates[0]['slot_key']), []))
+        evidence.update(s.get("evidence_ref") for s in plan["slots"] if s["section_key"] == key and s["value_status"] == "filled")
         if not draft["evidence_refs"] or not set(draft["evidence_refs"]) <= evidence:
             raise DataError("EVIDENCE_REQUIRED")
-        facts = " ".join(str(s.get("value", "")) for s in plan["slots"] if s.get("evidence_ref") in draft["evidence_refs"])
-        if not set(re.findall(r"\d+(?:\.\d+)?", draft["text"])) <= set(re.findall(r"\d+(?:\.\d+)?", facts)):
-            raise DataError("DRAFT_NUMBER_UNSUPPORTED")
+        validate_draft_numbers(draft, plan, executor)
         drafts[key, target] = draft
         values[candidates[0]["slot_key"]] = {"value_status": "filled", "value": draft["text"]}
+    written={c['slot_key'] for d in section_drafts for c in template['_slots']
+             if c['kind']=='narrative' and c['section_key']==d['section_key']
+             and (d.get('slot_key') is None or c['slot_key']==d['slot_key'])}
+    if any(s['kind']=='narrative' and s['required'] and s['slot_key'] not in written for s in template['_slots']):
+        raise DataError('REPORT_BODY_INCOMPLETE')
     missing = []
     for slot_key, binding in bindings.items():
         if binding["kind"] == "static":
             continue
         value = values[slot_key]
         node = locate(xml, binding["locator"])
-        if value["value_status"] == "filled":
+        if value["value_status"] in {"filled", "unavailable"}:
             if binding["kind"] == "table":
                 fill_table(node, value["value"], binding["columns"], binding.get("empty_text", "无符合条件的记录"))
             else:
-                formatting = {} if value.get("null_value") else binding.get("format", {})
+                formatting = {} if value.get("null_value") or value['value_status']=='unavailable' else binding.get("format", {})
                 rendered = format_value(value["value"], formatting, value.get("unit"))
                 replace_paragraph(node, binding.get("prefix", "") + rendered + binding.get("suffix", ""))
+            if template.get('clear_fill_markers'):
+                clear_fill_markers(node)
         else:
             missing.append({"slot_key": slot_key, "name": binding["name"], "reason": value["value_status"]})
             replace_paragraph(node, "【待核验：" + binding["name"][:70] + "】", missing=True)
@@ -113,14 +166,19 @@ def render(template, plan, section_drafts, executor):
         raise DataError("REPORT_INCOMPLETE")
     directory = executor.context.run_directory / "report"
     directory.mkdir(parents=True, exist_ok=True)
-    name = "report-draft.docx" if missing else "report.docx"
+    name = "report-draft.docx" if missing else report_file_name(template, plan.get('report_parameters', {}))
     output = directory / (plan["plan_ref"] + "-" + name)
     content = etree.tostring(xml, xml_declaration=True, encoding="UTF-8", standalone=True)
     with ZipFile(template["_docx"]) as original, ZipFile(output, "w") as target:
         for member in original.infolist():
             target.writestr(member, content if member.filename == "word/document.xml" else original.read(member.filename))
     missing_path = directory / (plan["plan_ref"] + "-missing.json")
-    missing_path.write_text(json.dumps({"missing": missing}, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"status": "draft" if missing else "complete", "path": str(output),
+    gaps = [{"slot_key":s['slot_key'], 'reason':s['reason']} for s in plan['slots'] if s.get('reason')]
+    missing_path.write_text(json.dumps({"missing": missing, "data_gaps":gaps}, ensure_ascii=False, indent=2), encoding='utf-8')
+    if template.get('preserve_structure'):
+        from .validation import check_fidelity
+        check_fidelity(template, output)
+    return {"status": "draft" if missing else "complete_with_data_gaps" if gaps else "complete", "path": str(output),
             "file_name": name, "missing_count": len(missing), "missing_path": str(missing_path),
+            "data_gap_count":len(gaps),
             "layout_validation": "required_before_final_acceptance"}

@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4577",
-      "section_key": "body_8210b03b63",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -18,12 +18,13 @@
         "path": "/w:document/w:body/w:p[451]",
         "expected_text_hash": "8210b03b638484598bb984f076d712071748f1e69d7f6e608d5c6c181369e9da"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（二）支撑国家战略和区域经济社会发展的贡献度"
     },
     {
       "slot_key": "P4578",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.技术研发和技术服务覆盖中小企业（建设期新增1606家）",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -37,13 +38,44 @@
         "path": "/w:document/w:body/w:p[452]",
         "expected_text_hash": "6304849e98932a2355e299e9e19eea6355a57286cbd54e8d069aad50da128e71"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.技术研发和技术服务覆盖中小企业（建设期新增__家）【材料待补】",
+      "resolution": {
+        "text": "1.技术研发和技术服务覆盖中小企业（建设期新增/家）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4579",
-      "section_key": "body_8210b03b63",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "2.对粤港澳大湾区技术技能创新发展具有影响力和贡献度（显著）",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
       "scope_role": "school",
@@ -56,12 +88,43 @@
         "path": "/w:document/w:body/w:p[453]",
         "expected_text_hash": "5884fae5ac1e05dd844d8e62d1db4b5a70adcfa127b75f38d07d85346b50c1a9"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "2.对粤港澳大湾区技术技能创新发展具有影响力和贡献度（显著）【材料待补】",
+      "resolution": {
+        "text": "2.对粤港澳大湾区技术技能创新发展具有影响力和贡献度（显著）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4580",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.为企业输出技术创新、产品研发、解决生产技术及社会经济管理服务难题的高水平师资力量（165人）",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -75,12 +138,43 @@
         "path": "/w:document/w:body/w:p[454]",
         "expected_text_hash": "9e8b2ea324efd89a8d420367d1a9d4f2ee2449d2938a023f7db4b084bbfdd8fa"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.为企业输出技术创新、产品研发、解决生产技术及社会经济管理服务难题的高水平师资力量（__人）【材料待补】",
+      "resolution": {
+        "text": "3.为企业输出技术创新、产品研发、解决生产技术及社会经济管理服务难题的高水平师资力量（/人）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4581",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.年均非学历培训数（企事业单位骨干、职业教育师资培训等）20.18万人﹒天",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -94,12 +188,43 @@
         "path": "/w:document/w:body/w:p[455]",
         "expected_text_hash": "a8474fc1c9151018ff72738578b174742bd1487c6afbf3c7c9de097cd9973f31"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.年均非学历培训数（企事业单位骨干、职业教育师资培训等）__万人﹒天【材料待补】",
+      "resolution": {
+        "text": "4.年均非学历培训数（企事业单位骨干、职业教育师资培训等）/万人﹒天（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4582",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.面向退役军人、农民工等重点群体学历继续教育（累计）1646人",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -113,12 +238,43 @@
         "path": "/w:document/w:body/w:p[456]",
         "expected_text_hash": "136a0dfb7c80d88806dbe29fe31057158b5cfa05271b54c684849603be4070ef"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.面向退役军人、农民工等重点群体学历继续教育（累计）__人【材料待补】",
+      "resolution": {
+        "text": "5.面向退役军人、农民工等重点群体学历继续教育（累计）/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4583",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6.面向新型农民或脱贫农户培训（累计）264人",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -132,12 +288,43 @@
         "path": "/w:document/w:body/w:p[457]",
         "expected_text_hash": "0631ae762e77b098b3f6736b5ce91d7800a6e921ca1b01ffcec2d42418dbc62e"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6.面向新型农民或脱贫农户培训（累计）__人【材料待补】",
+      "resolution": {
+        "text": "6.面向新型农民或脱贫农户培训（累计）/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4584",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "7.面向企事业单位高等学历继续教育10396人",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -151,12 +338,43 @@
         "path": "/w:document/w:body/w:p[458]",
         "expected_text_hash": "6f2bbee78558b31d70151459576f21e7ad086daed4484388f1dc18cce69604cd"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "7.面向企事业单位高等学历继续教育__人【材料待补】",
+      "resolution": {
+        "text": "7.面向企事业单位高等学历继续教育/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4585",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "8.职业教育国际培训与合作覆盖“一带一路”沿线国家数量占比（35%）",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
@@ -170,16 +388,47 @@
         "path": "/w:document/w:body/w:p[459]",
         "expected_text_hash": "22633b4d32fd6c84a9f5499428bee699c5cc9328157c56bca9378ec812d2fc44"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "8.职业教育国际培训与合作覆盖“一带一路”沿线国家数量占比（__%）【材料待补】",
+      "resolution": {
+        "text": "8.职业教育国际培训与合作覆盖“一带一路”沿线国家数量占比（/%）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4977",
-      "section_key": "body_8210b03b63",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（二）支撑国家战略和区域经济社会发展的贡献度",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -189,16 +438,17 @@
         "path": "/w:document/w:body/w:p[851]",
         "expected_text_hash": "8210b03b638484598bb984f076d712071748f1e69d7f6e608d5c6c181369e9da"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（二）支撑国家战略和区域经济社会发展的贡献度"
     },
     {
       "slot_key": "P4978",
-      "section_key": "body_8210b03b63",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．专业群在线课程社会学习人次480万",
       "business_context": "（二）支撑国家战略和区域经济社会发展的贡献度",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -208,7 +458,27 @@
         "path": "/w:document/w:body/w:p[852]",
         "expected_text_hash": "fc4a4a9004bec302f25f7384e9be4d738ed6d20e90d2e1feb83f28790b087886"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．专业群在线课程社会学习人次__万【材料待补】",
+      "resolution": {
+        "text": "1．专业群在线课程社会学习人次/万（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

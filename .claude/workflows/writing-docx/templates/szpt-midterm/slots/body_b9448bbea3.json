@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4691",
-      "section_key": "body_b9448bbea3",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）地方性政策制度",
@@ -18,13 +18,14 @@
         "path": "/w:document/w:body/w:p[565]",
         "expected_text_hash": "b9448bbea36e2d399b81bb485f2c1c6c3f9a8a9a2f2bf6123e4fa72f24a3c989"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）地方性政策制度"
     },
     {
       "slot_key": "P4692",
-      "section_key": "body_b9448bbea3",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "1.教育部 广东省人民政府关于推进深圳职业教育高端发展 争创世界一流的实施意见",
       "business_context": "（一）地方性政策制度",
       "scope_role": "school",
@@ -37,13 +38,44 @@
         "path": "/w:document/w:body/w:p[566]",
         "expected_text_hash": "2cc4dc3c4bdcac2f46977354838fdd24ad2369067168b7b05b6b9f8816fc42c0"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "1.教育部 广东省人民政府关于推进深圳职业教育高端发展 争创世界一流的实施意见【材料待补】",
+      "resolution": {
+        "text": "1.教育部 广东省人民政府关于推进深圳职业教育高端发展 争创世界一流的实施意见（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4693",
-      "section_key": "body_b9448bbea3",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "2.深圳市国民经济和社会发展第十四个五年规划和二〇三五年远景目标纲要",
       "business_context": "（一）地方性政策制度",
       "scope_role": "school",
@@ -56,13 +88,44 @@
         "path": "/w:document/w:body/w:p[567]",
         "expected_text_hash": "d00104e5dfa08d878d8562d6ee349eb7870b123b760d1fa75a6e7a086954080a"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "2.深圳市国民经济和社会发展第十四个五年规划和二〇三五年远景目标纲要【材料待补】",
+      "resolution": {
+        "text": "2.深圳市国民经济和社会发展第十四个五年规划和二〇三五年远景目标纲要（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4694",
-      "section_key": "body_b9448bbea3",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "3.深圳市教育发展“十四五”规划",
       "business_context": "（一）地方性政策制度",
       "scope_role": "school",
@@ -75,13 +138,44 @@
         "path": "/w:document/w:body/w:p[568]",
         "expected_text_hash": "1a6405e415d76030daf3b2d00feb723747d4f132a284277533f7b7d893f90643"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "3.深圳市教育发展“十四五”规划【材料待补】",
+      "resolution": {
+        "text": "3.深圳市教育发展“十四五”规划（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4695",
-      "section_key": "body_b9448bbea3",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "4.深圳高等教育先行示范行动方案（2021-2025）",
       "business_context": "（一）地方性政策制度",
       "scope_role": "school",
@@ -94,7 +188,38 @@
         "path": "/w:document/w:body/w:p[569]",
         "expected_text_hash": "d20a94df17f828378979604bc18ce0c607426e6f3d02ec24f7b92972d4e2f9e9"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "4.深圳高等教育先行示范行动方案（【年度】）【材料待补】",
+      "resolution": {
+        "text": "4.深圳高等教育先行示范行动方案（【年度】）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

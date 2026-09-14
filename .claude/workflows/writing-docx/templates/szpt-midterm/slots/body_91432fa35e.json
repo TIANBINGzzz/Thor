@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4378",
-      "section_key": "body_91432fa35e",
+      "section_key": "experience",
       "kind": "static",
       "required": false,
       "name": "（一）担当党建引领高质量发展的先行者",
@@ -18,11 +18,12 @@
         "path": "/w:document/w:body/w:p[252]",
         "expected_text_hash": "91432fa35ee5c8d2b5284717bd82946daab2b348c3f547a3420b0a1b0ff4f6ce"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）担当党建引领高质量发展的先行者"
     },
     {
       "slot_key": "P4379",
-      "section_key": "body_91432fa35e",
+      "section_key": "experience",
       "kind": "narrative",
       "required": true,
       "name": "坚持党建为引领，履行管党治党、办学治校主体责任，党建工作成效显著。一是做好顶层设计。制定实施《提高党的建设质量三年行动计划》《关于进一步加强新时代学校党的建设实施方案》，把党的领导融入办学治",
@@ -37,7 +38,31 @@
         "path": "/w:document/w:body/w:p[253]",
         "expected_text_hash": "8bef3b9a67d2e084724d5bdd2dcc59e2aca6d085cb8addbb4c5077a23e548cd0"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "党建引领的经验总结围绕组织保障、业务融合和责任落实展开，说明具体做法、实施条件与应用成效。报告期内可复用的实践经验：【待填】。",
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
     }
   ]
 }

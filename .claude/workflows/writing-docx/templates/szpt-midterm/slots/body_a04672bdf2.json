@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4662",
-      "section_key": "body_a04672bdf2",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（一）学生家长认可度",
@@ -18,13 +18,14 @@
         "path": "/w:document/w:body/w:p[536]",
         "expected_text_hash": "a04672bdf223a6bc6dce491451abe00a42395763044197b64ea8863eed8034da"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（一）学生家长认可度"
     },
     {
       "slot_key": "P4663",
-      "section_key": "body_a04672bdf2",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "1.2019-2021年超本人数和超本率",
       "business_context": "（一）学生家长认可度",
       "scope_role": "school",
@@ -37,13 +38,44 @@
         "path": "/w:document/w:body/w:p[537]",
         "expected_text_hash": "db18ae86e2c190a5dedc9d38c966ace8d5e17e363c592b44967470dc2f4402d0"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "1.【年度】超本人数和超本率【材料待补】",
+      "resolution": {
+        "text": "1.【年度】超本人数和超本率（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4664",
-      "section_key": "body_a04672bdf2",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "2.深圳职业技术学院2019-2021广东省内录取排位情况",
       "business_context": "（一）学生家长认可度",
       "scope_role": "school",
@@ -57,13 +89,44 @@
         "path": "/w:document/w:body/w:p[538]",
         "expected_text_hash": "9cada1d17aa4531583804ff365663f949aa8a85a8cff14413b5811f3d60a3eb4"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "2.深圳职业技术学院【年度】广东省内录取排位情况【材料待补】",
+      "resolution": {
+        "text": "2.深圳职业技术学院【年度】广东省内录取排位情况（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4665",
-      "section_key": "body_a04672bdf2",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "3.第三方家长满意度调查",
       "business_context": "（一）学生家长认可度",
       "scope_role": "school",
@@ -77,7 +140,38 @@
         "path": "/w:document/w:body/w:p[539]",
         "expected_text_hash": "663549ad25830c6f70f8c68353f6a51face0119ce609e5fdd4a643c083c5709a"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "3.第三方家长满意度调查【材料待补】",
+      "resolution": {
+        "text": "3.第三方家长满意度调查（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

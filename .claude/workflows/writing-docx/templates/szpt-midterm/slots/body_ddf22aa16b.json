@@ -3,12 +3,12 @@
   "slots": [
     {
       "slot_key": "P4823",
-      "section_key": "body_ddf22aa16b",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（八）国际交流与合作",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "F"
       ],
@@ -18,16 +18,17 @@
         "path": "/w:document/w:body/w:p[697]",
         "expected_text_hash": "ddf22aa16bd6406f614909606b5864267f6ac6d1778eea82da2302468e073ba5"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（八）国际交流与合作"
     },
     {
       "slot_key": "P4824",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.专业标准在境外国家落地数1个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -37,16 +38,36 @@
         "path": "/w:document/w:body/w:p[698]",
         "expected_text_hash": "71d70e3a73732b8eb2885e20713769cc7bdb7f53809c75cff054ef81566445d5"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.专业标准在境外国家落地数__个【材料待补】",
+      "resolution": {
+        "text": "1.专业标准在境外国家落地数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4825",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.国际课程覆盖国家和地区数20个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -56,16 +77,36 @@
         "path": "/w:document/w:body/w:p[699]",
         "expected_text_hash": "90190b718230d7c404c349cdcc47700d2d8d22bd5b0ac82e2d9c01176a1e7aaf"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.国际课程覆盖国家和地区数__个【材料待补】",
+      "resolution": {
+        "text": "2.国际课程覆盖国家和地区数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4826",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.在校生参与国际交流占比7%",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -75,16 +116,36 @@
         "path": "/w:document/w:body/w:p[700]",
         "expected_text_hash": "e5684d8a627c32983127a6300d34625a17a2841e68de65d88728cf5295ecd7d3"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.在校生参与国际交流占比__%【材料待补】",
+      "resolution": {
+        "text": "3.在校生参与国际交流占比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4827",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.累计培训的国际学员人数510人",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -94,16 +155,36 @@
         "path": "/w:document/w:body/w:p[701]",
         "expected_text_hash": "ceb0828266c6f500dd95ccd9d9721e8772214c8fc0c9aa5deac37ff6b6a2c3ae"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.累计培训的国际学员人数__人【材料待补】",
+      "resolution": {
+        "text": "4.累计培训的国际学员人数/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4828",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5.开展非全日制国外人员培训合格率100%",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_a",
       "source_rules": [
         "E"
       ],
@@ -113,16 +194,36 @@
         "path": "/w:document/w:body/w:p[702]",
         "expected_text_hash": "9c45a031b9ed89142e5212b705a43727b185b61ed61daa8a5de31fb144f2087e"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5.开展非全日制国外人员培训合格率__%【材料待补】",
+      "resolution": {
+        "text": "5.开展非全日制国外人员培训合格率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree"
+      ]
     },
     {
       "slot_key": "P4911",
-      "section_key": "body_ddf22aa16b",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（八）国际交流与合作",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -132,16 +233,17 @@
         "path": "/w:document/w:body/w:p[785]",
         "expected_text_hash": "ddf22aa16bd6406f614909606b5864267f6ac6d1778eea82da2302468e073ba5"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（八）国际交流与合作"
     },
     {
       "slot_key": "P4912",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．培训海外员工1300人/日",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -151,16 +253,36 @@
         "path": "/w:document/w:body/w:p[786]",
         "expected_text_hash": "749506aafacabca8cd6b2af1a128ca6db157073e5f5a4aa6fb8ab8439ad743f2"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．培训海外员工__人/日【材料待补】",
+      "resolution": {
+        "text": "1．培训海外员工/人/日（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4913",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．国际技能大赛奖项2项",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -170,16 +292,36 @@
         "path": "/w:document/w:body/w:p[787]",
         "expected_text_hash": "f4ac0ebb317d62d9a86aa5c1fb0240880dc0aa0e693142c0c00a56d54882c978"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．国际技能大赛奖项__项【材料待补】",
+      "resolution": {
+        "text": "2．国际技能大赛奖项/项（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4914",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．国际化课程2门",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -189,16 +331,36 @@
         "path": "/w:document/w:body/w:p[788]",
         "expected_text_hash": "dcb1778f19ce70097580dd0ad39e75e7aa063b161b019cefdaecd1794632b591"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．国际化课程__门【材料待补】",
+      "resolution": {
+        "text": "3．国际化课程/门（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4915",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．海外实习基地1个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -208,16 +370,36 @@
         "path": "/w:document/w:body/w:p[789]",
         "expected_text_hash": "f4a6683d1f89a00ecb6a2c7d73ef19422ef5f414281b11e1619fd469cac1af97"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．海外实习基地__个【材料待补】",
+      "resolution": {
+        "text": "4．海外实习基地/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4916",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．海外职业教育培训基地2个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -227,16 +409,36 @@
         "path": "/w:document/w:body/w:p[790]",
         "expected_text_hash": "37da33380a3de60019becf812c0c871289231adade1dabd56d4acce1905f05b9"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．海外职业教育培训基地__个【材料待补】",
+      "resolution": {
+        "text": "5．海外职业教育培训基地/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4917",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "6．北斗技术国际合作项目1个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -246,16 +448,36 @@
         "path": "/w:document/w:body/w:p[791]",
         "expected_text_hash": "257cdf4ebd6d00a9d37306ccc2e5d896d1e2da8ddcfdb006255231fb5aa58d81"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "6．北斗技术国际合作项目__个【材料待补】",
+      "resolution": {
+        "text": "6．北斗技术国际合作项目/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4967",
-      "section_key": "body_ddf22aa16b",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（八）国际交流与合作",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "F"
       ],
@@ -265,16 +487,17 @@
         "path": "/w:document/w:body/w:p[841]",
         "expected_text_hash": "ddf22aa16bd6406f614909606b5864267f6ac6d1778eea82da2302468e073ba5"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（八）国际交流与合作"
     },
     {
       "slot_key": "P4968",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1．专业标准在境外国家落地数1个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -284,16 +507,36 @@
         "path": "/w:document/w:body/w:p[842]",
         "expected_text_hash": "8932c1918d8de7cef95689551098954c399bd449f202af7bddbf4a9211081be4"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1．专业标准在境外国家落地数__个【材料待补】",
+      "resolution": {
+        "text": "1．专业标准在境外国家落地数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4969",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2．国际课程覆盖国家和地区数3个",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -303,16 +546,36 @@
         "path": "/w:document/w:body/w:p[843]",
         "expected_text_hash": "36e7c1688a71dc30247ba8929989efa035bc28402c0e6c63aae7a9a99f0dafa1"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2．国际课程覆盖国家和地区数__个【材料待补】",
+      "resolution": {
+        "text": "2．国际课程覆盖国家和地区数/个（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4970",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3．在校生参与国际交流占比7%",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -322,16 +585,36 @@
         "path": "/w:document/w:body/w:p[844]",
         "expected_text_hash": "9be040b55003d2cbcb4d9a0bf150a1c9db0faabb2f7daf6fa18588fe78843c0b"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3．在校生参与国际交流占比__%【材料待补】",
+      "resolution": {
+        "text": "3．在校生参与国际交流占比/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4971",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4．累计培训的国际学员人数80人",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -341,16 +624,36 @@
         "path": "/w:document/w:body/w:p[845]",
         "expected_text_hash": "db307a9a588916f8c816378f1a39fe1e29a1ac1bc9a42cbb9a3c0c46403a8b1c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4．累计培训的国际学员人数__人【材料待补】",
+      "resolution": {
+        "text": "4．累计培训的国际学员人数/人（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4972",
-      "section_key": "body_ddf22aa16b",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "5．开展非全日制国外人员培训合格率80%",
       "business_context": "（八）国际交流与合作",
-      "scope_role": "school",
+      "scope_role": "group_b",
       "source_rules": [
         "E"
       ],
@@ -360,7 +663,27 @@
         "path": "/w:document/w:body/w:p[846]",
         "expected_text_hash": "68b8d2e1533e4cdb47facb60407ac199b25f7badab9c0cbcc019c12a1ad91f91"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "5．开展非全日制国外人员培训合格率__%【材料待补】",
+      "resolution": {
+        "text": "5．开展非全日制国外人员培训合格率/%（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P4586",
-      "section_key": "body_30b0e26c19",
+      "section_key": "appendix",
       "kind": "static",
       "required": false,
       "name": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
@@ -18,12 +18,13 @@
         "path": "/w:document/w:body/w:p[460]",
         "expected_text_hash": "30b0e26c1912d403330474c81791f117871736a81e74f9fd280d95a9e6ce3315"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度"
     },
     {
       "slot_key": "P4587",
-      "section_key": "body_30b0e26c19",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "1.在全国40所院校推广我校“课证共生共长”模式",
       "business_context": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
@@ -37,12 +38,43 @@
         "path": "/w:document/w:body/w:p[461]",
         "expected_text_hash": "03a66e137fdef32fa77d702506601bc379640b1009651dea5585cda41c92c3cc"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "1.在全国__所院校推广我校“课证共生共长”模式【材料待补】",
+      "resolution": {
+        "text": "1.在全国/所院校推广我校“课证共生共长”模式（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4588",
-      "section_key": "body_30b0e26c19",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "2.将深职特色的标准体系推广到50所兄弟院校",
       "business_context": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
@@ -56,12 +88,43 @@
         "path": "/w:document/w:body/w:p[462]",
         "expected_text_hash": "1ec889bc7897ec4003440baf33995554b288599204d9eb72a742eecab9f76d6c"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "2.将深职特色的标准体系推广到__所兄弟院校【材料待补】",
+      "resolution": {
+        "text": "2.将深职特色的标准体系推广到/所兄弟院校（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4589",
-      "section_key": "body_30b0e26c19",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "3.将深职特色的质量保证体系推广到兄弟院校41所",
       "business_context": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
@@ -75,12 +138,43 @@
         "path": "/w:document/w:body/w:p[463]",
         "expected_text_hash": "05a46d1754cce29f1eba8a80bc9476a6e1ecada29dc7d46a79f5ea6f43caa455"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "3.将深职特色的质量保证体系推广到兄弟院校__所【材料待补】",
+      "resolution": {
+        "text": "3.将深职特色的质量保证体系推广到兄弟院校/所（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4590",
-      "section_key": "body_30b0e26c19",
-      "kind": "narrative",
+      "section_key": "appendix",
+      "kind": "scalar",
       "required": true,
       "name": "4.特色产业学院建设模式推广到40所兄弟院校",
       "business_context": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
@@ -94,13 +188,44 @@
         "path": "/w:document/w:body/w:p[464]",
         "expected_text_hash": "83d9b76533dc9390c4e59c559cb8fe9d16008ed2d024d95fc498783b727485d7"
       },
-      "binding_status": "definition_missing"
+      "binding_status": "registered",
+      "template_text": "4.特色产业学院建设模式推广到__所兄弟院校【材料待补】",
+      "resolution": {
+        "text": "4.特色产业学院建设模式推广到/所兄弟院校（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     },
     {
       "slot_key": "P4591",
-      "section_key": "body_30b0e26c19",
-      "kind": "static",
-      "required": false,
+      "section_key": "appendix",
+      "kind": "scalar",
+      "required": true,
       "name": "5.5G智慧校园实践与探索成果（成效显著）",
       "business_context": "（三）推动形成一批国家层面有效支撑职业教育高质量发展的政策、制度、标准的贡献度",
       "scope_role": "school",
@@ -113,7 +238,38 @@
         "path": "/w:document/w:body/w:p[465]",
         "expected_text_hash": "a0d0cb32b22a3ee04af650c50a7a926bc87825a40377338d00fa1a25e37da1c5"
       },
-      "binding_status": "static"
+      "binding_status": "registered",
+      "template_text": "5.5G智慧校园实践与探索成果（成效显著）【材料待补】",
+      "resolution": {
+        "text": "5.5G智慧校园实践与探索成果（成效显著）（本期未提供佐证）",
+        "reason": "period_material_unavailable",
+        "require_empty": [
+          "group_a_task_feedback_candidates",
+          "group_b_task_feedback_candidates"
+        ]
+      },
+      "evidence_datasets": [
+        "group_a_project_catalog",
+        "group_a_task_tree",
+        "group_a_task_progress_summary",
+        "group_a_report_task_sections",
+        "group_a_task_feedback_candidates",
+        "group_a_fund_totals",
+        "group_a_fund_source_amounts",
+        "group_a_report_cycle_budget",
+        "group_a_report_task_performance_links",
+        "group_a_performance_tree",
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_report_task_sections",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_report_cycle_budget",
+        "group_b_report_task_performance_links",
+        "group_b_performance_tree"
+      ]
     }
   ]
 }

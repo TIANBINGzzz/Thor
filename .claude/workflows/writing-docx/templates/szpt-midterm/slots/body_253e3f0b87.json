@@ -3,7 +3,7 @@
   "slots": [
     {
       "slot_key": "P0512",
-      "section_key": "body_253e3f0b87",
+      "section_key": "school",
       "kind": "static",
       "required": false,
       "name": "二、学校层面任务及绩效指标完成情况",
@@ -18,7 +18,8 @@
         "path": "/w:document/w:body/w:p[41]",
         "expected_text_hash": "253e3f0b87fef5e546f2ef86540fa50b4a72a72ec4db35053c4d7e9e35d0529a"
       },
-      "binding_status": "static"
+      "binding_status": "static",
+      "template_text": "二、学校层面任务及绩效指标完成情况"
     }
   ]
 }
