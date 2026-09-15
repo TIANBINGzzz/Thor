@@ -19,7 +19,13 @@ stages:
             with:
               run: |
                 set -eu
-                export CCSDK_IMAGE="ccsdkscribe:${CI_COMMIT_SHA}-${BUILD_NUMBER}"
+                if [ ! -f Dockerfile ] || [ ! -f deploy/build.sh ]; then
+                  echo 'Missing project files: select the CCSDKScribe Codeup source and its defaultWorkspace.' >&2
+                  exit 1
+                fi
+                : "${BUILD_NUMBER:?Flow BUILD_NUMBER is missing}"
+                commit_sha=$(git rev-parse --verify HEAD)
+                export CCSDK_IMAGE="ccsdkscribe:${commit_sha}-${BUILD_NUMBER}"
                 export CCSDK_OUTPUT_DIRECTORY="dist/release-${BUILD_NUMBER}"
                 sh deploy/build.sh
           upload_step:

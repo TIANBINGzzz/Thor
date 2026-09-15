@@ -39,6 +39,8 @@ Flow 的私密变量支持 UI 配置或私密变量组，不支持在 YAML `vari
 
 Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.serviceConnection` 是镜像仓库连接，不能当作 Codeup 授权。运行前确认 Codeup 当前分支已有 `Dockerfile`、`requirements.txt`、`.dockerignore`、`deploy/build.sh`、`python/` 和 `.claude/`；仅粘贴流水线不会上传本地源码。
 
+镜像标签使用工作区实际检出的 Git 提交及 `BUILD_NUMBER`，不依赖 `CI_COMMIT_SHA`。缺少项目文件时先检查代码源和默认工作区；这些前置检查失败说明尚未执行 Docker 构建。
+
 将 `flow.yml` 导入 Flow 的 YAML 流水线后，替换：
 
 1. `REPLACE_CODEUP_SERVICE_CONNECTION_ID`：能读取目标 Codeup 仓库的服务连接；分支 `main` 按仓库实际默认分支修改。
