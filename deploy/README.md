@@ -35,6 +35,10 @@ Flow 的私密变量支持 UI 配置或私密变量组，不支持在 YAML `vari
 
 ## 使用模板
 
+首次只验证构建：先在 Flow 选择本项目 Codeup 仓库及 `main` 分支，保留平台生成的 `sources` 和对应 `defaultWorkspace`，仅用 [flow-build.stages.yml](flow-build.stages.yml) 替换整个 `stages` 段。它复用完整模板的构建阶段，不需要 ACR、97 主机组或运行密钥；构建成功不代表服务功能验收通过。
+
+Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.serviceConnection` 是镜像仓库连接，不能当作 Codeup 授权。运行前确认 Codeup 当前分支已有 `Dockerfile`、`requirements.txt`、`.dockerignore`、`deploy/build.sh`、`python/` 和 `.claude/`；仅粘贴流水线不会上传本地源码。
+
 将 `flow.yml` 导入 Flow 的 YAML 流水线后，替换：
 
 1. `REPLACE_CODEUP_SERVICE_CONNECTION_ID`：能读取目标 Codeup 仓库的服务连接；分支 `main` 按仓库实际默认分支修改。
@@ -54,4 +58,4 @@ Flow 的私密变量支持 UI 配置或私密变量组，不支持在 YAML `vari
 | 要求编号 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
 | REQ-001 | 部分满足 | 密钥只在运行时生成配置；构建制品排除 env；沿用 MCP 按需注入 | Java 真 Token 透传、撤销和跨租户隔离仍需端到端验收 |
-| REQ-002 | 部分满足 | 执行资产随镜像内部交付，探测使用受控 Capability | Capability 标识解耦、Java 业务授权与配置审计未完成 |
+| REQ-002 | 部分满足 | 执行资产随镜像内部交付；Capability 已映射内部 Workflow | 真实 Java 业务授权、配置审计及生产隔离仍需端到端验收 |
