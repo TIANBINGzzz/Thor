@@ -229,3 +229,52 @@ metrics:
       observed_counts: 各已填报数量介于0和fund_count之间；未全填报的金额仅能作为已填报部分
       rates: 分子分母对应金额均全填报且分母非0时计算，否则为null；保留两位小数，不强行封顶为100
       amounts: 到位为0但执行大于0时标记矛盾，先核实后解释；万元换算亿元除以10000
+
+  - id: report_task_feedback
+    name: 报告期已审核任务反馈材料
+    description: 查询指定项目年度及日期窗口内已审核的任务反馈，作为成果整理和AI撰写的材料来源；无记录或测试式内容不否定SQL来源，反馈条数不等于成果数量。
+    parameters:
+      - project_id
+      - year
+      - start_date
+      - end_date
+      - task_id
+    grain: project_task_feedback
+    sql: |
+      SELECT tf.id_ AS feedback_id, t.project_id_ AS project_id, t.id_ AS task_id,
+             t.name_ AS task_name, tf.date_ AS feedback_date, tf.create_time_ AS submitted_at,
+             tf.content_ AS content, tf.progress_ AS progress, tf.complete_progress_ AS complete_progress,
+             CASE WHEN tf.attachment_ IS NOT NULL AND tf.attachment_ <> '' AND tf.attachment_ <> '[]' THEN 1 ELSE 0 END AS has_attachment
+      FROM t_hpm_project_task t
+      JOIN t_hpm_project_task_feedback tf ON tf.tenant_id_ = :tenant_id
+        AND tf.tenant_id_ = t.tenant_id_ AND tf.project_id_ = t.project_id_ AND tf.task_id_ = t.id_
+      WHERE t.tenant_id_ = :tenant_id AND t.delete_flag_ = '0' AND t.high_flag_ = '1'
+        AND t.stage_id_ IS NOT NULL
+        AND (:project_id IS NULL OR t.project_id_ = :project_id)
+        AND (:year IS NULL OR EXISTS (
+          SELECT 1 FROM t_hpm_project_stage s
+          WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = t.tenant_id_
+            AND s.project_id_ = t.project_id_ AND s.id_ = t.stage_id_
+            AND s.delete_flag_ = '0' AND s.name_ = :year
+        )) AND tf.delete_flag_ = '0' AND tf.state_ = '1'
+        AND (:task_id IS NULL OR t.id_ = :task_id)
+        AND (:start_date IS NULL OR tf.date_ >= :start_date)
+        AND (:end_date IS NULL OR tf.date_ < :end_date)
+      ORDER BY t.project_id_, t.id_, tf.date_, tf.id_
+    output:
+      feedback_id: 反馈ID，用于去重和追溯
+      project_id: 项目ID，仅用于关联
+      task_id: 任务ID，仅用于关联
+      task_name: 任务名称
+      feedback_date: 反馈业务日期
+      submitted_at: 提交时间，不替代业务日期
+      content: 反馈正文，供AI提取有依据的成果与事实
+      progress: 反馈进度
+      complete_progress: 反馈完成进度原值，不直接作为成果数量或自评分
+      has_attachment: 附件字段是否非空，1为有、0为无；不代表附件已读取或内容有效
+    validation:
+      parameters: 项目、年度和起止日期须明确；task_id可为null表示该范围全部任务；日期窗口为起日包含、止日不含
+      feedback_id: 同项目内唯一，重复反馈不得重复计算成果
+      content: 空白或缺乏事实时记录材料不足，不生成成果；不因此否定查询结构
+      row_count: 允许0行，只表示该范围无符合条件的反馈
+      has_attachment: 只能为0或1；附件内容须另外核验
