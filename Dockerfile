@@ -38,4 +38,4 @@ ENTRYPOINT ["python", "deploy/entrypoint.py"]
 FROM runtime AS test
 COPY deploy/ ./deploy/
 RUN python -m unittest discover -s python/tests -t python -p 'test_*.py'
-RUN python deploy/test_write_env.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh
+RUN python deploy/test_write_env.py && python deploy/test_build.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh
