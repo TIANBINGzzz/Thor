@@ -20,7 +20,7 @@ from tools.artifacts import create_artifact_server
 from tools.docx import create_docx_server
 from tools.data import create_data_server
 from workflows.writing_docx.tools import create_reports_server
-from runtime.data_services import RunServices, worker_secret_environment
+from runtime.data_services import RunServices
 from data_access.catalog import Catalog
 from data_access.context import DataError
 from runtime.mcp_auth import inject_mcp_authentication
@@ -142,12 +142,10 @@ def agent_environment() -> dict[str, str]:
 def worker_environment(payload: dict[str, Any] | None = None) -> dict[str, str]:
     """从当前进程环境返回可信 JSONL Worker 所需的变量字典。
 
-    仅附加本轮获准来源登记的秘密变量；SDK 子进程仍使用独立白名单。
+    数据库凭据由执行器读取私有 JSON；Worker 和 SDK 环境均使用白名单。
     """
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
                                       | WORKER_CONFIG_ENV_KEYS)
-    if payload:
-        environment.update(worker_secret_environment(payload, data_source_keys(payload), os.environ))
     return environment
 
 

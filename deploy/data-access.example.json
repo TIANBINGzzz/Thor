@@ -7,8 +7,8 @@
     "host": "SET_DATABASE_HOST",
     "port": 3306,
     "database": "test_hpm_dev",
-    "username_ref": "file:database-user.secret",
-    "password_ref": "file:database-password.secret",
+    "username": "SET_DATABASE_USER",
+    "password": "SET_DATABASE_PASSWORD",
     "tls": {
       "ca_file": "database-ca.pem",
       "verify_identity": true

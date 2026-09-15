@@ -4,32 +4,8 @@ import asyncio
 import os
 
 from data_access.catalog import Catalog
-from data_access.access import resolve_data_access
-from data_access.connections import load_config, resolve_connection
 from data_access.context import DataContext, DataError
 from data_access.executor import Executor
-
-
-def worker_secret_environment(payload, source_keys, env, *, catalog=None):
-    """Select only registered, authorized connection secrets for this Worker."""
-    if not source_keys:
-        return {}
-    context = DataContext.from_payload(payload)
-    catalog = catalog or Catalog()
-    selected = {}
-    for source_key in source_keys:
-        try:
-            source = catalog.source(source_key)
-            config = load_config(catalog.connection_path(source_key))
-            resolve_data_access(context, source, config, catalog)
-            connection = resolve_connection(context, source, config)
-        except DataError:
-            continue
-        for field in ("username_ref", "password_ref"):
-            ref = connection.get(field)
-            if isinstance(ref, str) and ref.startswith("env:") and ref[4:] in env:
-                selected[ref[4:]] = env[ref[4:]]
-    return selected
 
 
 class RunServices:

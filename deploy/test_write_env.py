@@ -29,13 +29,15 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         self.assertEqual(parsed["ANTHROPIC_AUTH_TOKEN"], environment["ANTHROPIC_AUTH_TOKEN"])
         self.assertNotIn("UNRELATED_SECRET", parsed)
 
-    def test_protected_database_json_and_separate_secrets(self):
+    def test_protected_database_json_contains_credentials(self):
         import json
-        config={'version':1,'connection':{'source_key':'schoolDoubleHigh','password_ref':'file:database-password.secret'},'policy':{'source_key':'schoolDoubleHigh','users':[]}}
+        config={'version':1,'connection':{'source_key':'schoolDoubleHigh','username':'placeholder','password':'placeholder'},'policy':{'source_key':'schoolDoubleHigh','users':[]}}
         environment={'CCSDK_DATA_CONFIG_JSON':json.dumps(config),'CCSDK_DATABASE_USER':'readonly',
                      'CCSDK_DATABASE_PASSWORD':" '$test # \\ ` = ",'CCSDK_DATABASE_CA':'certificate\ncontent'}
-        self.assertEqual(json.loads(writer.render(environment,database=True)),config)
-        self.assertNotIn(environment['CCSDK_DATABASE_PASSWORD'],writer.render(environment,database=True))
+        rendered=json.loads(writer.render(environment,database=True))
+        self.assertEqual(rendered['connection']['username'],environment['CCSDK_DATABASE_USER'])
+        self.assertEqual(rendered['connection']['password'],environment['CCSDK_DATABASE_PASSWORD'])
+        self.assertEqual(config['connection']['password'],'placeholder')
 
     def test_rejects_missing_multiline_and_interpolation_without_values(self):
         for value in ("", "sensitive\nINJECTED=yes", "sensitive\rvalue", "sensitive\x00value"):

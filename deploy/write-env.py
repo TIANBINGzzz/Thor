@@ -63,6 +63,8 @@ def render(environment, *, database=False):
             for value in DATABASE_KEYS[1:]:
                 if not environment.get(value):
                     raise ValueError()
+            config["connection"]["username"] = environment["CCSDK_DATABASE_USER"]
+            config["connection"]["password"] = environment["CCSDK_DATABASE_PASSWORD"]
             return json.dumps(config, ensure_ascii=False, indent=2) + "\n"
         except (KeyError, ValueError, TypeError):
             raise ValueError("Invalid protected data configuration or missing database secrets") from None
@@ -136,10 +138,7 @@ def main():
             os.chown(directory, 10001, 10001)
             os.chmod(directory, 0o700)
             atomic_write(directory / "connection.json", database, database=True)
-            for name, variable in (("database-user.secret", "CCSDK_DATABASE_USER"),
-                                   ("database-password.secret", "CCSDK_DATABASE_PASSWORD"),
-                                   ("database-ca.pem", "CCSDK_DATABASE_CA")):
-                atomic_write(directory / name, environment[variable], database=True)
+            atomic_write(directory / "database-ca.pem", environment["CCSDK_DATABASE_CA"], database=True)
     except (ValueError, OSError) as error:
         if isinstance(error, ValueError):
             parser.exit(1, str(error) + "\n")

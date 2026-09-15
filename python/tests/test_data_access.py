@@ -136,7 +136,7 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaises(DataError): self.school(self.make_executor())
 
     def test_private_config_is_not_frozen_or_exposed_and_next_run_refreshes_it(self):
-        self.config['connections']['first'].update(host='private-host-marker', password_ref='env:PRIVATE_SECRET_MARKER')
+        self.config['connections']['first'].update(host='private-host-marker', password='PRIVATE_SECRET_MARKER')
         executor=self.make_executor()
         revision=executor.catalog.revision('first')
         public=json.dumps([executor.list_data_sources(), executor.describe_data_source('first','sales')])
@@ -199,9 +199,28 @@ class DataAccessTests(unittest.TestCase):
         self.assertNotIn('owner', provenance)
         self.assertEqual(self.executor.results.page(result['result_ref'])['provenance'], provenance)
 
-    def test_worker_receives_only_selected_authorized_secrets_and_sdk_receives_none(self):
+    def test_mysql_uses_literal_json_credentials_and_rejects_missing_values(self):
+        from data_access.connections import Connections
+        config={'_base_directory':self.root,'driver':'mysql+pymysql','host':'example.invalid',
+                'database':'test','username':'reader@name','password':" literal:$() /@# ",
+                'tls':{'mode':'disabled'}}
+        with patch('data_access.connections.create_engine') as create:
+            with Connections().snapshot(config):
+                pass
+            url=create.call_args.args[0]
+            self.assertEqual(url.username,config['username'])
+            self.assertEqual(url.password,config['password'])
+        for key in ('username','password'):
+            for value in (None,'',123):
+                with patch('data_access.connections.create_engine') as create:
+                    with self.assertRaisesRegex(DataError,'SECRET_REQUIRED'):
+                        with Connections().snapshot({**config,key:value}):
+                            pass
+                    create.assert_not_called()
+
+    def test_worker_and_sdk_do_not_receive_database_secret_environment(self):
         for source in ('first', 'second'):
-            self.config['connections'][source]['password_ref'] = f'env:{source.upper()}_DB_SECRET'
+            self.config['connections'][source]['password'] = f'{source}-secret'
         self.save_connections()
         source_path=self.root/'databases/second/source.json'
         source=json.loads(source_path.read_text());source['capabilities']=['other'];save(source_path,source)
@@ -215,7 +234,7 @@ class DataAccessTests(unittest.TestCase):
              patch('runtime.data_services.Catalog', return_value=self.catalog), \
              patch('runtime.config.Catalog', return_value=self.catalog):
             selected = worker_environment(payload)
-            self.assertEqual(selected['FIRST_DB_SECRET'], 'first-secret')
+            self.assertNotIn('FIRST_DB_SECRET', selected)
             self.assertNotIn('SECOND_DB_SECRET', selected)
             self.assertNotIn('UNREGISTERED_SECRET', selected)
             self.assertNotIn('FIRST_DB_SECRET', worker_environment())

@@ -7,7 +7,7 @@
 ```text
 .claude/databases/schoolDoubleHigh/
   source.json               来源、能力绑定、连接入口和域知识登记
-  private/connection.json   连接与授权策略，忽略且不打包；密码为秘密引用
+  private/connection.json   连接与授权策略，忽略且不打包；直接保存用户名和密码
   schema/hpm.json           13表158列的真实类型、说明、函数及内部列
   metrics/hpm/<id>.json/.sql 指标/查询契约与只读SQL
   metrics/hpm/pending.json   7项明确缺定义或禁用原因
@@ -24,13 +24,13 @@ python/tests/databases/      按数据库验证结构、指标SQL及覆盖
 ## 字段与配置
 
 source.json的connection_file指向本数据库包内的private/connection.json；该文件结构为`{version, connection, policy}`。路径不可越出数据库包。私有文件及秘密不入Git、镜像、Prompt或结果；部署通过只读挂载提供。`CCSDK_DATA_CONFIG`和问数workflow.env中的旧连接均已移除。
-父Runtime只向Worker传递本轮来源登记且身份获准的env秘密；SDK子进程使用独立白名单。文件秘密与CA相对connection.json解析；env/file是秘密引用，不允许模型传连接参数。
+数据库执行器从私有connection.json读取用户名和密码，不经Worker环境转发；SDK子进程使用独立白名单。CA路径相对connection.json解析，不允许模型传连接参数。
 
 | 对象 | 字段 | 约束 |
 | --- | --- | --- |
 | Source | source_key, name, version, enabled, capabilities, connection_file, domains | source_key为业务标识，不是物理库名；能力绑定在此维护 |
 | Source.domains.hpm | metrics, schema, documents, entities | 只登记必要知识；schema由工具组织成字段说明，关联和口径按需提供 |
-| Connection | source_key, tenant_id, driver, host, port, database, username_ref, password_ref, tls, revision, timeout_seconds, max_rows | 与当前身份和source_key匹配；mysql+pymysql，sqlite仅用于测试；秘密引用env:NAME或file:relative-file |
+| Connection | source_key, tenant_id, driver, host, port, database, username, password, tls, revision, timeout_seconds, max_rows | 与当前身份和source_key匹配；mysql+pymysql，sqlite仅用于测试；凭据直接保存在私有JSON，不进入模型资产 |
 | Policy | source_key, tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | JWT租户与业务租户独立；users列表或显式all_authenticated，来源/能力/模板取交集 |
 | Policy.domains.hpm | queries, tables | 允许的查询和表名列表；表列类型、函数及内部列由schema单独维护，不重复复制 |
 | project_scope | mode=selected/all_school, project_ids | selected必须有非空项目集合；全校只由可信管理员授权 |

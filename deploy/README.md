@@ -27,7 +27,7 @@
 python deploy/encode-secret.py scratch/ccsdkscribe.secret.json scratch/ccsdkscribe.secret.b64
 ```
 
-复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库部署另提供CCSDK_DATA_CONFIG_JSON（参照data-access.example.json）、CCSDK_DATABASE_USER、CCSDK_DATABASE_PASSWORD、CCSDK_DATABASE_CA。启用CCSDK_WITH_DATABASE=1后生成受限data/connection.json及独立密钥文件，compose将CCSDK_DATA_DIRECTORY只读挂载到容器内/app/.claude/databases/schoolDoubleHigh/private，由source.json登记读取；不再生成Workflow数据库环境文件。
+复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库部署另提供CCSDK_DATA_CONFIG_JSON（参照data-access.example.json）、CCSDK_DATABASE_USER、CCSDK_DATABASE_PASSWORD、CCSDK_DATABASE_CA。启用CCSDK_WITH_DATABASE=1后生成受限data/connection.json（含用户名和密码）及CA证书文件，compose将CCSDK_DATA_DIRECTORY只读挂载到容器内/app/.claude/databases/schoolDoubleHigh/private，由source.json登记读取；不再生成Workflow数据库环境文件。
 
 在“编辑流水线 → 变量和缓存 → 字符变量 → 新建变量”填写 `CCSDK_DEPLOY_ENV_B64`，打开私密模式，粘贴编码文件内容（不加引号）并保存。JSON 不要使用在线编码网站；用 JSON 字符串规则转义反斜线/双引号，值不能含换行。Base64 是传输编码，不是加密；编码文件和原 JSON 都按密钥保管，Windows 还需限制本地文件 ACL。
 

@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 
 from .catalog import Catalog
 from .connections import Connections, load_config
@@ -37,7 +36,7 @@ def main():
                 connection = config['connection']
                 if connection.get('source_key') != source['source_key'] or not connection.get('revision'):
                     raise DataError('CONFIG_INVALID')
-                with Connections(dict(os.environ)).snapshot(connection) as db:
+                with Connections().snapshot(connection) as db:
                     db.exec_driver_sql('SELECT 1').fetchone()
             result.append({'source_key': source['source_key'], 'defined_queries_validated': count,
                            'connection_probed': args.command == 'probe'})

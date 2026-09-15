@@ -21,21 +21,6 @@ def load_config(path):
     return config
 
 
-def secret(ref, env, base):
-    if not isinstance(ref, str):
-        raise DataError("SECRET_REQUIRED")
-    if ref.startswith("env:"):
-        value = env.get(ref[4:])
-    elif ref.startswith("file:"):
-        path = Path(ref[5:])
-        value = (path if path.is_absolute() else base / path).read_text(encoding="utf-8").rstrip("\r\n")
-    else:
-        raise DataError("SECRET_REQUIRED")
-    if not value:
-        raise DataError("SECRET_REQUIRED")
-    return value
-
-
 def resolve_connection(context, source, config):
     connection = dict(config['connection'])
     if (not connection.get("revision") or connection.get("source_key") != source["source_key"]
@@ -45,8 +30,7 @@ def resolve_connection(context, source, config):
 
 
 class Connections:
-    def __init__(self, env):
-        self.env = env
+    def __init__(self):
         self.cancelled = Event()
         self._lock = Lock()
         self._active = set()
@@ -83,8 +67,11 @@ class Connections:
                 raise DataError("TLS_CONFIG_INVALID")
             if mode == "verify_identity" and (not tls.get("ca_file") or tls.get("verify_identity") is not True):
                 raise DataError("TLS_REQUIRED")
-            url = URL.create(driver, username=secret(config.get("username_ref"), self.env, base),
-                             password=secret(config.get("password_ref"), self.env, base),
+            if any(not isinstance(config.get(key), str) or not config[key]
+                   for key in ("username", "password")):
+                raise DataError("SECRET_REQUIRED")
+            url = URL.create(driver, username=config["username"],
+                             password=config["password"],
                              host=config["host"], port=int(config.get("port", 3306)), database=config["database"])
             args = {"connect_timeout": timeout, "read_timeout": timeout, "write_timeout": timeout,
                     "local_infile": False, "charset": "utf8mb4"}

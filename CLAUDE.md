@@ -62,7 +62,7 @@
 - 可复用的大规模多代理编排使用 `.claude/workflows/*.js`；单 Agent 的确定性 workflow 使用同名目录中的 `workflow.json` 声明 `execution.mode=direct`，由 Python 直接启动受限 SDK Run，不再经过 Skill/Workflow/子代理
 - `python/` 放应用后端、Agent SDK worker 和可复用运行时方法；workflow 专属表范围、数据库名和 provider 模板不得放入 Python 目录
 - 数据资产按.claude/databases/<source_key>/集中：source.json绑定能力和private/connection.json；schema为核验过的表列类型及说明，metrics为定义/SQL及pending，semantics为关联/业务口径；索引由Python生成，测试放python/tests/databases；模板引用source_key+domain+query_id。定义不明不得编造SQL，blocked/needs_definition不得自动升级。
-- workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；数据库连接仅由数据库包登记的private/connection.json及秘密引用装配，禁止放入Workflow环境文件；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
+- workflow 专属环境变量放在同名目录被忽略的 `workflow.env`；数据库连接仅由数据库包登记的private/connection.json装配（用户名和密码直接保存在此私有JSON），禁止放入Workflow环境文件；通用密钥放在根 `.env` 或 Secret Manager，不得写入代码、Skills、Agents、日志或报告
 - workflow文档由workflow.json.documents登记；公共数据库知识由source.json.domains登记并通过数据工具授权按需加载。两个加载器分别限制边界，未登记及not_for_model人工材料不进入Prompt。
 - `database-qa` 的语义来源维护在 DBProcessing 的 `doc/model_context`，接入时只提炼硬约束、业务口径和必要字段；`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照只作人工核验，不注入 prompt
 - `database-qa` 默认是国双高口径：项目/资金/绩效按有效项目标记，纯任务统计按任务标记；标记不一致必须披露，不能静默用另一种标记排除数据

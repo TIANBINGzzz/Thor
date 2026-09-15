@@ -33,7 +33,7 @@ class Executor:
         self.catalog = (catalog or Catalog()).freeze(source_keys)
         self.source_keys = tuple(source_keys)
         self.config = {s:load_config(self.catalog.connection_path(s)) for s in self.source_keys}
-        self.connections = Connections(env)
+        self.connections = Connections()
         self.results = Results(context)
         self.scopes, self.entities = {}, {}
         self._versions = {s: self.catalog.revision(s) for s in self.source_keys}
