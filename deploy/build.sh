@@ -13,8 +13,10 @@ if [ -e "$release_directory" ]; then
     echo 'Release directory already exists; choose a new CCSDK_OUTPUT_DIRECTORY.' >&2
     exit 1
 fi
-set -- --build-arg "NODE_IMAGE=${NODE_IMAGE:-node:22-bookworm-slim}" \
-    --build-arg "PYTHON_IMAGE=${PYTHON_IMAGE:-python:3.12-slim-bookworm}"
+set -- --build-arg "NODE_IMAGE=${NODE_IMAGE:-public.ecr.aws/docker/library/node:22-bookworm-slim}" \
+    --build-arg "PYTHON_IMAGE=${PYTHON_IMAGE:-public.ecr.aws/docker/library/python:3.12-slim-bookworm}" \
+    --build-arg "PIP_INDEX_URL=${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple}" \
+    --build-arg "DEBIAN_MIRROR=${DEBIAN_MIRROR:-mirrors.aliyun.com}"
 docker build "$@" --target test --tag "${CCSDK_IMAGE}-test" .
 docker build "$@" --target runtime --tag "$CCSDK_IMAGE" .
 mkdir -p "$release_directory/deploy"

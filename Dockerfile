@@ -1,18 +1,27 @@
-ARG NODE_IMAGE=node:22-bookworm-slim
-ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim
+ARG PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.12-slim-bookworm
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+ARG DEBIAN_MIRROR=mirrors.aliyun.com
 FROM ${NODE_IMAGE} AS node-deps
 WORKDIR /deps
 
 FROM ${PYTHON_IMAGE} AS runtime
+ARG PIP_INDEX_URL
+ARG DEBIAN_MIRROR
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 \
     HOME=/home/scribe CLAUDE_CONFIG_DIR=/app/.scribe-runs/claude-config
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 libreoffice-writer fonts-noto-cjk \
+RUN sed -i \
+      -e "s@deb.debian.org@${DEBIAN_MIRROR}@g" \
+      -e "s@security.debian.org@${DEBIAN_MIRROR}@g" \
+      /etc/apt/sources.list.d/debian.sources \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 libreoffice-writer fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 scribe \
     && useradd --uid 10001 --gid scribe --create-home scribe
 WORKDIR /app
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" -r requirements.txt
 COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
 COPY python/ ./python/
 COPY .claude/ ./.claude/

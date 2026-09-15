@@ -49,6 +49,9 @@ stages:
                 commit_sha=$(git rev-parse --verify HEAD)
                 export CCSDK_IMAGE="ccsdkscribe:${commit_sha}-${BUILD_NUMBER}"
                 export CCSDK_OUTPUT_DIRECTORY="dist/release-${BUILD_NUMBER}"
+                export NODE_IMAGE="public.ecr.aws/docker/library/node:22-bookworm-slim"
+                export PYTHON_IMAGE="public.ecr.aws/docker/library/python:3.12-slim-bookworm"
+                export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple"
                 sh deploy/build.sh
           upload_step:
             step: ArtifactUpload
