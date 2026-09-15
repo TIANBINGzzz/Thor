@@ -1,94 +1,96 @@
 {
-  "version": 1,
-  "connection": {
-    "source_key": "schoolDoubleHigh",
-    "tenant_id": "SET_VERIFIED_JWT_TENANT",
-    "driver": "mysql+pymysql",
-    "host": "SET_DATABASE_HOST",
-    "port": 3306,
-    "database": "test_hpm_dev",
-    "username": "SET_DATABASE_USER",
-    "password": "SET_DATABASE_PASSWORD",
-    "tls": {
-      "ca_file": "database-ca.pem",
-      "verify_identity": true
-    },
-    "revision": 1,
-    "timeout_seconds": 30,
-    "max_rows": 10000,
-    "database_scope_enforced": false
-  },
-  "policy": {
-    "source_key": "schoolDoubleHigh",
-    "tenant_id": "SET_VERIFIED_JWT_TENANT",
-    "business_tenant_id": "SET_AUTHORIZED_DATABASE_TENANT",
-    "revision": 1,
-    "users": [],
-    "capabilities": [
-      "national-excellence-data-qa",
-      "document-writing"
-    ],
-    "templates": [
-      "szpt-midterm"
-    ],
-    "project_scope": {
-      "mode": "selected",
-      "project_ids": []
-    },
-    "dynamic_sql_enabled": false,
-    "domains": {
-      "hpm": {
-        "queries": [
-          "completed_task_count",
-          "completed_tasks_without_material",
-          "fund_department_coverage",
-          "fund_source_amounts",
-          "fund_totals",
-          "performance_current_summary",
-          "performance_department_metrics",
-          "performance_feedback_candidates",
-          "performance_historical_snapshot",
-          "performance_module_status",
-          "performance_stage_summary",
-          "performance_tree",
-          "project_catalog",
-          "project_leaders",
-          "report_achievement_count",
-          "report_cycle_budget",
-          "report_income_budget_rate",
-          "report_indicator_completion_rate",
-          "report_performance_titles",
-          "report_scoring",
-          "report_task_performance_links",
-          "report_terminal_completion",
-          "stage_catalog",
-          "task_department_candidates",
-          "task_department_metrics",
-          "task_feedback_candidates",
-          "task_level_counts",
-          "task_members",
-          "task_progress_summary",
-          "task_project_candidates",
-          "task_project_flag_diagnostics",
-          "task_tree",
-          "report_task_sections"
+  "sources": {
+    "schoolDoubleHigh": {
+      "connection": {
+        "tenant_id": "SET_VERIFIED_JWT_TENANT",
+        "driver": "mysql+pymysql",
+        "host": "SET_DATABASE_HOST",
+        "port": 3306,
+        "database": "test_hpm_dev",
+        "username": "SET_DATABASE_USER",
+        "password": "SET_DATABASE_PASSWORD",
+        "tls": {
+          "ca_file": "certificates/schoolDoubleHigh.pem",
+          "verify_identity": true
+        },
+        "revision": 1,
+        "timeout_seconds": 30,
+        "max_rows": 10000,
+        "database_scope_enforced": false
+      },
+      "policy": {
+        "tenant_id": "SET_VERIFIED_JWT_TENANT",
+        "business_tenant_id": "SET_AUTHORIZED_DATABASE_TENANT",
+        "revision": 1,
+        "users": [],
+        "capabilities": [
+          "national-excellence-data-qa",
+          "document-writing"
         ],
-        "tables": [
-          "t_hpm_project",
-          "t_hpm_project_stage",
-          "t_hpm_project_module",
-          "t_hpm_project_task",
-          "t_hpm_project_task_feedback",
-          "t_hpm_project_task_org",
-          "t_hpm_project_task_member",
-          "t_hpm_project_member",
-          "t_hpm_project_fund",
-          "t_hpm_project_performance",
-          "t_hpm_project_performance_feedback",
-          "t_hpm_project_performance_org",
-          "t_hpm_project_task_performance_relation"
-        ]
+        "templates": [
+          "szpt-midterm"
+        ],
+        "project_scope": {
+          "mode": "selected",
+          "project_ids": []
+        },
+        "dynamic_sql_enabled": false,
+        "domains": {
+          "hpm": {
+            "queries": [
+              "completed_task_count",
+              "completed_tasks_without_material",
+              "fund_department_coverage",
+              "fund_source_amounts",
+              "fund_totals",
+              "performance_current_summary",
+              "performance_department_metrics",
+              "performance_feedback_candidates",
+              "performance_historical_snapshot",
+              "performance_module_status",
+              "performance_stage_summary",
+              "performance_tree",
+              "project_catalog",
+              "project_leaders",
+              "report_achievement_count",
+              "report_cycle_budget",
+              "report_income_budget_rate",
+              "report_indicator_completion_rate",
+              "report_performance_titles",
+              "report_scoring",
+              "report_task_performance_links",
+              "report_terminal_completion",
+              "stage_catalog",
+              "task_department_candidates",
+              "task_department_metrics",
+              "task_feedback_candidates",
+              "task_level_counts",
+              "task_members",
+              "task_progress_summary",
+              "task_project_candidates",
+              "task_project_flag_diagnostics",
+              "task_tree",
+              "report_task_sections"
+            ],
+            "tables": [
+              "t_hpm_project",
+              "t_hpm_project_stage",
+              "t_hpm_project_module",
+              "t_hpm_project_task",
+              "t_hpm_project_task_feedback",
+              "t_hpm_project_task_org",
+              "t_hpm_project_task_member",
+              "t_hpm_project_member",
+              "t_hpm_project_fund",
+              "t_hpm_project_performance",
+              "t_hpm_project_performance_feedback",
+              "t_hpm_project_performance_org",
+              "t_hpm_project_task_performance_relation"
+            ]
+          }
+        }
       }
     }
-  }
+  },
+  "version": 1
 }

@@ -17,7 +17,6 @@ mkdir -p "$CCSDK_CONFIG_DIRECTORY"
 config_directory=$(cd "$CCSDK_CONFIG_DIRECTORY" && pwd -P)
 export CCSDK_CONFIG_DIRECTORY="$config_directory"
 export CCSDK_ENV_FILE="${CCSDK_ENV_FILE:-$config_directory/runtime.env}"
-export CCSDK_DATA_DIRECTORY="${CCSDK_DATA_DIRECTORY:-$config_directory/data}"
 # Prevent two host deployment jobs from replacing the same service concurrently.
 exec 9>"${CCSDK_DEPLOY_LOCK_FILE:-$config_directory/deploy.lock}"
 flock -n 9 || { echo 'Another deployment is running.' >&2; exit 1; }
@@ -51,7 +50,6 @@ if [ "${CCSDK_GENERATE_ENV:-0}" = 1 ]; then
     if [ "${CCSDK_WITH_DATABASE:-0}" = 1 ]; then set -- "$@" --database; fi
     docker run "$@"
     export CCSDK_ENV_FILE="$config_directory/runtime.env"
-    export CCSDK_DATA_DIRECTORY="$config_directory/data"
 fi
 set -- -f compose.yaml
 if [ "${CCSDK_WITH_DATABASE:-0}" = 1 ]; then set -- "$@" -f compose.database.yaml; fi

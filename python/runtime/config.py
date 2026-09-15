@@ -22,7 +22,7 @@ from tools.data import create_data_server
 from workflows.writing_docx.tools import create_reports_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
-from data_access.context import DataError
+from data_access.connections import load_config
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
 
@@ -64,6 +64,7 @@ SDK_ENV_KEYS = {
     "CLAUDE_CONFIG_DIR",
 }
 WORKER_CONFIG_ENV_KEYS = {
+    "CCSDK_DATABASES_FILE",
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
@@ -340,14 +341,8 @@ def data_source_keys(payload):
     catalog = Catalog()
     sources = catalog.sources_for(payload.get('capability_ref'))
     if mode == 'optional' and not payload.get('_template_key'):
-        configured = []
-        for source in sources:
-            try:
-                catalog.connection_path(source)
-            except DataError:
-                continue
-            configured.append(source)
-        return configured
+        configured = load_config(os.environ, optional=True)
+        return [source for source in sources if source in configured]
     if not sources:
         raise RuntimeError('本轮能力没有已登记的数据源')
     return sources

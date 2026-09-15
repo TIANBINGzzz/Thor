@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 
 from .catalog import Catalog
 from .connections import Connections, load_config
@@ -32,7 +33,9 @@ def main():
                         validate_sql(catalog.sql(source['source_key'], domain, spec), catalog.schema(source['source_key'], domain))
                         count += 1
             if args.command == 'probe':
-                config = load_config(catalog.connection_path(source['source_key']))
+                config = load_config(os.environ).get(source['source_key'])
+                if config is None:
+                    raise DataError('CONNECTION_UNAVAILABLE')
                 connection = config['connection']
                 if connection.get('source_key') != source['source_key'] or not connection.get('revision'):
                     raise DataError('CONFIG_INVALID')

@@ -391,10 +391,14 @@ def _clear_runtime_input(directory: Path) -> None:
 
 def _data_config_fingerprint(payload):
     from data_access.catalog import Catalog
+    from data_access.connections import config_path
     from runtime.config import data_source_keys
     catalog = Catalog()
-    return [(source, catalog.revision(source), hashlib.sha256(catalog.connection_path(source).read_bytes()).hexdigest())
-            for source in data_source_keys(payload)]
+    sources = data_source_keys(payload)
+    if not sources:
+        return []
+    revision = hashlib.sha256(config_path(os.environ).read_bytes()).hexdigest()
+    return [(source, catalog.revision(source), revision) for source in sources]
 
 
 def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:

@@ -111,11 +111,6 @@ class Catalog:
     def sources_for(self, capability_ref):
         return [s['source_key'] for s in self.sources() if capability_ref in s.get('capabilities', [])]
 
-    def connection_path(self, source_key):
-        # Private configuration is loaded by the executor, never frozen as model assets.
-        source = self.source(source_key)
-        return asset_path(self.root / source_key, source['connection_file'])
-
     def schema(self, source_key, domain):
         definition = self.source(source_key).get('domains', {}).get(key(domain))
         if not definition:

@@ -32,7 +32,10 @@ class Executor:
         self.context = context
         self.catalog = (catalog or Catalog()).freeze(source_keys)
         self.source_keys = tuple(source_keys)
-        self.config = {s:load_config(self.catalog.connection_path(s)) for s in self.source_keys}
+        configured = load_config(env) if self.source_keys else {}
+        if any(s not in configured for s in self.source_keys):
+            raise DataError('CONNECTION_UNAVAILABLE')
+        self.config = {s: configured[s] for s in self.source_keys}
         self.connections = Connections()
         self.results = Results(context)
         self.scopes, self.entities = {}, {}

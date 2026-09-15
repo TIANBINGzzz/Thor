@@ -29,11 +29,13 @@ class DataAccessTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        self.config_path = self.root/'config/databases.json'
+        self.env = {'CCSDK_DATABASES_FILE': str(self.config_path)}
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
         for source, amount in [('first', 10), ('second', 20)]:
             folder = self.root / 'databases' / source
             save(folder/'source.json', {'source_key': source, 'name': source, 'enabled': True, 'version': 1,
-                'capabilities':['qa'], 'connection_file':'private/connection.json',
+                'capabilities':['qa'],
                 'domains': {'sales': {'metrics':'metrics/sales','schema':'schema/sales.json','documents':{}}}})
             domain = folder/'metrics/sales'
             save(domain/'pending.json', {})
@@ -60,9 +62,10 @@ class DataAccessTests(unittest.TestCase):
 
     def make_executor(self, context=None):
         self.save_connections()
-        return Executor(context or self.context, {}, self.catalog, ['first','second'])
+        return Executor(context or self.context, self.env, self.catalog, ['first','second'])
 
     def save_connections(self):
+        sources = {}
         for source in ('first','second'):
             policy=deepcopy(self.config['policies'][source])
             for name,domain in policy['domains'].items():
@@ -71,8 +74,10 @@ class DataAccessTests(unittest.TestCase):
                 domain['tables']=list(domain['tables'])
                 domain.pop('functions'); domain.pop('internal_columns')
             connection={**self.config['connections'][source], 'database':str(self.root/f'{source}.db')}
-            save(self.root/f'databases/{source}/private/connection.json',
-                 {'version':1,'connection':connection,'policy':policy})
+            connection.pop('source_key')
+            policy.pop('source_key')
+            sources[source] = {'connection':connection,'policy':policy}
+        save(self.config_path, {'version':1,'sources':sources})
 
     def school(self, executor=None, source='first'):
         return (executor or self.executor).resolve_entities(source,'sales','school','')['candidates'][0]['scope_ref']
@@ -144,29 +149,54 @@ class DataAccessTests(unittest.TestCase):
         for marker in ('private-host-marker','PRIVATE_SECRET_MARKER','business-a','jwt-a'):
             self.assertNotIn(marker,public)
             self.assertNotIn(marker,assets)
-        path=self.root/'databases/first/private/connection.json'
-        config=json.loads(path.read_text());config['policy']['users']=[];save(path,config)
+        path=self.config_path
+        config=json.loads(path.read_text());config['sources']['first']['policy']['users']=[];save(path,config)
         self.assertEqual(self.catalog.revision('first'),revision)
         self.assertEqual(len(executor.list_data_sources()['sources']),2)
-        refreshed=Executor(self.context,{},self.catalog,['first'])
+        refreshed=Executor(self.context,self.env,self.catalog,['first'])
         self.assertEqual(refreshed.list_data_sources()['sources'],[])
 
-    def test_private_connection_cannot_reference_another_database(self):
-        path=self.root/'databases/first/source.json'
-        source=json.loads(path.read_text());source['connection_file']='../second/private/connection.json';save(path,source)
-        with self.assertRaisesRegex(DataError,'ASSET_PATH_INVALID'):
-            Executor(self.context,{},self.catalog,['first'])
+    def test_central_connection_rejects_conflicting_source_identity(self):
+        config=json.loads(self.config_path.read_text())
+        config['sources']['first']['connection']['source_key']='second'
+        save(self.config_path,config)
+        with self.assertRaisesRegex(DataError,'CONFIG_INVALID'):
+            Executor(self.context,self.env,self.catalog,['first'])
+
+    def test_connection_rotation_changes_client_fingerprint_without_changing_assets(self):
+        from server import _data_config_fingerprint
+        with patch('data_access.catalog.Catalog',side_effect=lambda root=self.catalog.root: Catalog(root)), \
+             patch('runtime.config.data_source_keys',return_value=['first']), patch.dict('os.environ',self.env):
+            before=_data_config_fingerprint({})
+            config=json.loads(self.config_path.read_text())
+            config['sources']['first']['connection']['password']='rotated-secret'
+            save(self.config_path,config)
+            after=_data_config_fingerprint({})
+        self.assertEqual(before[0][:2],after[0][:2])
+        self.assertNotEqual(before[0][2],after[0][2])
+        self.assertNotIn('rotated-secret',str(after))
+
+    def test_conversation_and_optional_writing_without_config_and_malformed_config(self):
+        with patch.dict('os.environ',self.env), patch('runtime.config.Catalog',return_value=self.catalog):
+            self.config_path.unlink()
+            self.assertEqual(data_source_keys({'capability_ref':'conversation'}),[])
+            writing={'workflow_name':'writing-docx','capability_ref':'qa'}
+            self.assertEqual(data_source_keys(writing),[])
+            self.config_path.write_text('{broken')
+            with self.assertRaisesRegex(DataError,'CONFIG_INVALID'): data_source_keys(writing)
 
     def test_optional_writing_discovers_configured_sources_and_template_requires_them(self):
         payload={'workflow_name':'writing-docx','capability_ref':'qa'}
-        with patch('runtime.config.Catalog',return_value=self.catalog):
+        with patch('runtime.config.Catalog',return_value=self.catalog), patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
-            (self.root/'databases/second/private/connection.json').unlink()
+            config=json.loads(self.config_path.read_text())
+            del config['sources']['second']
+            save(self.config_path,config)
             self.assertEqual(data_source_keys(payload),['first'])
             locked={**payload,'_template_key':'demo'}
             self.assertEqual(data_source_keys(locked),['first','second'])
             with self.assertRaises(DataError):
-                Executor(self.context,{},self.catalog,data_source_keys(locked))
+                Executor(self.context,self.env,self.catalog,data_source_keys(locked))
 
     def test_no_identity_or_source_fallback_and_no_model_tenant(self):
         with self.assertRaises(DataError): DataContext.from_payload({'run_id':'x'})
@@ -227,13 +257,14 @@ class DataAccessTests(unittest.TestCase):
         payload = {'workflow_name':'qa', 'run_id':'r1', 'capability_ref':'qa',
                    '_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
                    '_data_run_directory':str(self.root/'r1')}
-        values = {'FIRST_DB_SECRET':'first-secret',
+        values = {**self.env, 'FIRST_DB_SECRET':'first-secret',
                   'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
         with patch.dict('os.environ', values, clear=True), \
              patch('runtime.config.load_workflow_config', return_value={'data_access':'required'}), \
              patch('runtime.data_services.Catalog', return_value=self.catalog), \
              patch('runtime.config.Catalog', return_value=self.catalog):
             selected = worker_environment(payload)
+            self.assertEqual(selected['CCSDK_DATABASES_FILE'],self.env['CCSDK_DATABASES_FILE'])
             self.assertNotIn('FIRST_DB_SECRET', selected)
             self.assertNotIn('SECOND_DB_SECRET', selected)
             self.assertNotIn('UNREGISTERED_SECRET', selected)
@@ -242,6 +273,7 @@ class DataAccessTests(unittest.TestCase):
                 import os
                 self.assertNotIn('FIRST_DB_SECRET', os.environ)
                 self.assertNotIn('SECOND_DB_SECRET', os.environ)
+                self.assertNotIn('CCSDK_DATABASES_FILE',os.environ)
             self.assertEqual(os.environ['FIRST_DB_SECRET'], 'first-secret')
             denied = {**payload, '_data_identity':{'tenant_id':'jwt-b','user_id':'u1'}}
             self.assertNotIn('FIRST_DB_SECRET', worker_environment(denied))
@@ -302,7 +334,7 @@ class DataAccessTests(unittest.TestCase):
     def test_run_rebinding_invalidates_results_and_refreshes_policy(self):
         async def scenario():
             self.save_connections()
-            services=RunServices(['first','second'],env={},catalog=self.catalog)
+            services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
             payload={'run_id':'r1','_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
                      'capability_ref':'qa','_data_run_directory':str(self.root/'r1')}
             await services.bind(payload)
@@ -323,15 +355,18 @@ class DataAccessTests(unittest.TestCase):
 class RegisteredAssetsTests(unittest.TestCase):
     def test_chinese_business_queries_rank_existing_definitions(self):
         config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
-        policy=config['policy']
+        entry=config['sources']['schoolDoubleHigh']
+        policy=entry['policy']
         policy.update(tenant_id='test',business_tenant_id='test',users=['tester'],
                       capabilities=['national-excellence-data-qa'],project_scope={'mode':'all_school'})
-        config['connection']['tenant_id']='test'
+        entry['connection']['tenant_id']='test'
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory)/'databases/schoolDoubleHigh'
             shutil.copytree(PROJECT_ROOT/'.claude/databases/schoolDoubleHigh',folder,ignore=shutil.ignore_patterns('private'))
-            save(folder/'private/connection.json',config)
-            executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory)),{},
+            path=Path(directory)/'config/databases.json'
+            save(path,config)
+            executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory)),
+                              {'CCSDK_DATABASES_FILE':str(path)},
                               Catalog(folder.parent),source_keys=['schoolDoubleHigh'])
             cases={'专业群':'project_catalog','资金执行率':'fund_totals',
                    '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'report_task_sections',

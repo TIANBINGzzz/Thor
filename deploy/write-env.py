@@ -5,6 +5,7 @@ import base64
 import binascii
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 from urllib.parse import urlsplit
@@ -24,7 +25,17 @@ RUNTIME_KEYS = (
     "CCSDK_CLIENT_CAPABILITIES", "CCSDK_BUSINESS_MCP_CAPABILITIES", "SCRIBE_MAX_TURNS",
 )
 REQUIRED_KEYS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "CCSDK_RUNTIME_JWT_SECRET")
-DATABASE_KEYS = ("CCSDK_DATA_CONFIG_JSON", "CCSDK_DATABASE_USER", "CCSDK_DATABASE_PASSWORD", "CCSDK_DATABASE_CA")
+DATABASE_KEYS = ("CCSDK_DATABASES_JSON", "CCSDK_DATABASE_CERTIFICATES_JSON")
+
+
+def certificates(environment):
+    values = json.loads(environment.get('CCSDK_DATABASE_CERTIFICATES_JSON', '{}'))
+    if not isinstance(values, dict) or any(
+        not re.fullmatch(r'[A-Za-z0-9_-]+\.pem', name) or not isinstance(value, str) or not value
+        for name, value in values.items()
+    ):
+        raise ValueError('Invalid database certificates')
+    return values
 
 
 def parse_bundle(content):
@@ -56,17 +67,31 @@ def load_environment(environment):
 def render(environment, *, database=False):
     if database:
         try:
-            config = json.loads(environment["CCSDK_DATA_CONFIG_JSON"])
-            if (config.get("version") != 1 or not config.get("connection") or not config.get("policy")
-                    or config['connection'].get('source_key') != config['policy'].get('source_key')):
+            config = json.loads(environment["CCSDK_DATABASES_JSON"])
+            if (not isinstance(config, dict) or config.get('version') != 1
+                    or not isinstance(config.get('sources'), dict) or not config['sources']):
                 raise ValueError()
-            for value in DATABASE_KEYS[1:]:
-                if not environment.get(value):
+            certs = certificates(environment)
+            for source, entry in config['sources'].items():
+                if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,95}', source) or not isinstance(entry, dict):
                     raise ValueError()
-            config["connection"]["username"] = environment["CCSDK_DATABASE_USER"]
-            config["connection"]["password"] = environment["CCSDK_DATABASE_PASSWORD"]
+                connection, policy = entry.get('connection'), entry.get('policy')
+                if any(not isinstance(v, dict) or not v or 'source_key' in v for v in (connection, policy)):
+                    raise ValueError()
+                if connection.get('driver') != 'mysql+pymysql' or any(
+                    not isinstance(connection.get(k), str) or not connection[k]
+                    for k in ('host', 'database', 'username', 'password')
+                ):
+                    raise ValueError()
+                tls = connection.get('tls', {})
+                mode = tls.get('mode', 'verify_identity')
+                if mode not in ('verify_identity', 'disabled'):
+                    raise ValueError()
+                if mode == 'verify_identity' and (tls.get('verify_identity') is not True
+                        or tls.get('ca_file') not in {'certificates/' + name for name in certs}):
+                    raise ValueError()
             return json.dumps(config, ensure_ascii=False, indent=2) + "\n"
-        except (KeyError, ValueError, TypeError):
+        except (KeyError, ValueError, TypeError, AttributeError):
             raise ValueError("Invalid protected data configuration or missing database secrets") from None
     keys = DATABASE_KEYS if database else RUNTIME_KEYS
     required = DATABASE_KEYS if database else REQUIRED_KEYS
@@ -133,12 +158,16 @@ def main():
         os.chmod(args.directory, 0o700)
         atomic_write(args.directory / "runtime.env", runtime)
         if database is not None:
-            directory = args.directory / "data"
+            # The container UID must traverse the mounted directory; runtime.env stays root-only.
+            os.chown(args.directory, 0, 10001)
+            os.chmod(args.directory, 0o750)
+            directory = args.directory / "certificates"
             directory.mkdir(mode=0o700, exist_ok=True)
             os.chown(directory, 10001, 10001)
             os.chmod(directory, 0o700)
-            atomic_write(directory / "connection.json", database, database=True)
-            atomic_write(directory / "database-ca.pem", environment["CCSDK_DATABASE_CA"], database=True)
+            for name, content in certificates(environment).items():
+                atomic_write(directory / name, content, database=True)
+            atomic_write(args.directory / "databases.json", database, database=True)
     except (ValueError, OSError) as error:
         if isinstance(error, ValueError):
             parser.exit(1, str(error) + "\n")

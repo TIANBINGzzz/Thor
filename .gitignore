@@ -6,7 +6,7 @@ deploy/*.env
 *.secret
 *.pem
 deploy/data-access.json
-.claude/databases/*/private/
+/config/
 *.secret.b64
 /dist/
 *.log

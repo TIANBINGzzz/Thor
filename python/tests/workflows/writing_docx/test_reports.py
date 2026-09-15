@@ -63,7 +63,7 @@ class ReportingTests(unittest.TestCase):
             duplicate=deepcopy(template['_bindings']['datasets'][0])
             duplicate['dataset_key']='repeated_total'
             template['_bindings']['datasets'].append(duplicate)
-            services=RunServices(['first','second'],env={},catalog=self.catalog)
+            services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
             planner=Planner(services,template)
             services.report=planner
@@ -89,7 +89,7 @@ class ReportingTests(unittest.TestCase):
     def test_missing_definitions_reject_render_and_invented_evidence(self):
         async def scenario():
             template=self.template(missing=True)
-            services=RunServices(['first'],env={},catalog=self.catalog)
+            services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
             planner=Planner(services,template)
             services.report=planner
@@ -276,7 +276,7 @@ class ReportingTests(unittest.TestCase):
             template=self.template()
             binding=template['_slots'][-1]
             binding.update(kind='narrative',required=True,evidence_datasets=['total'])
-            services=RunServices(['first'],env={},catalog=self.catalog)
+            services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
             planner=Planner(services,template)
             services.report=planner
@@ -311,7 +311,7 @@ class ReportingTests(unittest.TestCase):
             from workflows.writing_docx.tools import create_reports_server
             from base64 import b64decode
             template=self.template()
-            services=RunServices(['first'],env={},catalog=self.catalog)
+            services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
             planner=Planner(services,template)
             services.report=planner

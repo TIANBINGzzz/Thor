@@ -7,7 +7,6 @@
     "national-excellence-data-qa",
     "document-writing"
   ],
-  "connection_file": "private/connection.json",
   "domains": {
     "hpm": {
       "metrics": "metrics/hpm",

@@ -6,7 +6,7 @@
 
 ```text
 .claude/workflows/writing-docx/
-  workflow.json               来源/模板登记，无连接密码
+  workflow.json               数据访问模式及流程文档登记，无连接密码
   templates/
     szpt-midterm/             唯一启用的原40表规范化模板及来源
       template.json          版本、DOCX哈希、能力、角色和期间Schema

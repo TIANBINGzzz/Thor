@@ -27,7 +27,11 @@
 python deploy/encode-secret.py scratch/ccsdkscribe.secret.json scratch/ccsdkscribe.secret.b64
 ```
 
-复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库部署另提供CCSDK_DATA_CONFIG_JSON（参照data-access.example.json）、CCSDK_DATABASE_USER、CCSDK_DATABASE_PASSWORD、CCSDK_DATABASE_CA。启用CCSDK_WITH_DATABASE=1后生成受限data/connection.json（含用户名和密码）及CA证书文件，compose将CCSDK_DATA_DIRECTORY只读挂载到容器内/app/.claude/databases/schoolDoubleHigh/private，由source.json登记读取；不再生成Workflow数据库环境文件。
+复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库另提供CCSDK_DATABASES_JSON（参照data-access.example.json，sources按来源键集中所有连接、用户名、密码及策略）。需要TLS证书时提供CCSDK_DATABASE_CERTIFICATES_JSON，格式为`{"schoolDoubleHigh.pem":"证书内容"}`，连接的tls.ca_file写`certificates/schoolDoubleHigh.pem`。不再提供单独数据库账号/密码变量。
+
+CCSDK_WITH_DATABASE=1启用数据库挂载；CCSDK_GENERATE_ENV=1从云效变量生成runtime.env、databases.json及certificates/。配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE固定为/app/config/databases.json；新增连接无需增加挂载。配置目录权限750、root:10001，数据库文件400、10001:10001，runtime.env保持root专用600。
+
+学校现场可维护相同目录，CCSDK_GENERATE_ENV=0保留文件，升级只换镜像；Flow已开放此开关。不要同时在云效与主机维护同一环境。非Docker开发默认读取项目根config/databases.json，或由CCSDK_DATABASES_FILE指定；相对路径以项目根为准。学校切换地址、凭据、TLS及授权范围后排空任务并重新部署，无需重建镜像。
 
 在“编辑流水线 → 变量和缓存 → 字符变量 → 新建变量”填写 `CCSDK_DEPLOY_ENV_B64`，打开私密模式，粘贴编码文件内容（不加引号）并保存。JSON 不要使用在线编码网站；用 JSON 字符串规则转义反斜线/双引号，值不能含换行。Base64 是传输编码，不是加密；编码文件和原 JSON 都按密钥保管，Windows 还需限制本地文件 ACL。
 
@@ -47,7 +51,7 @@ Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.servi
 2. `REPLACE_MACHINE_GROUP_ID`：包含 `192.168.10.97` 的主机组 ID。截图中的“开发环境-192.168.10.97（业务系统）”是显示名，不是 ID；在主机组详情或 YAML 编辑器中复制真实 ID。
 3. `CCSDK_DEPLOY_ROOT`：97 上的持久目录。
 
-普通部署设置在 YAML 的 `variables` 修改：`CCSDK_BIND_IP` 默认回环；`CCSDK_WITH_DATABASE` 默认 `0`，启用问数改 `1` 并在 JSON 加上全部三个 DB 字段。JWT 密钥、issuer/audience 要与 Java 一致。容器内的 `127.0.0.1` 指容器自身，本机代理、数据库、File Broker 地址不能照搬；数据库库名和 3306 端口目前由受控 Workflow 配置固定，需另核对。完整迁移问题见 [checks/README.md](checks/README.md)。
+普通部署设置在 YAML 的variables修改：CCSDK_BIND_IP默认回环；CCSDK_WITH_DATABASE默认0，启用问数改1并提供databases.json；CCSDK_GENERATE_ENV默认1，现场维护配置改0。JWT密钥、issuer/audience要与Java一致。容器内127.0.0.1指容器自身，数据库host/port/database全部由集中配置提供。完整迁移问题见[checks/README.md](checks/README.md)。
 
 构建任务会运行 `deploy/build.sh`：执行 Dockerfile 的完整 Python 测试，生成 `dist/release/image.tar`、镜像 ID、校验和及部署文件，然后通过 `ArtifactUpload` 上传。部署任务下载完整制品，校验 SHA256，`docker load` 后使用镜像内的 `write-env.py` 生成 `runtime.env`，再以 `docker compose --pull never` 启动。`CCSDK_SMOKE_TEST=1` 会额外执行健康、未认证拒绝、签名 Run、真实模型响应和 SSE 顺序检查；首次接入可先设为 `0`，待模型网络和 JWT 配置确认后再设为 `1`。
 

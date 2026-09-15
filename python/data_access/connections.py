@@ -8,17 +8,33 @@ import time
 from sqlalchemy import URL, create_engine
 from sqlalchemy.pool import NullPool
 
-from .catalog import read_json
+from .catalog import PROJECT_ROOT, key, read_json
 from .context import DataError
 
 
-def load_config(path):
-    location = Path(path)
+def config_path(env):
+    location = Path(env.get('CCSDK_DATABASES_FILE') or 'config/databases.json')
+    return (location if location.is_absolute() else PROJECT_ROOT / location).resolve()
+
+
+def load_config(env, *, optional=False):
+    location = config_path(env)
+    if optional and not location.exists():
+        return {}
     config = read_json(location)
-    if config.get("version") != 1 or not config.get('connection') or not config.get('policy'):
+    if not isinstance(config, dict) or config.get('version') != 1 or not isinstance(config.get('sources'), dict):
         raise DataError("CONFIG_INVALID")
-    config['connection']['_base_directory'] = location.resolve().parent
-    return config
+    for source_key, entry in config['sources'].items():
+        key(source_key)
+        if not isinstance(entry, dict):
+            raise DataError('CONFIG_INVALID')
+        for field in ('connection', 'policy'):
+            value = entry.get(field)
+            if not isinstance(value, dict) or not value or 'source_key' in value:
+                raise DataError('CONFIG_INVALID')
+            value['source_key'] = source_key
+        entry['connection']['_base_directory'] = location.parent
+    return config['sources']
 
 
 def resolve_connection(context, source, config):

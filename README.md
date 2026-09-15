@@ -51,7 +51,7 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 
 ## 配置与安全
 
-模型配置写在根.env；数据库包的source.json登记可用能力及private/connection.json，后者保存连接/授权并引用独立秘密文件，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
+模型配置写在根.env；数据库包的source.json登记可用能力；部署侧databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
 报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可配置`CCSDK_REPORT_RENDERER=wps`使用已安装WPS。无法渲染或逐页审阅未通过时禁止发布。
 

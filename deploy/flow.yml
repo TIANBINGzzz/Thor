@@ -16,6 +16,8 @@ concurrencyConfig:
   pipelineMaxRunningBehavior: rejectNew
   maxRunningJobInstances: 1
 variables:
+  - key: CCSDK_GENERATE_ENV
+    value: "1"
   - key: CCSDK_BIND_IP
     value: "127.0.0.1"
   - key: CCSDK_WITH_DATABASE
@@ -88,7 +90,7 @@ stages:
             export CCSDK_WITH_DATABASE='${CCSDK_WITH_DATABASE}'
             export CCSDK_CONFIG_DIRECTORY="${CCSDK_DEPLOY_ROOT}/config"
             export CCSDK_RELEASE_DIRECTORY=..
-            export CCSDK_GENERATE_ENV=1
+            export CCSDK_GENERATE_ENV='${CCSDK_GENERATE_ENV}'
             export CCSDK_SMOKE_TEST='${CCSDK_SMOKE_TEST}'
             release_directory="${CCSDK_DEPLOY_ROOT}/releases/${PIPELINE_ID}-${BUILD_NUMBER}"
             mkdir -p "$release_directory"

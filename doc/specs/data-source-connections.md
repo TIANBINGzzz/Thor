@@ -7,7 +7,6 @@
 ```text
 .claude/databases/schoolDoubleHigh/
   source.json               来源、能力绑定、连接入口和域知识登记
-  private/connection.json   连接与授权策略，忽略且不打包；直接保存用户名和密码
   schema/hpm.json           13表158列的真实类型、说明、函数及内部列
   metrics/hpm/<id>.json/.sql 指标/查询契约与只读SQL
   metrics/hpm/pending.json   7项明确缺定义或禁用原因
@@ -17,21 +16,23 @@ python/data_access/         通用连接、授权、查询和结果
 python/runtime/data_services.py  每Run装配及私有配置快照
 python/workflows/writing_docx/   固定模板绑定、批量计划、reports工具及回填核验
 python/tests/databases/      按数据库验证结构、指标SQL及覆盖
+config/databases.json        部署配置；集中保存各来源连接/策略，不入Git或镜像
+config/certificates/         部署侧CA证书，路径相对databases.json
 ```
 
 新增数据库只增加自己的source.json、知识及私有连接配置。source.capabilities声明能使用该来源的能力；Workflow只声明data_access=required或optional；普通撰写按已配置来源启用数据工具，固定模板要求全部绑定来源可用。私有policy进一步校验身份与范围，登记不等于授权。不复制工具或Workflow。
 
 ## 字段与配置
 
-source.json的connection_file指向本数据库包内的private/connection.json；该文件结构为`{version, connection, policy}`。路径不可越出数据库包。私有文件及秘密不入Git、镜像、Prompt或结果；部署通过只读挂载提供。`CCSDK_DATA_CONFIG`和问数workflow.env中的旧连接均已移除。
-数据库执行器从私有connection.json读取用户名和密码，不经Worker环境转发；SDK子进程使用独立白名单。CA路径相对connection.json解析，不允许模型传连接参数。
+source.json不登记连接路径。部署侧databases.json结构为`{version:1,sources:{source_key:{connection,policy}}}`，内部不重复source_key。`CCSDK_DATABASES_FILE`指定该文件，相对路径以项目根目录为基准，默认config/databases.json。Docker只读挂载整个配置目录至容器/app/config，使用/app/config/databases.json；部署位置与镜像解耦。
+数据库执行器按来源键读取用户名和密码；只有配置路径传给Worker，SDK环境不接收该变量。CA路径相对databases.json解析，不允许模型传连接参数。普通会话不加载数据库；普通撰写允许配置文件缺失，格式损坏则失败；问数和固定模板缺来源连接必须失败。每Run读取独立快照，配置内容变化触发Client重建。
 
 | 对象 | 字段 | 约束 |
 | --- | --- | --- |
-| Source | source_key, name, version, enabled, capabilities, connection_file, domains | source_key为业务标识，不是物理库名；能力绑定在此维护 |
+| Source | source_key, name, version, enabled, capabilities, domains | source_key为业务标识，不是物理库名；能力绑定在此维护 |
 | Source.domains.hpm | metrics, schema, documents, entities | 只登记必要知识；schema由工具组织成字段说明，关联和口径按需提供 |
-| Connection | source_key, tenant_id, driver, host, port, database, username, password, tls, revision, timeout_seconds, max_rows | 与当前身份和source_key匹配；mysql+pymysql，sqlite仅用于测试；凭据直接保存在私有JSON，不进入模型资产 |
-| Policy | source_key, tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | JWT租户与业务租户独立；users列表或显式all_authenticated，来源/能力/模板取交集 |
+| Connection | tenant_id, driver, host, port, database, username, password, tls, revision, timeout_seconds, max_rows | 由sources键确定来源，校验当前身份；mysql+pymysql，sqlite仅用于测试；凭据不进入模型资产 |
+| Policy | tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | 与connection同属一个来源键；JWT租户与业务租户独立，来源/能力/模板取交集 |
 | Policy.domains.hpm | queries, tables | 允许的查询和表名列表；表列类型、函数及内部列由schema单独维护，不重复复制 |
 | project_scope | mode=selected/all_school, project_ids | selected必须有非空项目集合；全校只由可信管理员授权 |
 | QuerySpec | name, description, aliases, version, grain, parameters, output, semantics, requires_queries?, checks? | 文件名为query_id；SQL同名；未定义原因只在pending中登记 |
@@ -68,6 +69,7 @@ TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配�
 ## 验证与要求
 
 26项可执行定义的SQL和输出契约保持一致；2025报告20数据集已与原结果对照。补充一级建设指标、全周期预算及任务绩效关系；历史快照、评分和成果规则仍不得猜测。详见[来源核验](../verification/report-source-audit.md)。
+2026-09-15集中连接回归：Windows/Linux各147项Python测试通过，Linux部署8项通过；问数、普通撰写、固定模板经实际MCP查询成功。2025年20数据集重取一致，复用105段已核验正文回填后DOCX与原85页文件字节一致（3503位置、40表）；本次未重新调用模型写正文或重复逐页审阅。云效实际环境未部署。
 
 | 要求 | 状态 | 依据与差距 |
 | --- | --- | --- |

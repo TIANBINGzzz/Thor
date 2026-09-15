@@ -31,13 +31,19 @@ class DeploymentEnvironmentTests(unittest.TestCase):
 
     def test_protected_database_json_contains_credentials(self):
         import json
-        config={'version':1,'connection':{'source_key':'schoolDoubleHigh','username':'placeholder','password':'placeholder'},'policy':{'source_key':'schoolDoubleHigh','users':[]}}
-        environment={'CCSDK_DATA_CONFIG_JSON':json.dumps(config),'CCSDK_DATABASE_USER':'readonly',
-                     'CCSDK_DATABASE_PASSWORD':" '$test # \\ ` = ",'CCSDK_DATABASE_CA':'certificate\ncontent'}
+        config={'version':1,'sources':{name:{'connection':{'driver':'mysql+pymysql','host':name,
+                'database':'test','username':'readonly','password':" '$test # \\ ` = ",
+                'tls':{'mode':'disabled'}},'policy':{'users':[]}} for name in ('first','second')}}
+        environment={'CCSDK_DATABASES_JSON':json.dumps(config)}
         rendered=json.loads(writer.render(environment,database=True))
-        self.assertEqual(rendered['connection']['username'],environment['CCSDK_DATABASE_USER'])
-        self.assertEqual(rendered['connection']['password'],environment['CCSDK_DATABASE_PASSWORD'])
-        self.assertEqual(config['connection']['password'],'placeholder')
+        self.assertEqual(rendered,config)
+        config['sources']['first']['connection']['tls']={'ca_file':'certificates/first.pem','verify_identity':True}
+        environment['CCSDK_DATABASES_JSON']=json.dumps(config)
+        with self.assertRaises(ValueError): writer.render(environment,database=True)
+        environment['CCSDK_DATABASE_CERTIFICATES_JSON']=json.dumps({'first.pem':'certificate\ncontent'})
+        self.assertEqual(json.loads(writer.render(environment,database=True)),config)
+        environment['CCSDK_DATABASE_CERTIFICATES_JSON']=json.dumps({'../escape.pem':'certificate'})
+        with self.assertRaises(ValueError): writer.render(environment,database=True)
 
     def test_rejects_missing_multiline_and_interpolation_without_values(self):
         for value in ("", "sensitive\nINJECTED=yes", "sensitive\rvalue", "sensitive\x00value"):
@@ -47,7 +53,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
                 writer.render(environment)
             self.assertNotIn("sensitive", str(raised.exception))
         with self.assertRaises(ValueError):
-            writer.render({'CCSDK_DATA_CONFIG_JSON':'{}'}, database=True)
+            writer.render({'CCSDK_DATABASES_JSON':'{}'}, database=True)
 
     def test_missing_directory_fails_before_reading_secrets(self):
         with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", ["write-env.py"]):
@@ -57,6 +63,25 @@ class DeploymentEnvironmentTests(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 2)
                 render.assert_not_called()
                 self.assertIn("--directory or CCSDK_CONFIG_DIRECTORY", stderr.getvalue())
+
+    @unittest.skipUnless(os.name == "posix", "POSIX deployment file permissions")
+    def test_database_generation_permissions_and_multiple_sources(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            config={'version':1,'sources':{name:{'connection':{'driver':'mysql+pymysql','host':name,
+                    'database':'test','username':'reader','password':'test-secret','tls':{'mode':'disabled'}},
+                    'policy':{'users':[]}} for name in ('first','second')}}
+            environment={**self.environment(),'CCSDK_DATABASES_JSON':json.dumps(config)}
+            chown=mock.patch.object(writer.os,'chown') if os.geteuid()!=0 else mock.patch.object(writer.os,'chown',wraps=os.chown)
+            with mock.patch.dict(os.environ,environment,clear=True), chown, mock.patch.object(writer.os,'geteuid',return_value=0), \
+                 mock.patch.object(sys,'argv',['write-env.py','--directory',str(root),'--database']):
+                writer.main()
+            self.assertEqual(json.loads((root/'databases.json').read_text()),config)
+            self.assertEqual((root/'databases.json').stat().st_mode & 0o777,0o400)
+            self.assertEqual(root.stat().st_mode & 0o777,0o750)
+            self.assertEqual((root/'runtime.env').stat().st_mode & 0o777,0o600)
+            self.assertFalse((root/'data').exists())
 
     @unittest.skipUnless(os.name == "posix", "POSIX deployment file permissions")
     def test_configured_directory_and_cli_override(self):
@@ -83,7 +108,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             binary = root / "bin"
             binary.mkdir()
             docker = binary / "docker"
-            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_DATA_DIRECTORY" "$*" >> "$TEST_DOCKER_LOG"\n')
+            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_CONFIG_DIRECTORY" "$*" >> "$TEST_DOCKER_LOG"\n')
             docker.chmod(0o700)
             config = root / "config with spaces"
             log = root / "docker.log"
@@ -91,12 +116,12 @@ class DeploymentEnvironmentTests(unittest.TestCase):
                            "CCSDK_IMAGE": "test:paths", "CCSDK_GENERATE_ENV": "0",
                            "CCSDK_WITH_DATABASE": "1", "CCSDK_PULL_IMAGE": "0",
                            "CCSDK_CONFIG_DIRECTORY": os.path.relpath(config, script.parent), "TEST_DOCKER_LOG": str(log)}
-            for key in ("CCSDK_ENV_FILE", "CCSDK_DATA_DIRECTORY", "CCSDK_DEPLOY_LOCK_FILE"):
+            for key in ("CCSDK_ENV_FILE", "CCSDK_DEPLOY_LOCK_FILE"):
                 environment.pop(key, None)
             result = subprocess.run(["sh", str(script)], cwd=root, env=environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text().splitlines()
-            self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}/data|") for line in calls))
+            self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}|") for line in calls))
             self.assertIn("-f compose.database.yaml config --quiet", calls[0])
             self.assertIn("up -d --force-recreate --wait", calls[-1])
             with (config / "deploy.lock").open("w") as lock:
