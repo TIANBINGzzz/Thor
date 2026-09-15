@@ -25,6 +25,7 @@
 **/*.secret.json
 **/*.secret.b64
 deploy/data-access.json
+.claude/databases/*/private/
 **/*.log
 **/settings.local.json
 .claude/launch.json

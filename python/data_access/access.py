@@ -5,9 +5,10 @@ from copy import deepcopy
 from .context import DataError, fingerprint
 
 
-def resolve_data_access(context, source, config):
-    policy = deepcopy(config.get("policies", {}).get(source["policy_ref"], {}))
+def resolve_data_access(context, source, config, catalog):
+    policy = deepcopy(config['policy'])
     if (policy.get("source_key") != source["source_key"]
+            or context.capability_ref not in source.get('capabilities', [])
             or policy.get("tenant_id") != context.tenant_id
             or context.capability_ref not in policy.get("capabilities", [])
             or not policy.get("revision") or not policy.get("business_tenant_id")):
@@ -24,6 +25,13 @@ def resolve_data_access(context, source, config):
             raise DataError("SCOPE_REQUIRED")
     elif scope.get("mode") != "all_school":
         raise DataError("SCOPE_REQUIRED")
+    for domain, allowed in policy.get('domains', {}).items():
+        schema = catalog.schema(source['source_key'], domain)
+        tables = allowed['tables']
+        if not isinstance(tables, list) or not set(tables) <= schema['tables'].keys():
+            raise DataError('DOMAIN_FORBIDDEN')
+        allowed.update(tables={name:schema['tables'][name] for name in tables},
+                       functions=schema['functions'], internal_columns=schema.get('internal_columns', []))
     policy["fingerprint"] = fingerprint(policy)
     return policy
 

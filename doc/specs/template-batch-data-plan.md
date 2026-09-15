@@ -13,14 +13,15 @@
       query-bindings.json    数据集、业务参数及槽位文件索引
       slots/                 原表格/正文物理定位及绑定状态
       configure_bindings.py  管理员维护数据角色和显式缺值规则，不改原DOCX
-python/reporting/
+python/workflows/writing_docx/
   bindings.py                权限、路径、版本、位置及重复槽位校验
   planner.py                 参数展开、查询去重、取数、覆盖和分页
   values.py                  公开字段、参数文本及有证据的缺值解析
   rendering.py               正文证据检查、保留全部run的原位文字替换
   validation.py              OOXML/ZIP对照、全文渲染及逐页审阅状态
   render_wps.ps1             Windows WPS导出适配器
-python/tools/reports.py        SDK入口和成果发布，不是另一套写作Agent
+  tools.py                   reports MCP入口和成果发布，不是另一套写作Agent
+python/runtime/data_services.py  装配Run数据服务及可选固定模板计划
 ```
 
 专业群来自项目name_；建设章节来自当年任务树一级name_；表格中的产出/效益/满意度属于绩效分类树。来源关系见域内`semantics/business.md与relationships.md`，不能单凭模板标题/code猜关联。

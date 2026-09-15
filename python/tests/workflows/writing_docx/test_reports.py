@@ -10,11 +10,11 @@ import unittest
 from docx import Document
 
 from data_access.context import DataError
-from data_access.runtime import RunServices
-from reporting.bindings import load_template, document_xml, text_hash, NS
-from reporting.planner import Planner
-from reporting.rendering import render
-from reporting.validation import check_fidelity, validated_plan, record_page_review
+from runtime.data_services import RunServices
+from workflows.writing_docx.bindings import load_template, document_xml, text_hash, NS
+from workflows.writing_docx.planner import Planner
+from workflows.writing_docx.rendering import render
+from workflows.writing_docx.validation import check_fidelity, validated_plan, record_page_review
 from tests import test_data_access as fixture
 save = fixture.save
 
@@ -22,6 +22,7 @@ save = fixture.save
 class ReportingTests(unittest.TestCase):
     setUp = fixture.DataAccessTests.setUp
     make_executor = fixture.DataAccessTests.make_executor
+    save_connections = fixture.DataAccessTests.save_connections
     school = fixture.DataAccessTests.school
 
     def template(self, missing=False):
@@ -127,7 +128,7 @@ class ReportingTests(unittest.TestCase):
                 load_template('demo','qa',path.parent.parent)
 
     def test_explicit_values_reject_private_columns_and_ambiguous_results(self):
-        from reporting.values import resolve_value
+        from workflows.writing_docx.values import resolve_value
         output=[{'name':'total'},{'name':'internal_id','visibility':'internal_only'}]
         ref=self.executor.results.save([{'total':10,'internal_id':'hidden'}],{'complete':True},output)
         plan={'nodes':[{'dataset_keys':['total'],'status':'succeeded','result_ref':ref}]}
@@ -183,7 +184,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_mixed_runs_preserve_markup_and_replace_text(self):
         from lxml import etree
-        from reporting.rendering import replace_paragraph
+        from workflows.writing_docx.rendering import replace_paragraph
         markup='<w:p xmlns:w="'+NS['w']+'"><w:pPr/><w:r><w:rPr><w:b/></w:rPr><w:t>abc</w:t></w:r><w:bookmarkStart w:id="1" w:name="x"/><w:r><w:t>def</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>'
         for replacement in ('abc123def','ABCdef','abcdefXYZ','','hello world','aXYcdeZ'):
             node=etree.fromstring(markup)
@@ -197,7 +198,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_fill_markers_only_clear_registered_editing_colors(self):
         from lxml import etree
-        from reporting.rendering import clear_fill_markers
+        from workflows.writing_docx.rendering import clear_fill_markers
         markup = '<w:p xmlns:w="' + NS['w'] + '"><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:highlight w:val="yellow"/><w:color w:val="ee0000"/></w:rPr><w:t>Filled</w:t></w:r><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>Value</w:t></w:r><w:r><w:rPr><w:color w:val="0070C0"/></w:rPr><w:t>Brand</w:t></w:r></w:p>'
         node = etree.fromstring(markup)
         clear_fill_markers(node)
@@ -217,7 +218,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_fidelity_allows_marker_cleanup_but_not_other_format_changes(self):
         from lxml import etree
-        from reporting.rendering import clear_fill_markers
+        from workflows.writing_docx.rendering import clear_fill_markers
         template = self.template()
         template['clear_fill_markers'] = True
         xml = document_xml(template['_docx'])
@@ -243,7 +244,7 @@ class ReportingTests(unittest.TestCase):
             check_fidelity(template, changed)
 
     def test_file_name_follows_report_parameters_and_rejects_paths(self):
-        from reporting.rendering import report_file_name
+        from workflows.writing_docx.rendering import report_file_name
         template = {'file_name': 'Report-${years}.docx'}
         self.assertEqual(report_file_name(template, {'years': ['2026']}), 'Report-2026.docx')
         for parameters in ({}, {'years': ['../2025']}, {'years': ['a\\b']}):
@@ -307,7 +308,7 @@ class ReportingTests(unittest.TestCase):
     def test_report_mcp_publish_gate_and_page_images(self):
         async def scenario():
             from types import SimpleNamespace
-            from tools.reports import create_reports_server
+            from workflows.writing_docx.tools import create_reports_server
             from base64 import b64decode
             template=self.template()
             services=RunServices(['first'],env={},catalog=self.catalog)

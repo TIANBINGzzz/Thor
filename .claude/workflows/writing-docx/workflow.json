@@ -1,6 +1,6 @@
 {
   "name": "writing-docx",
-  "description": "Create or revise a document with the writing-documents Skill",
+  "description": "普通文稿使用写作技能；已绑定模板使用确定的取数、撰写、回填和核验流程",
   "execution": {
     "mode": "agent"
   },
@@ -11,13 +11,12 @@
     "writing-documents"
   ],
   "documents": {
-    "constraints": [],
-    "semantics": []
+    "template": [
+      "template-report.md"
+    ]
   },
-  "data_sources": [
-    "schoolDoubleHigh"
-  ],
   "templates": {
     "szpt-midterm": "templates/szpt-midterm/template.json"
-  }
+  },
+  "data_access": "optional"
 }

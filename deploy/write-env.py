@@ -57,7 +57,8 @@ def render(environment, *, database=False):
     if database:
         try:
             config = json.loads(environment["CCSDK_DATA_CONFIG_JSON"])
-            if config.get("version") != 1 or not config.get("connections") or not config.get("policies"):
+            if (config.get("version") != 1 or not config.get("connection") or not config.get("policy")
+                    or config['connection'].get('source_key') != config['policy'].get('source_key')):
                 raise ValueError()
             for value in DATABASE_KEYS[1:]:
                 if not environment.get(value):
@@ -134,7 +135,7 @@ def main():
             directory.mkdir(mode=0o700, exist_ok=True)
             os.chown(directory, 10001, 10001)
             os.chmod(directory, 0o700)
-            atomic_write(directory / "data-access.json", database, database=True)
+            atomic_write(directory / "connection.json", database, database=True)
             for name, variable in (("database-user.secret", "CCSDK_DATABASE_USER"),
                                    ("database-password.secret", "CCSDK_DATABASE_PASSWORD"),
                                    ("database-ca.pem", "CCSDK_DATABASE_CA")):

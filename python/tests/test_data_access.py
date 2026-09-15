@@ -3,7 +3,7 @@ from copy import deepcopy
 from dataclasses import replace
 import json
 from pathlib import Path
-import runpy
+import shutil
 import sqlite3
 import tempfile
 import unittest
@@ -12,14 +12,11 @@ from unittest.mock import patch
 from data_access.catalog import Catalog, PROJECT_ROOT
 from data_access.context import DataContext, DataError
 from data_access.executor import Executor
-from data_access.runtime import RunServices
+from runtime.data_services import RunServices
 from data_access.sql_policy import validate_sql
-from reporting.bindings import load_template
-from runtime.config import worker_environment, isolated_sdk_environment
+from workflows.writing_docx.bindings import load_template
+from runtime.config import worker_environment, isolated_sdk_environment, data_source_keys
 
-ASSETS = PROJECT_ROOT / '.claude/databases/schoolDoubleHigh/query-specs/hpm'
-QuerySemanticsTests = runpy.run_path(str(ASSETS / 'tests/test_queries.py'))['QuerySemanticsTests']
-AssetContractTests = runpy.run_path(str(ASSETS / 'tests/test_assets.py'))['AssetContractTests']
 
 
 def save(path, data):
@@ -36,15 +33,15 @@ class DataAccessTests(unittest.TestCase):
         for source, amount in [('first', 10), ('second', 20)]:
             folder = self.root / 'databases' / source
             save(folder/'source.json', {'source_key': source, 'name': source, 'enabled': True, 'version': 1,
-                'profiles': {'sales': 'query-specs/sales'}, 'connection_ref': source, 'policy_ref': source})
-            domain = folder/'query-specs/sales'
-            save(domain/'domain.json', {'documents': {}})
+                'capabilities':['qa'], 'connection_file':'private/connection.json',
+                'domains': {'sales': {'metrics':'metrics/sales','schema':'schema/sales.json','documents':{}}}})
+            domain = folder/'metrics/sales'
             save(domain/'pending.json', {})
             spec = {'name': 'Total', 'description': 'Sum sales', 'version': 1, 'parameters': {
                 'tenant_id': {'type': 'string', 'required': True, 'origin': 'authorized_context'}},
                 'output': [{'name': 'total', 'type': 'number', 'unit': 'USD'}]}
-            save(domain/'queries/total.json', spec)
-            (domain/'queries/total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
+            save(domain/'total.json', spec)
+            (domain/'total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
             db = sqlite3.connect(self.root/f'{source}.db')
             db.execute('CREATE TABLE sales (tenant TEXT, amount INTEGER, private_id TEXT)')
             db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
@@ -62,7 +59,20 @@ class DataAccessTests(unittest.TestCase):
         self.executor = self.make_executor()
 
     def make_executor(self, context=None):
-        return Executor(context or self.context, self.config, {}, self.root, self.catalog, ['first','second'])
+        self.save_connections()
+        return Executor(context or self.context, {}, self.catalog, ['first','second'])
+
+    def save_connections(self):
+        for source in ('first','second'):
+            policy=deepcopy(self.config['policies'][source])
+            for name,domain in policy['domains'].items():
+                save(self.root/f'databases/{source}/schema/{name}.json',
+                     {k:domain[k] for k in ('tables','functions','internal_columns')})
+                domain['tables']=list(domain['tables'])
+                domain.pop('functions'); domain.pop('internal_columns')
+            connection={**self.config['connections'][source], 'database':str(self.root/f'{source}.db')}
+            save(self.root/f'databases/{source}/private/connection.json',
+                 {'version':1,'connection':connection,'policy':policy})
 
     def school(self, executor=None, source='first'):
         return (executor or self.executor).resolve_entities(source,'sales','school','')['candidates'][0]['scope_ref']
@@ -85,7 +95,7 @@ class DataAccessTests(unittest.TestCase):
         self.assertEqual(executor.find_query_specs('second','sales',intent='Total')['queries'][0]['id'],'total')
 
     def test_pending_definition_stays_discoverable_but_cannot_execute(self):
-        domain=self.root/'databases/first/query-specs/sales'
+        domain=self.root/'databases/first/metrics/sales'
         save(domain/'pending.json',{'score':{'name':'Scoring','description':'Scoring rule missing',
              'status':'needs_definition','version':1,'blockers':['No scoring formula']}})
         self.config['policies']['first']['domains']['sales']['queries'].append('score')
@@ -102,16 +112,16 @@ class DataAccessTests(unittest.TestCase):
     def test_run_asset_snapshot_ignores_tests_and_is_independent_of_later_files(self):
         frozen=self.executor.catalog
         revision=frozen.revision('first')
-        domain=self.root/'databases/first/query-specs/sales'
+        domain=self.root/'databases/first/metrics/sales'
         save(domain/'tests/evidence.not_for_model.json',{'ignored':'test-only'})
         (domain/'unregistered.md').write_text('not model context')
         self.assertEqual(self.catalog.revision('first'),revision)
-        spec=json.loads((domain/'queries/total.json').read_text())
-        save(domain/'queries/new_query.json',spec)
-        (domain/'queries/new_query.sql').write_text('SELECT 1 AS total')
-        (domain/'queries/total.sql').write_text('SELECT 0 AS total')
+        spec=json.loads((domain/'total.json').read_text())
+        save(domain/'new_query.json',spec)
+        (domain/'new_query.sql').write_text('SELECT 1 AS total')
+        (domain/'total.sql').write_text('SELECT 0 AS total')
         self.assertNotEqual(self.catalog.revision('first'),revision)
-        (domain/'queries/total.json').unlink()
+        (domain/'total.json').unlink()
         self.assertEqual(frozen.revision('first'),revision)
         self.assertEqual([q['id'] for q in frozen.domain('first','sales')[1]['queries']],['total'])
         self.assertEqual(self.executor.execute_query_spec('first','sales','total',{},self.school())['rows'],[{'total':10}])
@@ -124,6 +134,39 @@ class DataAccessTests(unittest.TestCase):
             self.assertEqual(executor.list_data_sources()['sources'], [])
         self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
         with self.assertRaises(DataError): self.school(self.make_executor())
+
+    def test_private_config_is_not_frozen_or_exposed_and_next_run_refreshes_it(self):
+        self.config['connections']['first'].update(host='private-host-marker', password_ref='env:PRIVATE_SECRET_MARKER')
+        executor=self.make_executor()
+        revision=executor.catalog.revision('first')
+        public=json.dumps([executor.list_data_sources(), executor.describe_data_source('first','sales')])
+        assets=' '.join(executor.catalog._contents.values())
+        for marker in ('private-host-marker','PRIVATE_SECRET_MARKER','business-a','jwt-a'):
+            self.assertNotIn(marker,public)
+            self.assertNotIn(marker,assets)
+        path=self.root/'databases/first/private/connection.json'
+        config=json.loads(path.read_text());config['policy']['users']=[];save(path,config)
+        self.assertEqual(self.catalog.revision('first'),revision)
+        self.assertEqual(len(executor.list_data_sources()['sources']),2)
+        refreshed=Executor(self.context,{},self.catalog,['first'])
+        self.assertEqual(refreshed.list_data_sources()['sources'],[])
+
+    def test_private_connection_cannot_reference_another_database(self):
+        path=self.root/'databases/first/source.json'
+        source=json.loads(path.read_text());source['connection_file']='../second/private/connection.json';save(path,source)
+        with self.assertRaisesRegex(DataError,'ASSET_PATH_INVALID'):
+            Executor(self.context,{},self.catalog,['first'])
+
+    def test_optional_writing_discovers_configured_sources_and_template_requires_them(self):
+        payload={'workflow_name':'writing-docx','capability_ref':'qa'}
+        with patch('runtime.config.Catalog',return_value=self.catalog):
+            self.assertEqual(data_source_keys(payload),['first','second'])
+            (self.root/'databases/second/private/connection.json').unlink()
+            self.assertEqual(data_source_keys(payload),['first'])
+            locked={**payload,'_template_key':'demo'}
+            self.assertEqual(data_source_keys(locked),['first','second'])
+            with self.assertRaises(DataError):
+                Executor(self.context,{},self.catalog,data_source_keys(locked))
 
     def test_no_identity_or_source_fallback_and_no_model_tenant(self):
         with self.assertRaises(DataError): DataContext.from_payload({'run_id':'x'})
@@ -159,16 +202,18 @@ class DataAccessTests(unittest.TestCase):
     def test_worker_receives_only_selected_authorized_secrets_and_sdk_receives_none(self):
         for source in ('first', 'second'):
             self.config['connections'][source]['password_ref'] = f'env:{source.upper()}_DB_SECRET'
-        path = self.root/'config.json'
-        save(path, self.config)
+        self.save_connections()
+        source_path=self.root/'databases/second/source.json'
+        source=json.loads(source_path.read_text());source['capabilities']=['other'];save(source_path,source)
         payload = {'workflow_name':'qa', 'run_id':'r1', 'capability_ref':'qa',
                    '_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
                    '_data_run_directory':str(self.root/'r1')}
-        values = {'CCSDK_DATA_CONFIG':str(path), 'FIRST_DB_SECRET':'first-secret',
+        values = {'FIRST_DB_SECRET':'first-secret',
                   'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
         with patch.dict('os.environ', values, clear=True), \
-             patch('runtime.config.load_workflow_config', return_value={'data_sources':['first']}), \
-             patch('data_access.runtime.Catalog', return_value=self.catalog):
+             patch('runtime.config.load_workflow_config', return_value={'data_access':'required'}), \
+             patch('runtime.data_services.Catalog', return_value=self.catalog), \
+             patch('runtime.config.Catalog', return_value=self.catalog):
             selected = worker_environment(payload)
             self.assertEqual(selected['FIRST_DB_SECRET'], 'first-secret')
             self.assertNotIn('SECOND_DB_SECRET', selected)
@@ -206,7 +251,7 @@ class DataAccessTests(unittest.TestCase):
             self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',scope)
         policy = self.config['policies']['first']
         policy['dynamic_sql_enabled']=True
-        self.config['connections']['first'].update(database_scope_enforced=True,scope_policy_ref='first',scope_policy_revision=1)
+        self.config['connections']['first'].update(database_scope_enforced=True,scope_source_key='first',scope_policy_revision=1)
         self.executor=self.make_executor()
         # Test account visibility is reduced to the approved business tenant.
         db = sqlite3.connect(self.root/'first.db')
@@ -223,12 +268,12 @@ class DataAccessTests(unittest.TestCase):
     def test_path_containment_and_changed_source_config(self):
         path=self.root/'databases/first/source.json'
         source=json.loads(path.read_text())
-        source['profiles']['sales']='../second/query-specs/sales'
+        source['domains']['sales']['metrics']='../second/metrics/sales'
         save(path,source)
         with self.assertRaises(DataError): self.catalog.domain('first','sales')
 
     def test_statement_timeout_and_cancel(self):
-        connection=self.config['connections']['first']
+        connection=self.executor.access('first')[2]
         with self.assertRaises(Exception):
             with self.executor.connections.snapshot(connection) as db:
                 db.exec_driver_sql('WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM numbers) SELECT SUM(n) FROM numbers').fetchall()
@@ -237,9 +282,8 @@ class DataAccessTests(unittest.TestCase):
 
     def test_run_rebinding_invalidates_results_and_refreshes_policy(self):
         async def scenario():
-            path=self.root/'config.json'
-            save(path,self.config)
-            services=RunServices(['first','second'],config_path=str(path),env={},catalog=self.catalog)
+            self.save_connections()
+            services=RunServices(['first','second'],env={},catalog=self.catalog)
             payload={'run_id':'r1','_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
                      'capability_ref':'qa','_data_run_directory':str(self.root/'r1')}
             await services.bind(payload)
@@ -249,7 +293,7 @@ class DataAccessTests(unittest.TestCase):
             with self.assertRaises(DataError): services.current().results.page(ref)
             with self.assertRaises(DataError): old.access('first')
             self.config['policies']['first']['users']=[]
-            save(path,self.config)
+            self.save_connections()
             await services.bind({**payload,'run_id':'r3'})
             self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['second'])
             await services.close()
@@ -260,13 +304,16 @@ class DataAccessTests(unittest.TestCase):
 class RegisteredAssetsTests(unittest.TestCase):
     def test_chinese_business_queries_rank_existing_definitions(self):
         config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
-        policy=config['policies']['schoolDoubleHigh_readonly']
+        policy=config['policy']
         policy.update(tenant_id='test',business_tenant_id='test',users=['tester'],
-                      capabilities=['qa'],project_scope={'mode':'all_school'})
-        config['connections']['schoolDoubleHigh_primary']['tenant_id']='test'
+                      capabilities=['national-excellence-data-qa'],project_scope={'mode':'all_school'})
+        config['connection']['tenant_id']='test'
         with tempfile.TemporaryDirectory() as directory:
-            executor=Executor(DataContext('r','test','tester','qa',Path(directory)),config,{},PROJECT_ROOT,
-                              source_keys=['schoolDoubleHigh'])
+            folder=Path(directory)/'databases/schoolDoubleHigh'
+            shutil.copytree(PROJECT_ROOT/'.claude/databases/schoolDoubleHigh',folder,ignore=shutil.ignore_patterns('private'))
+            save(folder/'private/connection.json',config)
+            executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory)),{},
+                              Catalog(folder.parent),source_keys=['schoolDoubleHigh'])
             cases={'专业群':'project_catalog','资金执行率':'fund_totals',
                    '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'report_task_sections',
                    '绩效反馈':'performance_feedback_candidates'}
@@ -279,9 +326,8 @@ class RegisteredAssetsTests(unittest.TestCase):
             self.assertEqual(executor.find_query_specs('schoolDoubleHigh','hpm',metric_key='task_tree.task_id')['queries'],[])
 
     def test_all_defined_queries_pass_ast_policy(self):
-        config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
-        policy=config['policies']['schoolDoubleHigh_readonly']['domains']['hpm']
         catalog=Catalog()
+        policy=catalog.schema('schoolDoubleHigh','hpm')
         for entry in catalog.domain('schoolDoubleHigh','hpm')[1]['queries']:
             spec=catalog.spec('schoolDoubleHigh','hpm',entry['id'])
             if spec['status']=='defined':

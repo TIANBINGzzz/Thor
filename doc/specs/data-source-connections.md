@@ -6,38 +6,38 @@
 
 ```text
 .claude/databases/schoolDoubleHigh/
-  source.json              名称、域、连接/策略引用、版本和启停
-  query-specs/hpm/
-    domain.json            实体解析及三份语义主题登记
-    queries/<id>.json/.sql  唯一查询定义及同名参数化SQL
-    pending.json           未定义/禁用项及原因，不可执行
-    semantics/             schema、relationships、business三份业务说明
-    tests/                 合成回归、18问覆盖及历史核验，排除运行快照
-python/data_access/        通用来源授权、连接、执行、结果与Run上下文
-python/reporting/          模板解析、批量取数、绑定和DOCX渲染
-python/tools/data.py       data MCP薄适配层
-python/tools/reports.py    reports MCP薄适配层
-deploy/                   受保护连接/权限配置示例及部署脚本
+  source.json               来源、能力绑定、连接入口和域知识登记
+  private/connection.json   连接与授权策略，忽略且不打包；密码为秘密引用
+  schema/hpm.json           13表158列的真实类型、说明、函数及内部列
+  metrics/hpm/<id>.json/.sql 指标/查询契约与只读SQL
+  metrics/hpm/pending.json   7项明确缺定义或禁用原因
+  semantics/business.md     业务默认口径、期间、单位及事实来源
+  semantics/relationships.md 关联、归属和去重
+python/data_access/         通用连接、授权、查询和结果
+python/runtime/data_services.py  每Run装配及私有配置快照
+python/workflows/writing_docx/   固定模板绑定、批量计划、reports工具及回填核验
+python/tests/databases/      按数据库验证结构、指标SQL及覆盖
 ```
 
-新增库时放独立 `databases/<新source_key>/source.json` 及域资产，配置自己的连接/策略，加入获准Workflow的data_sources。不复制工具和Workflow，不混用同名指标。
+新增数据库只增加自己的source.json、知识及私有连接配置。source.capabilities声明能使用该来源的能力；Workflow只声明data_access=required或optional；普通撰写按已配置来源启用数据工具，固定模板要求全部绑定来源可用。私有policy进一步校验身份与范围，登记不等于授权。不复制工具或Workflow。
 
 ## 字段与配置
 
-`CCSDK_DATA_CONFIG`指向受保护JSON，相对路径以仓库根为基准。connections、policies分别按connection_ref、policy_ref查找。秘密只使用`env:NAME`或`file:relative-file`，文件相对配置父目录；不进入Git、Prompt和日志。
-父Runtime只向Worker传递当前Workflow已登记且身份获准来源的env秘密；SDK子进程使用独立白名单，不继承数据库秘密。秘密或配置变更后重建服务。
+source.json的connection_file指向本数据库包内的private/connection.json；该文件结构为`{version, connection, policy}`。路径不可越出数据库包。私有文件及秘密不入Git、镜像、Prompt或结果；部署通过只读挂载提供。`CCSDK_DATA_CONFIG`和问数workflow.env中的旧连接均已移除。
+父Runtime只向Worker传递本轮来源登记且身份获准的env秘密；SDK子进程使用独立白名单。文件秘密与CA相对connection.json解析；env/file是秘密引用，不允许模型传连接参数。
 
-| 对象 | 实际字段 | 约束 |
+| 对象 | 字段 | 约束 |
 | --- | --- | --- |
-| Source | source_key, name, profiles, connection_ref, policy_ref, version, enabled | profiles.hpm=query-specs/hpm；来源标识不是物理库名 |
-| Connection | source_key, tenant_id, driver, host, port, database, username_ref, password_ref, tls, revision, timeout_seconds, max_rows | mysql+pymysql；sqlite用于合成验证；每个快照独立连接并回滚释放 |
-| Policy | source_key, tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | JWT租户和业务表租户分别检查；users为列表或显式all_authenticated |
-| project_scope | mode=selected/all_school, project_ids | selected必须有非空项目集合；全校仅由可信管理员配置 |
-| domains.hpm | queries, tables, functions, internal_columns | 固定查询、表列/函数白名单及不对外输出的列 |
-| DataContext | run_id, tenant_id, user_id, capability_ref, run_directory, template_key? | 身份来自已验JWT，不接受业务payload覆盖 |
-| QuerySpec | name, description, aliases, version, grain, parameters, output, semantics, requires_queries?, checks? | id/SQL路径从文件名生成；未定义状态只在pending登记；批次由模板参数展开 |
+| Source | source_key, name, version, enabled, capabilities, connection_file, domains | source_key为业务标识，不是物理库名；能力绑定在此维护 |
+| Source.domains.hpm | metrics, schema, documents, entities | 只登记必要知识；schema由工具组织成字段说明，关联和口径按需提供 |
+| Connection | source_key, tenant_id, driver, host, port, database, username_ref, password_ref, tls, revision, timeout_seconds, max_rows | 与当前身份和source_key匹配；mysql+pymysql，sqlite仅用于测试；秘密引用env:NAME或file:relative-file |
+| Policy | source_key, tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | JWT租户与业务租户独立；users列表或显式all_authenticated，来源/能力/模板取交集 |
+| Policy.domains.hpm | queries, tables | 允许的查询和表名列表；表列类型、函数及内部列由schema单独维护，不重复复制 |
+| project_scope | mode=selected/all_school, project_ids | selected必须有非空项目集合；全校只由可信管理员授权 |
+| QuerySpec | name, description, aliases, version, grain, parameters, output, semantics, requires_queries?, checks? | 文件名为query_id；SQL同名；未定义原因只在pending中登记 |
+| DataContext | run_id, tenant_id, user_id, capability_ref, run_directory, template_key? | 身份来自已验JWT，模型参数不能覆盖 |
 
-TLS默认要求CA及身份校验。受保护配置可显式声明`tls.mode=disabled`适配既有连接，TLS失败不会自动降级。本次实库模拟沿用旧连接的明文传输，不算生产TLS验收；部署示例保留身份校验。
+TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配既有连接，不会自动降级。本次实库沿用既有连接，不算生产TLS验收。
 
 ## 工具传值
 
@@ -58,16 +58,16 @@ TLS默认要求CA及身份校验。受保护配置可显式声明`tls.mode=disab
 
 ## 执行与管理
 
-调用链：server可信payload → agent_worker → RunServices.bind → Executor。每轮重绑身份、配置和已登记运行资产快照（不含测试/历史资料），关闭时先取消计划/查询再清除上下文；结果记录包、查询、连接、策略版本。原始结果保存在受限Run目录，不跨Run缓存。
+调用链：server可信payload → agent_worker → RunServices.bind → Executor。每轮重绑身份、配置和已登记运行资产快照（不含测试/私有文件），关闭时先取消计划/查询再清除上下文；结果记录包、查询、连接、策略版本。原始结果保存在受限Run目录，不跨Run缓存。
 固定SQL经SQLGlot全AST检查和SQLAlchemy绑定，在只读一致性事务中执行；字段顺序必须匹配输出声明。保留Decimal、NULL、无记录和零的区别；行数/字节超限不得填完整报告。一个来源的计划同快照取数，写作不占事务。
-动态SQL还要求database_scope_enforced=true且scope_policy_ref/revision匹配；数据库账号/视图必须限制于整个授权范围，不能靠模型补WHERE。拒绝跨库、写语句、锁、星号、系统对象、未知列/函数及内部键输出；动态结果不能直接覆盖固定模板。报告的原章节、20个批量数据集、105个正文位置及发布检查见[模板计划](template-batch-data-plan.md)，数据库工具不承担重建模板职责。
+动态SQL还要求database_scope_enforced=true且scope_source_key匹配当前来源且scope_policy_revision匹配策略版本；数据库账号/视图必须限制于整个授权范围，不能靠模型补WHERE。拒绝跨库、写语句、锁、星号、系统对象、未知列/函数及内部键输出；动态结果不能直接覆盖固定模板。报告的原章节、20个批量数据集、105个正文位置及发布检查见[模板计划](template-batch-data-plan.md)，数据库工具不承担重建模板职责。
 取消会关闭活动MySQL socket或中断SQLite；query/socket/计划均有超时。Run内串行，NullPool无共享池；跨进程额度及账号最大连接数仍需部署约束，不宣称已有全实例限流或跨库一致事务。
 管理员在python目录用`python -m data_access list/validate/probe`，参数见--help。启停及授权通过受保护配置和包发布，变更后重建服务；没有管理网页、热更新或自动改写指标库。
 未来多租户主要替换access.py及connections.py的可信策略/连接查找，工具/模板仍传source_key/domain/query_id；共库行权限、文件/进程/网络隔离和双租户并发需独立实施。
 
 ## 验证与要求
 
-原23条defined查询SQL和输出契约搬迁保持一致；原报告5组SQL已实库对照。补充一级建设指标、全周期预算及任务绩效关系；历史快照、评分和成果规则仍不得猜测。详见[来源核验](../verification/report-source-audit.md)。
+26项可执行定义的SQL和输出契约保持一致；2025报告20数据集已与原结果对照。补充一级建设指标、全周期预算及任务绩效关系；历史快照、评分和成果规则仍不得猜测。详见[来源核验](../verification/report-source-audit.md)。
 
 | 要求 | 状态 | 依据与差距 |
 | --- | --- | --- |

@@ -1,22 +1,21 @@
 # 数据库包
 
-当前唯一来源为校双高数据库`schoolDoubleHigh`，`hpm`是项目、任务、绩效和资金业务域。新增数据库单独登记来源和连接策略，复用同一套工具。
+当前唯一来源是校双高数据库 `schoolDoubleHigh`，`hpm` 为项目、任务、绩效和资金业务域。
 
-| 文件 | 职责 |
+| 位置 | 唯一职责 |
 | --- | --- |
-| `<source_key>/source.json` | 来源名称、域路径、启停、版本、连接/策略引用，无凭据 |
-| `query-specs/<domain>/domain.json` | 语义主题和实体解析配置，不重复列查询 |
-| `queries/<query_id>.json`及同名`.sql` | 唯一查询定义与参数化只读SQL；文件名即查询标识 |
-| `pending.json` | 未定义/禁用项及原因；不可执行，无占位SQL |
-| `semantics/schema.md` | 13张表的必要字段含义 |
-| `semantics/relationships.md` | 实体关联、去重和归属 |
-| `semantics/business.md` | 统计口径、两棵指标树及报告期间来源 |
-| `tests/` | 合成回归和18问覆盖；不进入运行快照 |
+| `<source_key>/source.json` | 来源标识、启停、版本、可用Capability、私有连接入口、域知识路径和实体解析 |
+| `private/connection.json` | 实际连接和访问策略；用户名、密码通过env/file引用；本机配置不入Git或镜像 |
+| `schema/<domain>.json` | 核验过的表、列、类型、字段说明、函数及内部列；校双高当前13表158列 |
+| `metrics/<domain>/<id>.json`及同名`.sql` | 指标/查询定义、参数、输出和只读SQL；当前26项可执行定义 |
+| `metrics/<domain>/pending.json` | 7项缺定义/禁用原因，防止模型用其他口径替代；没有占位SQL |
+| `semantics/business.md` | 默认口径、单位、期间、两棵指标树和报告事实来源 |
+| `semantics/relationships.md` | 实体关联、归属和去重 |
 
-Python从查询定义生成目录，按名称、别名及中文词对匹配排序；`metric_key=query_id.field`直接定位公开输出字段，不是另一个独立指标库。参数、输出及依赖只维护一份；调用方显式传业务参数，租户/项目键由服务端注入。26项可执行查询，7项明确缺定义或禁用。
+模型只调用data工具；连接文件、授权策略和秘密不进入模型上下文。工具按需提供库表和语义，指标通过名称/别名检索，`metric_key=query_id.field`定位公开输出。新增数据库在自己的source.json绑定能力，工作流不枚举数据库名。
 
-`python/data_access/`负责来源授权、连接、检索、执行和结果；`python/tools/data.py`提供MCP入口。每Run冻结已登记运行资产并记录版本，测试/历史材料及未登记文件不影响版本或进入Prompt。模板继续引用`source_key+domain+query_id`，固定批量取数和动态只读SQL共用授权边界。
+`python/data_access/`处理连接、授权、检索、执行和结果；`python/runtime/data_services.py`装配每Run服务；固定模板代码在`python/workflows/writing_docx/`。数据库测试和18问覆盖在`python/tests/databases/school_double_high/`，运行数据在Run目录。
 
-连接和权限读取`CCSDK_DATA_CONFIG`；相对配置路径以仓库根为基准，秘密及CA相对配置父目录。示例见`deploy/data-access.example.json`。来源发现不授权，单租户仍保留tenant过滤；data/reports不接业务Token。
+每Run冻结已登记知识和私有配置的独立副本；私有文件不计入知识版本，连接/策略版本单独记录。授权来源仍校验tenant、用户、Capability、模板和项目范围。来源发现不授予权限，data/reports不接业务Token。
 
-在python目录执行`python -m data_access list/validate/probe`，参数见`--help`。仓库根回归：`python -m unittest discover -s python/tests -t python -p "test_*.py"`。SQL/结构通过不代表历史业务值完整，生产Java授权及多租户隔离须独立验收。
+连接示例见`deploy/data-access.example.json`，部署时放到source.json登记的private/connection.json；秘密与CA相对该文件解析。管理员可在python目录执行`python -m data_access list/validate/probe`，无需Workflow环境变量或全局连接索引。生产Java授权、撤销和多租户隔离仍须独立验收。

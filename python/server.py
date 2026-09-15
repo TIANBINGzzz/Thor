@@ -389,14 +389,12 @@ def _clear_runtime_input(directory: Path) -> None:
             LOGGER.warning("Runtime 临时输入清理失败：%s", child.name)
 
 
-def _data_config_fingerprint():
-    config = os.environ.get("CCSDK_DATA_CONFIG")
-    if not config:
-        return None
-    path = Path(config)
-    if not path.is_absolute():
-        path = PROJECT_ROOT / path
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _data_config_fingerprint(payload):
+    from data_access.catalog import Catalog
+    from runtime.config import data_source_keys
+    catalog = Catalog()
+    return [(source, catalog.revision(source), hashlib.sha256(catalog.connection_path(source).read_bytes()).hexdigest())
+            for source in data_source_keys(payload)]
 
 
 def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
@@ -410,7 +408,7 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
         "skills": payload.get("skill_refs") or [],
         "credentialDigest": credential_digest,
         "templateKey": payload.get("_template_key"),
-        "dataConfiguration": _data_config_fingerprint(),
+        "dataConfiguration": _data_config_fingerprint(payload),
     }
     return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
@@ -499,7 +497,7 @@ def _internal_worker_payload(
         raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
     template_key = (run_request.payload or {}).get("templateKey")
     if template_key is not None:
-        from reporting.bindings import load_template
+        from workflows.writing_docx.bindings import load_template
         load_template(template_key, run_request.capability_ref)
     payload: dict[str, Any] = {
         "_template_key": template_key,

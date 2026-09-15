@@ -3,25 +3,25 @@
 import asyncio
 import os
 
-from .catalog import Catalog, PROJECT_ROOT
-from .access import resolve_data_access
-from .connections import load_config, resolve_connection
-from .context import DataContext, DataError
-from .executor import Executor
+from data_access.catalog import Catalog
+from data_access.access import resolve_data_access
+from data_access.connections import load_config, resolve_connection
+from data_access.context import DataContext, DataError
+from data_access.executor import Executor
 
 
 def worker_secret_environment(payload, source_keys, env, *, catalog=None):
     """Select only registered, authorized connection secrets for this Worker."""
-    if not source_keys or not env.get("CCSDK_DATA_CONFIG"):
+    if not source_keys:
         return {}
     context = DataContext.from_payload(payload)
-    config, _ = load_config(env["CCSDK_DATA_CONFIG"], PROJECT_ROOT)
     catalog = catalog or Catalog()
     selected = {}
     for source_key in source_keys:
         try:
             source = catalog.source(source_key)
-            resolve_data_access(context, source, config)
+            config = load_config(catalog.connection_path(source_key))
+            resolve_data_access(context, source, config, catalog)
             connection = resolve_connection(context, source, config)
         except DataError:
             continue
@@ -33,9 +33,8 @@ def worker_secret_environment(payload, source_keys, env, *, catalog=None):
 
 
 class RunServices:
-    def __init__(self, source_keys, *, config_path=None, env=None, catalog=None):
+    def __init__(self, source_keys, *, env=None, catalog=None):
         self.env = dict(os.environ if env is None else env)
-        self.config_path = config_path or self.env.get("CCSDK_DATA_CONFIG")
         self.catalog = catalog or Catalog()
         self.source_keys = tuple(source_keys)
         self.executor = None
@@ -46,10 +45,9 @@ class RunServices:
     async def bind(self, payload):
         await self.close()
         context = DataContext.from_payload(payload)
-        config, base = load_config(self.config_path, PROJECT_ROOT)
-        executor = Executor(context, config, self.env, base, self.catalog, self.source_keys)
-        from reporting.bindings import load_template
-        from reporting.planner import Planner
+        executor = Executor(context, self.env, self.catalog, self.source_keys)
+        from workflows.writing_docx.bindings import load_template
+        from workflows.writing_docx.planner import Planner
         template = load_template(context.template_key, context.capability_ref) if context.template_key else None
         if template:
             for source in template["source_roles"].values():

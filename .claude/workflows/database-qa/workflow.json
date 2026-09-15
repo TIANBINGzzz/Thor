@@ -1,19 +1,13 @@
 {
   "name": "database-qa",
-  "description": "Answer a business question from the configured HPM database",
+  "description": "通过数据工具检索已授权指标、解析业务范围并回答问题",
   "execution": {
     "mode": "direct"
   },
   "documents": {
     "constraints": [
-      "constraints/query-policy.md",
-      "constraints/tenant-and-scope.md",
-      "constraints/ambiguity-resolution.md",
-      "constraints/output-contract.md"
-    ],
-    "semantics": []
+      "instructions.md"
+    ]
   },
-  "data_sources": [
-    "schoolDoubleHigh"
-  ]
+  "data_access": "required"
 }

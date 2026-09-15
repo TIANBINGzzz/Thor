@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from .access import domain_policy, resolve_data_access
 from .catalog import Catalog, search_score
-from .connections import Connections, resolve_connection
+from .connections import Connections, load_config, resolve_connection
 from .context import DataError, fingerprint
 from .results import Results, json_value
 from .sql_policy import validate_sql
@@ -28,12 +28,12 @@ def validate_parameters(parameters, definitions):
 
 
 class Executor:
-    def __init__(self, context, config, env, config_base, catalog=None, source_keys=()):
-        from copy import deepcopy
-        self.context, self.config = context, deepcopy(config)
+    def __init__(self, context, env, catalog=None, source_keys=()):
+        self.context = context
         self.catalog = (catalog or Catalog()).freeze(source_keys)
         self.source_keys = tuple(source_keys)
-        self.connections = Connections(env, config_base)
+        self.config = {s:load_config(self.catalog.connection_path(s)) for s in self.source_keys}
+        self.connections = Connections(env)
         self.results = Results(context)
         self.scopes, self.entities = {}, {}
         self._versions = {s: self.catalog.revision(s) for s in self.source_keys}
@@ -43,8 +43,8 @@ class Executor:
         if source_key not in self.source_keys:
             raise DataError("SOURCE_FORBIDDEN")
         source = self.catalog.source(source_key)
-        policy = resolve_data_access(self.context, source, self.config)
-        connection = resolve_connection(self.context, source, self.config)
+        policy = resolve_data_access(self.context, source, self.config[source_key], self.catalog)
+        connection = resolve_connection(self.context, source, self.config[source_key])
         return source, policy, connection
 
     def list_data_sources(self):
@@ -55,7 +55,7 @@ class Executor:
             except DataError:
                 continue
             result.append({"source_key": source_key, "name": source["name"],
-                           "domains": [d for d in source["profiles"] if d in policy["domains"]],
+                           "domains": [d for d in source["domains"] if d in policy["domains"]],
                            "scope": policy["project_scope"]["mode"]})
         return {"sources": result}
 
@@ -245,7 +245,7 @@ class Executor:
         # scope. Model WHERE clauses are never used as an authorization boundary.
         if (policy.get("dynamic_sql_enabled") is not True
                 or connection.get("database_scope_enforced") is not True
-                or connection.get("scope_policy_ref") != self.catalog.source(source_key)["policy_ref"]
+                or connection.get("scope_source_key") != source_key
                 or connection.get("scope_policy_revision") != policy["revision"]):
             raise DataError("DYNAMIC_SQL_FORBIDDEN")
         selected = policy["project_scope"].get("project_ids", [])

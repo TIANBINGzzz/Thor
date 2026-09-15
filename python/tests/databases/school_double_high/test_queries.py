@@ -5,8 +5,9 @@ import sqlite3
 import sys
 import unittest
 
-BASE = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(BASE.parents[4]/'python'))
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / '.claude/databases/schoolDoubleHigh/metrics/hpm'
+sys.path.insert(0, str(ROOT/'python'))
 from data_access.catalog import Catalog
 COMMON = 'tenant_id_ TEXT, delete_flag_ TEXT'
 TABLES = {

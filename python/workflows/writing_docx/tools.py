@@ -1,7 +1,7 @@
 """Report tools share the current Run's data service and registered template."""
 
 from data_access.context import DataError
-from .data import PARAMETERS, REFERENCE, STRING, ToolContent, tool_server
+from tools.data import PARAMETERS, REFERENCE, STRING, ToolContent, tool_server
 
 
 def create_reports_server(services):
@@ -35,7 +35,7 @@ def create_reports_server(services):
         if plan_ref!=planner.latest: raise DataError('PLAN_SUPERSEDED')
         plan=planner.plans[plan_ref]
         if not plan.get('rendered'): raise DataError('REPORT_NOT_RENDERED')
-        from reporting.validation import validate_document
+        from workflows.writing_docx.validation import validate_document
         result=await services.call(validate_document, planner.template, plan['rendered'], services.env)
         plan['validation']=result
         planner._save(plan)
@@ -43,12 +43,12 @@ def create_reports_server(services):
 
     async def publish(plan_ref, validation_ref):
         planner=report()
-        from reporting.validation import validated_plan
+        from workflows.writing_docx.validation import validated_plan
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         if validation.get('visual_review')!='passed': raise DataError('REPORT_VISUAL_REVIEW_REQUIRED')
         result=plan['rendered']
         from pathlib import Path
-        from .artifacts import publish_artifact
+        from tools.artifacts import publish_artifact
         directories = services.artifact_directories
         if not all(directories.values()):
             raise DataError("DELIVERY_UNAVAILABLE")
@@ -64,7 +64,7 @@ def create_reports_server(services):
     async def pages(plan_ref, validation_ref, page_numbers):
         import base64
         from pathlib import Path
-        from reporting.validation import validated_plan
+        from workflows.writing_docx.validation import validated_plan
         planner=report()
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         if any(n>validation['page_count'] for n in page_numbers): raise DataError('PAGE_INVALID')
@@ -77,7 +77,7 @@ def create_reports_server(services):
         return ToolContent(content)
 
     async def review(plan_ref, validation_ref, page_numbers, passed, notes):
-        from reporting.validation import validated_plan, record_page_review
+        from workflows.writing_docx.validation import validated_plan, record_page_review
         planner=report()
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         result=record_page_review(validation,page_numbers,passed,notes)
@@ -93,7 +93,7 @@ def create_reports_server(services):
     return tool_server("reports", [
         ("prepare_report_data", "按可信模板绑定启动批量计划；不传模板路径或数据库连接。",
          {"report_parameters": PARAMETERS, "scope_refs": {"type": "object",
-             "description": "按source_role嵌套scope_role，值只传resolve_entities返回的scope_ref字符串。例如{hpm:{group_a:scope_...,group_b:scope_...}}；角色以get_report_data为准，不传entity_ref或候选对象。",
+             "description": "按source_role嵌套scope_role，值只传resolve_entities返回的scope_ref字符串；角色以get_report_data为准，不传entity_ref或候选对象。",
              "additionalProperties": {
              "type": "object", "additionalProperties": REFERENCE}}}, ["report_parameters", "scope_refs"], prepare),
         ("get_report_data", "不传参数读取当前模板角色及期间要求；传plan_ref读取计划、章节事实和缺项。",

@@ -5,8 +5,8 @@ import re
 import sys
 import unittest
 
-BASE = Path(__file__).resolve().parents[1]
-ROOT = BASE.parents[4]
+ROOT = Path(__file__).resolve().parents[4]
+BASE = ROOT / '.claude/databases/schoolDoubleHigh/metrics/hpm'
 sys.path.insert(0, str(ROOT/'python'))
 from data_access.catalog import Catalog
 
@@ -17,7 +17,7 @@ class AssetContractTests(unittest.TestCase):
         self.specs = {q['id']: self.catalog.spec('schoolDoubleHigh','hpm',q['id'])
                       for q in self.catalog.domain('schoolDoubleHigh','hpm')[1]['queries']}
         self.source = json.loads((BASE.parents[1]/'source.json').read_text(encoding='utf-8'))
-        self.tables = json.loads((ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))['policies']['schoolDoubleHigh_readonly']['domains']['hpm']['tables']
+        self.tables = self.catalog.schema('schoolDoubleHigh','hpm')['tables']
 
     def test_sql_parameters_outputs_tables_and_source_registration(self):
         files = set()
@@ -46,14 +46,14 @@ class AssetContractTests(unittest.TestCase):
                     self.assertTrue(spec['blockers'])
                 for dependency in spec.get('requires_queries',[]) + spec.get('candidate_queries',[]):
                     self.assertIn(dependency,self.specs)
-        self.assertEqual(files,{p.name for p in (BASE/'queries').glob('*.sql')})
-        self.assertEqual({p.stem for p in (BASE/'queries').glob('*.json')},
-                         {p.stem for p in (BASE/'queries').glob('*.sql')})
+        self.assertEqual(files,{p.name for p in BASE.glob('*.sql')})
+        self.assertEqual({p.stem for p in BASE.glob('*.json') if p.name != 'pending.json'},
+                         {p.stem for p in BASE.glob('*.sql')})
 
     def test_catalog_and_18_question_coverage(self):
         catalog=self.catalog.domain('schoolDoubleHigh','hpm')[1]
         self.assertEqual({q['id'] for q in catalog['queries']},set(self.specs))
-        coverage=json.loads((BASE/'tests/coverage.json').read_text(encoding='utf-8'))
+        coverage=json.loads(Path(__file__).with_name('coverage.json').read_text(encoding='utf-8'))
         self.assertEqual(set(coverage['questions']),{f'Q{i}' for i in range(1,19)})
         for mapping in coverage['questions'].values():
             spec=self.specs[mapping['query_id']]
@@ -65,6 +65,15 @@ class AssetContractTests(unittest.TestCase):
         for entity in catalog['entities'].values():
             output={f['name'] for f in self.specs[entity['query_id']]['output']}
             self.assertTrue({entity['id_field'],entity['name_field']} <= output)
+
+    def test_schema_has_verified_types_and_no_duplicate_workflow_binding(self):
+        self.assertEqual(len(self.tables),13)
+        self.assertEqual(sum(map(len,self.tables.values())),158)
+        self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
+        for workflow in ('database-qa','writing-docx'):
+            config=json.loads((ROOT/f'.claude/workflows/{workflow}/workflow.json').read_text(encoding='utf-8'))
+            self.assertNotIn('data_sources',config)
+        self.assertEqual(self.source['capabilities'],['national-excellence-data-qa','document-writing'])
 
     def test_template_rules_and_all_40_tables_keep_report_source(self):
         path=ROOT/'.claude/workflows/writing-docx/templates/szpt-midterm/query-bindings.json'

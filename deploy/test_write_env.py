@@ -31,7 +31,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
 
     def test_protected_database_json_and_separate_secrets(self):
         import json
-        config={'version':1,'connections':{'source':{'password_ref':'file:database-password.secret'}},'policies':{'source':{'users':[]}}}
+        config={'version':1,'connection':{'source_key':'schoolDoubleHigh','password_ref':'file:database-password.secret'},'policy':{'source_key':'schoolDoubleHigh','users':[]}}
         environment={'CCSDK_DATA_CONFIG_JSON':json.dumps(config),'CCSDK_DATABASE_USER':'readonly',
                      'CCSDK_DATABASE_PASSWORD':" '$test # \\ ` = ",'CCSDK_DATABASE_CA':'certificate\ncontent'}
         self.assertEqual(json.loads(writer.render(environment,database=True)),config)

@@ -12,16 +12,13 @@ from .catalog import read_json
 from .context import DataError
 
 
-def load_config(path, base):
-    if not path:
-        raise DataError("DATA_CONFIG_REQUIRED")
+def load_config(path):
     location = Path(path)
-    if not location.is_absolute():
-        location = Path(base) / location
     config = read_json(location)
-    if config.get("version") != 1:
+    if config.get("version") != 1 or not config.get('connection') or not config.get('policy'):
         raise DataError("CONFIG_INVALID")
-    return config, location.resolve().parent
+    config['connection']['_base_directory'] = location.resolve().parent
+    return config
 
 
 def secret(ref, env, base):
@@ -40,7 +37,7 @@ def secret(ref, env, base):
 
 
 def resolve_connection(context, source, config):
-    connection = dict(config.get("connections", {}).get(source["connection_ref"], {}))
+    connection = dict(config['connection'])
     if (not connection.get("revision") or connection.get("source_key") != source["source_key"]
             or connection.get("tenant_id") != context.tenant_id):
         raise DataError("CONNECTION_FORBIDDEN")
@@ -48,8 +45,8 @@ def resolve_connection(context, source, config):
 
 
 class Connections:
-    def __init__(self, env, base):
-        self.env, self.base = env, base
+    def __init__(self, env):
+        self.env = env
         self.cancelled = Event()
         self._lock = Lock()
         self._active = set()
@@ -75,6 +72,7 @@ class Connections:
     @contextmanager
     def snapshot(self, config):
         self.check()
+        base = Path(config['_base_directory'])
         timeout = max(1, min(int(config.get("timeout_seconds", 30)), 120))
         driver = config.get("driver")
         args = {}
@@ -85,20 +83,20 @@ class Connections:
                 raise DataError("TLS_CONFIG_INVALID")
             if mode == "verify_identity" and (not tls.get("ca_file") or tls.get("verify_identity") is not True):
                 raise DataError("TLS_REQUIRED")
-            url = URL.create(driver, username=secret(config.get("username_ref"), self.env, self.base),
-                             password=secret(config.get("password_ref"), self.env, self.base),
+            url = URL.create(driver, username=secret(config.get("username_ref"), self.env, base),
+                             password=secret(config.get("password_ref"), self.env, base),
                              host=config["host"], port=int(config.get("port", 3306)), database=config["database"])
             args = {"connect_timeout": timeout, "read_timeout": timeout, "write_timeout": timeout,
                     "local_infile": False, "charset": "utf8mb4"}
             if mode == "verify_identity":
                 ca = Path(tls["ca_file"])
-                args.update(ssl_ca=str(ca if ca.is_absolute() else self.base / ca),
+                args.update(ssl_ca=str(ca if ca.is_absolute() else base / ca),
                             ssl_verify_cert=True, ssl_verify_identity=True)
             else:
                 args["ssl_disabled"] = True
         elif driver == "sqlite":
             path = Path(config["database"])
-            path = (path if path.is_absolute() else self.base / path).resolve()
+            path = (path if path.is_absolute() else base / path).resolve()
             if not path.is_file():
                 raise DataError("CONNECTION_UNAVAILABLE")
             url = URL.create("sqlite", database=str(path))

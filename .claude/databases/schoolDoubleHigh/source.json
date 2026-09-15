@@ -1,11 +1,57 @@
 {
   "source_key": "schoolDoubleHigh",
   "name": "校双高数据库",
-  "profiles": {
-    "hpm": "query-specs/hpm"
-  },
-  "connection_ref": "schoolDoubleHigh_primary",
-  "policy_ref": "schoolDoubleHigh_readonly",
-  "version": 1,
-  "enabled": true
+  "version": 2,
+  "enabled": true,
+  "capabilities": [
+    "national-excellence-data-qa",
+    "document-writing"
+  ],
+  "connection_file": "private/connection.json",
+  "domains": {
+    "hpm": {
+      "metrics": "metrics/hpm",
+      "schema": "schema/hpm.json",
+      "documents": {
+        "relationships": "semantics/relationships.md",
+        "business": "semantics/business.md"
+      },
+      "entities": {
+        "project": {
+          "query_id": "project_catalog",
+          "id_field": "project_id",
+          "name_field": "project_name",
+          "parameter": "project_id"
+        },
+        "task_project": {
+          "query_id": "task_project_candidates",
+          "id_field": "project_id",
+          "name_field": "project_name",
+          "parameter": "project_id"
+        },
+        "task": {
+          "query_id": "task_tree",
+          "id_field": "task_id",
+          "name_field": "task_name",
+          "parameter": "task_id",
+          "context_fields": [
+            "task_code",
+            "task_level"
+          ]
+        },
+        "performance": {
+          "query_id": "performance_tree",
+          "id_field": "performance_id",
+          "name_field": "performance_name",
+          "parameter": "performance_id"
+        },
+        "department": {
+          "query_id": "task_department_candidates",
+          "id_field": "department_id",
+          "name_field": "department_name",
+          "parameter": "main_org_id"
+        }
+      }
+    }
+  }
 }

@@ -7,7 +7,7 @@ import sys
 DIRECTORY=Path(__file__).resolve().parent
 ROOT=DIRECTORY.parents[4]
 sys.path.insert(0,str(ROOT/'python'))
-from reporting.bindings import NS, document_xml
+from workflows.writing_docx.bindings import NS, document_xml
 
 
 def configure():

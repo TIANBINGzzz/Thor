@@ -23,9 +23,9 @@ Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相�
 ```text
 python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
-  tools/      data、reports、DOCX、Artifact工具入口
+  tools/      data、DOCX、Artifact通用工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
-  reporting/  模板绑定、计划、正文、原位回填及全文核验
+  workflows/writing_docx/ 固定模板绑定、批量计划、reports工具、回填及全文核验
   tests/      后端测试
 .claude/      skills/、agents/、commands/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
@@ -38,8 +38,8 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
-- `.claude/databases/<source_key>/`登记数据库，query-specs/<domain>/维护唯一查询定义、同名SQL、语义及pending；Python生成查询索引，测试不进运行快照；授权后按主题提供给问数和报告工具。
-- `data_access/`管理来源授权、连接、查询及物化结果；`reporting/`编译计划、分批正文、原位回填和全文核验；tools/reports.py提供页面审阅并复用Artifact发布，业务知识留数据库/模板资产。
+- `.claude/databases/<source_key>/source.json`登记来源、能力绑定和私有连接入口；schema/维护表列类型及说明，metrics/<domain>/维护定义与SQL，semantics/维护关联及业务规则。测试在python/tests/databases/，私有连接不进入镜像或模型资产快照。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`仅服务固定模板撰写，提供reports工具及全文核验。模板专属维护脚本放模板目录，业务知识放数据库包。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
@@ -74,7 +74,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和report计划/成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
-- 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像，部署主机校验/导入后由镜像内Python写受限配置。数据库配置与秘密目录通过CCSDK_DATA_CONFIG只读挂载，资产随镜像交付，命名卷保存运行数据。换Key需排空并重建；单副本单HTTP worker，容器不代表租户隔离或生产验收。
+- 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像，部署主机校验/导入后由镜像内Python写受限配置。数据库private目录只读挂载到对应数据库包，公开资产随镜像交付，命名卷保存运行数据。换Key需排空并重建；单副本单HTTP worker，容器不代表租户隔离或生产验收。
 
 ## 9. Where to look for X
 

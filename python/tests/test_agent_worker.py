@@ -36,8 +36,9 @@ class AgentWorkerTests(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             self.assertIsNone(create_run_services({}))
             config = load_workflow_config("database-qa")
-            self.assertEqual(config["data_sources"], ["schoolDoubleHigh"])
-            options = build_options({"workflow_name": "database-qa"})
+            self.assertEqual(config["data_access"], "required")
+            self.assertNotIn("data_sources", config)
+            options = build_options({"workflow_name": "database-qa", "capability_ref":"national-excellence-data-qa"})
         self.assertEqual(options.tools, [])
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
@@ -49,14 +50,15 @@ class AgentWorkerTests(unittest.TestCase):
     def test_database_prompt_contains_guards_and_explicit_semantic_loading(self):
         config = load_workflow_config("database-qa")
         prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
-        self.assertIn("包括“国双高项目的三级任务”", prompt)
+        self.assertNotIn("t_hpm_project", prompt)
+        self.assertNotIn("schoolDoubleHigh", prompt)
         self.assertIn("describe_data_source", prompt)
         from data_access.catalog import Catalog
         topics = Catalog().domain("schoolDoubleHigh", "hpm")[1]["documents"]
         for topic in topics:
             self.assertIn(f"`{topic}`", prompt)
         self.assertNotIn("DBHub", prompt)
-        self.assertEqual(config["documents"]["semantics"], [])
+        self.assertNotIn("semantics", config["documents"])
 
     def test_fixed_template_only_mounts_data_and_report_tools(self):
         with patch.dict("os.environ", {}, clear=True):
@@ -70,6 +72,16 @@ class AgentWorkerTests(unittest.TestCase):
 
         self.assertIn('save_report_sections',options.system_prompt['append'])
         self.assertIn('publish_report',options.system_prompt['append'])
+        self.assertNotIn('如果存在更快且可靠的实现方式',options.system_prompt['append'])
+
+    def test_regular_writing_without_configured_database_keeps_normal_skill(self):
+        with patch.dict('os.environ',{},clear=True), patch('runtime.config.Catalog') as catalog:
+            catalog.return_value.sources_for.return_value=[]
+            options=build_options({'workflow_name':'writing-docx','capability_ref':'document-writing'})
+        self.assertNotIn('data',options.mcp_servers)
+        self.assertNotIn('reports',options.mcp_servers)
+        self.assertNotIn('prepare_report_data',options.system_prompt['append'])
+        self.assertEqual(options.skills,['writing-documents'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -162,7 +174,7 @@ class AgentWorkerTests(unittest.TestCase):
     def test_workflow_documents_are_loaded_from_declared_paths(self):
         config = load_workflow_config("database-qa")
         documents = workflow_prompt_documents(config)
-        self.assertIn("问数约束", documents)
+        self.assertIn("问数流程", documents)
         self.assertNotIn("HPM 术语与指标语义层", documents)
 
     def test_workflow_environment_path_is_colocated(self):

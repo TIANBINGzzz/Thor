@@ -5,9 +5,8 @@
 | 决策日期 | 2026-09-14 |
 | 决策状态 | 已采纳 |
 | 实现状态 | 部分实现 |
-| 最近核对 | 2026-09-14 |
+| 最近核对 | 2026-09-15 |
 | 替代的旧 ADR | 部分替代[ADR-019](019-shared-query-spec-assets.md)和[ADR-022](022-school-database-single-tenant.md)的目录组织；保留共享查询、单租户起步及多租户扩展边界 |
-| 被哪份 ADR 替代 | 无 |
 
 ## 背景
 
@@ -15,16 +14,16 @@
 
 ## 决策
 
-- 每来源一个 `.claude/databases/<source_key>/` 包：source.json登记连接/策略引用，`query-specs/<domain>/` 集中唯一查询JSON/同名SQL、三份语义、pending及测试；目录和输出字段索引由Python生成。
+- 每来源一个 `.claude/databases/<source_key>/` 包：source.json绑定能力及私有连接入口；schema维护表列类型与说明，metrics/<domain>维护定义/SQL/pending，semantics维护关联和业务口径；测试移出数据库包；目录和输出字段索引由Python生成。
 - source_key保持用户指定的schoolDoubleHigh大小写，不是物理库名/租户名；当前仅整理此库，hpm业务域与现有查询筛选口径不随改名改变，密钥留部署配置。
 - 首期管理多份来源登记；来源发现不授予权限，按Capability与各源静态策略交集装配同一个data MCP，固定和动态查询明确指定来源。
-- 模板/工具按source_key+domain+query_id引用；相对路径在数据库包和业务域内校验，语义由domain.json显式登记并按需加载。
+- 模板/工具按source_key+domain+query_id引用；相对路径在数据库包和业务域内校验，知识由source.json.domains显式登记并经工具按需加载。
 - 不保留顶层data-sources/query-specs双目录或旧来源别名；替换现有加载方后删除旧资产副本，未核验查询不能因移动目录而升级状态。
 - 同一Run按source_key记录包、连接和权限修订；以后按tenant_id+source_key路由连接，目录不按租户复制。
 
 ## 实现证据与差距
 
-- 已迁移数据库包及共享语义，data_access/reporting与标准MCP装配取代DBHub；配置由CCSDK_DATA_CONFIG加载，模板/来源/结果按Run授权。
+- 已迁移数据库包及共享语义，data_access及workflows/writing_docx与标准MCP装配取代DBHub；连接/授权由数据库包private/connection.json加载，模板/来源/结果按Run授权。
 - 原23条defined查询结构不变；原报告5组SQL已实库核对，补充一级任务、全周期预算及任务绩效关系，见[来源核验](../verification/report-source-audit.md)。
 - 用户明确恢复原40表模板：20数据集、105正文、原位回填、结构样式对照及全文逐页审阅后发布。缺历史值保持显式缺口；外部前端与Java差距见[产品流程](../specs/conversation-reporting-product.md)。
 
@@ -48,4 +47,4 @@
 | 2026-09-14 | 已采纳 | 未开始 | 用户选择数据库在外层，完成目录和修改方案；未实施资产搬迁 |
 | 2026-09-14 | 已采纳 | 未开始 | 用户明确校双高库标识schoolDoubleHigh；补充工具注册/输入输出及原Workflow/Skill复用规范，仍仅设计 |
 | 2026-09-14 | 已采纳 | 部分完成 | 实施包/工具/计划；首次5页简版被否决，恢复原模板逐段写作及全文核验，数据库历史缺口保留 |
-| 2026-09-15 | 已采纳 | 部分完成 | 收敛重复索引与说明，26查询契约不变；20报告数据集实库与改造前SQL逐值一致，Java/生产差距仍保留 |
+| 2026-09-15 | 已采纳 | 部分完成 | 连接与能力绑定归数据库包，schema/metrics/semantics分责；报告代码归writing_docx，26查询及20数据集口径不变，Java/生产差距保留 |

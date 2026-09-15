@@ -19,8 +19,10 @@ from dotenv import load_dotenv
 from tools.artifacts import create_artifact_server
 from tools.docx import create_docx_server
 from tools.data import create_data_server
-from tools.reports import create_reports_server
-from data_access.runtime import RunServices, worker_secret_environment
+from workflows.writing_docx.tools import create_reports_server
+from runtime.data_services import RunServices, worker_secret_environment
+from data_access.catalog import Catalog
+from data_access.context import DataError
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
 
@@ -65,7 +67,6 @@ WORKER_CONFIG_ENV_KEYS = {
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
-    "CCSDK_DATA_CONFIG",
     "CCSDK_REPORT_RENDERER",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
@@ -146,8 +147,7 @@ def worker_environment(payload: dict[str, Any] | None = None) -> dict[str, str]:
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
                                       | WORKER_CONFIG_ENV_KEYS)
     if payload:
-        workflow = load_workflow_config(payload.get("workflow_name")) or {}
-        environment.update(worker_secret_environment(payload, workflow.get("data_sources", []), os.environ))
+        environment.update(worker_secret_environment(payload, data_source_keys(payload), os.environ))
     return environment
 
 
@@ -249,13 +249,12 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
         raise RuntimeError(f"workflow runtime 配置必须是对象：{config_path}")
     if runtime.get("mode", "query") not in {"query", "client"}:
         raise RuntimeError(f"workflow runtime.mode 配置无效：{config_path}")
-    sources = config.get("data_sources", [])
-    if not isinstance(sources, list) or any(not isinstance(s, str) or not WORKFLOW_NAME.fullmatch(s) for s in sources):
-        raise RuntimeError("workflow data_sources 配置无效")
+    if 'data_sources' in config or config.get('data_access') not in {None, 'required', 'optional'}:
+        raise RuntimeError("workflow 只声明 data_access 工具需求，来源绑定由数据库包管理")
     documents = config.get("documents", {})
     if not isinstance(documents, dict):
         raise RuntimeError(f"workflow documents 配置必须是对象：{config_path}")
-    for category in ("constraints", "semantics"):
+    for category in ("constraints", "semantics", "template"):
         paths = documents.get(category, [])
         if not isinstance(paths, list) or any(not isinstance(path, str) or not path.strip() for path in paths):
             raise RuntimeError(f"workflow documents.{category} 配置无效：{config_path}")
@@ -301,7 +300,7 @@ def _platform_bearer_present(credentials: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> str:
+def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, template=False) -> str:
     """读取 Workflow 配置显式列出的约束和语义 Markdown，返回合并文本，并校验路径与大小限制。"""
     if not workflow_config:
         return ""
@@ -309,7 +308,10 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> 
     directory = Path(str(workflow_config["_directory"])).resolve()
     sections: list[str] = []
     total_bytes = 0
-    for category, title in (("constraints", "Workflow 约束"), ("semantics", "Workflow 语义层")):
+    categories = [("constraints", "Workflow 约束"), ("semantics", "Workflow 语义层")]
+    if template:
+        categories.append(('template', '固定模板流程'))
+    for category, title in categories:
         for relative_value in documents.get(category, []):
             relative_path = Path(relative_value)
             if relative_path.suffix.lower() != ".md":
@@ -332,20 +334,37 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None) -> 
     return "\n\n".join(sections)
 
 
-def create_run_services(payload):
+def data_source_keys(payload):
     workflow = load_workflow_config(payload.get("workflow_name")) or {}
-    sources = workflow.get("data_sources", [])
+    mode = workflow.get('data_access')
+    if mode is None:
+        return []
+    catalog = Catalog()
+    sources = catalog.sources_for(payload.get('capability_ref'))
+    if mode == 'optional' and not payload.get('_template_key'):
+        configured = []
+        for source in sources:
+            try:
+                catalog.connection_path(source)
+            except DataError:
+                continue
+            configured.append(source)
+        return configured
     if not sources:
-        return None
-    if not is_direct_workflow(workflow) and not payload.get("_template_key") and not os.environ.get("CCSDK_DATA_CONFIG"):
-        return None
-    return RunServices(sources)
+        raise RuntimeError('本轮能力没有已登记的数据源')
+    return sources
+
+
+def create_run_services(payload):
+    sources = data_source_keys(payload)
+    return RunServices(sources) if sources else None
 
 
 def build_system_prompt(
     extra: str = "",
     database_enabled: bool = False,
     workflow_config: dict[str, Any] | None = None,
+    template: bool = False,
 ) -> dict[str, str]:
     """接收附加提示词、数据库开关和流程配置，返回 SDK 系统提示词预设及追加内容。"""
     parts = [
@@ -355,7 +374,7 @@ def build_system_prompt(
         ANSWER_REQUIREMENTS_APPEND,
         DATABASE_APPEND if database_enabled else "没有可靠证据时明确说明不确定性。",
     ]
-    documents = workflow_prompt_documents(workflow_config)
+    documents = workflow_prompt_documents(workflow_config, template=template)
     if documents:
         parts.append(documents)
     if is_direct_workflow(workflow_config):
@@ -390,17 +409,6 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
     prompt_append = payload.get("system_prompt_append") or ""
-    if registered_template:
-        prompt_append += (
-            "\n本轮已绑定固定报告模板。先调用mcp__reports__get_report_data（无参数）查看模板角色和期间Schema，"
-            "再用data的resolve_entities按用户指定项目名称取得scope_ref。调用prepare_report_data后，"
-            "轮询get_report_data并读取完整章节及可写位置，按章节读取事实并撰写正文，用save_report_sections分批保存。"
-            "全部正文保存后render_report仅原位回填，不会发布；随后validate_report检查原模板结构、样式及全文渲染，"
-            "逐页调用read_report_pages查看图片并用review_report_pages记录实际检查，全部通过后publish_report发布。"
-            "不得换模板或清空原文重建，不得以空section_drafts跳过正文撰写。"
-            "模型不能更改模板、绕过校验改写数据或将当前主表值视为历史实绩。缺反馈不证明工作未开展；"
-            "不得从任务名称或进度推断已执行制度、获奖或学校整体成效。正文发布前逐段检查这些事实边界。"
-        )
     if artifact_enabled and not restricted_tools:
         prompt_append += (
             "\n当前执行的受控工作目录：" + str(work_directory)
@@ -459,8 +467,6 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
                 raise RuntimeError("skill 路径越界") from error
             if not (skill_directory / "SKILL.md").is_file():
                 raise RuntimeError(f"skill 不存在：{skill}")
-            if registered_template:
-                prompt_append += '\n\n' + (skill_directory/'SKILL.md').read_text(encoding='utf-8')
         skills = [] if restricted_tools else requested_skills
     else:
         skills = [] if restricted_tools else None
@@ -475,6 +481,7 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
             prompt_append,
             database_enabled,
             workflow_config,
+            template=registered_template,
         ),
         tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
         disallowed_tools=["WebSearch"],
