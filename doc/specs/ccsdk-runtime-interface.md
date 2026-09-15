@@ -123,7 +123,17 @@ GET /internal/v1/capabilities
 
 ### 3.4 业务 payload
 
-`payload` 支持嵌套对象、数组、字符串、有限数值、布尔值、null；序列化后的 UTF-8 JSON 最多 64 KiB，嵌套深度最多 16 层。当前按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的 fileId，也不保证模型完成确定性字段校验。
+`payload` 支持嵌套对象、数组、字符串、有限数值、布尔值、null；序列化后的 UTF-8 JSON 最多 64 KiB，嵌套深度最多 16 层。除已登记的能力字段外，内容按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的 fileId，也不保证模型完成确定性字段校验。
+
+`document-writing` 能力可使用已登记的预制模板：
+
+```json
+{"capabilityRef":"document-writing","input":{"text":"生成截至2025年底的双高中期自评报告"},"payload":{"templateKey":"szpt-midterm"}}
+```
+
+`payload.templateKey` 必须是非空字符串，并且同时满足 Python 部署内的模板登记、启用状态、能力绑定、DOCX 摘要和绑定文件校验；它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 `input.text`，外部材料仍使用 `input.attachmentRefs`。当前登记的 `szpt-midterm` 会按可信配置绑定 `schoolDoubleHigh` 数据源及 `hpm` 领域查询；Java 不传连接、SQL、数据源路径或密码。未知、停用、未授权或校验不通过的模板会在 Run 执行前失败。
+
+`national-excellence-data-qa` 不需要专属 payload 字段；问题、年份和范围要求放在 `input.text`，数据源、查询规范和身份范围由 Runtime 的可信资产及工具策略装配。
 
 不得放 Token、密钥、身份、文件二进制或执行配置。任意层级的以下字段名会被拒绝（忽略大小写、下划线和连字符）：`credentials`、`platformBearer`、`authorization`、`token`、`apiKey`、`secret`、`tenantId`、`userId`、`workflowRef`、`skill`、`skills`、`agent`、`agents`、`model`、`tools`、`mcp`、`mcpServers`、`mcps`、`cwd`、`workspace`、`permissions`。业务数据会进入模型上下文，字段过滤不能识别所有秘密内容，Java 必须只传允许模型读取的数据。
 
