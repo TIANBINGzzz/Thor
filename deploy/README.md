@@ -1,6 +1,6 @@
 # 云效内网 Docker 部署
 
-`flow.yml` 是 CCSDKScribe 的 Flow YAML 模板。它采用“构建机生成镜像包，97 导入镜像并启动”的路线，目标机不需要 Python、Node.js 或访问镜像仓库。
+`flow.yml` 是 ccagentsdk 的 Flow YAML 模板。它采用“构建机生成镜像包，97 导入镜像并启动”的路线，目标机不需要 Python、Node.js 或访问镜像仓库。
 
 ## 构建机怎么选
 
@@ -17,14 +17,14 @@
 - 97 已安装 Docker、Docker Compose `>=2.30`、`flock`、`tar`、`sha256sum`，并由云效主机组 Runner 以 root 执行。
 - 97 为 Linux amd64。在 Flow UI 创建普通字符变量 `CCSDK_DEPLOY_ROOT`，由管理员填写专用于本服务的持久化绝对目录；无默认值。管理员提前创建其 `packages/` 子目录，部署脚本生成 `releases/` 和 `config/`。该目录不要放进其他服务发布目录。
 - Java 或网关访问 Runtime 时，配置 `CCSDK_BIND_IP` 为 97 的内网地址并限制防火墙来源；同机反代可保持默认 `127.0.0.1`。
-- Compose 命名卷 `ccsdkscribe-runtime-data` 保存运行记录、工作文件和 SDK 会话，升级时保留，禁止 `docker compose down -v`。
+- Compose 项目名为 `ccagentsdk`，命名卷 `ccagentsdk-runtime-data` 保存运行记录、工作文件和 SDK 会话，升级时保留，禁止 `docker compose down -v`。已有部署继续用 `CCSDK_DATA_VOLUME` 指向原卷；改名不会迁移数据。
 
 ## Flow 变量和私密变量
 
 在 Flow 的“变量和缓存”中创建 `CCSDK_DEPLOY_ENV_B64` 字符变量，打开**私密模式**，值来自本地命令：
 
 ```text
-python deploy/encode-secret.py scratch/ccsdkscribe.secret.json scratch/ccsdkscribe.secret.b64
+python deploy/encode-secret.py scratch/ccagentsdk.secret.json scratch/ccagentsdk.secret.b64
 ```
 
 复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库另提供CCSDK_DATABASES_JSON（参照data-access.example.json，sources按来源键集中所有连接、用户名、密码及策略）。需要TLS证书时提供CCSDK_DATABASE_CERTIFICATES_JSON，格式为`{"schoolDoubleHigh.pem":"证书内容"}`，连接的tls.ca_file写`certificates/schoolDoubleHigh.pem`。不再提供单独数据库账号/密码变量。
@@ -40,6 +40,8 @@ Flow 的私密变量支持 UI 配置或私密变量组，不支持在 YAML `vari
 ## 使用模板
 
 首次只验证构建：先在 Flow 选择本项目 Codeup 仓库及 `main` 分支，保留平台生成的 `sources` 和对应 `defaultWorkspace`，仅用 [flow-build.stages.yml](flow-build.stages.yml) 替换整个 `stages` 段。它复用完整模板的构建阶段，不需要 ACR、97 主机组或运行密钥；构建成功不代表服务功能验收通过。
+
+UI 流水线同步使用 `ccagentsdk:<提交号>-<构建号>` 镜像和 `ccagentsdk_release` 制品；主机部署选择同名制品，`CCSDK_DEPLOY_ROOT` 指向专用 ccagentsdk 目录。Codeup 仓库仍为 `string-ai-agent`，`CCSDK_*`/`SCRIBE_*` 变量和容器内数据路径保持现有接口。
 
 Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.serviceConnection` 是镜像仓库连接，不能当作 Codeup 授权。运行前确认 Codeup 当前分支已有 `Dockerfile`、`requirements.txt`、`.dockerignore`、`deploy/build.sh`、`python/` 和 `.claude/`；仅粘贴流水线不会上传本地源码。
 

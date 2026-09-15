@@ -15,7 +15,7 @@ foreach ($remotePath in @($RemoteReleaseScript, $RemoteIncomingDirectory)) {
 $repo = Split-Path $PSScriptRoot -Parent
 $url = 'https://cp.stringedu.com/ccsdkscribe/python-api.html'
 $sshOptions = @('-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=15')
-$scratch = Join-Path ([IO.Path]::GetTempPath()) ('ccsdkscribe-docs-' + [guid]::NewGuid().ToString('N'))
+$scratch = Join-Path ([IO.Path]::GetTempPath()) ('ccagentsdk-docs-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $scratch | Out-Null
 try {
     if ($RollbackRelease) {

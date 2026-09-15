@@ -22,7 +22,7 @@
 | 同项目 `RuntimeRequestFactory.java` | 仍构造execution、context、runtime等旧字段 | 与当前Python严格协议不匹配，需按接口规范更新；本次未修改外部Java仓库 |
 | ScribePlayground `web/app/components/Chat.tsx` | 默认conversation，发送时总带能力；菜单选能力调用newChat并清空当前消息视图 | 目前是每会话固定能力的测试UI；不能作为同会话切换已验收的证据 |
 | ScribePlayground `server/app.mjs` | 校验会话能力必须等于请求能力 | 改为每条消息验能力，并保留业务会话；本次未修改该独立项目 |
-| CCSDKScribe协议与SDK | 本次接受省略capabilityRef；内部解析conversation；同业务会话各能力使用独立Client键 | 不会自动把另一能力的SDK历史、工具结果和权限复制到本轮 |
+| ccagentsdk协议与SDK | 本次接受省略capabilityRef；内部解析conversation；同业务会话各能力使用独立Client键 | 不会自动把另一能力的SDK历史、工具结果和权限复制到本轮 |
 
 ## 用户流程
 

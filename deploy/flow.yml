@@ -1,9 +1,9 @@
 # Flow YAML template; replace the two resource IDs and confirm the Codeup branch.
 # Private settings belong in Flow UI, never in variables.value here.
-name: CCSDKScribe-内网Docker
-defaultWorkspace: scribe_repo
+name: ccagentsdk-内网Docker
+defaultWorkspace: ccagentsdk_repo
 sources:
-  scribe_repo:
+  ccagentsdk_repo:
     type: codeup
     name: string-ai-agent
     endpoint: https://codeup.aliyun.com/646e181ebe6b046b8f87d1e8/string-fwk/cloud/string-ai-agent.git
@@ -44,12 +44,12 @@ stages:
               run: |
                 set -eu
                 if [ ! -f Dockerfile ] || [ ! -f deploy/build.sh ]; then
-                  echo 'Missing project files: select the CCSDKScribe Codeup source and its defaultWorkspace.' >&2
+                  echo 'Missing project files: select the ccagentsdk Codeup source and its defaultWorkspace.' >&2
                   exit 1
                 fi
                 : "${BUILD_NUMBER:?Flow BUILD_NUMBER is missing}"
                 commit_sha=$(git rev-parse --verify HEAD)
-                export CCSDK_IMAGE="ccsdkscribe:${commit_sha}-${BUILD_NUMBER}"
+                export CCSDK_IMAGE="ccagentsdk:${commit_sha}-${BUILD_NUMBER}"
                 export CCSDK_OUTPUT_DIRECTORY="dist/release-${BUILD_NUMBER}"
                 export NODE_IMAGE="public.ecr.aws/docker/library/node:22-bookworm-slim"
                 export PYTHON_IMAGE="public.ecr.aws/docker/library/python:3.12-slim-bookworm"
@@ -60,7 +60,7 @@ stages:
             name: 上传镜像部署包
             with:
               uploadType: flowPublic
-              artifact: ccsdkscribe_release
+              artifact: ccagentsdk_release
               filePath:
                 - dist/release-${BUILD_NUMBER}/
               includePathInArtifact: false
@@ -68,12 +68,12 @@ stages:
     name: 内网主机部署与验证
     jobs:
       deploy_job:
-        name: CCSDKScribe主机部署
+        name: ccagentsdk主机部署
         component: VMDeploy
         with:
           # Select the group containing only 192.168.10.97; its name is not its ID.
           machineGroup: REPLACE_MACHINE_GROUP_ID
-          artifact: $[stages.build_stage.build_job.upload_step.artifacts.ccsdkscribe_release]
+          artifact: $[stages.build_stage.build_job.upload_step.artifacts.ccagentsdk_release]
           artifactDownloadPath: ${CCSDK_DEPLOY_ROOT}/packages/${PIPELINE_ID}-${BUILD_NUMBER}.tgz
           executeUser: root
           downloadArtifact: true

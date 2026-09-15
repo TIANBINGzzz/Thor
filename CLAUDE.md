@@ -1,4 +1,4 @@
-# CCSDKScribe 项目说明
+# ccagentsdk 项目说明
 
 ## 项目目标
 

@@ -1,4 +1,4 @@
-name: ${CCSDK_COMPOSE_PROJECT:-ccsdkscribe}
+name: ${CCSDK_COMPOSE_PROJECT:-ccagentsdk}
 services:
   runtime:
     image: ${CCSDK_IMAGE:?Set the full image reference with a release tag or digest}
@@ -30,4 +30,4 @@ services:
         max-file: "3"
 volumes:
   runtime-data:
-    name: ${CCSDK_DATA_VOLUME:-ccsdkscribe-runtime-data}
+    name: ${CCSDK_DATA_VOLUME:-ccagentsdk-runtime-data}

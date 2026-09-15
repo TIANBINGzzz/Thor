@@ -1,5 +1,5 @@
 {
-  "name": "thor",
+  "name": "ccagentsdk",
   "version": "1.0.0",
   "description": "Java-facing Claude Agent SDK runtime",
   "scripts": {

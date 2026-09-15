@@ -4,7 +4,7 @@
 
 ## 1. System purpose
 
-CCSDKScribe 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话、Workflow/Skill、MCP、文件处理和流式事件。
+ccagentsdk 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话、Workflow/Skill、MCP、文件处理和流式事件。
 
 ## 2. System context
 

@@ -20,12 +20,12 @@ stages:
               run: |
                 set -eu
                 if [ ! -f Dockerfile ] || [ ! -f deploy/build.sh ]; then
-                  echo 'Missing project files: select the CCSDKScribe Codeup source and its defaultWorkspace.' >&2
+                  echo 'Missing project files: select the ccagentsdk Codeup source and its defaultWorkspace.' >&2
                   exit 1
                 fi
                 : "${BUILD_NUMBER:?Flow BUILD_NUMBER is missing}"
                 commit_sha=$(git rev-parse --verify HEAD)
-                export CCSDK_IMAGE="ccsdkscribe:${commit_sha}-${BUILD_NUMBER}"
+                export CCSDK_IMAGE="ccagentsdk:${commit_sha}-${BUILD_NUMBER}"
                 export CCSDK_OUTPUT_DIRECTORY="dist/release-${BUILD_NUMBER}"
                 export NODE_IMAGE="public.ecr.aws/docker/library/node:22-bookworm-slim"
                 export PYTHON_IMAGE="public.ecr.aws/docker/library/python:3.12-slim-bookworm"
@@ -36,7 +36,7 @@ stages:
             name: 上传镜像部署包
             with:
               uploadType: flowPublic
-              artifact: ccsdkscribe_release
+              artifact: ccagentsdk_release
               filePath:
                 - dist/release-${BUILD_NUMBER}/
               includePathInArtifact: false
