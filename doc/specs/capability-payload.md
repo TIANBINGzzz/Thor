@@ -11,6 +11,7 @@
 | `conversation` | 通用对话 | 不要求专属字段，省略或 `{}` | 问题放 `input.text`；能力路由已实现 |
 | `national-excellence-data-qa` | 双高问数 | 不要求专属字段，省略或 `{}` | 问题、年份等放 `input.text`；内部映射 `database-qa` 已实现 |
 | `document-writing` | 通用撰写、修改授权附件 | 省略或 `{}` | 要求放 `input.text`，外部文件用 `input.attachmentRefs`；内部映射 `writing-docx` 已实现 |
+| `document-writing` | 用户上传自定义模板，保存在 Java | 省略或 `{}`，不传 `templateKey` | 模板用 `input.attachmentRefs` 引用；在 `input.text` 明确模板文件及要求，走普通撰写分支 |
 | `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 锁定原40表DOCX，批量取数、逐段正文、原位回填及全文检查后发布 |
 
 这里只登记能力约定字段；当前 Runtime 仍接受通过通用 JSON 检查的其他业务数据，尚未按此表限制字段。后续新增能力或专属字段时，在此补充类型、必填条件、用途和实现状态，不把未登记的模型输入当成已实现的服务端参数。
@@ -49,6 +50,8 @@
 [数据库包](data-source-connections.md)已通过可信DataContext及静态策略接入，当前唯一来源schoolDoubleHigh。模板以source_key+domain+query_id引用查询，路径/DSN/密码/权限不加入payload；[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
 
 ## 工程要求检查
+
+2026-09-15补充：自定义模板由Java保存并授权，Python通过File Broker获取本次文件后读取结构，按需取数、组织正文并生成新DOCX；不自动注册为Python预制模板，也不要求预先配置逐格查询。当前`purpose`仅支持`input`/`reference`，模板用`input`并在正文说明用途；再次使用须重新提交附件引用。上传不授予数据源权限，数据库工具仅在已配置且获准时可用。若同时传`templateKey`和附件，仍走已登记模板分支，附件不会替换该模板。附件传递和普通撰写已有实现，复杂自定义模板保真及取数质量尚未端到端验收。
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |

@@ -135,6 +135,14 @@ GET /internal/v1/capabilities
 
 `national-excellence-data-qa` 不需要专属 payload 字段；问题、年份和范围要求放在 `input.text`，数据源、查询规范和身份范围由 Runtime 的可信资产及工具策略装配。
 
+自定义模板保存在Java时，使用`document-writing`且不传`templateKey`；通过`input.attachmentRefs`提交模板文件引用，在`input.text`明确哪份文件是模板及写作要求。Python经File Broker获取文件后走普通撰写分支：读取结构、按需收集事实、撰写并生成新DOCX，不自动注册预制模板。当前`purpose`仅支持`input`和`reference`，没有`template`值；再次使用文件仍须提交引用。数据库工具须已配置且获准，上传文件不改变数据权限。若同时传入`templateKey`和附件，仍绑定该预制模板，附件不会覆盖模板选择。
+
+```json
+{"protocol":"agent-run/v1","runId":"run_custom_01","messageId":"message_custom_01","capabilityRef":"document-writing","input":{"text":"以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告，缺少依据的数据留空高亮。","attachmentRefs":[{"fileId":"file_template_01","purpose":"input"}]}}
+```
+
+以上为已有附件和普通撰写入口，不代表任意自定义模板的保真编辑与自动取数质量已验收。
+
 不得放 Token、密钥、身份、文件二进制或执行配置。任意层级的以下字段名会被拒绝（忽略大小写、下划线和连字符）：`credentials`、`platformBearer`、`authorization`、`token`、`apiKey`、`secret`、`tenantId`、`userId`、`workflowRef`、`skill`、`skills`、`agent`、`agents`、`model`、`tools`、`mcp`、`mcpServers`、`mcps`、`cwd`、`workspace`、`permissions`。业务数据会进入模型上下文，字段过滤不能识别所有秘密内容，Java 必须只传允许模型读取的数据。
 
 附件仍通过 `input.attachmentRefs` 显式授权，凭据仍通过 `credentials.platformBearer` 传递。相同 runId 修改 payload 返回 409；不在 Run 响应中回传 payload。

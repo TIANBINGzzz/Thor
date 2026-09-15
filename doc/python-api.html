@@ -96,6 +96,23 @@ Content-Type: application/json</pre></div>
   "payload": {"templateKey": "szpt-midterm"}
 }</pre></div>
 <p><code>templateKey</code> 只能选择 Python 已登记、启用且绑定当前能力的模板；它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 <code>input.text</code>，外部材料仍使用 <code>input.attachmentRefs</code>。当前 <code>szpt-midterm</code> 由 Runtime 绑定 <code>schoolDoubleHigh</code> 数据源和 <code>hpm</code> 领域查询，Java 不提交连接、SQL、路径或密码。未知、停用、未授权或完整性校验失败的模板会在执行前失败。<code>national-excellence-data-qa</code> 不需要专属 payload 字段，问题、年份和范围要求放在 <code>input.text</code>。</p>
+<h3 id="writing-template-inputs">两种模板入口</h3>
+<table><thead><tr><th>模板位置</th><th>Java 传值</th><th>Python 处理</th></tr></thead><tbody>
+<tr><td>Python 已登记的系统预置模板</td><td><code>payload.templateKey</code>；要求放 <code>input.text</code></td><td>校验并加载预制模板，使用绑定的报告流程；模板文件不经 File Broker。</td></tr>
+<tr><td>Java 保存的用户自定义模板</td><td><code>input.attachmentRefs</code>；不传 <code>templateKey</code>；正文明确模板文件和要求</td><td>经 File Broker 获取文件，走普通撰写：读取结构、按需收集事实、组织正文、生成新 DOCX；不自动注册预制模板。</td></tr>
+</tbody></table>
+<div class="code-wrap"><div class="code-label">自定义模板完整请求</div><button class="copy" type="button">复制</button><pre>{
+  "protocol": "agent-run/v1",
+  "runId": "run_custom_01",
+  "messageId": "message_custom_01",
+  "capabilityRef": "document-writing",
+  "input": {
+    "text": "以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告，缺少依据的数据留空高亮。",
+    "attachmentRefs": [{"fileId": "file_template_01", "purpose": "input"}]
+  }
+}</pre></div>
+<p>当前 <code>purpose</code> 仅支持 <code>input</code> / <code>reference</code>，不支持 <code>template</code>；多个附件通过正文明确模板与参考资料。Java 保存文件，Python 按本次授权获取工作副本；再次使用须重新提交附件引用，无需为每个上传模板建立 Python 配置。数据库工具仅在已配置且获准时可用，文件上传不授予数据权限。</p>
+<p>若同时传 <code>templateKey</code> 和附件，仍走该预制模板分支，附件不会替换模板。以上附件传递与普通撰写入口已有实现，复杂自定义模板的版式保真和取数质量仍需真实文件验收。</p>
 <div class="code-wrap"><div class="code-label">Response 202 / 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -263,7 +280,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 
 <section id="file-broker"><h2>File Broker 回调契约</h2>
 <h3>文件流转</h3>
-<div class="code-wrap"><div class="code-label">用户与服务端流程</div><button class="copy" type="button">复制</button><pre>上传或预置文件 → Java 文件服务器保存并分配 fileId
+<div class="code-wrap"><div class="code-label">Java 保存的自定义模板与附件流程</div><button class="copy" type="button">复制</button><pre>用户上传模板或资料 → Java 文件服务器保存并分配 fileId
 选择模板 → 前端显示“已选择”
 发送消息 → Java 创建 Run（JSON 中传 attachmentRefs）→ Python 立即返回 202
 Python 后台：获取授权 → 分块下载 → 校验并落盘 → 文件全部就绪 → SDK 查询

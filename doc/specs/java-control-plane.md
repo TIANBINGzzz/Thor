@@ -34,6 +34,7 @@
 
 Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabilityRef`；Java 用当前用户权限与 Agent 允许能力取交集。Python 目录只说明“Runtime 支持什么”，不是用户授权结果。
 当前名称映射足够，不引入复杂 Capability revision/binding 或通用 Runner；预制模板由 Python 维护，Java 仅传 `payload.templateKey`，外部文档仍作为授权文件输入，不因换模板复制 Workflow。字段约定和待实现范围统一记录在[能力 payload 映射](capability-payload.md)。
+用户自定义模板由Java保存，使用`document-writing`，不传`templateKey`；以`input.attachmentRefs`提交`fileId`和`purpose: input`，通过`input.text`说明模板用途及需求。Python经File Broker获取后走普通撰写，不要求上传时同步注册Python模板；每次使用重新提交引用。现有附件用途不支持`template`，多个附件须明确模板与参考资料；同时携带`templateKey`仍选择预制模板。文件授权及普通撰写入口已接入，真实Java联调和复杂模板生成质量另行验收。
 模型策略继续由 Python 维护：可能包含图片的 Capability 从首轮起使用支持图片的默认模型，无需为此新增 Subagent。当前未实现按能力选择模型，见 2.8。
 
 ### 1.2 业务字段与关联
