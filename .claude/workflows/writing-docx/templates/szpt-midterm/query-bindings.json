@@ -46,7 +46,7 @@
         "report_task_performance_links",
         "report_performance_titles"
       ],
-      "description": "报告源专用任务绩效关系和first/second标题关系；不可用qa_db父键替代"
+      "description": "校双高任务绩效关系及first/second分类回溯；独立标题查询仍待核验，不凭父键推测报告位置"
     },
     "V": {
       "kind": "candidate_then_definition",
@@ -86,7 +86,7 @@
         "report_cycle_budget",
         "report_income_budget_rate"
       ],
-      "description": "28字段和三类比率已定义；全周期预算及收入预算执行率另有待补项"
+      "description": "28字段、三类比率及全周期预算已定义；收入预算执行率仍待明确口径"
     },
     "N": {
       "kind": "evidence",

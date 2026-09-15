@@ -1,0 +1,163 @@
+{
+  "name": "已审核绩效反馈版本候选",
+  "description": "返回年度/累计目标和完成值及材料提示；提交时间只用于筛候选，不自动认定业务年度或适用历史版本。",
+  "version": 1,
+  "grain": "project + performance + feedback",
+  "parameters": {
+    "end_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "所声明时间字段的不含终点，ISO 日期/时间；null 不限制"
+    },
+    "performance_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已解析指标主键；null 为已授权范围内的全部指标"
+    },
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "start_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "所声明时间字段的含起点，ISO 日期/时间；null 不限制，不能据提交时间推断业务年度"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    }
+  },
+  "output": [
+    {
+      "name": "feedback_id",
+      "description": "反馈内部键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "project_id",
+      "description": "项目键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "performance_id",
+      "description": "绩效键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "performance_name",
+      "description": "指标名称",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "submitted_at",
+      "description": "提交时间，非业务年度或审核生效日期",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "year_target_value",
+      "description": "反馈版本年度目标原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "year_complete_value",
+      "description": "反馈版本年度完成原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "total_target_value",
+      "description": "同版本累计目标原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "total_complete_value",
+      "description": "同版本累计完成原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "year_progress",
+      "description": "反馈版本年度进度",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "total_progress",
+      "description": "反馈版本累计进度",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "content",
+      "description": "已审核反馈内容",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "has_attachment",
+      "description": "是否存在候选附件",
+      "type": "integer",
+      "nullable": false
+    }
+  ],
+  "aliases": [
+    "绩效反馈",
+    "绩效历史提交"
+  ],
+  "semantics": [
+    "同一版本年度值与累计值成对使用；跨版本或跨年累计值不能相加",
+    "start/end 仅过滤 create_time_；历史适用版本需明确业务年度和审核生效规则，未确定时不回填",
+    "附件交由 File Broker 授权，不能输出原始 attachment_ 地址",
+    "返回候选并不代表已选定年度快照；不能 ORDER BY create_time DESC LIMIT 1 代替版本确认"
+  ],
+  "requires_queries": [
+    "performance_module_status"
+  ],
+  "checks": [
+    {
+      "query_id": "performance_module_status",
+      "type": "all_rows",
+      "allowed": {
+        "module_count": [
+          1
+        ],
+        "stage_flag": [
+          "0",
+          "1"
+        ]
+      }
+    }
+  ]
+}

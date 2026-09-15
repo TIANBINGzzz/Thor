@@ -38,7 +38,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
-- `.claude/databases/<source_key>/`登记数据库，query-specs/<domain>/维护语义、指标、规则、查询和验证；授权后按主题提供给问数和报告工具。
+- `.claude/databases/<source_key>/`登记数据库，query-specs/<domain>/维护唯一查询定义、同名SQL、语义及pending；Python生成查询索引，测试不进运行快照；授权后按主题提供给问数和报告工具。
 - `data_access/`管理来源授权、连接、查询及物化结果；`reporting/`编译计划、分批正文、原位回填和全文核验；tools/reports.py提供页面审阅并复用Artifact发布，业务知识留数据库/模板资产。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 

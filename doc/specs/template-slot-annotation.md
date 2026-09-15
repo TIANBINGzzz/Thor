@@ -1,5 +1,7 @@
 # 模板撰写的最小数据标注
 
+本文为后续标注界面设想，未替代当前批量数据集绑定契约；当前实现见[模板计划](template-batch-data-plan.md)。
+
 模板不应保存 SQL、表名、连接信息或完整 QuerySpec。模板只描述“这里要填一个确定指标”或“这里需要一段基于数据的文字”。
 
 ## 槽位只保留三种模式
@@ -40,7 +42,7 @@
 
 ## 对现有实现的调整方向
 
-- `metrics.json` 成为模板精确数据的主要接口；`query-bindings.json` 只保留表格批量查询或上下文主题配置。
+- 指标键从唯一查询定义的公开输出生成，不另行维护`metrics.json`；`query-bindings.json` 只保留表格批量查询或上下文主题配置。
 - `planner.py` 不再要求每个动态槽位都绑定 dataset；它只需收集 `metric_key` 和 `topic`，执行去重后的指标查询。
 - `evidence_datasets`、`source_rules` 等内部兼容字段不应继续作为新模板的标注要求；待迁移模板完成后删除。
 - `schoolDoubleHigh`、`hpm` 和数据库连接仍属于运行时/数据目录，不进入模板标注。

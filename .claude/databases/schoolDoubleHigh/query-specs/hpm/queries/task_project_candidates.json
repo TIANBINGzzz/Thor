@@ -1,0 +1,83 @@
+{
+  "name": "任务口径项目候选",
+  "description": "按任务双高标记定位其项目名称，即使项目标记不同也保留候选并披露；避免任务查询被项目口径候选过滤。",
+  "version": 1,
+  "grain": "task project",
+  "parameters": {
+    "name_pattern": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "名称 LIKE 模式，参数值可含通配符；null 列出授权范围候选，不允许 LIMIT 1 消歧"
+    },
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "output": [
+    {
+      "name": "project_id",
+      "description": "项目键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "project_name",
+      "description": "项目名称",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "project_high_flag",
+      "description": "项目双高标记，仅作诊断",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "project_delete_flag",
+      "description": "项目有效性标记，仅作诊断",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "task_count",
+      "description": "按任务自身范围的任务数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    }
+  ],
+  "aliases": [
+    "任务所属项目"
+  ],
+  "semantics": [
+    "任务自身 high_flag_=1；不由项目标记过滤",
+    "当前库中所选阶段的当前进度；不是历史截止日快照",
+    "名称多候选须消歧；不能根据项目标记排除已获准任务范围；无名称的孤立项目须说明"
+  ]
+}

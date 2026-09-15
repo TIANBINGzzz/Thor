@@ -24,7 +24,7 @@ python/reporting/
 python/tools/reports.py        SDK入口和成果发布，不是另一套写作Agent
 ```
 
-专业群来自项目name_；建设章节来自当年任务树一级name_；表格中的产出/效益/满意度属于绩效分类树。来源关系见域内`semantics/report-lineage.md`，不能单凭模板标题/code猜关联。
+专业群来自项目name_；建设章节来自当年任务树一级name_；表格中的产出/效益/满意度属于绩效分类树。来源关系见域内`semantics/business.md与relationships.md`，不能单凭模板标题/code猜关联。
 
 ## 入口和传值
 

@@ -51,7 +51,10 @@ class AgentWorkerTests(unittest.TestCase):
         prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
         self.assertIn("包括“国双高项目的三级任务”", prompt)
         self.assertIn("describe_data_source", prompt)
-        self.assertIn("metric-definitions", prompt)
+        from data_access.catalog import Catalog
+        topics = Catalog().domain("schoolDoubleHigh", "hpm")[1]["documents"]
+        for topic in topics:
+            self.assertIn(f"`{topic}`", prompt)
         self.assertNotIn("DBHub", prompt)
         self.assertEqual(config["documents"]["semantics"], [])
 

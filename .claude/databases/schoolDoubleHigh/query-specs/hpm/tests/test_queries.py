@@ -2,9 +2,12 @@
 from pathlib import Path
 import json
 import sqlite3
+import sys
 import unittest
 
 BASE = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BASE.parents[4]/'python'))
+from data_access.catalog import Catalog
 COMMON = 'tenant_id_ TEXT, delete_flag_ TEXT'
 TABLES = {
     'project': 'id_ TEXT, name_ TEXT, high_flag_ TEXT, start_time_ TEXT, end_time_ TEXT, level_name_ TEXT, progress_ REAL',
@@ -33,7 +36,9 @@ class QuerySemanticsTests(unittest.TestCase):
             # 两类部门关系表在真实数据库中没有 delete_flag_，测试也不提供它。
             shared = 'tenant_id_ TEXT' if name.endswith(('_org','_relation')) else COMMON
             self.db.execute(f'CREATE TABLE t_hpm_project{("_" + name) if name != "project" else ""} ({shared}, {columns})')
-        self.specs = {p.stem: json.loads(p.read_text(encoding='utf-8')) for p in (BASE/'specs').glob('*.json')}
+        catalog=Catalog().freeze(['schoolDoubleHigh'])
+        self.specs = {q['id']:catalog.spec('schoolDoubleHigh','hpm',q['id'])
+                      for q in catalog.domain('schoolDoubleHigh','hpm')[1]['queries']}
 
     def tearDown(self):
         self.db.close()

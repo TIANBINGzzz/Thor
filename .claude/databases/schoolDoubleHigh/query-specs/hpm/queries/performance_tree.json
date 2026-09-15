@@ -1,0 +1,102 @@
+{
+  "name": "绩效分类树和当前值",
+  "description": "返回校双高绩效分类及具体指标，parent_id_用于树结构；first_item_id_/second_item_id_分类回溯见任务绩效关联查询。此查询不限制年度，不能直接作为年度汇总。",
+  "version": 1,
+  "grain": "project + performance node",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    }
+  },
+  "output": [
+    {
+      "name": "project_id",
+      "description": "项目键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "performance_id",
+      "description": "绩效键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "stage_id",
+      "description": "阶段键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "parent_id",
+      "description": "父指标键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "performance_code",
+      "description": "业务编码",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "performance_name",
+      "description": "指标/分类名",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "performance_level",
+      "description": "1/2 分类，>=3 实绩节点",
+      "type": "integer",
+      "nullable": true
+    },
+    {
+      "name": "target_value",
+      "description": "当前目标原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "finish_value",
+      "description": "当前完成原文",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "current_progress",
+      "description": "当前进度",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    }
+  ],
+  "aliases": [
+    "绩效分类树",
+    "绩效指标明细",
+    "产出指标",
+    "效益指标",
+    "满意度指标"
+  ],
+  "semantics": [
+    "目录数据包含全部节点，不直接聚合；实际取值需 module_status 和模块阶段规则",
+    "沿同项目父键恢复分类路径并检查环和缺父节点；阶段为空的分类可被该项目有阶段实绩节点引用",
+    "不能仅按指标名或编码唯一定位；完成/目标原文不能强制转数值"
+  ]
+}

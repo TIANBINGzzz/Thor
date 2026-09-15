@@ -1,0 +1,70 @@
+{
+  "name": "任务与项目标记诊断",
+  "description": "发现任务关联项目缺失、失效或双高标记不同；结果仅披露，不反向过滤纯任务。",
+  "version": 1,
+  "grain": "selected task scope",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "output": [
+    {
+      "name": "task_count",
+      "description": "任务口径总数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "missing_project_count",
+      "description": "无对应项目数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "inactive_project_count",
+      "description": "关联非有效项目数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "different_flag_count",
+      "description": "项目双高标记不同数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    }
+  ],
+  "aliases": [
+    "项目标记不一致",
+    "任务范围诊断"
+  ],
+  "semantics": [
+    "统计差异不否定数据源；不据项目标记排除任务",
+    "各诊断计数不超过 task_count；诊断类别可能重叠，不能相加当异常总数"
+  ]
+}

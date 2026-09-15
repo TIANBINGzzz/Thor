@@ -1,0 +1,114 @@
+{
+  "name": "年度任务到绩效关联",
+  "description": "按模块开关关联有阶段或无阶段绩效；分类回溯使用 first_item_id_/second_item_id_。",
+  "version": 2,
+  "grain": "authorized project and declared period",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "output": [
+    {
+      "name": "task_id",
+      "description": "任务键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "performance_id",
+      "description": "绩效键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "task_name",
+      "description": "任务名称",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "performance_name",
+      "description": "具体绩效指标",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "first_performance_name",
+      "description": "绩效一级分类",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "second_performance_name",
+      "description": "绩效二级分类",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "current_target_value",
+      "description": "当前登记目标值",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "current_finish_value",
+      "description": "当前登记完成值",
+      "type": "string",
+      "nullable": true
+    }
+  ],
+  "aliases": [
+    "任务绩效关联",
+    "建设任务对应绩效"
+  ],
+  "semantics": [
+    "按模块开关关联有阶段或无阶段绩效；分类回溯使用 first_item_id_/second_item_id_。",
+    "当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。",
+    "详见 semantics/business.md及relationships.md；同项目及租户关联，内部ID不进入报告。"
+  ],
+  "requires_queries": [
+    "performance_module_status"
+  ],
+  "checks": [
+    {
+      "query_id": "performance_module_status",
+      "type": "all_rows",
+      "allowed": {
+        "module_count": [
+          1
+        ],
+        "distinct_flag_count": [
+          1
+        ],
+        "stage_flag": [
+          "0",
+          "1"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+# 校双高字段语义
+
+实际可查询字段以数据工具返回的授权白名单为准。以下13张表的字段用于解释业务，不授予访问权限。所有表有tenant_id_；除项目表外，下列实体均按project_id_归属项目。主键、租户键和人员编码仅用于内部关联。
+
+## t_hpm_project
+一行一个项目，id_为主键；name_为双高项目/专业群名称。high_flag_='1'为国双高，province_high_flag_为省双高标记；不能混用。progress_为当前进度，state_的0/1/2/3分别为未启动/已启动/终止/归档。start_time_/end_time_为起止时间，level_name_可能为多值级别文本。delete_flag_='0'有效。
+
+## t_hpm_project_stage
+一行一个项目的年度阶段；id_为阶段键，name_通常是年份，按用户年度精确匹配。同名年度在不同项目有不同阶段键。start_time_/end_time_为阶段起止时间；current_flag_的1/0表示当前/非当前；delete_flag_='0'有效。
+
+## t_hpm_project_module
+项目模块配置，须检查有效配置数量及开关是否冲突。task_flag_/fund_flag_/performance_flag_为模块开关；performance_stage_flag_的1/0表示绩效按阶段/不按阶段；delete_flag_='0'有效。具体取值范围见查询依赖检查。
+
+## t_hpm_project_member
+项目、人员、角色关系；user_id_/user_code_为内部人员标识，user_name_仅在明确询问且授权时输出。type_='0'为项目负责人；main_org_id_/main_org_name_是人员主部门，不能代替任务牵头部门。按项目、人员、角色去重，delete_flag_='0'有效。
+
+## t_hpm_project_task
+一行一个任务节点；id_主键，parent_id_父任务，master_id_总任务，name_/code_名称/编码，stage_id_年度阶段。level_可到5，整体统计通常明确选择3，level_=1为建设章节。high_flag_='1'为国双高任务；delete_flag_='0'有效。
+progress_为当前完成进度，state_只作状态展示；target_value_/complete_value_可能为非数字文本。weight_为权重文本，不能未经规则转换直接评分。calculate_flag_的0/1/2分别为手填/汇总下级进度/汇总下级完成值；stage_type_的0/1为进度型/权重型。
+
+## t_hpm_project_task_feedback
+一次任务反馈提交；id_反馈键，task_id_任务键，date_反馈业务日期，create_time_创建时间，content_反馈正文。progress_/complete_progress_为本次反馈及完成进度。state_的0/1/2为提交/审核通过/驳回；delete_flag_='0'有效。attachment_是附件JSON/文本，user_name_/main_org_name_为反馈人及主部门。
+
+## t_hpm_project_task_member
+任务、人员、角色关系；task_id_/user_id_关联任务/人员，user_name_姓名；type_的0/1表示负责人/参与人；main_org_id_/main_org_name_是人员主部门。按任务、人员、角色去重，delete_flag_='0'有效。
+
+## t_hpm_project_task_org
+任务与负责部门关系；task_id_关联任务，牵头主部门使用main_org_id_/main_org_code_/main_org_name_，不能用org_id_/org_name_替代。同一任务可能有多个部门，按任务与主部门去重。没有delete_flag_。
+
+## t_hpm_project_performance
+一行一个绩效树节点；id_主键，parent_id_父指标，first_item_id_/second_item_id_回溯一/二级分类；code_/name_为编码/名称。level_的1/2为分类，>=3为具体指标；target_value_/finish_value_是目标/完成值，progress_当前进度，state_状态展示。delete_flag_='0'有效。
+stage_id_可为空；统计必须依有效项目及模块确定范围，不能单独用绩效high_flag_区分国/省双高。分类树查询返回当前树用于定位，不证明年度或历史实绩。
+
+## t_hpm_project_performance_feedback
+一次绩效反馈提交；id_反馈键，performance_id_关联指标；create_time_是提交时间，不能自动等同业务年度。year_target_value_/year_complete_value_为年度目标/完成值，total_target_value_/total_complete_value_为累计目标/完成值，progress_/total_progress_为年度/累计进度，content_/attachment_为内容/附件。state_的0/1/2为提交/通过/驳回；delete_flag_='0'有效。多版本选择规则未定义时只返回候选，不任取最新一条。
+
+## t_hpm_project_performance_org
+绩效与负责主部门关系；performance_id_关联指标，main_org_id_/main_org_code_/main_org_name_为主部门，sort_排序。不能用人员部门或任务部门替代；按绩效与主部门去重。没有delete_flag_。
+
+## t_hpm_project_fund
+一行一个资金树节点；id_/parent_id_/full_id_为节点/父节点/路径，name_/code_为名称/编码；level_为层级，task_id_可关联任务。stage_id_为空表示全建设期，有阶段表示年度。没有high_flag_，按有效国双高项目确定范围，delete_flag_='0'有效。
+金额单位万元；budget/investment/execute/arrival分别为预算/投入/执行/到位。字段形如budget_total_money_；total为小计，centre/province/place/organizer/enterprise为中央财政/省级财政/地方财政/举办方/企业，alone的其他来源/学校自筹标签须由业务字典确认。一级节点汇总防止父子重复，比率按金额计算，不直接取冗余比例字段。
+
+## t_hpm_project_task_performance_relation
+任务与绩效多对多关系，字段为tenant_id_/project_id_/task_id_/performance_id_。没有delete_flag_；必须关联有效任务及绩效，按项目、任务、绩效去重，跨任务汇总再按绩效去重。

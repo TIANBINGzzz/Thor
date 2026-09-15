@@ -1,0 +1,111 @@
+{
+  "name": "资金部门归属覆盖与零执行诊断",
+  "description": "Q16 保留所有有效资金节点做关系覆盖诊断；不是一级资金预算汇总查询。",
+  "version": 1,
+  "grain": "fund relationship coverage + department diagnostic",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "output": [
+    {
+      "name": "total_fund_count",
+      "description": "全部有效项目资金节点数（不限层级）",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "fund_with_task_count",
+      "description": "task_id 非空的资金数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "matched_task_count",
+      "description": "成功关联有效任务的资金数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "matched_department_fund_count",
+      "description": "成功关联主部门的去重资金数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "coverage_rate",
+      "description": "资金到主部门覆盖率",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "department_count",
+      "description": "可归属主部门数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "zero_execute_department_count",
+      "description": "按 Q16 NULL 视0规则的零执行部门数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "all_missing_department_count",
+      "description": "全部执行金额未填报部门数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "incomplete_department_count",
+      "description": "存在执行金额未填报的部门数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    }
+  ],
+  "aliases": [
+    "部门资金覆盖",
+    "零执行部门",
+    "资金关联覆盖"
+  ],
+  "semantics": [
+    "只沿 Fund->有效Task->TaskOrg；不继承父任务、项目或人员部门，不按 Task.high_flag_ 改变资金范围",
+    "Q16 依照现有关系诊断口径统计所有资金层级，不能用于金额全校合计",
+    "同一资金多部门可以各归属一次；覆盖分子按项目+资金去重",
+    "Q16 的 NULL 视0仅用于本查询的诊断计数，同时输出未填报诊断，不表示实际确无支出",
+    "0<=matched_department_fund_count<=matched_task_count<=fund_with_task_count<=total_fund_count",
+    "coverage_rate<95 或为null时只能给局部诊断，不能输出全量零执行结论",
+    "incomplete_department_count>0 时必须说明未填报影响"
+  ]
+}

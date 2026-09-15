@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from sqlalchemy import text
 
 from .access import domain_policy, resolve_data_access
-from .catalog import Catalog, asset_path, read_json
+from .catalog import Catalog, search_score
 from .connections import Connections, resolve_connection
 from .context import DataError, fingerprint
 from .results import Results, json_value
@@ -72,30 +72,26 @@ class Executor:
     def find_query_specs(self, source_key, domain, intent=None, metric_key=None):
         _, policy, _ = self.access(source_key)
         allowed = domain_policy(policy, domain)
-        root, catalog = self.catalog.domain(source_key, domain)
+        _, catalog = self.catalog.domain(source_key, domain)
         if not intent and not metric_key:
             raise DataError("SEARCH_REQUIRED")
-        metric_query = None
-        if metric_key:
-            metrics = self.catalog._json(asset_path(root, "metrics.json"))["metrics"]
-            metric = next((m for m in metrics if m["metric_key"] == metric_key), None)
-            if not metric:
-                return {"queries": []}
-            metric_query = metric.get("query_id")
         matches = []
         for entry in catalog["queries"]:
             if entry["id"] not in allowed.get("queries", []):
                 continue
-            if metric_query and entry["id"] != metric_query:
-                continue
-            if intent and not any(word.lower() in str(entry).lower() for word in intent.split()):
-                continue
             spec = self.catalog.spec(source_key, domain, entry["id"])
-            matches.append({**entry, "parameters": {k: v for k, v in spec["parameters"].items()
+            output = [v for v in spec["output"] if v.get("visibility") != "internal_only"]
+            if metric_key and not any(metric_key == f"{spec['id']}.{v['name']}" for v in output):
+                continue
+            score = search_score(spec, intent) if intent else 1
+            if not score:
+                continue
+            matches.append((score, {**entry, "parameters": {k: v for k, v in spec["parameters"].items()
                              if not v.get("origin", "").startswith("authorized_")},
-                            "output": [v for v in spec["output"] if v.get("visibility") != "internal_only"],
-                            "semantics": spec.get("semantics", []), "blockers": spec.get("blockers", [])})
-        return {"queries": matches[:50], "has_more": len(matches) > 50}
+                            "output": output, "semantics": spec.get("semantics", []),
+                            "blockers": spec.get("blockers", [])}))
+        matches.sort(key=lambda item: (-item[0], item[1]["id"]))
+        return {"queries": [item for _, item in matches[:50]], "has_more": len(matches) > 50}
 
     def scope(self, source_key, domain, reference):
         _, policy, _ = self.access(source_key)

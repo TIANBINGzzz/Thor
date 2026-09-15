@@ -1,0 +1,65 @@
+{
+  "name": "绩效模块口径诊断",
+  "description": "逐项目返回模块数量和阶段开关；绩效查询前检查缺失、重复或无效开关。",
+  "version": 1,
+  "grain": "project",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    }
+  },
+  "output": [
+    {
+      "name": "project_id",
+      "description": "项目内部键",
+      "type": "string",
+      "nullable": true,
+      "visibility": "internal_only"
+    },
+    {
+      "name": "project_name",
+      "description": "项目名称",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "module_count",
+      "description": "有效模块记录数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "stage_flag",
+      "description": "1 分阶段，0 不分阶段；仅 module_count=1 时可用",
+      "type": "string",
+      "nullable": true
+    },
+    {
+      "name": "distinct_flag_count",
+      "description": "不同非空开关数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    }
+  ],
+  "aliases": [
+    "绩效模块",
+    "绩效阶段开关"
+  ],
+  "semantics": [
+    "所有选定项目 module_count=1 且 stage_flag 为 0 或 1；否则拒绝后续绩效统计"
+  ]
+}

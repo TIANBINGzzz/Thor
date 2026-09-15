@@ -1,7 +1,8 @@
-"""Read only registered model-facing assets within their package boundary."""
+"""Load one definition per query; derive discovery from frozen runtime assets."""
 
 import json
 import re
+import unicodedata
 from copy import deepcopy
 from pathlib import Path
 
@@ -35,34 +36,69 @@ def read_json(path):
         raise DataError("CONFIG_INVALID") from None
 
 
+def search_score(spec, intent):
+    """Rank explicit business aliases first, then overlapping Chinese word pairs."""
+    def normalize(value):
+        return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", value).casefold())
+
+    query = normalize(intent)
+    if not query:
+        return 0
+    labels = [spec["id"], spec["name"], *spec.get("aliases", [])]
+    direct = max(((10000 if label == query else 0) + 100 * min(len(label), len(query))
+                  for label in map(normalize, labels)
+                  if label and (label in query or query in label)), default=0)
+    text = normalize(" ".join([*labels, spec.get("description", "")]))
+    pairs = {part[i:i+2] for part in re.findall(r"[\u4e00-\u9fff]+", query) for i in range(len(part)-1)}
+    overlap = sum(pair in text for pair in pairs)
+    return direct + overlap if direct or overlap >= 2 else 0
+
+
 class Catalog:
     def __init__(self, root=DATABASES_ROOT):
         self.root = Path(root).resolve()
         self._contents = None
+        self._domains = {}
 
     def freeze(self, source_keys):
         frozen = Catalog(self.root)
         frozen._contents = {}
         for source_key in source_keys:
-            self.source(source_key)
-            for path in (self.root / source_key).rglob('*'):
-                if path.is_file() and path.suffix in {'.json', '.md', '.sql'} and 'tests' not in path.parts:
-                    resolved = asset_path(self.root, str(path.relative_to(self.root)))
-                    frozen._contents[resolved] = resolved.read_text(encoding='utf-8')
+            source = self.source(source_key)
+            root = self.root / source_key
+            paths = [self._path(root, "source.json")]
+            for domain in source["profiles"]:
+                base, config, specs = self._domain(source_key, domain)
+                paths += [self._path(base, "domain.json"), self._path(base, "pending.json")]
+                paths += [self._path(base, path) for path in config.get("documents", {}).values()]
+                for spec in specs.values():
+                    if spec["status"] == "defined":
+                        paths += [self._path(base, f"queries/{spec['id']}.{suffix}") for suffix in ("json", "sql")]
+            for path in paths:
+                frozen._contents[path] = self._text(path)
         return frozen
 
+    def _path(self, root, relative):
+        if self._contents is None:
+            return asset_path(root, relative)
+        if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
+            raise DataError("ASSET_PATH_INVALID")
+        path = (root / relative).resolve()
+        if not path.is_relative_to(root.resolve()) or path not in self._contents:
+            raise DataError("ASSET_PATH_INVALID")
+        return path
+
     def _text(self, path):
-        if self._contents is not None:
-            if path not in self._contents:
-                raise DataError('ASSET_MISMATCH')
-            return self._contents[path]
-        return path.read_text(encoding='utf-8')
+        return self._contents[path] if self._contents is not None else path.read_text(encoding="utf-8")
 
     def _json(self, path):
-        return json.loads(self._text(path))
+        try:
+            return json.loads(self._text(path))
+        except (OSError, ValueError):
+            raise DataError("CONFIG_INVALID") from None
 
     def source(self, source_key):
-        path = asset_path(self.root, f"{key(source_key)}/source.json")
+        path = self._path(self.root, f"{key(source_key)}/source.json")
         data = self._json(path)
         if data.get("source_key") != source_key or data.get("enabled") is not True:
             raise DataError("SOURCE_UNAVAILABLE")
@@ -72,37 +108,58 @@ class Catalog:
         return [self.source(p.parent.name) for p in sorted(self.root.glob("*/source.json"))
                 if read_json(p).get("enabled") is True]
 
-    def domain(self, source_key, domain):
-        source = self.source(source_key)
-        profile = source.get("profiles", {}).get(key(domain))
+    def _domain(self, source_key, domain):
+        cache_key = (key(source_key), key(domain))
+        if cache_key in self._domains:
+            return self._domains[cache_key]
+        profile = self.source(source_key).get("profiles", {}).get(domain)
         if not profile:
             raise DataError("DOMAIN_UNAVAILABLE")
-        path = asset_path(self.root / source_key, f"{profile}/catalog.json")
-        return path.parent, self._json(path)
+        root = self._path(self.root / source_key, f"{profile}/domain.json").parent
+        config = self._json(self._path(root, "domain.json"))
+        pending = self._json(self._path(root, "pending.json"))
+        files = (p for p in self._contents if p.parent == root / "queries" and p.suffix == ".json") \
+            if self._contents is not None else (root / "queries").glob("*.json")
+        specs = {}
+        for path in sorted(files):
+            query_id = key(path.stem)
+            spec = self._json(self._path(root, f"queries/{query_id}.json"))
+            if query_id in pending or any(k in spec for k in ("id", "status", "sql_file")):
+                raise DataError("ASSET_MISMATCH")
+            specs[query_id] = {**spec, "id": query_id, "status": "defined", "sql_file": f"queries/{query_id}.sql"}
+        for query_id, spec in pending.items():
+            if spec.get("status") not in {"blocked", "needs_definition"} or not spec.get("blockers"):
+                raise DataError("ASSET_MISMATCH")
+            specs[key(query_id)] = {**spec, "id": query_id, "parameters": {}, "output": [], "sql_file": None}
+        result = (root, config, specs)
+        if self._contents is not None:
+            self._domains[cache_key] = result
+        return result
+
+    def domain(self, source_key, domain):
+        root, config, specs = self._domain(source_key, domain)
+        queries = [{k: spec[k] for k in ("id", "name", "description", "status")}
+                   for _, spec in sorted(specs.items())]
+        return root, {**deepcopy(config), "queries": queries}
 
     def spec(self, source_key, domain, query_id):
-        root, catalog = self.domain(source_key, domain)
-        entry = next((q for q in catalog["queries"] if q["id"] == key(query_id)), None)
-        if not entry:
+        spec = self._domain(source_key, domain)[2].get(key(query_id))
+        if spec is None:
             raise DataError("QUERY_UNAVAILABLE")
-        spec = self._json(asset_path(root, entry["spec_file"]))
-        if spec.get("id") != query_id or spec.get("status") != entry["status"]:
-            raise DataError("ASSET_MISMATCH")
-        return spec
+        return deepcopy(spec)
 
     def sql(self, source_key, domain, spec):
-        root, _ = self.domain(source_key, domain)
-        return self._text(asset_path(root, spec["sql_file"]))
+        root, _, _ = self._domain(source_key, domain)
+        return self._text(self._path(root, spec["sql_file"]))
 
     def documents(self, source_key, domain, document_keys=None):
-        root, catalog = self.domain(source_key, domain)
-        registered = catalog.get("documents", {})
-        chosen = document_keys if document_keys is not None else []
+        root, config, _ = self._domain(source_key, domain)
+        registered = config.get("documents", {})
         result = {}
-        for name in chosen:
+        for name in document_keys or []:
             if name not in registered:
                 raise DataError("DOCUMENT_UNAVAILABLE")
-            path = asset_path(root, registered[name])
+            path = self._path(root, registered[name])
             if path.suffix != ".md" or "not_for_model" in str(path).lower():
                 raise DataError("DOCUMENT_UNAVAILABLE")
             content = self._text(path)
@@ -114,8 +171,9 @@ class Catalog:
         return result
 
     def revision(self, source_key):
+        if self._contents is None:
+            return self.freeze([source_key]).revision(source_key)
         root = self.root / key(source_key)
         self.source(source_key)
-        return fingerprint([(str(p.relative_to(root)), fingerprint(self._text(p.resolve())))
-                            for p in sorted(root.rglob("*"))
-                            if p.is_file() and p.suffix in {".json", ".md", ".sql"} and 'tests' not in p.parts])
+        return fingerprint([(p.relative_to(root).as_posix(), fingerprint(content))
+                            for p, content in sorted(self._contents.items()) if p.is_relative_to(root)])

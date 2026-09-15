@@ -1,0 +1,54 @@
+{
+  "name": "建设全周期预算",
+  "description": "原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。",
+  "version": 2,
+  "grain": "authorized project and declared period",
+  "parameters": {
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    }
+  },
+  "output": [
+    {
+      "name": "fund_count",
+      "description": "全周期一级资金行数",
+      "type": "integer",
+      "nullable": true
+    },
+    {
+      "name": "budget_observed_count",
+      "description": "已填预算行数",
+      "type": "integer",
+      "nullable": true
+    },
+    {
+      "name": "cycle_budget_amount",
+      "description": "当前登记全周期预算",
+      "type": "number",
+      "nullable": true,
+      "unit": "万元"
+    }
+  ],
+  "aliases": [
+    "全周期预算",
+    "全建设期预算",
+    "总建设预算"
+  ],
+  "semantics": [
+    "原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。",
+    "当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。",
+    "详见 semantics/business.md及relationships.md；同项目及租户关联，内部ID不进入报告。"
+  ]
+}

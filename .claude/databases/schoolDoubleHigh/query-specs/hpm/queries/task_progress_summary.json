@@ -1,0 +1,121 @@
+{
+  "name": "任务进度与阈值统计",
+  "description": "默认绑定三级任务；同时返回平均进度、按条数完成率、达到阈值和零/未填报数量，覆盖 Q2/Q4/Q5。",
+  "version": 1,
+  "grain": "selected task scope",
+  "parameters": {
+    "level": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "required": true,
+      "minimum": 1,
+      "maximum": 5,
+      "origin": "query_binding",
+      "description": "任务层级；null 表示所有真实年度层级，调用方必须显式选择"
+    },
+    "project_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "authorized_resolution",
+      "description": "已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许"
+    },
+    "tenant_id": {
+      "type": "string",
+      "required": true,
+      "origin": "authorized_context",
+      "description": "执行端注入已授权租户，不能由模型或浏览器选择"
+    },
+    "threshold": {
+      "type": "number",
+      "required": true,
+      "origin": "user_intent",
+      "description": "任务进度阈值，例如 50；不能替代固定的已完成阈值 100"
+    },
+    "year": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "origin": "user_intent",
+      "description": "精确匹配阶段名称；null 为全部有阶段记录，不代表历史截止日"
+    }
+  },
+  "output": [
+    {
+      "name": "task_count",
+      "description": "有效任务数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "completed_count",
+      "description": "已完成任务数",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "avg_progress",
+      "description": "NULL 按 0 的平均进度",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "completion_rate",
+      "description": "已完成条数占比",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "threshold_count",
+      "description": "达到参数阈值数量",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "threshold_rate",
+      "description": "达到阈值条数占比",
+      "type": "number",
+      "nullable": true,
+      "unit": "%"
+    },
+    {
+      "name": "zero_or_missing_count",
+      "description": "零进度或未填报数量",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    },
+    {
+      "name": "missing_progress_count",
+      "description": "未填报进度数量",
+      "type": "integer",
+      "nullable": false,
+      "unit": "条"
+    }
+  ],
+  "aliases": [
+    "三级任务",
+    "任务完成情况",
+    "平均任务进度",
+    "任务完成率",
+    "任务阈值"
+  ],
+  "semantics": [
+    "任务自身 high_flag_=1；不由项目标记过滤",
+    "当前库中所选阶段的当前进度；不是历史截止日快照",
+    "已完成 progress_>=100，不按 state_ 排除；NULL 进度按 0 纳入均值，并单独返回未填报数",
+    "无任务时两个比例和平均进度为 null；计数为 0 仅表示该范围无记录",
+    "条数完成率范围 0..100；平均进度允许超过 100，不作封顶"
+  ]
+}

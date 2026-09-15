@@ -15,10 +15,10 @@
 
 ## 决策
 
-- 每来源一个 `.claude/databases/<source_key>/` 包：source.json登记连接/策略引用，`query-specs/<domain>/` 集中语义、指标、规则、查询、SQL和验证。
+- 每来源一个 `.claude/databases/<source_key>/` 包：source.json登记连接/策略引用，`query-specs/<domain>/` 集中唯一查询JSON/同名SQL、三份语义、pending及测试；目录和输出字段索引由Python生成。
 - source_key保持用户指定的schoolDoubleHigh大小写，不是物理库名/租户名；当前仅整理此库，hpm业务域与现有查询筛选口径不随改名改变，密钥留部署配置。
 - 首期管理多份来源登记；来源发现不授予权限，按Capability与各源静态策略交集装配同一个data MCP，固定和动态查询明确指定来源。
-- 模板/工具按source_key+domain+query_id引用；相对路径在数据库包和业务域内校验，语义由catalog显式登记并按需加载。
+- 模板/工具按source_key+domain+query_id引用；相对路径在数据库包和业务域内校验，语义由domain.json显式登记并按需加载。
 - 不保留顶层data-sources/query-specs双目录或旧来源别名；替换现有加载方后删除旧资产副本，未核验查询不能因移动目录而升级状态。
 - 同一Run按source_key记录包、连接和权限修订；以后按tenant_id+source_key路由连接，目录不按租户复制。
 
@@ -48,3 +48,4 @@
 | 2026-09-14 | 已采纳 | 未开始 | 用户选择数据库在外层，完成目录和修改方案；未实施资产搬迁 |
 | 2026-09-14 | 已采纳 | 未开始 | 用户明确校双高库标识schoolDoubleHigh；补充工具注册/输入输出及原Workflow/Skill复用规范，仍仅设计 |
 | 2026-09-14 | 已采纳 | 部分完成 | 实施包/工具/计划；首次5页简版被否决，恢复原模板逐段写作及全文核验，数据库历史缺口保留 |
+| 2026-09-15 | 已采纳 | 部分完成 | 收敛重复索引与说明，26查询契约不变；20报告数据集实库与改造前SQL逐值一致，Java/生产差距仍保留 |

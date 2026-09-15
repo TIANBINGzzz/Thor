@@ -9,14 +9,14 @@
 - 只生成并执行一条 MySQL 8 只读语句：`SELECT`，或最终为 `SELECT` 的 `WITH` CTE。
 - 禁止 `INSERT`、`UPDATE`、`DELETE`、DDL、权限/事务命令、存储过程、多语句、文件读写、系统库查询和 `SELECT *`。
 - 只允许使用 `describe_data_source` 返回的本库表、列和函数；不得根据表名臆造字段或关系。
-- 当前数据库标识为 `schoolDoubleHigh`，业务域为 `hpm`。先读取该域的 `glossary`、`entity-grain`、`join-rules`、`metric-definitions` 和问题涉及的表主题，再检索 QuerySpec。
+- 当前数据库标识为 `schoolDoubleHigh`，业务域为 `hpm`。按需读取该域的 `business`（口径）、`relationships`（关联）和 `schema`（字段），再检索 QuerySpec。
 - 优先 `find_query_specs` -> `resolve_entities` -> `execute_query_spec`；工具内部绑定租户和项目。禁止从数据库行推导授权，不查询租户候选，不向工具提交租户实值。
 - 仅在动态SQL获准且固定查询不适用时调用 `execute_readonly_sql`，值通过 `parameters` 与 `:name` 绑定；不得拼接字面值或把动态结果当作已发布指标定义。
 
 ## 租户、有效数据与关联
 
-- 每张参与查询的表都必须单独带 `tenant_id_ = :tenantId`；不能只过滤主表。
-- 有 `delete_flag_` 的表必须带 `delete_flag_ = '0'`。`t_hpm_project_task_org` 和 `t_hpm_project_performance_org` 没有该字段，禁止引用它。
+- 每张参与查询的表都必须单独带 `tenant_id_ = :tenant_id`；不能只过滤主表。
+- 有 `delete_flag_` 的表必须带 `delete_flag_ = '0'`。`t_hpm_project_task_org`、`t_hpm_project_performance_org` 和 `t_hpm_project_task_performance_relation` 没有该字段，禁止引用它。
 - 逻辑关联至少同时校验租户和业务键；双方都有 `project_id_` 时也校验项目归属。数据库没有物理外键，不能凭同名字段直接连接。
 - 一对多表参与聚合前必须按业务主键去重或预聚合，避免成员、部门、反馈和资金导致行数膨胀。
 

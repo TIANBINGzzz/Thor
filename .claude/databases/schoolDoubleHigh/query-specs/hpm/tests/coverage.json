@@ -1,0 +1,137 @@
+{
+  "source_key": "schoolDoubleHigh",
+  "defaults": "未列出的参数按 QuerySpec 显式绑定；Q1/Q13/Q15 年度来自用户，Q9-Q11 部门须唯一解析，Q17 专业群项目须唯一解析并授权",
+  "questions": {
+    "Q1": {
+      "query_id": "task_level_counts",
+      "bindings": {},
+      "result": "task_level/task_count",
+      "question": "各层级任务数量"
+    },
+    "Q2": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "avg_progress",
+      "question": "三级任务平均进度"
+    },
+    "Q3": {
+      "query_id": "completed_task_count",
+      "bindings": {},
+      "result": "completed_count",
+      "question": "全部年度层级已完成任务数量"
+    },
+    "Q4": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "threshold_count/threshold_rate",
+      "question": "三级任务达到50%的数量和比例"
+    },
+    "Q5": {
+      "query_id": "task_progress_summary",
+      "bindings": {
+        "level": 3,
+        "threshold": 50
+      },
+      "result": "zero_or_missing_count",
+      "question": "三级任务零进度或未填报数量"
+    },
+    "Q6": {
+      "query_id": "completed_tasks_without_material",
+      "bindings": {},
+      "result": "missing_material_count",
+      "question": "已完成任务缺合格材料数量"
+    },
+    "Q7": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "结果部门行数",
+      "question": "承担任务的主部门数量"
+    },
+    "Q8": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "completed_count=0 的部门行数",
+      "question": "没有已完成任务的主部门数量"
+    },
+    "Q9": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "task_count",
+      "question": "指定部门三级任务数量"
+    },
+    "Q10": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "completed_count",
+      "question": "指定部门已完成三级任务数量"
+    },
+    "Q11": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": 3
+      },
+      "result": "completion_rate+avg_progress",
+      "question": "指定部门三级任务完成率和平均进度"
+    },
+    "Q12": {
+      "query_id": "task_department_metrics",
+      "bindings": {
+        "level": null
+      },
+      "result": "progress_rank；披露所有层级默认，明确三级时改3",
+      "question": "部门任务平均进度排名"
+    },
+    "Q13": {
+      "query_id": "fund_totals",
+      "bindings": {},
+      "result": "budget_amount+budget_observed_count+fund_count",
+      "question": "指定年度预算及填报完整性"
+    },
+    "Q14": {
+      "query_id": "fund_totals",
+      "bindings": {
+        "year": null
+      },
+      "result": "budget_execution_rate",
+      "question": "全部年度资金预算执行率"
+    },
+    "Q15": {
+      "query_id": "fund_totals",
+      "bindings": {},
+      "result": "budget_execution_rate",
+      "question": "指定年度资金预算执行率"
+    },
+    "Q16": {
+      "query_id": "fund_department_coverage",
+      "bindings": {},
+      "result": "coverage_rate+zero_execute_department_count+未填报诊断",
+      "question": "资金关联部门覆盖与零执行诊断"
+    },
+    "Q17": {
+      "query_id": "performance_current_summary",
+      "bindings": {},
+      "result": "avg_progress+reached_rate",
+      "question": "指定专业群当前绩效平均进度和达标率"
+    },
+    "Q18": {
+      "query_id": "performance_current_summary",
+      "bindings": {},
+      "result": "not_reached_count",
+      "question": "当前未达标或未填报绩效数量"
+    }
+  }
+}

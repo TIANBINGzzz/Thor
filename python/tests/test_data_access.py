@@ -38,14 +38,13 @@ class DataAccessTests(unittest.TestCase):
             save(folder/'source.json', {'source_key': source, 'name': source, 'enabled': True, 'version': 1,
                 'profiles': {'sales': 'query-specs/sales'}, 'connection_ref': source, 'policy_ref': source})
             domain = folder/'query-specs/sales'
-            save(domain/'catalog.json', {'queries': [{'id': 'total', 'name': 'Total', 'status': 'defined', 'spec_file': 'specs/total.json'}],
-                                        'documents': {}})
-            spec = {'id': 'total', 'status': 'defined', 'version': 1, 'parameters': {
+            save(domain/'domain.json', {'documents': {}})
+            save(domain/'pending.json', {})
+            spec = {'name': 'Total', 'description': 'Sum sales', 'version': 1, 'parameters': {
                 'tenant_id': {'type': 'string', 'required': True, 'origin': 'authorized_context'}},
-                'output': [{'name': 'total', 'type': 'number', 'unit': 'USD'}], 'sql_file': 'sql/total.sql'}
-            save(domain/'specs/total.json', spec)
-            (domain/'sql').mkdir()
-            (domain/'sql/total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
+                'output': [{'name': 'total', 'type': 'number', 'unit': 'USD'}]}
+            save(domain/'queries/total.json', spec)
+            (domain/'queries/total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
             db = sqlite3.connect(self.root/f'{source}.db')
             db.execute('CREATE TABLE sales (tenant TEXT, amount INTEGER, private_id TEXT)')
             db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
@@ -74,6 +73,50 @@ class DataAccessTests(unittest.TestCase):
             self.assertEqual(result['rows'], [{'total':expected}])
         with self.assertRaises(DataError):
             self.executor.execute_query_spec('second','sales','total',{},self.school())
+
+    def test_discovery_uses_query_fields_and_never_exposes_forbidden_queries(self):
+        for source in ('first','second'):
+            found=self.executor.find_query_specs(source,'sales',metric_key='total.total')['queries']
+            self.assertEqual([q['id'] for q in found],['total'])
+        self.assertEqual(self.executor.find_query_specs('first','sales',metric_key='total.tenant')['queries'],[])
+        self.config['policies']['first']['domains']['sales']['queries']=[]
+        executor=self.make_executor()
+        self.assertEqual(executor.find_query_specs('first','sales',intent='Total')['queries'],[])
+        self.assertEqual(executor.find_query_specs('second','sales',intent='Total')['queries'][0]['id'],'total')
+
+    def test_pending_definition_stays_discoverable_but_cannot_execute(self):
+        domain=self.root/'databases/first/query-specs/sales'
+        save(domain/'pending.json',{'score':{'name':'Scoring','description':'Scoring rule missing',
+             'status':'needs_definition','version':1,'blockers':['No scoring formula']}})
+        self.config['policies']['first']['domains']['sales']['queries'].append('score')
+        executor=self.make_executor()
+        self.assertEqual(executor.find_query_specs('first','sales',intent='Scoring')['queries'][0]['blockers'],['No scoring formula'])
+        with patch.object(executor.connections, 'snapshot') as snapshot:
+            with self.assertRaisesRegex(DataError,'QUERY_DEFINITION_MISSING'):
+                executor.execute_query_spec('first','sales','score',{},self.school(executor))
+            # No SQL is issued for a pending definition.
+            snapshot.return_value.__enter__.return_value.execution_options.assert_not_called()
+        save(domain/'pending.json',{'total':{'name':'Duplicate','status':'blocked','blockers':['Not verified']}})
+        with self.assertRaisesRegex(DataError,'ASSET_MISMATCH'): self.make_executor()
+
+    def test_run_asset_snapshot_ignores_tests_and_is_independent_of_later_files(self):
+        frozen=self.executor.catalog
+        revision=frozen.revision('first')
+        domain=self.root/'databases/first/query-specs/sales'
+        save(domain/'tests/evidence.not_for_model.json',{'ignored':'test-only'})
+        (domain/'unregistered.md').write_text('not model context')
+        self.assertEqual(self.catalog.revision('first'),revision)
+        spec=json.loads((domain/'queries/total.json').read_text())
+        save(domain/'queries/new_query.json',spec)
+        (domain/'queries/new_query.sql').write_text('SELECT 1 AS total')
+        (domain/'queries/total.sql').write_text('SELECT 0 AS total')
+        self.assertNotEqual(self.catalog.revision('first'),revision)
+        (domain/'queries/total.json').unlink()
+        self.assertEqual(frozen.revision('first'),revision)
+        self.assertEqual([q['id'] for q in frozen.domain('first','sales')[1]['queries']],['total'])
+        self.assertEqual(self.executor.execute_query_spec('first','sales','total',{},self.school())['rows'],[{'total':10}])
+        with self.assertRaisesRegex(DataError,'DOCUMENT_UNAVAILABLE'):
+            frozen.documents('first','sales',['unregistered'])
 
     def test_access_denies_wrong_identity_empty_scope_and_unlisted_user(self):
         for change in [{'tenant_id':'jwt-b'}, {'user_id':'u3'}, {'capability_ref':'writing'}]:
@@ -215,6 +258,26 @@ class DataAccessTests(unittest.TestCase):
 
 
 class RegisteredAssetsTests(unittest.TestCase):
+    def test_chinese_business_queries_rank_existing_definitions(self):
+        config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
+        policy=config['policies']['schoolDoubleHigh_readonly']
+        policy.update(tenant_id='test',business_tenant_id='test',users=['tester'],
+                      capabilities=['qa'],project_scope={'mode':'all_school'})
+        config['connections']['schoolDoubleHigh_primary']['tenant_id']='test'
+        with tempfile.TemporaryDirectory() as directory:
+            executor=Executor(DataContext('r','test','tester','qa',Path(directory)),config,{},PROJECT_ROOT,
+                              source_keys=['schoolDoubleHigh'])
+            cases={'专业群':'project_catalog','资金执行率':'fund_totals',
+                   '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'report_task_sections',
+                   '绩效反馈':'performance_feedback_candidates'}
+            for intent,query_id in cases.items():
+                with self.subTest(intent=intent):
+                    found=executor.find_query_specs('schoolDoubleHigh','hpm',intent=intent)['queries']
+                    self.assertEqual(found[0]['id'],query_id)
+                    self.assertNotIn('tenant_id',found[0]['parameters'])
+            self.assertEqual(executor.find_query_specs('schoolDoubleHigh','hpm',intent='明天的天气')['queries'],[])
+            self.assertEqual(executor.find_query_specs('schoolDoubleHigh','hpm',metric_key='task_tree.task_id')['queries'],[])
+
     def test_all_defined_queries_pass_ast_policy(self):
         config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
         policy=config['policies']['schoolDoubleHigh_readonly']['domains']['hpm']
