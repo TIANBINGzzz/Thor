@@ -140,3 +140,92 @@ metrics:
       performance_name: 非空
       performance_level: 只能为1或2
       parent_id: 二级分类必须能关联同项目的一级分类；缺父节点时停止组装该分类路径
+
+  - id: project_cycle_budget
+    name: 项目全建设期预算
+    description: 汇总指定国双高项目无阶段的有效一级资金节点预算，单位万元；不与年度预算相加。一级节点数量按实际记录确定，不固定为十项。
+    parameters:
+      - project_id
+    grain: project
+    sql: |
+      SELECT COUNT(*) AS fund_count,
+             COUNT(f.budget_total_money_) AS budget_observed_count,
+             ROUND(SUM(f.budget_total_money_), 2) AS cycle_budget_amount
+      FROM t_hpm_project_fund f
+      JOIN t_hpm_project p
+        ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
+      WHERE f.tenant_id_ = :tenant_id
+        AND f.project_id_ = :project_id
+        AND f.delete_flag_ = '0' AND f.level_ = 1
+        AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+        AND (f.stage_id_ IS NULL OR TRIM(f.stage_id_) = '')
+    output:
+      fund_count: 无阶段一级资金记录数量
+      budget_observed_count: 已填报预算的记录数量
+      cycle_budget_amount: 已填报的全建设期预算合计，单位万元
+    validation:
+      budget_observed_count: 介于0和fund_count之间；不等于fund_count时金额仅是已填报部分
+      cycle_budget_amount: 无记录或预算全部未填时为null；记录非空且预算全填报后才能作为完整预算；登记为0不证明业务预算确为0
+
+  - id: annual_project_funds
+    name: 项目年度预算到位与执行
+    description: 汇总指定国双高项目指定年度的有效一级资金节点，金额单位万元、比率单位百分比。只反映年度记录当前值；不能直接充当截至某日累计到位、执行金额或全周期预算对应的执行率。
+    parameters:
+      - project_id
+      - year
+    grain: project_year
+    sql: |
+      WITH amounts AS (
+        SELECT COUNT(*) AS fund_count,
+               SUM(f.budget_total_money_) AS budget_amount,
+               COUNT(f.budget_total_money_) AS budget_observed_count,
+               SUM(f.arrival_total_money_) AS arrival_amount,
+               COUNT(f.arrival_total_money_) AS arrival_observed_count,
+               SUM(f.execute_total_money_) AS execute_amount,
+               COUNT(f.execute_total_money_) AS execute_observed_count
+        FROM t_hpm_project_fund f
+        JOIN t_hpm_project p
+          ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
+        WHERE f.tenant_id_ = :tenant_id
+          AND f.project_id_ = :project_id
+          AND f.delete_flag_ = '0' AND f.level_ = 1
+          AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+          AND EXISTS (
+            SELECT 1 FROM t_hpm_project_stage s
+            WHERE s.tenant_id_ = f.tenant_id_
+              AND s.project_id_ = f.project_id_ AND s.id_ = f.stage_id_
+              AND s.delete_flag_ = '0' AND s.name_ = :year
+          )
+      )
+      SELECT fund_count, budget_amount, budget_observed_count,
+             arrival_amount, arrival_observed_count,
+             execute_amount, execute_observed_count,
+             CASE WHEN budget_observed_count = fund_count
+                        AND arrival_observed_count = fund_count
+               THEN ROUND(100.0 * arrival_amount / NULLIF(budget_amount, 0), 2)
+             END AS arrival_rate,
+             CASE WHEN budget_observed_count = fund_count
+                        AND execute_observed_count = fund_count
+               THEN ROUND(100.0 * execute_amount / NULLIF(budget_amount, 0), 2)
+             END AS budget_execution_rate,
+             CASE WHEN arrival_observed_count = fund_count
+                        AND execute_observed_count = fund_count
+               THEN ROUND(100.0 * execute_amount / NULLIF(arrival_amount, 0), 2)
+             END AS arrival_execution_rate
+      FROM amounts
+    output:
+      fund_count: 年度一级资金记录数量
+      budget_amount: 已填报预算合计，单位万元
+      budget_observed_count: 已填报预算的记录数量
+      arrival_amount: 已填报到位金额合计，单位万元
+      arrival_observed_count: 已填报到位金额的记录数量
+      execute_amount: 已填报执行金额合计，单位万元
+      execute_observed_count: 已填报执行金额的记录数量
+      arrival_rate: 到位金额除以年度预算乘100
+      budget_execution_rate: 执行金额除以年度预算乘100
+      arrival_execution_rate: 执行金额除以到位金额乘100
+    validation:
+      fund_count: 整数且大于等于0；无记录时金额和比率均为null
+      observed_counts: 各已填报数量介于0和fund_count之间；未全填报的金额仅能作为已填报部分
+      rates: 分子分母对应金额均全填报且分母非0时计算，否则为null；保留两位小数，不强行封顶为100
+      amounts: 到位为0但执行大于0时标记矛盾，先核实后解释；万元换算亿元除以10000
