@@ -15,7 +15,6 @@
       configure_bindings.py  管理员维护数据角色和显式缺值规则，不改原DOCX
 python/reporting/
   bindings.py                权限、路径、版本、位置及重复槽位校验
-  register.py                原逐段Markdown映射的结构化登记
   planner.py                 参数展开、查询去重、取数、覆盖和分页
   values.py                  公开字段、参数文本及有证据的缺值解析
   rendering.py               正文证据检查、保留全部run的原位文字替换
@@ -44,7 +43,7 @@ python/tools/reports.py        SDK入口和成果发布，不是另一套写作A
 
 report_parameters：`{"years":["2025"],"as_of":"2025-12-31","period_mode":"annual","timezone":"Asia/Shanghai"}`。
 scope_refs：`{"hpm":{"group_a":"scope_...","group_b":"scope_..."}}`。学校独立项目未绑定，其章节和表格保留并明确数据缺口，不能将两个项目扩大为全校。
-section_drafts每段指定原slot_key；render传空数组仅使用此前保存的正文，未写完必填正文仍失败。
+section_drafts每段指定原slot_key；保存和回填共用正文校验，每段最多1200字。render传空数组仅使用此前保存的正文，未写完必填正文仍失败。
 可信模板的file_name可引用`${years}`等已校验报告参数；渲染端禁止路径分隔符及非法文件名，年度不固定写死。
 
 ## 数据集与槽位
@@ -53,17 +52,16 @@ section_drafts每段指定原slot_key；render传空数组仅使用此前保存�
 | --- | --- | --- |
 | Dataset | dataset_key, source_role, domain, scope_role, query_id, parameter_bindings, section_keys | 来源角色查source_roles，再按源/域授权；模型不能改写绑定 |
 | 参数绑定 | from=literal/report_parameter, value/key, expand?=each | 年份标量展开；任意表达式及先前数据集依赖尚不支持，遇到即blocked |
-| Scalar | slot_key, section_key, kind, required, locator, dataset_key?, field?, selector?, format? | 唯一行与公开输出字段；多行未消歧不填 |
-| Report参数 | report_parameter, prefix?, suffix? | 截止日等取已校验参数 |
-| Table | kind=table, dataset_key, selector?, columns, empty_text? | 定位两行原型表，保留表头、按完整结果复制行，只可绑定公开字段 |
-| 空白/空值 | intentional_blank且required=false；null_text? | 评分允许空白；仅登记的空值说明可替代NULL，不能默认填0 |
+| Scalar | slot_key, section_key, kind=scalar, required, locator, text_template, values | values中的每项取dataset_key/field/selector或report_parameter，替换text_template中的同名变量；数据库只取唯一行及公开字段 |
+| Narrative | kind=narrative, evidence_datasets, business_context, write_instruction | 按原位置撰写正文，引用限定数据集；表格中的正文也按段落回填，不增删行 |
+| 缺值/空白 | resolution.text/reason/require_empty；intentional_blank且required=false | 缺值须说明原因，require_empty核验指定结果确为空；评分可留空，不能默认填0 |
 | Locator | part, path, expected_text_hash | 物理XML位置与文字哈希；文件变化须重新登记 |
 
 原40表登记3503个位置，其中105个正文；20个数据集支撑项目、任务、资金和历史依据核验。`resolution`记录无法评价的原因及空结果前置检查，`evidence_datasets`限制正文证据。**处理全部位置不等于全部指标有实值**；原表格历史指标缺值显示`/`，评分留空，缺口记入清单。未定义的新口径仍禁止编造。
 
 ## 执行及核验
 
-1. 检查参数、角色、权限及版本；同输入/版本复用本Run计划，变参生成新计划，旧计划不能交付。
+1. 检查参数、角色、权限及版本；模板须preserve_structure=true、missing_policy=reject。同输入/版本复用本Run计划，变参生成新计划，旧计划不能交付。
 2. 按source/domain/query/version/params/scope展开并去重，先执行QuerySpec依赖诊断；缺定义/参数或不支持的依赖明确blocked。
 3. 同源只读一致性快照；源失败则整组结果失效，截断不能生成完整报告。当前不自动重试，无跨来源事务。
 4. 原始结果物化在Run目录，模型按章节读取；不将几千项数据一次塞入Prompt。

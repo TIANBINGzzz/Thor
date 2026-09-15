@@ -114,7 +114,7 @@ class Executor:
             if policy["project_scope"]["mode"] != "all_school":
                 raise DataError("SCOPE_FORBIDDEN")
             return {"candidates": [{"name": "已授权学校范围", "scope_ref": self._scope_ref(source_key, domain, None, policy)}]}
-        root, catalog = self.catalog.domain(source_key, domain)
+        _, catalog = self.catalog.domain(source_key, domain)
         definition = catalog.get("entities", {}).get(entity_type)
         if not definition:
             raise DataError("ENTITY_UNSUPPORTED")

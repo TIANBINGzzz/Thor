@@ -46,7 +46,7 @@ def validate_document(template, rendered, environment):
     output=Path(rendered['path'])
     if rendered['missing_count']:
         raise DataError('REPORT_INCOMPLETE')
-    fidelity=check_fidelity(template,output) if template.get('preserve_structure') else {}
+    fidelity=check_fidelity(template,output)
     folder=output.parent/(output.stem+'-preview')
     folder.mkdir(exist_ok=True)
     pdf=folder/(output.stem+'.pdf')

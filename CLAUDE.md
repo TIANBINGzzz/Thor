@@ -7,7 +7,7 @@
 ## 已确认项目事实
 
 - 2026-09-14 用户最新确认：当前唯一数据库是校双高数据库；此前“校本数据库”是对同一来源的不准确称呼。内部数据源标识定为 `schoolDoubleHigh`，改造先按单租户实施，保留多租户扩展边界。
-- 运行资产已统一到schoolDoubleHigh；qa_db/report_db仅保留在历史核验证据中，不代表多库。hpm为项目、任务、资金和绩效业务域，命名不改变查询口径或物理库名。
+- 运行资产已统一到schoolDoubleHigh；qa_db/report_db旧登记仅见Git历史，不代表多库。hpm为项目、任务、资金和绩效业务域，命名不改变查询口径或物理库名。
 - 已按 `.claude/databases/<source_key>/source.json` 和query-specs/<domain>/集中管理；data_access/reporting及MCP工具已接入，实际仅校双高库。原40表仍有规则缺口，见[ADR-023](doc/ADR/023-database-scoped-asset-packages.md)。
 - 专业群名称来自双高项目name_；建设章节是任务树一级指标，绩效表产出/效益/满意度属于另一棵分类树。来源、阶段及任务绩效关联必须按semantics/business.md及relationships.md核验；不得只记标题而丢失关联。
 - 当前改造方案见[数据库工具设计](doc/specs/data-source-connections.md)。唯一数据库不证明模板中的所有表、关系、字段、历史期间或评分规则已核验；不得因统一来源名称就自动启用待验证查询。

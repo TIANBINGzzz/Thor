@@ -42,6 +42,8 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
     if (template.get("template_key") != template_key or template.get("enabled") is not True
             or capability_ref not in template.get("capabilities", [])):
         raise DataError("TEMPLATE_FORBIDDEN")
+    if template.get('preserve_structure') is not True or template.get('missing_policy') != 'reject':
+        raise DataError('TEMPLATE_CONTRACT_INVALID')
     path = asset_path(directory, template["docx_file"])
     if sha256(path.read_bytes()).hexdigest() != template["docx_sha256"]:
         raise DataError("TEMPLATE_MISMATCH")
@@ -55,13 +57,18 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
     if len(datasets) != len(bindings["datasets"]):
         raise DataError("BINDING_INVALID")
     for slot in slots:
+        if slot['kind'] not in {'static', 'scalar', 'narrative'} or any(k in slot for k in (
+                'dataset_key', 'field', 'selector', 'format', 'columns', 'prefix', 'suffix', 'report_parameter', 'null_text')):
+            raise DataError('BINDING_INVALID')
         position = (slot["locator"]["part"], slot["locator"]["path"])
         if slot["slot_key"] in ids or position in positions:
             raise DataError("DUPLICATE_SLOT")
         ids.add(slot["slot_key"])
         positions.add(position)
         locate(xml, slot["locator"])
-        if slot.get("dataset_key") and slot["dataset_key"] not in datasets:
+        references = set(slot.get('evidence_datasets', [])) | set(slot.get('resolution', {}).get('require_empty', []))
+        references.update(v['dataset_key'] for v in slot.get('values', {}).values() if 'dataset_key' in v)
+        if not references <= datasets:
             raise DataError("BINDING_INVALID")
     return {**template, "_directory": directory, "_docx": path, "_slots": slots, "_bindings": bindings,
             "_revision": fingerprint([template, bindings, slots])}

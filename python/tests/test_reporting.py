@@ -44,7 +44,7 @@ class ReportingTests(unittest.TestCase):
                 'kind':'scalar' if dynamic else 'static','required':dynamic,
                 'locator':{'part':'word/document.xml','path':xml.getroottree().getpath(node),'expected_text_hash':text_hash(node)}}
             if index==2:
-                slot.update(dataset_key='total',field='total',format={'unit':'USD','decimal_places':2})
+                slot.update(text_template='${amount}',values={'amount':{'dataset_key':'total','field':'total'}})
             slots.append(slot)
         save(directory/'slots.json',{'slots':slots})
         save(directory/'bindings.json',{'template_version':1,'slot_files':['slots.json'],'datasets':[
@@ -53,10 +53,10 @@ class ReportingTests(unittest.TestCase):
         save(directory/'template.json',{'template_key':'demo','enabled':True,'capabilities':['qa'],
             'version':1,'docx_file':path.name,'docx_sha256':sha256(path.read_bytes()).hexdigest(),
             'bindings_file':'bindings.json','source_roles':{'sales':'first'},'scope_roles':{'sales':['school']},
-            'missing_policy':'annotated_draft','parameters':{'type':'object'}})
+            'missing_policy':'reject','preserve_structure':True,'parameters':{'type':'object'}})
         return load_template('demo','qa',directory.parent)
 
-    def test_plan_deduplicates_snapshot_and_formats_fixed_values(self):
+    def test_plan_deduplicates_snapshot_and_fills_fixed_values(self):
         async def scenario():
             template=self.template()
             duplicate=deepcopy(template['_bindings']['datasets'][0])
@@ -77,7 +77,7 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(len(plan['nodes']),1)
             output=await planner.render(result['plan_ref'],[])
             self.assertEqual(output['status'],'complete')
-            self.assertIn('10.00',Document(output['path']).tables[0].cell(0,1).text)
+            self.assertEqual('10',Document(output['path']).tables[0].cell(0,1).text)
             with ZipFile(template['_docx']) as old, ZipFile(output['path']) as new:
                 self.assertEqual(old.namelist(),new.namelist())
                 for name in old.namelist():
@@ -85,7 +85,7 @@ class ReportingTests(unittest.TestCase):
             await services.close()
         asyncio.run(scenario())
 
-    def test_missing_definitions_produce_annotated_draft_and_reject_invented_evidence(self):
+    def test_missing_definitions_reject_render_and_invented_evidence(self):
         async def scenario():
             template=self.template(missing=True)
             services=RunServices(['first'],env={},catalog=self.catalog)
@@ -98,15 +98,48 @@ class ReportingTests(unittest.TestCase):
             data=planner.get(result['plan_ref'],'summary')
             self.assertEqual(data['status'],'blocked')
             self.assertEqual(data['coverage']['required_missing'],1)
-            output=await planner.render(result['plan_ref'],[])
-            self.assertEqual(output['status'],'draft')
-            self.assertEqual(output['missing_count'],1)
-            self.assertIn('待核验',Document(output['path']).paragraphs[-1].text)
+            with self.assertRaisesRegex(DataError,'REPORT_INCOMPLETE'):
+                await planner.render(result['plan_ref'],[])
+            self.assertFalse(list((self.executor.context.run_directory/'report').glob('*.docx')))
             with self.assertRaises(DataError):
                 await planner.render(result['plan_ref'],[{'section_key':'summary','text':'999','evidence_refs':['invented']}])
             with self.assertRaises(DataError): planner.get('other-plan')
             await services.close()
         asyncio.run(scenario())
+
+    def test_retired_template_modes_and_unknown_datasets_are_rejected(self):
+        template=self.template()
+        path=template['_directory']/'template.json'
+        original=json.loads(path.read_text())
+        for change in ({'missing_policy':'annotated_draft'},{'preserve_structure':False}):
+            save(path,{**original,**change})
+            with self.assertRaisesRegex(DataError,'TEMPLATE_CONTRACT_INVALID'):
+                load_template('demo','qa',path.parent.parent)
+        save(path,original)
+        path=template['_directory']/'slots.json'
+        original=json.loads(path.read_text())
+        for change in ({'kind':'table'},{'dataset_key':'total','field':'total'},
+                       {'values':{'amount':{'dataset_key':'unknown','field':'total'}}}):
+            changed=deepcopy(original)
+            changed['slots'][2].update(change)
+            save(path,changed)
+            with self.assertRaisesRegex(DataError,'BINDING_INVALID'):
+                load_template('demo','qa',path.parent.parent)
+
+    def test_explicit_values_reject_private_columns_and_ambiguous_results(self):
+        from reporting.values import resolve_value
+        output=[{'name':'total'},{'name':'internal_id','visibility':'internal_only'}]
+        ref=self.executor.results.save([{'total':10,'internal_id':'hidden'}],{'complete':True},output)
+        plan={'nodes':[{'dataset_keys':['total'],'status':'succeeded','result_ref':ref}]}
+        binding={'kind':'scalar','required':True,'text_template':'${value}',
+                 'values':{'value':{'dataset_key':'total','field':'internal_id'}}}
+        with self.assertRaisesRegex(DataError,'BINDING_INVALID'):
+            resolve_value(binding,plan,self.executor)
+        binding['values']['value']['field']='total'
+        self.assertEqual(resolve_value(binding,plan,self.executor)['value'],'10')
+        self.executor.results.get(ref)['rows'].append({'total':20,'internal_id':'other'})
+        with self.assertRaisesRegex(DataError,'BINDING_VALUE_AMBIGUOUS'):
+            resolve_value(binding,plan,self.executor)
 
     def test_template_drift_and_duplicate_locations_fail(self):
         template=self.template()

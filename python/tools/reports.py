@@ -20,7 +20,7 @@ def create_reports_server(services):
             return {"template_key":template["template_key"], "name":template["name"],
                     "report_parameters":template["parameters"], "source_roles":template["source_roles"],
                     "scope_roles":template["scope_roles"], "missing_policy":template["missing_policy"],
-                    "outline":template.get('outline',[]), "preserve_structure":template.get('preserve_structure',False)}
+                    "outline":template.get('outline',[]), "preserve_structure":template['preserve_structure']}
         return report().get(**args)
 
     async def render(**args):
@@ -110,8 +110,5 @@ def create_reports_server(services):
         ("publish_report", "仅发布已通过结构与全文渲染检查的同一份报告。",
          {"plan_ref":REFERENCE,"validation_ref":REFERENCE},["plan_ref","validation_ref"],publish),
         ("render_report", "校验全部正文及数据绑定，在原DOCX原位置回填；此步不发布。",
-         {"plan_ref": REFERENCE, "section_drafts": {"type": "array", "maxItems": 100, "items": {
-             "type": "object", "additionalProperties": False, "properties": {"section_key": REFERENCE, "slot_key": REFERENCE,
-                 "text": {"type": "string", "maxLength": 20000}, "evidence_refs": {"type": "array", "items": REFERENCE}},
-             "required": ["section_key", "text", "evidence_refs"]}}}, ["plan_ref", "section_drafts"], render),
+         {"plan_ref": REFERENCE, "section_drafts": draft_schema}, ["plan_ref", "section_drafts"], render),
     ])

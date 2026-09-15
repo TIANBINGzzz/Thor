@@ -11,7 +11,11 @@ def dataset_record(key, plan, executor):
     return executor.results.get(nodes[0]['result_ref'])
 
 
-def resolve_explicit(binding, plan, executor):
+def resolve_value(binding, plan, executor):
+    if binding['kind'] == 'static':
+        return {'value_status': 'static'}
+    if binding.get('intentional_blank') and not binding['required']:
+        return {'value_status': 'filled', 'value': ''}
     refs = []
     for key in binding.get('evidence_datasets', []):
         refs.append(dataset_record(key, plan, executor)['result_ref'])
@@ -25,7 +29,7 @@ def resolve_explicit(binding, plan, executor):
         return {'value_status':'unavailable', 'value':resolution['text'],
                 'reason':resolution['reason'], 'evidence_refs':refs}
     if 'text_template' not in binding:
-        return None
+        return {'value_status': 'definition_missing'}
     values = {}
     for name, definition in binding.get('values', {}).items():
         if 'report_parameter' in definition:

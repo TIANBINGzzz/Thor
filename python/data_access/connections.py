@@ -5,7 +5,7 @@ from pathlib import Path
 from threading import Event, Lock
 import time
 
-from sqlalchemy import URL, create_engine, text
+from sqlalchemy import URL, create_engine
 from sqlalchemy.pool import NullPool
 
 from .catalog import read_json

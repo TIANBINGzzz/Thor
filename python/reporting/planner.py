@@ -163,49 +163,8 @@ class Planner:
         slots = []
         for binding in self.template["_slots"]:
             slot = {k: binding[k] for k in ("slot_key", "section_key", "name", "kind", "required")}
-            slot["value_status"] = "static" if binding["kind"] == "static" else "definition_missing"
-            if any(k in binding for k in ('resolution','text_template','evidence_datasets')):
-                from .values import resolve_explicit
-                slot.update(resolve_explicit(binding, plan, executor) or {})
-                slots.append(slot)
-                continue
-            dataset = binding.get("dataset_key")
-            if dataset:
-                nodes = [n for n in plan["nodes"] if dataset in n["dataset_keys"]]
-                if len(nodes) != 1:
-                    slot["value_status"] = "ambiguous"
-                elif nodes[0]["status"] != "succeeded":
-                    slot["value_status"] = "incomplete" if nodes[0]["error_code"] == "RESULT_INCOMPLETE" else "source_unavailable"
-                else:
-                    record = executor.results.get(nodes[0]["result_ref"])
-                    rows = record["rows"]
-                    selector = binding.get("selector", {})
-                    rows = [r for r in rows if all(r.get(k) == v for k, v in selector.items())]
-                    if binding["kind"] == "table":
-                        public = {f["name"]: f for f in record["output"] if f.get("visibility") != "internal_only"}
-                        columns = binding["columns"]
-                        if any(c["field"] not in public for c in columns):
-                            raise DataError("BINDING_INVALID")
-                        slot.update(value=[{c["field"]: r.get(c["field"]) for c in columns} for r in rows],
-                                    value_status="filled", evidence_ref=record["result_ref"])
-                    elif len(rows) != 1:
-                        slot["value_status"] = "no_data" if not rows else "ambiguous"
-                    elif binding.get("field"):
-                        field = binding["field"]
-                        definition = next((f for f in record["output"] if f["name"] == field), None)
-                        if not definition or definition.get("visibility") == "internal_only":
-                            raise DataError("BINDING_INVALID")
-                        value = rows[0].get(field)
-                        slot.update({"value": value, "value_status": "null" if value is None else "filled",
-                                     "evidence_ref": record["result_ref"], "unit": definition.get("unit")})
-                        if value is None and binding.get("null_text"):
-                            slot.update(value=binding["null_text"], value_status="filled", null_value=True)
-            elif binding.get("report_parameter"):
-                value = plan["report_parameters"].get(binding["report_parameter"])
-                if value is not None:
-                    slot.update({"value": value, "value_status": "filled"})
-            elif binding.get("intentional_blank") and not binding["required"]:
-                slot.update(value="", value_status="filled")
+            from .values import resolve_value
+            slot.update(resolve_value(binding, plan, executor))
             slots.append(slot)
         plan["slots"] = slots
         counts = dict(Counter(s["value_status"] for s in slots))
@@ -268,10 +227,8 @@ class Planner:
         plan = self.plans[plan_ref]
         if plan["status"] not in {"ready", "blocked"}:
             raise DataError("PLAN_NOT_READY")
-        keys=[d.get('slot_key',d['section_key']) for d in section_drafts]
-        if len(keys)!=len(set(keys)):
-            raise DataError('DRAFT_DUPLICATE')
-        drafts={**plan.get('drafts',{}), **{d.get('slot_key',d['section_key']):d for d in section_drafts}}
+        from .rendering import validate_drafts
+        drafts = {**plan.get('drafts', {}), **validate_drafts(plan, section_drafts, self.services.current())}
         output=await self.services.call(render, self.template, plan, list(drafts.values()), self.services.current())
         plan['drafts']=drafts
         plan['rendered']=output
@@ -283,19 +240,8 @@ class Planner:
         if plan_ref != self.latest:
             raise DataError('PLAN_SUPERSEDED')
         plan=self.plans[plan_ref]
-        keys=[d['slot_key'] for d in section_drafts]
-        if len(keys)!=len(set(keys)):
-            raise DataError('DRAFT_DUPLICATE')
-        slots={s['slot_key']:s for s in plan['slots']}
-        for draft in section_drafts:
-            slot=slots.get(draft['slot_key'])
-            if not slot or slot['kind']!='narrative' or slot['section_key']!=draft['section_key']:
-                raise DataError('DRAFT_LOCATION_AMBIGUOUS')
-            if not draft['text'].strip() or len(draft['text'])>1200 or not draft['evidence_refs'] or not set(draft['evidence_refs'])<=set(slot.get('evidence_refs',[])):
-                raise DataError('EVIDENCE_REQUIRED')
-            from .rendering import validate_draft_numbers
-            validate_draft_numbers(draft, plan, self.services.current())
-        plan.setdefault('drafts',{}).update({d['slot_key']:d for d in section_drafts})
+        from .rendering import validate_drafts
+        plan.setdefault('drafts', {}).update(validate_drafts(plan, section_drafts, self.services.current()))
         plan.pop('rendered',None)
         plan.pop('validation',None)
         self._save(plan)
