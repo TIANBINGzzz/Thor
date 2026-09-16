@@ -2,6 +2,13 @@
 
 `flow.yml` 是 ccagentsdk 的 Flow YAML 模板。它采用“构建机生成镜像包，97 导入镜像并启动”的路线，目标机不需要 Python、Node.js 或访问镜像仓库。
 
+当前 97 的外部 `update_python.sh` 使用另一条路线：ACR 拉镜像 → `docker run --env-file` 注入主机配置 → 镜像内 `entrypoint.py` 启动服务。这条路线不调用本目录的 `deploy.sh`、Compose 和 Base64 配置生成器；主机须能访问 ACR。修改运行配置后重新创建容器，修改镜像内代码后重新构建、推送并部署。
+
+- `entrypoint.py` 是两条路线共同的镜像入口；`smoke.py` 是可选的真实模型/API 验证。
+- `build.sh`、`flow*.yml`、`deploy.sh`、`compose*.yaml` 是镜像包部署路线；是否使用 `build.sh` 构建由实际流水线命令决定。
+- `encode-secret.py`、`write-env.py`、`secrets.example.json` 服务于云效私密配置生成；直接维护主机 env 时参考 `runtime.env.example`。数据库配置示例与模型/JWT 配置分开。
+- `test_*.py` 是构建与部署回归测试，`checks/` 是历史验证记录。项目根 `scratch/` 是已忽略的本地临时验证材料，不参与服务运行或镜像构建；清理前保留唯一成果和私密配置。
+
 ## 构建机怎么选
 
 默认使用 `public/cn-beijing` + 官方 `alinux3` 构建容器，并开启 `enableDockerDaemon: true`。`LARGE_4C8G`（4 vCPU、8 GiB、约 50 GB 临时盘）是当前起点；Docker 构建内存不足再升到 `XLARGE_8C16G`。构建机每次是临时环境，代码、pip/npm、基础镜像和 Flow 制品服务必须能通过公网访问。北京/杭州集群适合国内资源，香港集群适合海外代码源。
@@ -27,7 +34,7 @@
 python deploy/encode-secret.py scratch/ccagentsdk.secret.json scratch/ccagentsdk.secret.b64
 ```
 
-复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和32字节以上JWT密钥；数据库另提供CCSDK_DATABASES_JSON（参照data-access.example.json，sources按来源键集中所有连接、用户名、密码及策略）。需要TLS证书时提供CCSDK_DATABASE_CERTIFICATES_JSON，格式为`{"schoolDoubleHigh.pem":"证书内容"}`，连接的tls.ca_file写`certificates/schoolDoubleHigh.pem`。不再提供单独数据库账号/密码变量。
+复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和非空JWT共享密钥；密钥不再校验长度或示例字符串，建议随机生成并与Java保持一致。数据库另提供CCSDK_DATABASES_JSON（参照data-access.example.json，sources按来源键集中所有连接、用户名、密码及策略）。需要TLS证书时提供CCSDK_DATABASE_CERTIFICATES_JSON，格式为`{"schoolDoubleHigh.pem":"证书内容"}`，连接的tls.ca_file写`certificates/schoolDoubleHigh.pem`。不再提供单独数据库账号/密码变量。
 
 CCSDK_WITH_DATABASE=1启用数据库挂载；CCSDK_GENERATE_ENV=1从云效变量生成runtime.env、databases.json及certificates/。配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE固定为/app/config/databases.json；新增连接无需增加挂载。配置目录权限750、root:10001，数据库文件400、10001:10001，runtime.env保持root专用600。
 

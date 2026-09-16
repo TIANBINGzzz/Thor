@@ -98,8 +98,6 @@ def render(environment, *, database=False):
     for key in required:
         if not environment.get(key, "").strip():
             raise ValueError("Missing deployment variable: " + key)
-    if not database and len(environment["CCSDK_RUNTIME_JWT_SECRET"].encode()) < 32:
-        raise ValueError("CCSDK_RUNTIME_JWT_SECRET must contain at least 32 bytes")
     if not database:
         try:
             url = urlsplit(environment["ANTHROPIC_BASE_URL"])

@@ -1,4 +1,6 @@
+import base64
 import importlib.util
+import json
 import os
 from pathlib import Path
 import shutil
@@ -28,6 +30,42 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         parsed = dict(line.split("=", 1) for line in writer.render(environment).splitlines())
         self.assertEqual(parsed["ANTHROPIC_AUTH_TOKEN"], environment["ANTHROPIC_AUTH_TOKEN"])
         self.assertNotIn("UNRELATED_SECRET", parsed)
+
+    def test_custom_jwt_secret_survives_bundle_and_container_check(self):
+        entrypoint = Path(__file__).with_name("entrypoint.py")
+        for secret in ("short", "your_custom_key", "replace-with-is-allowed", "test-jwt-" * 8):
+            with self.subTest(secret=secret):
+                environment = {key: value for key, value in self.environment().items()
+                               if key in writer.RUNTIME_KEYS}
+                environment["CCSDK_RUNTIME_JWT_SECRET"] = secret
+                encoded = base64.b64encode(json.dumps(environment).encode()).decode()
+                decoded = writer.load_environment({"CCSDK_DEPLOY_ENV_B64": encoded})
+                raw = dict(line.split("=", 1) for line in writer.render(decoded).splitlines())
+                self.assertEqual(raw["CCSDK_RUNTIME_JWT_SECRET"], secret)
+                checked = subprocess.run([sys.executable, str(entrypoint), "--check"],
+                                         env={**os.environ, **raw}, capture_output=True, text=True)
+                self.assertEqual(checked.returncode, 0, checked.stderr)
+                self.assertIn("Deployment environment check passed", checked.stdout)
+                self.assertNotIn(secret, checked.stdout + checked.stderr)
+
+    def test_missing_or_blank_jwt_still_fails_bundle_and_container_check(self):
+        entrypoint = Path(__file__).with_name("entrypoint.py")
+        for secret in (None, "", "   "):
+            with self.subTest(secret=secret):
+                environment = self.environment()
+                environment.pop("CCSDK_RUNTIME_JWT_SECRET")
+                if secret is not None:
+                    environment["CCSDK_RUNTIME_JWT_SECRET"] = secret
+                with self.assertRaisesRegex(ValueError, "Missing deployment variable: CCSDK_RUNTIME_JWT_SECRET"):
+                    writer.render(environment)
+                process_env = dict(os.environ)
+                process_env.pop("CCSDK_RUNTIME_JWT_SECRET", None)
+                process_env.update(environment)
+                checked = subprocess.run([sys.executable, str(entrypoint), "--check"],
+                                         env=process_env, capture_output=True, text=True)
+                self.assertNotEqual(checked.returncode, 0)
+                self.assertEqual(checked.stderr.strip(),
+                                 "Missing or invalid deployment settings: CCSDK_RUNTIME_JWT_SECRET")
 
     def test_protected_database_json_contains_credentials(self):
         import json

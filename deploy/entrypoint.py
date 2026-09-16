@@ -7,10 +7,11 @@ from urllib.parse import urlsplit
 
 def validate_environment():
     required = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "CCSDK_RUNTIME_JWT_SECRET")
-    invalid = [name for name in required if not os.environ.get(name, "").strip()
-               or any(marker in os.environ[name].lower() for marker in ("your_", "replace-with"))]
-    if len(os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").encode()) < 32:
-        invalid.append("CCSDK_RUNTIME_JWT_SECRET")
+    invalid = [name for name in required if not os.environ.get(name, "").strip()]
+    # JWT secret content is deployment-owned; only require a nonempty value.
+    invalid.extend(name for name in required if name != "CCSDK_RUNTIME_JWT_SECRET"
+                   and any(marker in os.environ.get(name, "").lower()
+                           for marker in ("your_", "replace-with")))
     try:
         url = urlsplit(os.environ.get("ANTHROPIC_BASE_URL", ""))
         if url.scheme != "https" or not url.hostname or url.username or url.password:
