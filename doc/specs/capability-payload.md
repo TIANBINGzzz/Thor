@@ -1,6 +1,6 @@
 # 能力 payload 映射记录
 
-确认日期：2026-09-14。模板解析、按能力校验与报告工具已接入Python；普通会话可以省略capabilityRef。HTTP行为见[Runtime协议](ccsdk-runtime-interface.md#34-业务-payload)。
+现状核对：2026-09-16。templateKey解析与报告工具已接入Python；普通会话可以省略capabilityRef。下文单列尚未实现的统一模板方案，HTTP现行行为见[Runtime协议](ccsdk-runtime-interface.md#34-业务-payload)。
 
 ## 能力映射
 
@@ -45,17 +45,56 @@
 
 `szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX、逐段来源和绑定；缺历史实值必须明确标记，不能编造。此前简版不符合原模板要求，已停用且不可从入口选择。
 
-模板查询由query-bindings.json引用[数据库资产](../../.claude/databases/README.md)，SQL、连接、权限和版本均在服务端装配；不增加浏览器payload字段。
-
-[数据库包](data-source-connections.md)已通过可信DataContext及静态策略接入，当前唯一来源schoolDoubleHigh。模板以source_key+domain+query_id引用查询，路径/DSN/密码/权限不加入payload；[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
-
-## 工程要求检查
+模板query-bindings.json以source_key+domain+query_id引用[数据库资产](../../.claude/databases/README.md)，当前唯一来源schoolDoubleHigh；[可信DataContext及静态策略](data-source-connections.md)由服务端装配，路径/DSN/密码/权限不加入payload。[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
 
 2026-09-15补充：自定义模板由Java保存并授权，Python通过File Broker获取本次文件后读取结构，按需取数、组织正文并生成新DOCX；不自动注册为Python预制模板，也不要求预先配置逐格查询。当前`purpose`仅支持`input`/`reference`，模板用`input`并在正文说明用途；再次使用须重新提交附件引用。上传不授予数据源权限，数据库工具仅在已配置且获准时可用。若同时传`templateKey`和附件，仍走已登记模板分支，附件不会替换该模板。附件传递和普通撰写已有实现，复杂自定义模板保真及取数质量尚未端到端验收。
 
-2026-09-16产品确认：预处理模板和老师上传的自定义模板均应关联可用数据源。前者复用已核验的逐段来源及指标规则；后者由Agent理解模板、规划数据需求、检索指标并查询，再沿原样仿写，无须上传前完成逐段SQL配置。预制模板的来源已由服务端templateKey映射；自定义模板的来源关联保存、授权解析及传递尚待接入，现有附件请求不代表已经落实按模板限定来源。此处不新增payload字段，实施时再定义可信引用契约；产品规则见[两类模板与数据源](conversation-reporting-product.md#两类模板与数据源)。
+2026-09-16产品确认：两类模板均关联可用数据源；预处理模板复用已核验来源，上传模板由Agent规划取数并沿原样仿写，无须预先标槽或配置逐段SQL。自定义模板来源关联尚待接入，现有附件请求不代表按模板限定来源已实现；见[产品规则](conversation-reporting-product.md#两类模板与数据源)。
+
+## 统一模板撰写方案（提议，未实现）
+
+两类模板共用`document-writing → writing-docx → writing-documents`，保留现行agent-run/v1外层。以下是Java完成模板及数据源授权后发给Python的业务字段片段，不是浏览器可自由指定的执行配置。
+
+| 字段 | 条件及含义 |
+| --- | --- |
+| `payload.templateKey` | 预处理模板使用现有字段；Python解析原文件、来源、可选撰写指南及绑定 |
+| `payload.templateFileId` | 上传模板必填的非空文件引用；必须唯一匹配本次`attachmentRefs`中purpose=input的授权DOCX |
+| `payload.dataSourceKeys` | 上传模板必填的去重来源引用数组，由Java从已保存的模板关联解析；不是连接或授权声明 |
+
+预处理模板：`{"capabilityRef":"document-writing","input":{"text":"按深职大中期模板撰写2025年度报告"},"payload":{"templateKey":"szpt-midterm"}}`。
+
+上传模板（拟议）：
+
+```json
+{
+  "capabilityRef": "document-writing",
+  "input": {
+    "text": "按上传模板撰写2025年度专业群建设总结",
+    "attachmentRefs": [{"fileId": "file_template_01", "purpose": "input"}]
+  },
+  "payload": {"templateFileId": "file_template_01", "dataSourceKeys": ["schoolDoubleHigh"]}
+}
+```
+
+- `templateKey`与`templateFileId`互斥；预处理模板来源只从可信模板配置读取，拒绝请求覆盖。两者均不传时保留普通撰写/成稿修改；普通附件不自动升级为模板。
+- 上传模板必须显式传来源列表；`[]`仅用于明确选择纯材料写作，省略不能默认加载能力的全部数据库。未知、不可用或越权来源整体拒绝，不能静默忽略或扩大；上传内容不能改变来源、权限或系统规则。
+- 前端共用一个模板选择器，只提交获准业务模板/文件选择；Java校验归属与模板关联后生成以上字段。Python再次校验能力、来源及项目策略，只给本Run装配模板关联且获准的来源；引用不授予权限。连接、Token及SQL均不从payload接入。
+- 年份、截止日、报告对象和要求继续放`input.text`，Agent在取数前解析并确认歧义；不新增重复身份、版本或Skill/Workflow选择字段。后续Run显式携带模板选择，Java重新解析当前关联与权限。
+
+### 内部流程与目录
+
+- 在现有`python/workflows/writing_docx/`增加请求解析模块，统一得到模板文件、有效来源、可选指南和绑定；Runtime负责调用与装配，不继续在server.py堆模板类型判断。模板解析不以数据库服务是否启用为前提。
+- 保留`.claude/skills/writing-documents/SKILL.md`为共同写作入口，由可信Workflow确定性注入共同规则。现有双高Skill中的通用证据规则合入该入口，业务专属内容移到既有模板目录中的简洁writing-guide.md；数据库口径仍留semantics/，不按模板类别新建Skill。
+- `.claude/workflows/writing-docx/templates/szpt-midterm/`继续保存原DOCX、元数据及现有绑定；指南和绑定是可选增强。上传模板保存在Java，通过File Broker按Run读取并生成临时段落/表格编辑计划，不自动写入预制模板目录；原逐页来源MD保留。
+- 两路均先理解结构及数据需求，检索`.claude/databases/`共享指标，执行查询，检查证据后沿模板撰写；预处理来源可直接复用。指标未覆盖时仅在现有策略允许下探索只读SQL，不把临时查询自动登记为已核验指标。
+- 共用证据、黄色缺口、结构保真、全文渲染和发布检查；有证据写结论，证据不足写有限结论及缺口，无证据写框架、数据需求和后续动作。复用reports校验逻辑，上传模板也需程序门禁；只合并Skill不能替代实现。
+- 每Run固定模板内容哈希、指南/绑定及来源策略版本；Client指纹包含这些实际配置。模板或来源变化时隔离SDK执行上下文，业务会话保留；旧scope_ref/result_ref不跨Run复用。
+
+当前共同能力映射、文件引用及数据授权已有基础，但上传模板两个新字段、模板范围收窄、共同Skill装配和共同发布检查均未按本方案实施；通用payload接受JSON不代表实现了字段语义。先完成请求与来源解析，再收拢Skill，最后复用编辑/校验并以两类模板做真实取数和DOCX回归，见[ADR-025](../ADR/025-unified-template-writing.md)。
+
+## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
 | REQ-001 | 部分满足 | data/reports不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
-| REQ-002 | 部分满足 | 预制模板白名单、能力校验、可信映射及版本记录已实现，两类模板复用writing-docx | 自定义模板来源关联及外部Java授权、前端选择器待接入；本次仅补充产品规则 |
+| REQ-002 | 部分满足 | 现有能力映射保留；拟议方案只传业务资源引用，两类模板复用Workflow与Skill | 新字段、模板来源收窄、统一校验及外部Java/前端待实施；本次仅设计 |
