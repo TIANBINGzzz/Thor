@@ -15,20 +15,30 @@ class RunServices:
         self.source_keys = tuple(source_keys)
         self.executor = None
         self.report = None
+        self.workflow_revision = None
         self.tasks = set()
         self.lock = asyncio.Lock()
 
     async def bind(self, payload):
         await self.close()
         context = DataContext.from_payload(payload)
-        executor = Executor(context, self.env, self.catalog, self.source_keys)
         from workflows.writing_docx.bindings import load_template
         from workflows.writing_docx.planner import Planner
         template = load_template(context.template_key, context.capability_ref) if context.template_key else None
+        selected = self.source_keys
+        if template:
+            expected = (payload.get('_workflow_assets') or {}).get('template_revision')
+            if expected is not None and expected != template['_revision']:
+                raise DataError('TEMPLATE_MISMATCH')
+            selected = tuple(sorted(set(template['source_roles'].values())))
+            if not set(selected) <= set(self.source_keys):
+                raise DataError('SOURCE_FORBIDDEN')
+        executor = Executor(context, self.env, self.catalog, selected)
         if template:
             for source in template["source_roles"].values():
                 executor.access(source)
         self.executor = executor
+        self.workflow_revision = (payload.get('_workflow_assets') or {}).get('revision')
         self.artifact_directories = {k: payload.get(k) for k in
                                     ("session_directory", "deliverables_directory")}
         self.report = Planner(self, template) if template else None
@@ -62,3 +72,4 @@ class RunServices:
             await asyncio.gather(*self.tasks, return_exceptions=True)
         self.executor = None
         self.report = None
+        self.workflow_revision = None

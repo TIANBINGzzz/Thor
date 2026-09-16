@@ -68,3 +68,5 @@
 - 2026-09-14已接入[数据库包](../../.claude/databases/README.md)、固定/动态查询、静态来源策略及逐Run上下文。合成测试覆盖多来源同名查询、用户/租户/范围隔离及取消；真实Java授权、撤销和生产多租户仍未验收。
 - 当前唯一来源为校双高数据库schoolDoubleHigh，[ADR-022](../ADR/022-school-database-single-tenant.md)保留单租户边界，[ADR-023](../ADR/023-database-scoped-asset-packages.md)的按库目录已实施。单租户不删tenant过滤，来源发现不授权，selected项目范围不能扩大为全校。
 - 固定模板SDK只挂data/reports工具，报告工具复用Artifact发布；普通Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成。
+
+- 2026-09-16：撰写共同Skill已统一注入，所选预制模板以documents加载专属MD并限定数据源；请求字段不变，规则哈希参与Client隔离及模板计划。上传模板保留附件参考路径，目录重建为Skill要求，复杂DOCX/目录及真实Java验收尚未完成，见[ADR-025](../ADR/025-unified-template-writing.md)。

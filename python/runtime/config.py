@@ -23,8 +23,10 @@ from workflows.writing_docx.tools import create_reports_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
 from data_access.connections import load_config
+from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
+from runtime.prompt_documents import read_documents, MAX_DOCUMENT_TOTAL_BYTES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS_ROOT = PROJECT_ROOT / ".claude" / "workflows"
@@ -71,8 +73,6 @@ WORKER_CONFIG_ENV_KEYS = {
     "CCSDK_REPORT_RENDERER",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
-MAX_WORKFLOW_DOCUMENT_BYTES = 24_000
-MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES = 80_000
 
 DATABASE_APPEND = (
     "涉及数据库事实时先调用 mcp__data__list_data_sources，并以明确的source_key和domain调用工具。"
@@ -299,61 +299,69 @@ def _platform_bearer_present(credentials: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, template=False) -> str:
+def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, template=None) -> str:
     """读取 Workflow 配置显式列出的约束和语义 Markdown，返回合并文本，并校验路径与大小限制。"""
     if not workflow_config:
         return ""
     documents = workflow_config.get("documents") or {}
     directory = Path(str(workflow_config["_directory"])).resolve()
     sections: list[str] = []
-    total_bytes = 0
+    def append(title, entries):
+        for entry in entries:
+            sections.append(f"### {title}: {entry['name']}\n{entry['text'].strip()}")
+
+    skills = workflow_config.get('skills', [])
+    if (not isinstance(skills, list)
+            or any(not isinstance(name, str) or not WORKFLOW_NAME.fullmatch(name) for name in skills)
+            or len(set(skills)) != len(skills)):
+        raise RuntimeError('workflow skills配置无效')
+    append('共同写作规则', read_documents(PROJECT_ROOT / '.claude/skills',
+                                       [f'{name}/SKILL.md' for name in skills]))
     categories = [("constraints", "Workflow 约束"), ("semantics", "Workflow 语义层")]
     if template:
         categories.append(('template', '固定模板流程'))
     for category, title in categories:
-        for relative_value in documents.get(category, []):
-            relative_path = Path(relative_value)
-            if relative_path.suffix.lower() != ".md":
-                raise RuntimeError(f"workflow 文档必须是 Markdown：{relative_value}")
-            path = (directory / relative_path).resolve()
-            try:
-                path.relative_to(directory)
-            except ValueError as error:
-                raise RuntimeError(f"workflow 文档路径越界：{relative_value}") from error
-            if not path.is_file():
-                raise RuntimeError(f"workflow 文档不存在：{path}")
-            content = path.read_text(encoding="utf-8")
-            size = len(content.encode("utf-8"))
-            if size > MAX_WORKFLOW_DOCUMENT_BYTES:
-                raise RuntimeError(f"workflow 文档过大：{path}")
-            total_bytes += size
-            if total_bytes > MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES:
-                raise RuntimeError("workflow 文档总量超过限制")
-            sections.append(f"### {title}: {relative_value}\n{content.strip()}")
+        append(title, read_documents(directory, documents.get(category, [])))
     if template:
-        for name in workflow_config.get('template_skills', []):
-            if not isinstance(name,str) or not WORKFLOW_NAME.fullmatch(name):
-                raise RuntimeError('模板撰写Skill名称无效')
-            root = (PROJECT_ROOT / '.claude/skills').resolve()
-            path = (root / name / 'SKILL.md').resolve()
-            if not path.is_relative_to(root) or not path.is_file():
-                raise RuntimeError('模板撰写Skill不可用')
-            content = path.read_text(encoding='utf-8')
-            size = len(content.encode('utf-8'))
-            total_bytes += size
-            if size > MAX_WORKFLOW_DOCUMENT_BYTES or total_bytes > MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES:
-                raise RuntimeError('模板撰写Skill过大')
-            sections.append(f'### 模板撰写Skill: {name}\n{content.strip()}')
-    return "\n\n".join(sections)
+        append(f"所选模板说明（{template['template_key']}）", template['_documents'])
+    content = "\n\n".join(sections)
+    if len(content.encode('utf-8')) > MAX_DOCUMENT_TOTAL_BYTES:
+        raise RuntimeError('workflow 文档总量超过限制')
+    return content
+
+
+def prepare_workflow_assets(payload):
+    """Freeze trusted prompt text and template references before Client selection/worker dispatch."""
+    selection = [payload.get('workflow_name'), payload.get('capability_ref'), payload.get('_template_key')]
+    if (payload.get('_workflow_assets') or {}).get('selection') != selection:
+        from workflows.writing_docx.bindings import load_template
+        workflow = load_workflow_config(payload.get('workflow_name'))
+        template_key = payload.get('_template_key')
+        template = load_template(template_key, payload.get('capability_ref')) if template_key is not None else None
+        if template and template_key not in (workflow or {}).get('templates', {}):
+            raise DataError('TEMPLATE_FORBIDDEN')
+        content = workflow_prompt_documents(workflow, template=template)
+        sources = sorted(set(template['source_roles'].values())) if template else None
+        revision = template['_revision'] if template else None
+        payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'prompt': content,
+            'template_revision': revision, 'template_sources': sources,
+            'revision': fingerprint([workflow, content, revision])}
+    return payload['_workflow_assets']
 
 
 def data_source_keys(payload):
-    workflow = load_workflow_config(payload.get("workflow_name")) or {}
+    assets = prepare_workflow_assets(payload)
+    workflow = assets['config'] or {}
     mode = workflow.get('data_access')
     if mode is None:
         return []
     catalog = Catalog()
     sources = catalog.sources_for(payload.get('capability_ref'))
+    if assets['template_sources'] is not None:
+        selected = assets['template_sources']
+        if not selected or not set(selected) <= set(sources):
+            raise DataError('SOURCE_FORBIDDEN')
+        return selected
     if mode == 'optional' and not payload.get('_template_key'):
         configured = load_config(os.environ, optional=True)
         return [source for source in sources if source in configured]
@@ -371,7 +379,8 @@ def build_system_prompt(
     extra: str = "",
     database_enabled: bool = False,
     workflow_config: dict[str, Any] | None = None,
-    template: bool = False,
+    template=None,
+    prompt_documents: str | None = None,
 ) -> dict[str, str]:
     """接收附加提示词、数据库开关和流程配置，返回 SDK 系统提示词预设及追加内容。"""
     parts = [
@@ -381,7 +390,7 @@ def build_system_prompt(
         ANSWER_REQUIREMENTS_APPEND,
         DATABASE_APPEND if database_enabled else "没有可靠证据时明确说明不确定性。",
     ]
-    documents = workflow_prompt_documents(workflow_config, template=template)
+    documents = prompt_documents if prompt_documents is not None else workflow_prompt_documents(workflow_config, template=template)
     if documents:
         parts.append(documents)
     if is_direct_workflow(workflow_config):
@@ -397,14 +406,15 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
     """
-    workflow_config = load_workflow_config(payload.get("workflow_name"))
+    assets = prepare_workflow_assets(payload)
+    workflow_config = assets['config']
     direct_workflow = is_direct_workflow(workflow_config)
     capability_ref = str(
         payload.get("capability_ref") or payload.get("workflow_name") or "conversation"
     ).strip()
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
-    registered_template = database_enabled and bool(payload.get("_template_key"))
+    registered_template = assets['template_revision'] is not None
     restricted_tools = direct_workflow or registered_template
     mcp_servers: dict[str, Any] = {}
     if data_services:
@@ -474,7 +484,8 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
                 raise RuntimeError("skill 路径越界") from error
             if not (skill_directory / "SKILL.md").is_file():
                 raise RuntimeError(f"skill 不存在：{skill}")
-        skills = [] if restricted_tools else requested_skills
+        # Declared Workflow skills are already injected in the frozen prompt.
+        skills = [] if restricted_tools or workflow_config else requested_skills
     else:
         skills = [] if restricted_tools else None
     return build_agent_options(
@@ -488,7 +499,7 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
             prompt_append,
             database_enabled,
             workflow_config,
-            template=registered_template,
+            prompt_documents=assets['prompt'],
         ),
         tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
         disallowed_tools=["WebSearch"],

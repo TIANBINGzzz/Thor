@@ -48,7 +48,9 @@ class Planner:
             raise DataError("PLAN_BUSY")
         reference = "plan_" + token_urlsafe(18)
         plan = {"plan_ref": reference, "plan_version": len(self.plans) + 1, "input_fingerprint": identity,
-                "template_revision": self.template["version"], "asset_revision": executor._versions,
+                "template_revision": self.template["version"], "template_asset_revision": self.template['_revision'],
+                "writing_rules_revision": self.services.workflow_revision,
+                "asset_revision": executor._versions,
                 "report_parameters": report_parameters, "status": "queued", "nodes": [],
                 "slots": [], "drafts":{}, "coverage": {}, "connection_revisions": {}, "policy_revisions": {}}
         self._compile(plan, scope_refs)

@@ -39,11 +39,11 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
-撰写模板放在 `.claude/workflows/writing-docx/templates/`。szpt-midterm锁定原40表，20数据集批量取数，Agent撰写105个正文位置并原位回填，结构样式对照和逐页审阅通过后发布。历史实值缺口单独披露；此前简版已停用。
+共同写作规则在 `.claude/skills/writing-documents/SKILL.md`。预制模板放在 `.claude/workflows/writing-docx/templates/`，每模板以template.json.documents登记一份或少量MD，按templateKey加载；上传模板沿用附件作参考并按原规范写作、重新生成目录。szpt-midterm锁定原40表，20数据集批量取数，Agent撰写105个正文位置并原位回填，结构样式对照和逐页审阅通过后发布。历史实值缺口单独披露；此前简版已停用。
 
 业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 
-[共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。查询JSON/同名SQL为唯一维护源，检索索引由Python生成；data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
+[共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。按主题YAML内嵌指标定义与SQL为唯一维护源，检索索引由Python生成；data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
 
 [模板批量计划](doc/specs/template-batch-data-plan.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
 

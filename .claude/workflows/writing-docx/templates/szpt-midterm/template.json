@@ -3,6 +3,7 @@
   "name": "双高计划中期自评报告",
   "version": 2,
   "enabled": true,
+  "documents": ["writing-guide.md"],
   "capabilities": [
     "document-writing"
   ],

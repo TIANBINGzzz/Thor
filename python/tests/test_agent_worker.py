@@ -81,7 +81,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('data',options.mcp_servers)
         self.assertNotIn('reports',options.mcp_servers)
         self.assertNotIn('prepare_report_data',options.system_prompt['append'])
-        self.assertEqual(options.skills,['writing-documents'])
+        self.assertEqual(options.skills,[])
+        self.assertIn('writing-documents/SKILL.md', options.system_prompt['append'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -183,12 +184,19 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(path.name, "workflow.env")
         self.assertEqual(path.parent.name, "database-qa")
 
-    def test_template_writing_skill_is_injected_only_for_bound_templates(self):
+    def test_common_skill_is_injected_for_both_routes_with_only_selected_template_guide(self):
+        from workflows.writing_docx.bindings import load_template
         config=load_workflow_config('writing-docx')
-        self.assertNotIn('## 按证据撰写',workflow_prompt_documents(config))
-        self.assertIn('## 按证据撰写',workflow_prompt_documents(config,template=True))
-        config['template_skills']=['../outside']
-        with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=True)
+        common=workflow_prompt_documents(config)
+        template=load_template('szpt-midterm','document-writing')
+        selected=workflow_prompt_documents(config,template=template)
+        self.assertIn(common,selected)
+        self.assertNotIn('szpt-midterm',common)
+        self.assertNotIn('writing-guide.md',common)
+        self.assertIn(template['_documents'][0]['text'].strip(),selected)
+        self.assertEqual(selected.count('writing-documents/SKILL.md'),1)
+        config['skills']=['../outside']
+        with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=template)
 
     def test_selected_workflow_environment_is_loaded_after_root_defaults(self):
         with tempfile.NamedTemporaryFile(suffix=".env") as env_file:

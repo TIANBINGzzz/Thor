@@ -1,4 +1,0 @@
-interface:
-  display_name: "双高自评报告撰写"
-  short_description: "按业务指标取证，保留模板结构，完成正文并标黄不确定内容"
-  default_prompt: "使用 $double-high-report-writing 按模板和已核实证据完成自评报告，不留空段落，并将不确定内容标黄。"

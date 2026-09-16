@@ -75,11 +75,12 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [021](021-template-batch-data-plan.md) | 固定模板绑定与批量取数计划 | 已采纳 | 未开始 | 计划与动态SQL保留；首期Grant/独立data进程被ADR-022部分替代 |
 | [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 保留历史名称及单租户策略；目录被ADR-023部分替代，最新唯一来源为校双高库schoolDoubleHigh |
 | [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 部分实现 | schoolDoubleHigh接入data/reports；恢复原40表写作及全文检查，历史数据与外部前端/Java仍有差距 |
-| [025](025-unified-template-writing.md) | 两类模板共用撰写能力与Skill | 提议 | 未开始 | 保持传值；共同Skill按所选预制模板加载少量MD，上传模板作参考并重建目录；内部加载待实现 |
+| [025](025-unified-template-writing.md) | 两类模板共用撰写能力与Skill | 已采纳 | 部分实现 | 共同Skill、所选MD、规则版本及来源隔离已接入；上传复杂版式/目录和生产Java验收未覆盖 |
 
 ## 本次核验
 
-- [ADR-024](024-grouped-metrics-evidence-writing.md)：主题指标YAML与证据驱动原位撰写，已采纳，部分实现；部分替代ADR-023文件组织。
+- [ADR-024](024-grouped-metrics-evidence-writing.md)：主题指标YAML与证据驱动原位撰写，已采纳，已实现（本地样稿范围）；部分替代ADR-023文件组织，Skill装配被ADR-025部分替代。
+- 2026-09-16，[ADR-025](025-unified-template-writing.md)：160项Python测试、Skill校验、77个文档链接及三路真实MCP取数通过；两组SDK证据写作样例重测并复核，未覆盖全篇DOCX、上传目录实际页码或生产Java验收。
 
 - 2026-09-07：`python -m unittest discover -s python/tests -t python -p 'test_*.py'`，134 项通过；涉及 SDK、Broker 和内部 Runtime 的测试包含替身，不代表外部服务联调。
 - 前端仅核对当前生效组件及调用路径；本次未运行前端测试、浏览器交互、真实 Provider/数据库或外部 Java 验收。

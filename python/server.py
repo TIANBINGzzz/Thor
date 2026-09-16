@@ -16,7 +16,7 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for
+from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for, prepare_workflow_assets
 from runtime.auth import JWTError, verify_run_jwt
 from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
@@ -412,6 +412,7 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
         "skills": payload.get("skill_refs") or [],
         "credentialDigest": credential_digest,
         "templateKey": payload.get("_template_key"),
+        "workflowAssets": prepare_workflow_assets(payload)['revision'],
         "dataConfiguration": _data_config_fingerprint(payload),
     }
     return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
@@ -455,6 +456,7 @@ def _internal_worker_payload(
     session_directory: Path | None = None,
     attachment_files: tuple[FetchedFile, ...] = (),
     claims: dict[str, Any] | None = None,
+    workflow_assets: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
     model = MODELS[0] if MODELS else ""
@@ -500,9 +502,6 @@ def _internal_worker_payload(
     if workflow_name and load_workflow_config(workflow_name) is None:
         raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
     template_key = (run_request.payload or {}).get("templateKey")
-    if template_key is not None:
-        from workflows.writing_docx.bindings import load_template
-        load_template(template_key, run_request.capability_ref)
     payload: dict[str, Any] = {
         "_template_key": template_key,
         "_data_identity": {"tenant_id": (claims or {}).get("tenant"), "user_id": (claims or {}).get("sub")},
@@ -532,6 +531,9 @@ def _internal_worker_payload(
         "runtime_mode": runtime_mode,
         "timeout_ms": RUN_EXECUTION_TIMEOUT_MS,
     }
+    if workflow_assets is not None:
+        payload['_workflow_assets'] = workflow_assets
+    prepare_workflow_assets(payload)
     credentials = run_request.credentials.to_dict(include_secret=True)
     if credentials:
         # This value remains in the worker's transient stdin payload.  The
@@ -587,6 +589,7 @@ async def _execute_internal_run(
                     runtime_mode=runtime_mode,
                     session_directory=session_directory,
                     attachment_files=prepared_files,
+                    workflow_assets=worker_payload['_workflow_assets'],
                 )
                 await _run_phase(run_id, {"name": "model_starting"})
                 return {**prepared_payload, "timeout_ms": RUN_EXECUTION_TIMEOUT_MS}

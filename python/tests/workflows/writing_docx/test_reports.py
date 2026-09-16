@@ -308,6 +308,26 @@ class ReportingTests(unittest.TestCase):
             await services.close()
         asyncio.run(scenario())
 
+    def test_bind_enforces_selected_sources_and_frozen_template_revision(self):
+        async def scenario():
+            template=self.template()
+            self.config['policies']['first']['templates']=['demo']
+            self.save_connections()
+            payload={'run_id':'selected-template', 'capability_ref':'qa', '_template_key':'demo',
+                '_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
+                '_data_run_directory':str(self.root/'selected-template'),
+                '_workflow_assets':{'template_revision':template['_revision']}}
+            services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
+            with patch('workflows.writing_docx.bindings.load_template',return_value=template):
+                await services.bind(payload)
+                self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['first'])
+                with self.assertRaises(DataError): services.current().access('second')
+                await services.close()
+                with self.assertRaisesRegex(DataError,'TEMPLATE_MISMATCH'):
+                    await services.bind({**payload,'_workflow_assets':{'template_revision':'old-revision'}})
+                self.assertIsNone(services.executor)
+        asyncio.run(scenario())
+
     def test_evidence_modes_require_visible_gaps_and_reject_unfounded_numbers(self):
         from workflows.writing_docx.rendering import validate_drafts
         ref=self.executor.results.save([{'total':10}],{'complete':True},[{'name':'total','type':'number'}])

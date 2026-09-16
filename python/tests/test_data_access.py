@@ -222,10 +222,13 @@ class DataAccessTests(unittest.TestCase):
             del config['sources']['second']
             save(self.config_path,config)
             self.assertEqual(data_source_keys(payload),['first'])
-            locked={**payload,'_template_key':'demo'}
-            self.assertEqual(data_source_keys(locked),['first','second'])
-            with self.assertRaises(DataError):
-                Executor(self.context,self.env,self.catalog,data_source_keys(locked))
+            locked={**payload,'capability_ref':'document-writing','_template_key':'szpt-midterm'}
+            with self.assertRaisesRegex(DataError,'SOURCE_FORBIDDEN'):
+                data_source_keys(locked)
+            with patch.object(self.catalog,'sources_for',return_value=['schoolDoubleHigh','second']):
+                self.assertEqual(data_source_keys(locked),['schoolDoubleHigh'])
+                with self.assertRaises(DataError):
+                    Executor(self.context,self.env,self.catalog,data_source_keys(locked))
 
     def test_no_identity_or_source_fallback_and_no_model_tenant(self):
         with self.assertRaises(DataError): DataContext.from_payload({'run_id':'x'})

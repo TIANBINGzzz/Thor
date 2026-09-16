@@ -8,6 +8,7 @@ from lxml import etree
 
 from data_access.catalog import PROJECT_ROOT, asset_path, key, read_json
 from data_access.context import DataError, fingerprint
+from runtime.prompt_documents import read_documents
 
 TEMPLATES = PROJECT_ROOT / ".claude/workflows/writing-docx/templates"
 NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -33,15 +34,21 @@ def locate(xml, locator):
 
 
 def load_template(template_key, capability_ref, root=TEMPLATES):
+    template_key = key(template_key)
     if Path(root).resolve()==TEMPLATES.resolve():
         registry=read_json(TEMPLATES.parent/'workflow.json').get('templates',{})
-        if template_key not in registry:
+        if (template_key not in registry
+                or registry[template_key] != f'templates/{key(template_key)}/template.json'):
             raise DataError('TEMPLATE_FORBIDDEN')
     directory = asset_path(Path(root), f"{key(template_key)}/template.json").parent
     template = read_json(directory / "template.json")
     if (template.get("template_key") != template_key or template.get("enabled") is not True
             or capability_ref not in template.get("capabilities", [])):
         raise DataError("TEMPLATE_FORBIDDEN")
+    try:
+        documents = read_documents(directory, template.get('documents', []))
+    except RuntimeError as error:
+        raise DataError('TEMPLATE_DOCUMENT_INVALID') from error
     if template.get('preserve_structure') is not True or template.get('missing_policy') != 'reject':
         raise DataError('TEMPLATE_CONTRACT_INVALID')
     path = asset_path(directory, template["docx_file"])
@@ -71,4 +78,4 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
         if not references <= datasets:
             raise DataError("BINDING_INVALID")
     return {**template, "_directory": directory, "_docx": path, "_slots": slots, "_bindings": bindings,
-            "_revision": fingerprint([template, bindings, slots])}
+            "_documents": documents, "_revision": fingerprint([template, bindings, slots, documents])}
