@@ -78,6 +78,8 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 
 ## 本次核验
 
+- [ADR-024](024-grouped-metrics-evidence-writing.md)：主题指标YAML与证据驱动原位撰写，已采纳，部分实现；部分替代ADR-023文件组织。
+
 - 2026-09-07：`python -m unittest discover -s python/tests -t python -p 'test_*.py'`，134 项通过；涉及 SDK、Broker 和内部 Runtime 的测试包含替身，不代表外部服务联调。
 - 前端仅核对当前生效组件及调用路径；本次未运行前端测试、浏览器交互、真实 Provider/数据库或外部 Java 验收。
 - 本次检查通过：15 篇必填结构、状态枚举、元数据/历史/索引一致性、替代双向链接及 77 个相对链接；正文 42-49 行，模板 46 行，均未超过 50 行。ADR 范围的 `git diff --check` 通过。

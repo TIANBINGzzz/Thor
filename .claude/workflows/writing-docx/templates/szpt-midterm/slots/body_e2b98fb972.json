@@ -41,35 +41,32 @@
       "binding_status": "registered",
       "template_text": "1.“一站式”学生社区育人创新案例成果（__个）【材料待补】",
       "resolution": {
-        "text": "1.“一站式”学生社区育人创新案例成果（/个）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "1.“一站式”学生社区育人创新案例成果（待核实个）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4471",
@@ -91,35 +88,32 @@
       "binding_status": "registered",
       "template_text": "2.研发深职《幸福课》教材（__部）【材料待补】",
       "resolution": {
-        "text": "2.研发深职《幸福课》教材（/部）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "2.研发深职《幸福课》教材（待核实部）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4472",
@@ -141,35 +135,32 @@
       "binding_status": "registered",
       "template_text": "3.建设深职《幸福课》慕课（__门）【材料待补】",
       "resolution": {
-        "text": "3.建设深职《幸福课》慕课（/门）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "3.建设深职《幸福课》慕课（待核实门）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4473",
@@ -191,35 +182,32 @@
       "binding_status": "registered",
       "template_text": "4.“学生精英成长培养计划”人数（__人）【材料待补】",
       "resolution": {
-        "text": "4.“学生精英成长培养计划”人数（/人）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "4.“学生精英成长培养计划”人数（待核实人）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4474",
@@ -241,35 +229,32 @@
       "binding_status": "registered",
       "template_text": "5.社团精品项目（__个）【材料待补】",
       "resolution": {
-        "text": "5.社团精品项目（/个）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "5.社团精品项目（待核实个）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4475",
@@ -291,35 +276,32 @@
       "binding_status": "registered",
       "template_text": "6.校内、外社团实践基地（__个）【材料待补】",
       "resolution": {
-        "text": "6.校内、外社团实践基地（/个）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "6.校内、外社团实践基地（待核实个）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4476",
@@ -341,35 +323,32 @@
       "binding_status": "registered",
       "template_text": "7.学生可持续发展能力培养网络课程资源库（____）【材料待补】",
       "resolution": {
-        "text": "7.学生可持续发展能力培养网络课程资源库（/）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "7.学生可持续发展能力培养网络课程资源库（待核实）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4477",
@@ -391,35 +370,32 @@
       "binding_status": "registered",
       "template_text": "8.出版社团案例集（____）【材料待补】",
       "resolution": {
-        "text": "8.出版社团案例集（/）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "8.出版社团案例集（待核实）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4478",
@@ -441,35 +417,32 @@
       "binding_status": "registered",
       "template_text": "9.出版《高职院校学生非专业能力培养研究》等相关社团专著（部）（形成初稿）【材料待补】",
       "resolution": {
-        "text": "9.出版《高职院校学生非专业能力培养研究》等相关社团专著（部）（形成初稿）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "9.出版《高职院校学生非专业能力培养研究》等相关社团专著（部）（形成初稿）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4479",
@@ -491,35 +464,32 @@
       "binding_status": "registered",
       "template_text": "10建设劳动教育慕课（__门）【材料待补】",
       "resolution": {
-        "text": "10建设劳动教育慕课（/门）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "10建设劳动教育慕课（待核实门）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4480",
@@ -541,35 +511,32 @@
       "binding_status": "registered",
       "template_text": "11出版劳动与职业读本（__部）【材料待补】",
       "resolution": {
-        "text": "11出版劳动与职业读本（/部）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "11出版劳动与职业读本（待核实部）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4557",
@@ -611,35 +578,32 @@
       "binding_status": "registered",
       "template_text": "1.完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验（____）【材料待补】",
       "resolution": {
-        "text": "1.完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验（/）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "1.完成教育部“一站式”学生社区综合管理模式建设试点任务，形成建设经验（待核实）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4559",
@@ -661,35 +625,32 @@
       "binding_status": "registered",
       "template_text": "2.深职“幸福课”慕课网上点击数（__万次）【材料待补】",
       "resolution": {
-        "text": "2.深职“幸福课”慕课网上点击数（/万次）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "2.深职“幸福课”慕课网上点击数（待核实万次）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4560",
@@ -711,35 +672,32 @@
       "binding_status": "registered",
       "template_text": "3.社团特色活动学生参与度（__%）【材料待补】",
       "resolution": {
-        "text": "3.社团特色活动学生参与度（/%）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "3.社团特色活动学生参与度（待核实%）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4561",
@@ -761,35 +719,32 @@
       "binding_status": "registered",
       "template_text": "4.深职“劳动教育课”慕课网上点击数（__万次）【材料待补】",
       "resolution": {
-        "text": "4.深职“劳动教育课”慕课网上点击数（/万次）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "4.深职“劳动教育课”慕课网上点击数（待核实万次）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     }
   ]
 }

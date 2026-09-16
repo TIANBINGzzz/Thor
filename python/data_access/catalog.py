@@ -1,4 +1,4 @@
-"""Load one definition per query; derive discovery from frozen runtime assets."""
+"""Index business queries from grouped YAML assets frozen for each Run."""
 
 import json
 import re
@@ -6,11 +6,30 @@ import unicodedata
 from copy import deepcopy
 from pathlib import Path
 
+import yaml
+
 from .context import DataError, fingerprint
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATABASES_ROOT = PROJECT_ROOT / ".claude/databases"
 KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,95}$")
+
+
+class UniqueLoader(yaml.SafeLoader):
+    pass
+
+
+def unique_mapping(loader, node, deep=False):
+    result = {}
+    for key_node, value_node in node.value:
+        name = loader.construct_object(key_node, deep=deep)
+        if not isinstance(name, str) or name in result:
+            raise DataError('ASSET_MISMATCH')
+        result[name] = loader.construct_object(value_node, deep=deep)
+    return result
+
+
+UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
 
 
 def key(value):
@@ -69,11 +88,9 @@ class Catalog:
             paths = [self._path(root, "source.json")]
             for domain in source["domains"]:
                 base, config, specs = self._domain(source_key, domain)
-                paths += [self._path(base, "pending.json"), self._path(root, config['schema'])]
+                paths += self._metric_files(base)
+                paths += [self._path(root, config['schema'])]
                 paths += [self._path(root, path) for path in config.get("documents", {}).values()]
-                for spec in specs.values():
-                    if spec["status"] == "defined":
-                        paths += [self._path(base, f"{spec['id']}.{suffix}") for suffix in ("json", "sql")]
             for path in paths:
                 frozen._contents[path] = self._text(path)
         return frozen
@@ -124,27 +141,69 @@ class Catalog:
         config = self.source(source_key).get("domains", {}).get(domain)
         if not config:
             raise DataError("DOMAIN_UNAVAILABLE")
-        root = self._path(self.root / source_key, f"{config['metrics']}/pending.json").parent
-        pending = self._json(self._path(root, "pending.json"))
-        files = (p for p in self._contents if p.parent == root and p.suffix == ".json") \
-            if self._contents is not None else root.glob("*.json")
+        source_root = (self.root / source_key).resolve()
+        relative = config['metrics']
+        root = (source_root / relative).resolve()
+        if Path(relative).is_absolute() or not root.is_relative_to(source_root):
+            raise DataError('ASSET_PATH_INVALID')
         specs = {}
-        for path in sorted(files):
-            if path.name == 'pending.json':
-                continue
-            query_id = key(path.stem)
-            spec = self._json(self._path(root, f"{query_id}.json"))
-            if query_id in pending or any(k in spec for k in ("id", "status", "sql_file")):
-                raise DataError("ASSET_MISMATCH")
-            specs[query_id] = {**spec, "id": query_id, "status": "defined", "sql_file": f"{query_id}.sql"}
-        for query_id, spec in pending.items():
-            if spec.get("status") not in {"blocked", "needs_definition"} or not spec.get("blockers"):
-                raise DataError("ASSET_MISMATCH")
-            specs[key(query_id)] = {**spec, "id": query_id, "parameters": {}, "output": [], "sql_file": None}
+        for path in self._metric_files(root):
+            try:
+                bundle = yaml.load(self._text(self._path(root, path.name)), Loader=UniqueLoader)
+            except (OSError, yaml.YAMLError):
+                raise DataError('ASSET_MISMATCH') from None
+            if not isinstance(bundle, dict) or set(bundle) - {'parameters', 'metrics', 'pending'}:
+                raise DataError('ASSET_MISMATCH')
+            shared, metrics, pending = bundle.get('parameters', {}), bundle.get('metrics', []), bundle.get('pending', {})
+            if not isinstance(shared, dict) or not isinstance(metrics, list) or not isinstance(pending, dict):
+                raise DataError('ASSET_MISMATCH')
+            for metric in metrics:
+                required = {'id', 'name', 'description', 'parameters', 'grain', 'sql', 'output', 'validation'}
+                if not isinstance(metric, dict) or set(metric) != required:
+                    raise DataError('ASSET_MISMATCH')
+                query_id = key(metric['id'])
+                if query_id in specs or not isinstance(metric['sql'], str) or not metric['sql'].strip():
+                    raise DataError('ASSET_MISMATCH')
+                names = metric['parameters']
+                if (not isinstance(names, list) or any(not isinstance(n, str) for n in names)
+                        or len(names) != len(set(names)) or any(n not in shared for n in names)
+                        or 'tenant_id' in names or not isinstance(metric['validation'], dict)
+                        or not isinstance(metric['output'], list)):
+                    raise DataError('ASSET_MISMATCH')
+                parameters = {n: deepcopy(shared[n]) for n in names}
+                if re.search(r':tenant_id\b', metric['sql']):
+                    parameters['tenant_id'] = {'type': 'string', 'required': True, 'origin': 'authorized_context'}
+                if set(re.findall(r':([a-z_]+)', metric['sql'])) != set(parameters):
+                    raise DataError('ASSET_MISMATCH')
+                validation = metric['validation']
+                required_values = validation.get('required_values', [])
+                if not isinstance(required_values, list) or any(not isinstance(n, str) or n not in names for n in required_values):
+                    raise DataError('ASSET_MISMATCH')
+                for name in required_values:
+                    definition = parameters[name]
+                    definition['required'] = True
+                    if isinstance(definition.get('type'), list):
+                        definition['type'] = [t for t in definition['type'] if t != 'null']
+                specs[query_id] = {**metric, 'parameters': parameters, 'status': 'defined',
+                    'version': fingerprint(metric), 'aliases': validation.get('aliases', []),
+                    'semantics': validation.get('rules', []), 'requires_queries': validation.get('requires_queries', []),
+                    'checks': validation.get('checks', []), 'candidate_queries': validation.get('candidate_queries', [])}
+            for query_id, spec in pending.items():
+                if (key(query_id) in specs or not isinstance(spec, dict) or spec.get('status') not in {'blocked', 'needs_definition'}
+                        or not spec.get('blockers')):
+                    raise DataError('ASSET_MISMATCH')
+                specs[query_id] = {**spec, 'id': query_id, 'parameters': {}, 'output': [], 'sql': None}
         result = (root, config, specs)
         if self._contents is not None:
             self._domains[cache_key] = result
         return result
+
+    def _metric_files(self, root):
+        paths = [p for p in self._contents if p.parent == root and p.suffix == '.yaml'] \
+            if self._contents is not None else list(root.glob('*.yaml'))
+        if not paths:
+            raise DataError('ASSET_MISMATCH')
+        return sorted(paths)
 
     def domain(self, source_key, domain):
         root, config, specs = self._domain(source_key, domain)
@@ -161,8 +220,7 @@ class Catalog:
         return deepcopy(spec)
 
     def sql(self, source_key, domain, spec):
-        root, _, _ = self._domain(source_key, domain)
-        return self._text(self._path(root, spec["sql_file"]))
+        return self.spec(source_key, domain, spec['id'])['sql']
 
     def documents(self, source_key, domain, document_keys=None):
         _, config, _ = self._domain(source_key, domain)

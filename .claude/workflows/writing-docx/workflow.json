@@ -10,6 +10,9 @@
   "skills": [
     "writing-documents"
   ],
+  "template_skills": [
+    "double-high-report-writing"
+  ],
   "documents": {
     "template": [
       "template-report.md"

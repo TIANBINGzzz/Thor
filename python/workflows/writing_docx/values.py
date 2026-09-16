@@ -14,20 +14,23 @@ def dataset_record(key, plan, executor):
 def resolve_value(binding, plan, executor):
     if binding['kind'] == 'static':
         return {'value_status': 'static'}
-    if binding.get('intentional_blank') and not binding['required']:
-        return {'value_status': 'filled', 'value': ''}
     refs = []
+    gaps = []
     for key in binding.get('evidence_datasets', []):
-        refs.append(dataset_record(key, plan, executor)['result_ref'])
+        try:
+            refs.append(dataset_record(key, plan, executor)['result_ref'])
+        except DataError as error:
+            if error.code != 'BINDING_DATA_UNAVAILABLE':
+                raise
+            gaps.append(key)
     if binding['kind'] == 'narrative':
-        return {'value_status':'awaiting_draft', 'evidence_refs':refs}
+        return {'value_status':'awaiting_draft', 'evidence_refs':refs, 'unavailable_datasets':gaps}
     resolution = binding.get('resolution')
     if resolution:
-        for key in resolution.get('require_empty', []):
-            if dataset_record(key, plan, executor)['rows']:
-                raise DataError('ABSENCE_NOT_CONFIRMED')
+        # Missing or unreviewed evidence is not a claim that a business activity did not occur.
         return {'value_status':'unavailable', 'value':resolution['text'],
-                'reason':resolution['reason'], 'evidence_refs':refs}
+                'reason':resolution['reason'], 'evidence_refs':refs, 'draftable':True,
+                'unavailable_datasets':gaps}
     if 'text_template' not in binding:
         return {'value_status': 'definition_missing'}
     values = {}
@@ -47,6 +50,7 @@ def resolve_value(binding, plan, executor):
             refs.append(record['result_ref'])
             if value is None:
                 value = definition.get('null_text', '未填报')
+                gaps.append(name)
         values[name] = str(value)
-    return {'value_status':'filled','value':Template(binding['text_template']).substitute(values),
-            'evidence_refs':list(dict.fromkeys(refs))}
+    return {'value_status':'unavailable' if gaps else 'filled','value':Template(binding['text_template']).substitute(values),
+            **({'reason':'missing_bound_value'} if gaps else {}), 'evidence_refs':list(dict.fromkeys(refs))}

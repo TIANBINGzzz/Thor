@@ -18,6 +18,12 @@ def check_fidelity(template, output):
     for slot in template['_slots']:
         if slot['kind']=='static':
             continue
+        from .rendering import normalize_uncertainty
+        originals = before.xpath(slot['locator']['path'],namespaces=NS)
+        revisions = after.xpath(slot['locator']['path'],namespaces=NS)
+        if len(originals)!=1 or len(revisions)!=1:
+            raise DataError('TEMPLATE_STRUCTURE_CHANGED')
+        normalize_uncertainty(originals[0],revisions[0])
         for xml in (before, after):
             nodes=xml.xpath(slot['locator']['path'],namespaces=NS)
             if len(nodes)!=1: raise DataError('TEMPLATE_STRUCTURE_CHANGED')

@@ -41,24 +41,22 @@
       "binding_status": "registered",
       "template_text": "1.教师教学创新团队__个【材料待补】",
       "resolution": {
-        "text": "1.教师教学创新团队/个（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "1.教师教学创新团队待核实个待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4745",
@@ -80,24 +78,22 @@
       "binding_status": "registered",
       "template_text": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量__人【材料待补】",
       "resolution": {
-        "text": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量/人（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "2.使用国家级职业教育教师教学创新团队管理系统的教师数量待核实人待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4746",
@@ -119,24 +115,22 @@
       "binding_status": "registered",
       "template_text": "3.培养专业带头人和骨干教师__人【材料待补】",
       "resolution": {
-        "text": "3.培养专业带头人和骨干教师/人（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "3.培养专业带头人和骨干教师待核实人待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4747",
@@ -158,24 +152,22 @@
       "binding_status": "registered",
       "template_text": "4.技能大师/技能菁英工作室__个【材料待补】",
       "resolution": {
-        "text": "4.技能大师/技能菁英工作室/个（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "4.技能大师/技能菁英工作室待核实个待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4748",
@@ -197,24 +189,22 @@
       "binding_status": "registered",
       "template_text": "5.具有境外学习工作经历的专任教师比__%【材料待补】",
       "resolution": {
-        "text": "5.具有境外学习工作经历的专任教师比/%（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "5.具有境外学习工作经历的专任教师比待核实%待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4749",
@@ -236,24 +226,22 @@
       "binding_status": "registered",
       "template_text": "6.三年以上教龄一师多证的双师教师比__%【材料待补】",
       "resolution": {
-        "text": "6.三年以上教龄一师多证的双师教师比/%（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "6.三年以上教龄一师多证的双师教师比待核实%待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     }
   ]
 }

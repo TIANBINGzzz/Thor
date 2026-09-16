@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import tempfile
 import unittest
+import yaml
 from unittest.mock import patch
 
 from data_access.catalog import Catalog, PROJECT_ROOT
@@ -38,12 +39,14 @@ class DataAccessTests(unittest.TestCase):
                 'capabilities':['qa'],
                 'domains': {'sales': {'metrics':'metrics/sales','schema':'schema/sales.json','documents':{}}}})
             domain = folder/'metrics/sales'
-            save(domain/'pending.json', {})
             spec = {'name': 'Total', 'description': 'Sum sales', 'version': 1, 'parameters': {
                 'tenant_id': {'type': 'string', 'required': True, 'origin': 'authorized_context'}},
                 'output': [{'name': 'total', 'type': 'number', 'unit': 'USD'}]}
-            save(domain/'total.json', spec)
-            (domain/'total.sql').write_text('SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id')
+            domain.mkdir(parents=True)
+            (domain/'sales.yaml').write_text(yaml.safe_dump({'parameters':{},'metrics':[
+                {'id':'total','name':spec['name'],'description':spec['description'],'parameters':[],
+                 'grain':'tenant','sql':'SELECT SUM(amount) AS total FROM sales WHERE tenant = :tenant_id',
+                 'output':spec['output'],'validation':{}}]},sort_keys=False),encoding='utf-8')
             db = sqlite3.connect(self.root/f'{source}.db')
             db.execute('CREATE TABLE sales (tenant TEXT, amount INTEGER, private_id TEXT)')
             db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
@@ -101,8 +104,9 @@ class DataAccessTests(unittest.TestCase):
 
     def test_pending_definition_stays_discoverable_but_cannot_execute(self):
         domain=self.root/'databases/first/metrics/sales'
-        save(domain/'pending.json',{'score':{'name':'Scoring','description':'Scoring rule missing',
-             'status':'needs_definition','version':1,'blockers':['No scoring formula']}})
+        path=domain/'pending.yaml'
+        path.write_text(yaml.safe_dump({'pending':{'score':{'name':'Scoring','description':'Scoring rule missing',
+             'status':'needs_definition','version':1,'blockers':['No scoring formula']}}}),encoding='utf-8')
         self.config['policies']['first']['domains']['sales']['queries'].append('score')
         executor=self.make_executor()
         self.assertEqual(executor.find_query_specs('first','sales',intent='Scoring')['queries'][0]['blockers'],['No scoring formula'])
@@ -111,7 +115,7 @@ class DataAccessTests(unittest.TestCase):
                 executor.execute_query_spec('first','sales','score',{},self.school(executor))
             # No SQL is issued for a pending definition.
             snapshot.return_value.__enter__.return_value.execution_options.assert_not_called()
-        save(domain/'pending.json',{'total':{'name':'Duplicate','status':'blocked','blockers':['Not verified']}})
+        path.write_text(yaml.safe_dump({'pending':{'total':{'name':'Duplicate','status':'blocked','blockers':['Not verified']}}}),encoding='utf-8')
         with self.assertRaisesRegex(DataError,'ASSET_MISMATCH'): self.make_executor()
 
     def test_run_asset_snapshot_ignores_tests_and_is_independent_of_later_files(self):
@@ -121,12 +125,12 @@ class DataAccessTests(unittest.TestCase):
         save(domain/'tests/evidence.not_for_model.json',{'ignored':'test-only'})
         (domain/'unregistered.md').write_text('not model context')
         self.assertEqual(self.catalog.revision('first'),revision)
-        spec=json.loads((domain/'total.json').read_text())
-        save(domain/'new_query.json',spec)
-        (domain/'new_query.sql').write_text('SELECT 1 AS total')
-        (domain/'total.sql').write_text('SELECT 0 AS total')
+        bundle=yaml.safe_load((domain/'sales.yaml').read_text())
+        bundle['metrics'].append({**bundle['metrics'][0],'id':'new_query','sql':'SELECT 1 AS total'})
+        bundle['metrics'][0]['sql']='SELECT 0 AS total'
+        (domain/'sales.yaml').write_text(yaml.safe_dump(bundle),encoding='utf-8')
         self.assertNotEqual(self.catalog.revision('first'),revision)
-        (domain/'total.json').unlink()
+        (domain/'sales.yaml').unlink()
         self.assertEqual(frozen.revision('first'),revision)
         self.assertEqual([q['id'] for q in frozen.domain('first','sales')[1]['queries']],['total'])
         self.assertEqual(self.executor.execute_query_spec('first','sales','total',{},self.school())['rows'],[{'total':10}])
@@ -139,6 +143,31 @@ class DataAccessTests(unittest.TestCase):
             self.assertEqual(executor.list_data_sources()['sources'], [])
         self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
         with self.assertRaises(DataError): self.school(self.make_executor())
+
+    def test_grouped_yaml_rejects_duplicate_keys_and_duplicate_metric_ids(self):
+        path=self.root/'databases/first/metrics/sales/sales.yaml'
+        content=path.read_text()
+        path.write_text(content+'\nmetrics: []\n',encoding='utf-8')
+        with self.assertRaisesRegex(DataError,'ASSET_MISMATCH'):self.make_executor()
+        bundle=yaml.safe_load(content)
+        bundle['metrics'].append(deepcopy(bundle['metrics'][0]))
+        path.write_text(yaml.safe_dump(bundle),encoding='utf-8')
+        with self.assertRaisesRegex(DataError,'ASSET_MISMATCH'):self.make_executor()
+
+    def test_required_business_values_rejected_before_database_access(self):
+        path=self.root/'databases/first/metrics/sales/sales.yaml'
+        bundle=yaml.safe_load(path.read_text())
+        bundle['parameters']={'year':{'type':['string','null'],'required':True,'origin':'user_intent'}}
+        metric=bundle['metrics'][0]
+        metric['parameters']=['year']
+        metric['sql']+=' AND :year IS NOT NULL'
+        metric['validation']['required_values']=['year']
+        path.write_text(yaml.safe_dump(bundle),encoding='utf-8')
+        e=self.make_executor()
+        found=e.find_query_specs('first','sales',intent='total')['queries'][0]
+        self.assertEqual(found['parameters']['year']['type'],['string'])
+        with self.assertRaisesRegex(DataError,'PARAMETERS_INVALID'):
+            e.execute_query_spec('first','sales','total',{'year':None},self.school(e))
 
     def test_private_config_is_not_frozen_or_exposed_and_next_run_refreshes_it(self):
         self.config['connections']['first'].update(host='private-host-marker', password='PRIVATE_SECRET_MARKER')
@@ -369,7 +398,7 @@ class RegisteredAssetsTests(unittest.TestCase):
                               {'CCSDK_DATABASES_FILE':str(path)},
                               Catalog(folder.parent),source_keys=['schoolDoubleHigh'])
             cases={'专业群':'project_catalog','资金执行率':'fund_totals',
-                   '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'report_task_sections',
+                   '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'first_task_progress_feedback',
                    '绩效反馈':'performance_feedback_candidates'}
             for intent,query_id in cases.items():
                 with self.subTest(intent=intent):

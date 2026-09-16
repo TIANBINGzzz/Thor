@@ -41,35 +41,32 @@
       "binding_status": "registered",
       "template_text": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广【材料待补】",
       "resolution": {
-        "text": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "1.推进全国职业教育高质量发展现场会在我校举行，面向全国进行了深职院改革经验的介绍与推广待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4678",
@@ -91,35 +88,32 @@
       "binding_status": "registered",
       "template_text": "2.自然指数（Nature Index）学术机构排名位列__（全国高校排名）【材料待补】",
       "resolution": {
-        "text": "2.自然指数（Nature Index）学术机构排名位列/（全国高校排名）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "2.自然指数（Nature Index）学术机构排名位列待核实（全国高校排名）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4679",
@@ -141,35 +135,32 @@
       "binding_status": "registered",
       "template_text": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰【材料待补】",
       "resolution": {
-        "text": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "3.全国首个通过华为云计算HCIE的在校教师——王隆杰待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4680",
@@ -191,35 +182,32 @@
       "binding_status": "registered",
       "template_text": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）【材料待补】",
       "resolution": {
-        "text": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "4.王浩老师入选中国科协第六届“青年人才托举工程”（连续六届唯一一位职业院校入选者）待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree",
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     }
   ]
 }

@@ -1,6 +1,7 @@
 """Replace registered OOXML paragraphs while copying every other ZIP member."""
 
 from decimal import Decimal
+from copy import deepcopy
 import json
 import re
 from zipfile import ZipFile
@@ -11,6 +12,46 @@ from lxml import etree
 
 from data_access.context import DataError
 from .bindings import NS, document_xml, load_template, locate
+
+UNCERTAINTY_COLOR = 'FFC000'
+
+
+def mark_uncertainty(node):
+    for run in node.xpath('.//w:r[w:t][not(ancestor::w:txbxContent)]', namespaces=NS):
+        if not ''.join(run.xpath('w:t/text()', namespaces=NS)).strip():
+            continue
+        properties = run.find('w:rPr', NS)
+        if properties is None:
+            properties = etree.Element('{'+NS['w']+'}rPr')
+            run.insert(0, properties)
+        for color in list(properties.findall('w:color', NS)):
+            properties.remove(color)
+        color = etree.SubElement(properties, '{'+NS['w']+'}color')
+        color.set('{'+NS['w']+'}val', UNCERTAINTY_COLOR)
+
+
+def normalize_uncertainty(original, revised):
+    """Allow only the deliberate yellow color change, preserving all other run properties."""
+    before = original.xpath('.//w:r[not(ancestor::w:txbxContent)]', namespaces=NS)
+    after = revised.xpath('.//w:r[not(ancestor::w:txbxContent)]', namespaces=NS)
+    if len(before) != len(after):
+        raise DataError('TEMPLATE_STRUCTURE_CHANGED')
+    for old, new in zip(before, after):
+        properties = new.find('w:rPr', NS)
+        if properties is None:
+            continue
+        color = properties.find('w:color', NS)
+        if color is None or dict(color.attrib) != {'{'+NS['w']+'}val':UNCERTAINTY_COLOR}:
+            continue
+        properties.remove(color)
+        old_properties = old.find('w:rPr', NS)
+        if old_properties is None:
+            if len(properties)==0 and not properties.attrib:
+                new.remove(properties)
+        else:
+            for index, item in enumerate(old_properties):
+                if item.tag == '{'+NS['w']+'}color':
+                    properties.insert(index, deepcopy(item))
 
 
 class DraftNumberError(DataError):
@@ -86,11 +127,25 @@ def validate_drafts(plan, section_drafts, executor):
         if key in drafts:
             raise DataError('DRAFT_DUPLICATE')
         slot = slots.get(key)
-        if not slot or slot['kind'] != 'narrative' or slot['section_key'] != draft['section_key']:
+        if not slot or not (slot['kind'] == 'narrative' or slot.get('draftable')) or slot['section_key'] != draft['section_key']:
             raise DataError('DRAFT_LOCATION_AMBIGUOUS')
-        if (not draft['text'].strip() or len(draft['text']) > 1200 or not draft['evidence_refs']
+        state = draft.get('evidence_state')
+        if state not in {'supported','limited','none'}:
+            raise DataError('EVIDENCE_STATE_REQUIRED')
+        if (not draft['text'].strip() or len(draft['text']) > 1200
                 or not set(draft['evidence_refs']) <= set(slot.get('evidence_refs', []))):
             raise DataError('EVIDENCE_REQUIRED')
+        if state in {'supported','limited'}:
+            if not draft['evidence_refs'] or not any(executor.results.get(ref)['rows'] for ref in draft['evidence_refs']):
+                raise DataError('EVIDENCE_REQUIRED')
+        if state == 'supported' and draft.get('gap', '').strip():
+            raise DataError('EVIDENCE_STATE_CONFLICT')
+        if state != 'supported':
+            fields = ['gap'] + (['analysis_basis','next_action'] if state=='none' and slot['kind']=='narrative' else [])
+            if any(not draft.get(field,'').strip() or draft[field] not in draft['text'] for field in fields):
+                raise DataError('EVIDENCE_GAP_REQUIRED')
+        if re.fullmatch(r'[\s/_\-—]+|待补|待填',draft['text']):
+            raise DataError('REPORT_BODY_INCOMPLETE')
         validate_draft_numbers(draft, plan, executor)
         drafts[key] = draft
     return drafts
@@ -108,17 +163,23 @@ def render(template, plan, section_drafts, executor):
     drafts = validate_drafts(plan, section_drafts, executor)
     if any(s['kind'] == 'narrative' and s['required'] and s['slot_key'] not in drafts for s in template['_slots']):
         raise DataError('REPORT_BODY_INCOMPLETE')
-    values.update({key: {'value_status': 'filled', 'value': draft['text']} for key, draft in drafts.items()})
+    values.update({key: {'value_status': 'filled' if draft['evidence_state']=='supported' else 'unavailable',
+                         'value': draft['text'], **({'reason':draft['gap']} if draft['evidence_state']!='supported' else {})}
+                   for key, draft in drafts.items()})
     for slot_key, binding in bindings.items():
         if binding['kind'] == 'static':
             continue
         value = values[slot_key]
         if value['value_status'] not in {'filled', 'unavailable'}:
             raise DataError('REPORT_INCOMPLETE')
+        if not str(value['value']).strip() or re.fullmatch(r'[\s/_\-—]+',str(value['value'])):
+            raise DataError('REPORT_INCOMPLETE')
         node = locate(xml, binding['locator'])
         replace_paragraph(node, str(value['value']))
         if template.get('clear_fill_markers'):
             clear_fill_markers(node)
+        if value['value_status']=='unavailable':
+            mark_uncertainty(node)
     directory = executor.context.run_directory / "report"
     directory.mkdir(parents=True, exist_ok=True)
     name = report_file_name(template, plan.get('report_parameters', {}))
@@ -128,7 +189,7 @@ def render(template, plan, section_drafts, executor):
         for member in original.infolist():
             target.writestr(member, content if member.filename == "word/document.xml" else original.read(member.filename))
     missing_path = directory / (plan["plan_ref"] + "-missing.json")
-    gaps = [{"slot_key":s['slot_key'], 'reason':s['reason']} for s in plan['slots'] if s.get('reason')]
+    gaps = [{"slot_key":key, 'reason':value['reason']} for key,value in values.items() if value.get('reason')]
     missing_path.write_text(json.dumps({"missing": [], "data_gaps":gaps}, ensure_ascii=False, indent=2), encoding='utf-8')
     from .validation import check_fidelity
     check_fidelity(template, output)

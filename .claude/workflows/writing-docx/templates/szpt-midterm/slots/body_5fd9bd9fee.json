@@ -41,24 +41,22 @@
       "binding_status": "registered",
       "template_text": "1.纵向到账经费__万元【材料待补】",
       "resolution": {
-        "text": "1.纵向到账经费/万元（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "1.纵向到账经费待核实万元待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4811",
@@ -80,24 +78,22 @@
       "binding_status": "registered",
       "template_text": "2.横向到账经费__万元【材料待补】",
       "resolution": {
-        "text": "2.横向到账经费/万元（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "2.横向到账经费待核实万元待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4812",
@@ -119,24 +115,22 @@
       "binding_status": "registered",
       "template_text": "3.PCT国际专利、国家发明专利__项【材料待补】",
       "resolution": {
-        "text": "3.PCT国际专利、国家发明专利/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "3.PCT国际专利、国家发明专利待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4813",
@@ -158,24 +152,22 @@
       "binding_status": "registered",
       "template_text": "4.SCI、EI索引及中文核心论文__篇【材料待补】",
       "resolution": {
-        "text": "4.SCI、EI索引及中文核心论文/篇（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "4.SCI、EI索引及中文核心论文待核实篇待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4814",
@@ -197,24 +189,22 @@
       "binding_status": "registered",
       "template_text": "5.省级以上科研项目__项【材料待补】",
       "resolution": {
-        "text": "5.省级以上科研项目/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "5.省级以上科研项目待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4815",
@@ -236,24 +226,22 @@
       "binding_status": "registered",
       "template_text": "6.科研成果转化率__%【材料待补】",
       "resolution": {
-        "text": "6.科研成果转化率/%（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_a_task_feedback_candidates"
-        ]
+        "text": "6.科研成果转化率待核实%待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4897",
@@ -295,24 +283,22 @@
       "binding_status": "registered",
       "template_text": "1．与行业领军企业共建高水平技术技能平台__个【材料待补】",
       "resolution": {
-        "text": "1．与行业领军企业共建高水平技术技能平台/个（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "1．与行业领军企业共建高水平技术技能平台待核实个待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4899",
@@ -334,24 +320,22 @@
       "binding_status": "registered",
       "template_text": "2．技术技能大师工作室__个【材料待补】",
       "resolution": {
-        "text": "2．技术技能大师工作室/个（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "2．技术技能大师工作室待核实个待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4900",
@@ -373,24 +357,22 @@
       "binding_status": "registered",
       "template_text": "3．由骨干教师领衔、师生共同组成的技术团队__个【材料待补】",
       "resolution": {
-        "text": "3．由骨干教师领衔、师生共同组成的技术团队/个（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "3．由骨干教师领衔、师生共同组成的技术团队待核实个待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4901",
@@ -412,24 +394,22 @@
       "binding_status": "registered",
       "template_text": "4．完成技术研发和技术服务项目__项【材料待补】",
       "resolution": {
-        "text": "4．完成技术研发和技术服务项目/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "4．完成技术研发和技术服务项目待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4902",
@@ -451,24 +431,22 @@
       "binding_status": "registered",
       "template_text": "5．国家发明专利授权数__项【材料待补】",
       "resolution": {
-        "text": "5．国家发明专利授权数/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "5．国家发明专利授权数待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4952",
@@ -510,24 +488,22 @@
       "binding_status": "registered",
       "template_text": "1．纵向到账经费__万元【材料待补】",
       "resolution": {
-        "text": "1．纵向到账经费/万元（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "1．纵向到账经费待核实万元待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4954",
@@ -549,24 +525,22 @@
       "binding_status": "registered",
       "template_text": "2．横向到账经费__万元【材料待补】",
       "resolution": {
-        "text": "2．横向到账经费/万元（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "2．横向到账经费待核实万元待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4955",
@@ -588,24 +562,22 @@
       "binding_status": "registered",
       "template_text": "3．PCT国际专利、国家发明专利__项【材料待补】",
       "resolution": {
-        "text": "3．PCT国际专利、国家发明专利/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "3．PCT国际专利、国家发明专利待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4956",
@@ -627,24 +599,22 @@
       "binding_status": "registered",
       "template_text": "4．SCI、EI索引及中文核心论文__篇【材料待补】",
       "resolution": {
-        "text": "4．SCI、EI索引及中文核心论文/篇（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "4．SCI、EI索引及中文核心论文待核实篇待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4957",
@@ -666,24 +636,22 @@
       "binding_status": "registered",
       "template_text": "5．省级以上科研项目__项【材料待补】",
       "resolution": {
-        "text": "5．省级以上科研项目/项（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "5．省级以上科研项目待核实项待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     },
     {
       "slot_key": "P4958",
@@ -705,24 +673,22 @@
       "binding_status": "registered",
       "template_text": "6．科研成果转化率__%【材料待补】",
       "resolution": {
-        "text": "6．科研成果转化率/%（本期未提供佐证）",
-        "reason": "period_material_unavailable",
-        "require_empty": [
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "6．科研成果转化率待核实%待核实（需核对本期佐证）",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。"
     }
   ]
 }

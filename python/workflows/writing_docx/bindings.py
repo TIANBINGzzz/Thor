@@ -66,7 +66,7 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
         ids.add(slot["slot_key"])
         positions.add(position)
         locate(xml, slot["locator"])
-        references = set(slot.get('evidence_datasets', [])) | set(slot.get('resolution', {}).get('require_empty', []))
+        references = set(slot.get('evidence_datasets', []))
         references.update(v['dataset_key'] for v in slot.get('values', {}).values() if 'dataset_key' in v)
         if not references <= datasets:
             raise DataError("BINDING_INVALID")

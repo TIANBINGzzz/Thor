@@ -44,15 +44,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2214",
@@ -81,15 +81,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2215",
@@ -134,15 +134,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2369",
@@ -171,15 +171,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2370",
@@ -224,15 +224,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2484",
@@ -261,15 +261,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2485",
@@ -314,15 +314,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2551",
@@ -351,15 +351,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2553",
@@ -404,15 +404,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2667",
@@ -441,15 +441,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2668",
@@ -494,15 +494,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2774",
@@ -531,15 +531,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2775",
@@ -584,15 +584,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2881",
@@ -621,15 +621,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2882",
@@ -674,15 +674,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2972",
@@ -711,15 +711,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P2973",
@@ -764,15 +764,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3063",
@@ -797,15 +797,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3065",
@@ -833,15 +833,15 @@
         "group_a_project_catalog",
         "group_a_task_tree",
         "group_a_task_progress_summary",
-        "group_a_report_task_sections",
+        "group_a_first_task_progress_feedback",
         "group_a_task_feedback_candidates",
         "group_a_fund_totals",
         "group_a_fund_source_amounts",
-        "group_a_report_cycle_budget",
-        "group_a_report_task_performance_links",
+        "group_a_project_cycle_budget",
+        "group_a_task_performance_links",
         "group_a_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3066",
@@ -913,15 +913,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3241",
@@ -970,15 +970,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3243",
@@ -1023,15 +1023,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3421",
@@ -1060,15 +1060,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3422",
@@ -1113,15 +1113,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3544",
@@ -1150,15 +1150,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3545",
@@ -1203,15 +1203,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3611",
@@ -1240,15 +1240,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3612",
@@ -1293,15 +1293,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3742",
@@ -1330,15 +1330,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3747",
@@ -1383,15 +1383,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3845",
@@ -1420,15 +1420,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3846",
@@ -1473,15 +1473,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3953",
@@ -1510,15 +1510,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P3954",
@@ -1563,15 +1563,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P4084",
@@ -1600,15 +1600,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P4085",
@@ -1653,15 +1653,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P4183",
@@ -1686,15 +1686,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P4185",
@@ -1722,15 +1722,15 @@
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
       ],
-      "write_instruction": "按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。"
+      "write_instruction": "沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。"
     },
     {
       "slot_key": "P4186",

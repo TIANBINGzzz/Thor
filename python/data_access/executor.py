@@ -164,6 +164,8 @@ class Executor:
         definitions = spec["parameters"]
         public = {k: v for k, v in definitions.items() if not v.get("origin", "").startswith("authorized_")}
         validate_parameters(parameters, public)
+        if any(parameters.get(name) is None for name in spec.get('validation', {}).get('required_values', [])):
+            raise DataError('PARAMETERS_INVALID')
         values = dict(parameters)
         if set(entity_refs) - set(definitions):
             raise DataError("ENTITY_FORBIDDEN")

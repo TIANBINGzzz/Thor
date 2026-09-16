@@ -1,0 +1,505 @@
+parameters:
+  project_id:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: authorized_resolution
+    description: 已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许
+  year:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    description: 年度阶段名称；仅允许全年度查询的指标可传null，见validation.required_values
+metrics:
+- id: fund_department_coverage
+  name: 资金部门归属覆盖与零执行诊断
+  description: Q16 保留所有有效资金节点做关系覆盖诊断；不是一级资金预算汇总查询。
+  parameters:
+  - project_id
+  - year
+  grain: fund relationship coverage + department diagnostic
+  sql: |
+    WITH fund_base AS (
+      SELECT f.tenant_id_, f.project_id_, f.id_ AS fund_id, f.task_id_, f.execute_total_money_
+      FROM t_hpm_project_fund f
+      JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
+      WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR f.project_id_ = :project_id) AND (:year IS NULL OR EXISTS (
+        SELECT 1 FROM t_hpm_project_stage s
+        WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
+          AND s.project_id_ = f.project_id_ AND s.id_ = f.stage_id_
+          AND s.delete_flag_ = '0' AND s.name_ = :year
+      ))
+    ), fund_task AS (
+      SELECT b.tenant_id_, b.project_id_, b.fund_id, b.execute_total_money_, t.id_ AS task_id
+      FROM fund_base b JOIN t_hpm_project_task t ON t.tenant_id_ = :tenant_id
+        AND t.tenant_id_ = b.tenant_id_ AND t.project_id_ = b.project_id_ AND t.id_ = b.task_id_
+      WHERE t.delete_flag_ = '0'
+    ), fund_org AS (
+      SELECT DISTINCT b.project_id_, b.fund_id, b.execute_total_money_, o.main_org_id_ AS department_id
+      FROM fund_task b JOIN t_hpm_project_task_org o ON o.tenant_id_ = :tenant_id
+        AND o.tenant_id_ = b.tenant_id_ AND o.project_id_ = b.project_id_ AND o.task_id_ = b.task_id
+      WHERE o.main_org_id_ IS NOT NULL AND o.main_org_id_ <> ''
+    ), matched_fund AS (
+      SELECT DISTINCT project_id_, fund_id FROM fund_org
+    ), org_metrics AS (
+      SELECT department_id, COUNT(*) AS fund_count,
+             COUNT(execute_total_money_) AS observed_count,
+             COALESCE(SUM(execute_total_money_), 0) AS execute_sum
+      FROM fund_org GROUP BY department_id
+    )
+    SELECT (SELECT COUNT(*) FROM fund_base) AS total_fund_count,
+           (SELECT COUNT(*) FROM fund_base WHERE task_id_ IS NOT NULL) AS fund_with_task_count,
+           (SELECT COUNT(*) FROM fund_task) AS matched_task_count,
+           (SELECT COUNT(*) FROM matched_fund) AS matched_department_fund_count,
+           ROUND(100.0 * (SELECT COUNT(*) FROM matched_fund) / NULLIF((SELECT COUNT(*) FROM fund_base), 0), 2) AS coverage_rate,
+           (SELECT COUNT(*) FROM org_metrics) AS department_count,
+           (SELECT COUNT(*) FROM org_metrics WHERE execute_sum = 0) AS zero_execute_department_count,
+           (SELECT COUNT(*) FROM org_metrics WHERE observed_count = 0) AS all_missing_department_count,
+           (SELECT COUNT(*) FROM org_metrics WHERE observed_count < fund_count) AS incomplete_department_count
+  output:
+  - name: total_fund_count
+    description: 全部有效项目资金节点数（不限层级）
+    type: integer
+    nullable: false
+    unit: 条
+  - name: fund_with_task_count
+    description: task_id 非空的资金数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: matched_task_count
+    description: 成功关联有效任务的资金数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: matched_department_fund_count
+    description: 成功关联主部门的去重资金数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: coverage_rate
+    description: 资金到主部门覆盖率
+    type: number
+    nullable: true
+    unit: '%'
+  - name: department_count
+    description: 可归属主部门数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: zero_execute_department_count
+    description: 按 Q16 NULL 视0规则的零执行部门数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: all_missing_department_count
+    description: 全部执行金额未填报部门数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: incomplete_department_count
+    description: 存在执行金额未填报的部门数
+    type: integer
+    nullable: false
+    unit: 条
+  validation:
+    aliases:
+    - 部门资金覆盖
+    - 零执行部门
+    - 资金关联覆盖
+    rules:
+    - 只沿 Fund->有效Task->TaskOrg；不继承父任务、项目或人员部门，不按 Task.high_flag_ 改变资金范围
+    - 部门覆盖诊断统计所有资金层级，不能用于金额全校合计
+    - 同一资金多部门可以各归属一次；覆盖分子按项目+资金去重
+    - NULL 视0仅用于本查询的诊断计数，同时输出未填报诊断，不表示实际确无支出
+    - 0<=matched_department_fund_count<=matched_task_count<=fund_with_task_count<=total_fund_count
+    - coverage_rate<95 或为null时只能给局部诊断，不能输出全量零执行结论
+    - incomplete_department_count>0 时必须说明未填报影响
+- id: fund_source_amounts
+  name: 资金七类来源与四类金额
+  description: 沉淀 28 个资金字段，返回总额及六类来源；来源中文标签由具体数据源字典决定。
+  parameters:
+  - project_id
+  - year
+  grain: funding source kind
+  sql: |
+    WITH fund_base AS (
+      SELECT f.budget_total_money_,
+             f.investment_total_money_,
+             f.execute_total_money_,
+             f.arrival_total_money_,
+             f.budget_centre_money_,
+             f.investment_centre_money_,
+             f.execute_centre_money_,
+             f.arrival_centre_money_,
+             f.budget_province_money_,
+             f.investment_province_money_,
+             f.execute_province_money_,
+             f.arrival_province_money_,
+             f.budget_place_money_,
+             f.investment_place_money_,
+             f.execute_place_money_,
+             f.arrival_place_money_,
+             f.budget_organizer_money_,
+             f.investment_organizer_money_,
+             f.execute_organizer_money_,
+             f.arrival_organizer_money_,
+             f.budget_enterprise_money_,
+             f.investment_enterprise_money_,
+             f.execute_enterprise_money_,
+             f.arrival_enterprise_money_,
+             f.budget_alone_money_,
+             f.investment_alone_money_,
+             f.execute_alone_money_,
+             f.arrival_alone_money_
+      FROM t_hpm_project_fund f
+    JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
+    WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR f.project_id_ = :project_id) AND f.level_ = 1 AND f.stage_id_ IS NOT NULL AND (:year IS NULL OR EXISTS (
+        SELECT 1 FROM t_hpm_project_stage s
+        WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
+          AND s.project_id_ = f.project_id_ AND s.id_ = f.stage_id_
+          AND s.delete_flag_ = '0' AND s.name_ = :year
+      ))
+    ), source_rows AS (
+      SELECT 'total' AS source_kind,
+             budget_total_money_ AS budget_money,
+             investment_total_money_ AS investment_money,
+             execute_total_money_ AS execute_money,
+             arrival_total_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'centre' AS source_kind,
+             budget_centre_money_ AS budget_money,
+             investment_centre_money_ AS investment_money,
+             execute_centre_money_ AS execute_money,
+             arrival_centre_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'province' AS source_kind,
+             budget_province_money_ AS budget_money,
+             investment_province_money_ AS investment_money,
+             execute_province_money_ AS execute_money,
+             arrival_province_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'place' AS source_kind,
+             budget_place_money_ AS budget_money,
+             investment_place_money_ AS investment_money,
+             execute_place_money_ AS execute_money,
+             arrival_place_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'organizer' AS source_kind,
+             budget_organizer_money_ AS budget_money,
+             investment_organizer_money_ AS investment_money,
+             execute_organizer_money_ AS execute_money,
+             arrival_organizer_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'enterprise' AS source_kind,
+             budget_enterprise_money_ AS budget_money,
+             investment_enterprise_money_ AS investment_money,
+             execute_enterprise_money_ AS execute_money,
+             arrival_enterprise_money_ AS arrival_money
+      FROM fund_base
+      UNION ALL
+      SELECT 'alone' AS source_kind,
+             budget_alone_money_ AS budget_money,
+             investment_alone_money_ AS investment_money,
+             execute_alone_money_ AS execute_money,
+             arrival_alone_money_ AS arrival_money
+      FROM fund_base
+    ), amounts AS (
+      SELECT source_kind, COUNT(*) AS fund_count,
+           SUM(budget_money) AS budget_amount,
+           COUNT(budget_money) AS budget_observed_count,
+           SUM(investment_money) AS investment_amount,
+           COUNT(investment_money) AS investment_observed_count,
+           SUM(execute_money) AS execute_amount,
+           COUNT(execute_money) AS execute_observed_count,
+           SUM(arrival_money) AS arrival_amount,
+           COUNT(arrival_money) AS arrival_observed_count
+      FROM source_rows GROUP BY source_kind
+    )
+    SELECT source_kind, fund_count,
+           budget_amount,
+           budget_observed_count,
+           investment_amount,
+           investment_observed_count,
+           execute_amount,
+           execute_observed_count,
+           arrival_amount,
+           arrival_observed_count,
+           CASE WHEN budget_observed_count = fund_count AND execute_observed_count = fund_count
+             THEN ROUND(100.0 * execute_amount / NULLIF(budget_amount, 0), 2) END AS budget_execution_rate,
+           CASE WHEN budget_observed_count = fund_count AND arrival_observed_count = fund_count
+             THEN ROUND(100.0 * arrival_amount / NULLIF(budget_amount, 0), 2) END AS arrival_rate,
+           CASE WHEN arrival_observed_count = fund_count AND execute_observed_count = fund_count
+             THEN ROUND(100.0 * execute_amount / NULLIF(arrival_amount, 0), 2) END AS arrival_execution_rate
+    FROM amounts ORDER BY source_kind
+  output:
+  - name: source_kind
+    description: 来源代码；total 为总额，不与分项相加
+    type: string
+    nullable: false
+  - name: fund_count
+    description: 资金节点数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: budget_amount
+    description: 预算已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: budget_observed_count
+    description: 预算非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: investment_amount
+    description: 投入已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: investment_observed_count
+    description: 投入非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: execute_amount
+    description: 执行已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: execute_observed_count
+    description: 执行非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: arrival_amount
+    description: 到位已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: arrival_observed_count
+    description: 到位非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: budget_execution_rate
+    description: 完整执行合计/完整预算合计
+    type: number
+    nullable: true
+    unit: '%'
+  - name: arrival_rate
+    description: 完整到位合计/完整预算合计
+    type: number
+    nullable: true
+    unit: '%'
+  - name: arrival_execution_rate
+    description: 完整执行合计/完整到位合计
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 资金来源
+    - 中央财政
+    - 省级财政
+    - 资金构成
+    rules:
+    - 单位万元；一级资金节点且 stage_id_ 非空，排除父子层级和无阶段汇总重复
+    - year=null 汇总所有年度；年度记录的当前值不等于过去截止日快照
+    - SUM 保留 NULL：全无值为 null，部分有值是已填部分；observed_count<fund_count 不得宣称完整金额
+    - 不将 NULL 金额补成 0；不将比例强制封顶；负金额只标记需核实，不臆造不允许冲销的业务规则
+    - alone曾标作其他来源，原模板称学校自筹；中文标签须按校双高业务字典确认，不能因统一数据源直接视为同义
+    - 无资金行时结果为空；来源分项与总额可核对差额，但不自行凑平，标签差异另行核验
+    - source_kind 唯一；分项与总额分开；来源字典必须匹配 source_key
+- id: fund_totals
+  name: 项目年度预算到位与执行
+  description: 汇总所选年度有效一级资金节点的预算、投入、到位、执行和比例；year为空时汇总有阶段记录，不代表截至某日历史累计，不包含无阶段全周期预算。单位万元。
+  parameters:
+  - project_id
+  - year
+  grain: authorized_projects_selected_stages
+  sql: |
+    WITH amounts AS (
+      SELECT COUNT(*) AS fund_count,
+           SUM(f.budget_total_money_) AS budget_amount,
+           COUNT(f.budget_total_money_) AS budget_observed_count,
+           SUM(f.investment_total_money_) AS investment_amount,
+           COUNT(f.investment_total_money_) AS investment_observed_count,
+           SUM(f.execute_total_money_) AS execute_amount,
+           COUNT(f.execute_total_money_) AS execute_observed_count,
+           SUM(f.arrival_total_money_) AS arrival_amount,
+           COUNT(f.arrival_total_money_) AS arrival_observed_count
+
+      FROM t_hpm_project_fund f
+    JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
+    WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR f.project_id_ = :project_id) AND f.level_ = 1 AND f.stage_id_ IS NOT NULL AND (:year IS NULL OR EXISTS (
+        SELECT 1 FROM t_hpm_project_stage s
+        WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
+          AND s.project_id_ = f.project_id_ AND s.id_ = f.stage_id_
+          AND s.delete_flag_ = '0' AND s.name_ = :year
+      ))
+    )
+    SELECT fund_count,
+           budget_amount,
+           budget_observed_count,
+           investment_amount,
+           investment_observed_count,
+           execute_amount,
+           execute_observed_count,
+           arrival_amount,
+           arrival_observed_count,
+           CASE WHEN budget_observed_count = fund_count AND execute_observed_count = fund_count
+             THEN ROUND(100.0 * execute_amount / NULLIF(budget_amount, 0), 2) END AS budget_execution_rate,
+           CASE WHEN budget_observed_count = fund_count AND arrival_observed_count = fund_count
+             THEN ROUND(100.0 * arrival_amount / NULLIF(budget_amount, 0), 2) END AS arrival_rate,
+           CASE WHEN arrival_observed_count = fund_count AND execute_observed_count = fund_count
+             THEN ROUND(100.0 * execute_amount / NULLIF(arrival_amount, 0), 2) END AS arrival_execution_rate
+    FROM amounts
+  output:
+  - name: fund_count
+    description: 资金节点数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: budget_amount
+    description: 预算已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: budget_observed_count
+    description: 预算非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: investment_amount
+    description: 投入已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: investment_observed_count
+    description: 投入非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: execute_amount
+    description: 执行已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: execute_observed_count
+    description: 执行非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: arrival_amount
+    description: 到位已填金额合计
+    type: number
+    nullable: true
+    unit: 万元
+  - name: arrival_observed_count
+    description: 到位非空金额记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: budget_execution_rate
+    description: 完整执行合计/完整预算合计
+    type: number
+    nullable: true
+    unit: '%'
+  - name: arrival_rate
+    description: 完整到位合计/完整预算合计
+    type: number
+    nullable: true
+    unit: '%'
+  - name: arrival_execution_rate
+    description: 完整执行合计/完整到位合计
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 资金执行率
+    - 预算执行率
+    - 资金预算
+    - 资金总额
+    - 年度资金
+    - 资金到位率
+    - 项目年度预算到位与执行
+    rules:
+    - 单位万元；一级资金节点且 stage_id_ 非空，排除父子层级和无阶段汇总重复
+    - year=null 汇总所有年度；年度记录的当前值不等于过去截止日快照
+    - SUM 保留 NULL：全无值为 null，部分有值是已填部分；observed_count<fund_count 不得宣称完整金额
+    - 不将 NULL 金额补成 0；不将比例强制封顶；负金额只标记需核实，不臆造不允许冲销的业务规则
+    - 分母0、无记录、分子分母存在未填金额时比例=null
+    - fund_count=0 与非空记录且金额=0 分开解释
+    - 投入不是执行；不能把到位率自动填成含义未明确的收入预算执行率
+    - fund_count为非负整数；无记录时金额和比率均为null
+    - 各已填报数量介于0和fund_count之间；未全填报的金额仅能作为已填报部分
+    - 分子分母对应金额均全填报且分母非0时计算，否则为null；保留两位小数，不强行封顶为100
+    - 到位为0但执行大于0时标记矛盾，先核实后解释；万元换算亿元除以10000
+- id: project_cycle_budget
+  name: 项目全建设期预算
+  description: 汇总项目无年度阶段的一级资金预算记录，反映当前登记的全建设期预算及填报完整性；不与年度预算重复相加。
+  parameters:
+  - project_id
+  grain: project
+  sql: |
+    SELECT COUNT(*) AS fund_count, COUNT(f.budget_total_money_) AS budget_observed_count,
+           ROUND(SUM(f.budget_total_money_), 2) AS cycle_budget_amount
+    FROM t_hpm_project_fund f
+    JOIN t_hpm_project p ON p.tenant_id_=f.tenant_id_ AND p.id_=f.project_id_
+    WHERE f.tenant_id_=:tenant_id AND f.delete_flag_='0' AND f.level_=1
+      AND p.delete_flag_='0' AND p.high_flag_='1'
+      AND (:project_id IS NULL OR f.project_id_=:project_id)
+      AND (f.stage_id_ IS NULL OR TRIM(f.stage_id_)='')
+  output:
+  - name: fund_count
+    description: 全周期一级资金行数
+    type: integer
+    nullable: true
+  - name: budget_observed_count
+    description: 已填预算行数
+    type: integer
+    nullable: true
+  - name: cycle_budget_amount
+    description: 当前登记全周期预算
+    type: number
+    nullable: true
+    unit: 万元
+  validation:
+    aliases:
+    - 全周期预算
+    - 全建设期预算
+    - 总建设预算
+    - 项目全建设期预算
+    rules:
+    - 原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。
+    - 当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。
+    - 详见 semantics/business.md及relationships.md；同项目及租户关联，内部ID不进入报告。
+    - budget_observed_count介于0和fund_count之间；不等于fund_count时金额仅是已填报部分
+    - 无记录或预算全部未填时为null；记录非空且预算全填报后才能作为完整预算；登记为0不证明业务预算确为0
+pending:
+  income_budget_execution_rate:
+    name: 收入预算执行率
+    description: 收入实际执行额相对于对应收入预算的比例，须明确收入确认、预算范围及统计期间。
+    status: needs_definition
+    version: 1
+    blockers:
+    - 不能自动把收入预算执行率绑定到到位率或预算执行率
+    candidate_queries:
+    - fund_totals
+    - fund_source_amounts

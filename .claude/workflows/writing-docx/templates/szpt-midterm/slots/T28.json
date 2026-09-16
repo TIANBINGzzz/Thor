@@ -241,25 +241,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R002_C05_P01",
@@ -281,25 +278,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R002_C06_P01",
@@ -321,31 +315,28 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R002_C07_P01",
       "section_key": "T28",
       "kind": "scalar",
-      "required": false,
+      "required": true,
       "name": "2.5",
       "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 分值",
       "scope_role": "group_b",
@@ -360,13 +351,29 @@
       },
       "binding_status": "registered",
       "template_text": "__",
-      "intentional_blank": true
+      "resolution": {
+        "text": "计分规则待明确",
+        "reason": "scoring_rule_undefined"
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_first_task_progress_feedback",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R002_C08_P01",
       "section_key": "T28",
       "kind": "scalar",
-      "required": false,
+      "required": true,
       "name": "2.5",
       "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 分类分层培养模式推广院校（所） / 得分",
       "scope_role": "group_b",
@@ -381,7 +388,23 @@
       },
       "binding_status": "registered",
       "template_text": "__",
-      "intentional_blank": true
+      "resolution": {
+        "text": "计分规则待明确",
+        "reason": "scoring_rule_undefined"
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_first_task_progress_feedback",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R003_C03_P01",
@@ -423,25 +446,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R003_C05_P01",
@@ -463,25 +483,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R003_C06_P01",
@@ -503,25 +520,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R004_C03_P01",
@@ -563,25 +577,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R004_C05_P01",
@@ -603,25 +614,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R004_C06_P01",
@@ -643,25 +651,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R005_C03_P01",
@@ -703,25 +708,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R005_C05_P01",
@@ -743,25 +745,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R005_C06_P01",
@@ -783,25 +782,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R006_C03_P01",
@@ -843,25 +839,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R006_C05_P01",
@@ -883,25 +876,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R006_C06_P01",
@@ -923,25 +913,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R007_C03_P01",
@@ -983,25 +970,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R007_C05_P01",
@@ -1023,25 +1007,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R007_C06_P01",
@@ -1063,25 +1044,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R008_C03_P01",
@@ -1123,25 +1101,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R008_C05_P01",
@@ -1163,25 +1138,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R008_C06_P01",
@@ -1203,25 +1175,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R009_C03_P01",
@@ -1263,25 +1232,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R009_C05_P01",
@@ -1303,25 +1269,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R009_C06_P01",
@@ -1343,25 +1306,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R010_C03_P01",
@@ -1403,25 +1363,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R010_C05_P01",
@@ -1443,25 +1400,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R010_C06_P01",
@@ -1483,25 +1437,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R011_C03_P01",
@@ -1543,25 +1494,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R011_C05_P01",
@@ -1583,25 +1531,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R011_C06_P01",
@@ -1623,25 +1568,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R012_C03_P01",
@@ -1683,25 +1625,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R012_C05_P01",
@@ -1723,25 +1662,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R012_C06_P01",
@@ -1763,25 +1699,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R013_C02_P01",
@@ -1843,25 +1776,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R013_C05_P01",
@@ -1883,25 +1813,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R013_C06_P01",
@@ -1923,25 +1850,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R014_C03_P01",
@@ -1983,25 +1907,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R014_C05_P01",
@@ -2023,25 +1944,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R014_C06_P01",
@@ -2063,25 +1981,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R015_C03_P01",
@@ -2123,25 +2038,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R015_C05_P01",
@@ -2163,25 +2075,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R015_C06_P01",
@@ -2203,25 +2112,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R016_C01_P01",
@@ -2463,25 +2369,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R017_C05_P01",
@@ -2503,25 +2406,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R017_C06_P01",
@@ -2543,31 +2443,28 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R017_C07_P01",
       "section_key": "T28",
       "kind": "scalar",
-      "required": false,
+      "required": true,
       "name": "2.5",
       "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 分值",
       "scope_role": "group_b",
@@ -2582,13 +2479,29 @@
       },
       "binding_status": "registered",
       "template_text": "__",
-      "intentional_blank": true
+      "resolution": {
+        "text": "计分规则待明确",
+        "reason": "scoring_rule_undefined"
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_first_task_progress_feedback",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R017_C08_P01",
       "section_key": "T28",
       "kind": "scalar",
-      "required": false,
+      "required": true,
       "name": "2.5",
       "business_context": "表 7-1 “人才培养模式创新”中期自评表 / 职业技能大赛及学科竞赛国家一等奖奖项（项） / 得分",
       "scope_role": "group_b",
@@ -2603,7 +2516,23 @@
       },
       "binding_status": "registered",
       "template_text": "__",
-      "intentional_blank": true
+      "resolution": {
+        "text": "计分规则待明确",
+        "reason": "scoring_rule_undefined"
+      },
+      "evidence_datasets": [
+        "group_b_project_catalog",
+        "group_b_task_tree",
+        "group_b_task_progress_summary",
+        "group_b_first_task_progress_feedback",
+        "group_b_task_feedback_candidates",
+        "group_b_fund_totals",
+        "group_b_fund_source_amounts",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
+        "group_b_performance_tree"
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R018_C03_P01",
@@ -2645,25 +2574,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R018_C05_P01",
@@ -2685,25 +2611,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R018_C06_P01",
@@ -2725,25 +2648,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R019_C03_P01",
@@ -2785,25 +2705,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R019_C05_P01",
@@ -2825,25 +2742,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R019_C06_P01",
@@ -2865,25 +2779,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R020_C03_P01",
@@ -2925,25 +2836,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R020_C05_P01",
@@ -2965,25 +2873,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R020_C06_P01",
@@ -3005,25 +2910,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R021_C03_P01",
@@ -3065,25 +2967,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R021_C05_P01",
@@ -3105,25 +3004,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R021_C06_P01",
@@ -3145,25 +3041,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R022_C03_P01",
@@ -3205,25 +3098,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实目标",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R022_C05_P01",
@@ -3245,25 +3135,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     },
     {
       "slot_key": "T28_R022_C06_P01",
@@ -3285,25 +3172,22 @@
       "binding_status": "registered",
       "template_text": "__",
       "resolution": {
-        "text": "/",
-        "reason": "historical_metric_unavailable",
-        "require_empty": [
-          "group_b_report_task_performance_links",
-          "group_b_task_feedback_candidates"
-        ]
+        "text": "待核实本期实绩",
+        "reason": "evidence_not_reviewed"
       },
       "evidence_datasets": [
         "group_b_project_catalog",
         "group_b_task_tree",
         "group_b_task_progress_summary",
-        "group_b_report_task_sections",
+        "group_b_first_task_progress_feedback",
         "group_b_task_feedback_candidates",
         "group_b_fund_totals",
         "group_b_fund_source_amounts",
-        "group_b_report_cycle_budget",
-        "group_b_report_task_performance_links",
+        "group_b_project_cycle_budget",
+        "group_b_task_performance_links",
         "group_b_performance_tree"
-      ]
+      ],
+      "write_instruction": "保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。"
     }
   ]
 }

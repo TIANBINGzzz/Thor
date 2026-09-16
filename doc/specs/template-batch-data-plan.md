@@ -55,10 +55,10 @@ section_drafts每段指定原slot_key；保存和回填共用正文校验，每�
 | 参数绑定 | from=literal/report_parameter, value/key, expand?=each | 年份标量展开；任意表达式及先前数据集依赖尚不支持，遇到即blocked |
 | Scalar | slot_key, section_key, kind=scalar, required, locator, text_template, values | values中的每项取dataset_key/field/selector或report_parameter，替换text_template中的同名变量；数据库只取唯一行及公开字段 |
 | Narrative | kind=narrative, evidence_datasets, business_context, write_instruction | 按原位置撰写正文，引用限定数据集；表格中的正文也按段落回填，不增删行 |
-| 缺值/空白 | resolution.text/reason/require_empty；intentional_blank且required=false | 缺值须说明原因，require_empty核验指定结果确为空；评分可留空，不能默认填0 |
+| 证据状态 | evidence_state=supported/limited/none，gap，analysis_basis，next_action | supported须有结果证据；limited须在正文写缺口；none正文须有分析框架、数据需求与后续动作，黄色标记，不留空 |
 | Locator | part, path, expected_text_hash | 物理XML位置与文字哈希；文件变化须重新登记 |
 
-原40表登记3503个位置，其中105个正文；20个数据集支撑项目、任务、资金和历史依据核验。`resolution`记录无法评价的原因及空结果前置检查，`evidence_datasets`限制正文证据。**处理全部位置不等于全部指标有实值**；原表格历史指标缺值显示`/`，评分留空，缺口记入清单。未定义的新口径仍禁止编造。
+原40表登记3503个位置，其中105个正文；20个数据集支撑项目、任务、资金和历史依据核验。`resolution`提供具体初始缺口说明，`evidence_datasets`限制可用证据；Agent核对后可原位覆盖数据格。未指定内容沿用原模板仿写，缺值用简短黄色说明，不填斜杠或留空。正文按证据强弱完成结论或分析与后续动作，不能把全部处理完成表述为全部已有实值。
 
 ## 执行及核验
 
@@ -66,15 +66,15 @@ section_drafts每段指定原slot_key；保存和回填共用正文校验，每�
 2. 按source/domain/query/version/params/scope展开并去重，先执行QuerySpec依赖诊断；缺定义/参数或不支持的依赖明确blocked。
 3. 同源只读一致性快照；源失败则整组结果失效，截断不能生成完整报告。当前不自动重试，无跨来源事务。
 4. 原始结果物化在Run目录，模型按章节读取；不将几千项数据一次塞入Prompt。
-5. 程序填确定数据格；模型正文必须引用同章节已验证证据，并检查新增数字。此检查不代替业务审核，未定义历史版本不能标为历史事实。
-6. 输出再验文件哈希/位置；保留全部run、字体字号、段落/表格属性、40表、分节、图片、书签及其他ZIP部件。原模板显式登记clear_fill_markers时仅清除已填位置的黄底及红色编辑标记；对照只豁免这些标记与替换文字，其他漂移失败。
+5. Agent先判定证据充分性，再完成原位正文和可写数据格；证据引用及新增数字由工具检查，无证据允许空引用，但须在正文呈现分析框架、缺口与后续动作。检查不代替业务审核，数字出现在结果中也不证明语义或期间适用。
+6. 输出再验文件哈希/位置；保留run、字体字号、段落/表格属性、40表、分节、图片、书签及其他ZIP部件。清除模板原编辑标记后，对不确定段落和单元格设置FFC000黄色字体；结构对照仅额外允许此颜色变化，其他漂移失败。
 7. 全文导出PDF和页面图片，再实际逐页审阅；未读页面、未通过页面、旧validation_ref和文件变化均不能发布。Windows显式配置WPS；Linux镜像安装LibreOffice及中文字体，跨引擎仍需实际版面验收。
 
 计划/结果保存在Run的data/report目录，不入Git；引用不跨Run/租户/用户。取消清理后台取数。当前每Run最多5份计划、500节点、600秒；扩大前须验证资源限制。
 
 ## 本次模拟
 
-用户指定2025年至2025-12-31，按当前两个实际项目调整内容，评分留空，明确要求原模板结构及样式。此前5页简版不符合要求，已从可用模板登记移除。当前2025历史反馈不足，保留原评价维度并说明新旧一级指标无法直接对应，不借用主表现值、历史奖项或未核实学校数据填表。
+此前2025年度模拟保留原模板；2026-09-16用户更新规则：缺数据也须完成原段，评分等未知值用黄色说明，不能留空。不同建设周期任务名称变化按实际任务树取数，不据此否定来源；历史事实仍需对应证据，不借用旧奖项或未核实学校数据填表。
 验证同时比对原QuerySpec结构、旧SQL结果、独立聚合和原文SQL语义；当前值一致不意味着历史事实成立。2026年反馈不能回填2025报告，平均进度也不是评分。
 
 ## 工程要求

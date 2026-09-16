@@ -88,8 +88,10 @@ def create_reports_server(services):
 
     draft_schema={"type":"array","maxItems":100,"items":{"type":"object","additionalProperties":False,
         "properties":{"section_key":REFERENCE,"slot_key":REFERENCE,"text":{"type":"string","minLength":1,"maxLength":1200},
-                      "evidence_refs":{"type":"array","items":REFERENCE}},
-        "required":["section_key","slot_key","text","evidence_refs"]}}
+                      "evidence_refs":{"type":"array","items":REFERENCE},
+                      "evidence_state":{"type":"string","enum":["supported","limited","none"]},
+                      "gap":{"type":"string"},"analysis_basis":{"type":"string"},"next_action":{"type":"string"}},
+        "required":["section_key","slot_key","text","evidence_refs","evidence_state"]}}
     return tool_server("reports", [
         ("prepare_report_data", "按可信模板绑定启动批量计划；不传模板路径或数据库连接。",
          {"report_parameters": PARAMETERS, "scope_refs": {"type": "object",

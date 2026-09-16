@@ -1,0 +1,171 @@
+parameters:
+  name_pattern:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    description: 名称 LIKE 模式，参数值可含通配符；null 列出授权范围候选，不允许 LIMIT 1 消歧
+  project_id:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: authorized_resolution
+    description: 已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许
+  year:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    description: 年度阶段名称；仅允许全年度查询的指标可传null，见validation.required_values
+metrics:
+- id: project_catalog
+  name: 国双高项目名称
+  description: 在授权范围查询国双高项目名称、建设起止时间、级别及当前进度，不将同名项目合并。
+  parameters:
+  - name_pattern
+  - project_id
+  grain: project
+  sql: |
+    SELECT p.id_ AS project_id, p.name_ AS project_name, p.start_time_ AS start_time,
+           p.end_time_ AS end_time, p.level_name_ AS level_name, p.progress_ AS current_progress
+    FROM t_hpm_project p
+    WHERE p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR p.id_ = :project_id)
+      AND (:name_pattern IS NULL OR p.name_ LIKE :name_pattern)
+    ORDER BY p.name_, p.id_
+  output:
+  - name: project_id
+    description: 项目内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: project_name
+    description: 项目名称
+    type: string
+    nullable: true
+  - name: start_time
+    description: 项目开始时间
+    type: string
+    nullable: true
+  - name: end_time
+    description: 项目结束时间
+    type: string
+    nullable: true
+  - name: level_name
+    description: 项目级别名称
+    type: string
+    nullable: true
+  - name: current_progress
+    description: 项目当前进度，不能替代任务均值
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 专业群
+    - 双高项目
+    - 项目名称
+    - 国双高项目名称
+    rules:
+    - 名称解析必须唯一；0 条不放宽条件，多条消歧；项目主键仅内部使用
+    - 目录可返回多个授权项目；用于单一项目取数前必须唯一定位，项目名称不能为空
+- id: project_leaders
+  name: 项目负责人名单
+  description: 按项目+人员去重取得角色0负责人，仅明确询问且获准时用于报告。
+  parameters:
+  - project_id
+  grain: project + user
+  sql: |
+    SELECT p.id_ AS project_id, p.name_ AS project_name, pm.user_id_ AS user_id,
+           MAX(pm.user_name_) AS user_name, COUNT(DISTINCT pm.user_name_) AS name_variants
+    FROM t_hpm_project p
+    JOIN t_hpm_project_member pm ON pm.tenant_id_ = :tenant_id
+      AND pm.tenant_id_ = p.tenant_id_ AND pm.project_id_ = p.id_
+    WHERE p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR p.id_ = :project_id) AND pm.delete_flag_ = '0' AND pm.type_ = '0'
+    GROUP BY p.id_, p.name_, pm.user_id_ ORDER BY p.id_, pm.user_id_
+  output:
+  - name: project_id
+    description: 项目键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: project_name
+    description: 项目名
+    type: string
+    nullable: true
+  - name: user_id
+    description: 人员内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: user_name
+    description: 获准输出的负责人姓名
+    type: string
+    nullable: true
+  - name: name_variants
+    description: 姓名版本数
+    type: integer
+    nullable: false
+    unit: 条
+  validation:
+    aliases:
+    - 项目负责人
+    - 专业群负责人
+    rules:
+    - 姓名版本不唯一时先确认；不输出人员编号或联系方式
+- id: stage_catalog
+  name: 项目年度阶段
+  description: 在已授权项目内按阶段名称定位年度，保留跨项目同名阶段。
+  parameters:
+  - project_id
+  - year
+  grain: project + stage
+  sql: |
+    SELECT s.project_id_ AS project_id, s.id_ AS stage_id, s.name_ AS stage_name,
+           s.start_time_ AS start_time, s.end_time_ AS end_time, s.current_flag_ AS current_flag
+    FROM t_hpm_project_stage s
+    JOIN t_hpm_project p ON p.tenant_id_ = s.tenant_id_ AND p.id_ = s.project_id_
+    WHERE s.tenant_id_ = :tenant_id AND s.delete_flag_ = '0' AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR p.id_ = :project_id)
+      AND (:year IS NULL OR s.name_ = :year)
+    ORDER BY s.project_id_, s.name_, s.id_
+  output:
+  - name: project_id
+    description: 项目内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: stage_id
+    description: 阶段内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: stage_name
+    description: 年度/阶段名称
+    type: string
+    nullable: true
+  - name: start_time
+    description: 阶段开始时间
+    type: string
+    nullable: true
+  - name: end_time
+    description: 阶段结束时间
+    type: string
+    nullable: true
+  - name: current_flag
+    description: 当前阶段标记
+    type: string
+    nullable: true
+  validation:
+    aliases:
+    - 年度阶段
+    - 项目年度
+    - 项目年度阶段
+    rules:
+    - 同项目同名阶段多条须消歧；不能把全校年度解析为单一 stage_id
+    - 指定项目及year时必须唯一定位阶段；目录允许多阶段，year非空时名称必须与year完全一致
+    - 开始和结束时间均有值时，结束时间不得早于开始时间

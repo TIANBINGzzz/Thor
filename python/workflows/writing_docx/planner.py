@@ -187,7 +187,7 @@ class Planner:
             raise DataError("PLAN_FORBIDDEN")
         sections = sorted({s["section_key"] for s in self.template["_slots"]})
         result = {**self.summary(plan), "sections": sections,
-                  "writing_sections":[s for s in sections if any(v['section_key']==s and v['kind']=='narrative' for v in plan['slots'])],
+                  "writing_sections":[s for s in sections if any(v['section_key']==s and (v['kind']=='narrative' or v.get('draftable')) for v in plan['slots'])],
                   "drafts_saved":len(plan.get('drafts',{})),
                   "progress": dict(Counter(n["status"] for n in plan["nodes"]))}
         if section_key is None:
@@ -202,7 +202,7 @@ class Planner:
             if not saved or saved[0] != section_key or saved[2] != writing_only:
                 raise DataError("CURSOR_INVALID")
             offset = saved[1]
-        slots = [s for s in plan["slots"] if s["section_key"] == section_key and (not writing_only or s['kind']=='narrative')]
+        slots = [s for s in plan["slots"] if s["section_key"] == section_key and (not writing_only or s['kind']=='narrative' or s.get('draftable'))]
         definitions={s['slot_key']:s for s in self.template['_slots']}
         slots=[{**s, 'name':definitions[s['slot_key']].get('business_context',s['name']),
                 'business_context':definitions[s['slot_key']].get('business_context',''),

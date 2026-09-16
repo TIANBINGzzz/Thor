@@ -54,7 +54,7 @@ class QuerySemanticsTests(unittest.TestCase):
         values = {p: None for p in spec['parameters']}
         values.update({p:v for p,v in {'tenant_id':'tenant-a', 'threshold':50}.items() if p in values})
         values.update(params)
-        result = self.db.execute((BASE/spec['sql_file']).read_text(encoding='utf-8'), values)
+        result = self.db.execute(spec['sql'], values)
         self.assertEqual([d[0] for d in result.description], [f['name'] for f in spec['output']])
         return [dict(row) for row in result.fetchall()]
 
@@ -89,8 +89,8 @@ class QuerySemanticsTests(unittest.TestCase):
         self.task('t1')
         self.perf('perf',stage_id_=None)
         for _ in range(2): self.add('task_performance_relation',project_id_='p1',task_id_='t1',performance_id_='perf')
-        self.assertEqual(len(self.query('report_task_performance_links',project_id='p1',year='2025')),1)
-        self.assertEqual(self.query('report_task_performance_links',project_id='p1',year='2026'),[])
+        self.assertEqual(len(self.query('task_performance_links',project_id='p1',year='2025')),1)
+        self.assertEqual(self.query('task_performance_links',project_id='p1',year='2026'),[])
 
     def test_report_sections_exclude_late_feedback_and_keep_empty_sections(self):
         self.project()
@@ -101,7 +101,7 @@ class QuerySemanticsTests(unittest.TestCase):
         self.task('leaf',parent_id_='middle',progress_=50)
         for name,when in [('within','2025-12-31'),('late','2026-01-01')]:
             self.add('task_feedback',id_=name,project_id_='p1',task_id_='leaf',date_=when,state_='1')
-        rows=self.query('report_task_sections',project_id='p1',year='2025',start_date='2025-01-01',end_date='2026-01-01')
+        rows=self.query('first_task_progress_feedback',project_id='p1',year='2025',start_date='2025-01-01',end_date='2026-01-01')
         self.assertEqual([(r['task_count'],r['period_feedback_count']) for r in rows],[(1,1),(0,0)])
         self.assertIsNone(rows[1]['current_average_progress'])
 
@@ -109,10 +109,10 @@ class QuerySemanticsTests(unittest.TestCase):
         self.project()
         self.fund('cycle',stage_id_=None,budget_total_money_=10)
         self.fund('annual',budget_total_money_=3)
-        value=self.query('report_cycle_budget',project_id='p1')[0]
+        value=self.query('project_cycle_budget',project_id='p1')[0]
         self.assertEqual(value['cycle_budget_amount'],10)
         self.assertEqual(value['fund_count'],1)
-        self.assertIsNone(self.query('report_cycle_budget',project_id='missing')[0]['cycle_budget_amount'])
+        self.assertIsNone(self.query('project_cycle_budget',project_id='missing')[0]['cycle_budget_amount'])
 
     def test_task_scope_years_project_flags_and_all_level_exceptions(self):
         self.project()

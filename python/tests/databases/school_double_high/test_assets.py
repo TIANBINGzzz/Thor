@@ -31,11 +31,9 @@ class AssetContractTests(unittest.TestCase):
                 for f in spec['output']:
                     self.assertTrue(f['description'])
                     if f['name'].endswith('_id'): self.assertEqual(f['visibility'],'internal_only')
-                if spec['sql_file']:
-                    path = BASE/spec['sql_file']
-                    self.assertTrue(path.resolve().is_relative_to(BASE.resolve()))
-                    files.add(path.name)
-                    sql=path.read_text(encoding='utf-8')
+                if spec['sql']:
+                    files.add(id)
+                    sql=self.catalog.sql('schoolDoubleHigh','hpm',spec)
                     self.assertEqual(set(re.findall(r':([a-z_]+)',sql)),set(spec['parameters']))
                     self.assertTrue(set(re.findall(r'\bt_hpm_[a-z_]+',sql)) <= set(self.tables))
                     self.assertRegex(sql.strip(),r'^(SELECT|WITH)\b')
@@ -46,9 +44,8 @@ class AssetContractTests(unittest.TestCase):
                     self.assertTrue(spec['blockers'])
                 for dependency in spec.get('requires_queries',[]) + spec.get('candidate_queries',[]):
                     self.assertIn(dependency,self.specs)
-        self.assertEqual(files,{p.name for p in BASE.glob('*.sql')})
-        self.assertEqual({p.stem for p in BASE.glob('*.json') if p.name != 'pending.json'},
-                         {p.stem for p in BASE.glob('*.sql')})
+        self.assertEqual(len(files),27)
+        self.assertEqual({p.name for p in BASE.iterdir()}, {'projects.yaml','tasks.yaml','performance.yaml','funds.yaml'})
 
     def test_catalog_and_18_question_coverage(self):
         catalog=self.catalog.domain('schoolDoubleHigh','hpm')[1]

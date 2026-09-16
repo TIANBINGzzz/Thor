@@ -6,8 +6,8 @@
 | --- | --- |
 | `<source_key>/source.json` | 来源标识、启停、版本、可用Capability、域知识路径和实体解析 |
 | `schema/<domain>.json` | 核验过的表、列、类型、字段说明、函数及内部列；校双高当前13表158列 |
-| `metrics/<domain>/<id>.json`及同名`.sql` | 指标/查询定义、参数、输出和只读SQL；当前26项可执行定义 |
-| `metrics/<domain>/pending.json` | 7项缺定义/禁用原因，防止模型用其他口径替代；没有占位SQL |
+| `metrics/<domain>/{projects,tasks,performance,funds}.yaml` | 按业务主题组织27项定义，SQL内嵌；每项保留id/name/description/parameters/grain/sql/output/validation |
+| 主题YAML的`parameters`与`pending` | 参数类型每主题共享；6项未定义指标留原因及候选来源，无占位SQL；租户由运行时注入 |
 | `semantics/business.md` | 默认口径、单位、期间、两棵指标树和报告事实来源 |
 | `semantics/relationships.md` | 实体关联、归属和去重 |
 

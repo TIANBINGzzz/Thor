@@ -8,8 +8,8 @@
 .claude/databases/schoolDoubleHigh/
   source.json               来源、能力绑定、连接入口和域知识登记
   schema/hpm.json           13表158列的真实类型、说明、函数及内部列
-  metrics/hpm/<id>.json/.sql 指标/查询契约与只读SQL
-  metrics/hpm/pending.json   7项明确缺定义或禁用原因
+  metrics/hpm/*.yaml         项目/任务/绩效/资金四个主题，27项契约及内嵌SQL
+                            共享参数类型及6项pending原因随主题保存
   semantics/business.md     业务默认口径、期间、单位及事实来源
   semantics/relationships.md 关联、归属和去重
 python/data_access/         通用连接、授权、查询和结果

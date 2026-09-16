@@ -8,9 +8,9 @@
 | --- | --- | --- |
 | P0074 | 三级任务COUNT及AVG(COALESCE(progress_,0)) | 能执行，与当前任务统计口径对应；这是主表当前进度，不是历史截止日值或自评分；执行端补可信租户及国双高范围 |
 | P0159 | 绩效一级/二级分类与逐层平均 | 能执行；分类正确，但空分类补0及逐层平均不能作为评分规则；>=4层级还需单独处理，不照搬计算值填得分 |
-| P0638 | 无阶段一级资金SUM(budget_total_money_) | 能执行；原文随后明确无阶段为全建设期，有阶段为年度。启用report_cycle_budget，保留非空计数及NULL，不把未填报变0 |
-| P0658 | 一级任务下钻三级任务的已审核反馈 | 能执行，但原SQL无截止日，会带入跨年反馈；report_task_sections及task_feedback_candidates同时限定业务年度和date_窗口 |
-| P0806 | 三级任务→关系表→绩效→一二级绩效标题 | 能执行，但原SQL强制绩效等于任务阶段；实际存在无阶段绩效。report_task_performance_links按模块开关定位并去重，保留tenant/project全链关联 |
+| P0638 | 无阶段一级资金SUM(budget_total_money_) | 能执行；原文随后明确无阶段为全建设期，有阶段为年度。启用project_cycle_budget，保留非空计数及NULL，不把未填报变0 |
+| P0658 | 一级任务下钻三级任务的已审核反馈 | 能执行，但原SQL无截止日，会带入跨年反馈；first_task_progress_feedback及task_feedback_candidates同时限定业务年度和date_窗口 |
+| P0806 | 三级任务→关系表→绩效→一二级绩效标题 | 能执行，但原SQL强制绩效等于任务阶段；实际存在无阶段绩效。task_performance_links按模块开关定位并去重，保留tenant/project全链关联 |
 
 原SQL中的项目/阶段常量仅在私有核验中替换为本次授权项目/2025阶段参数；未执行写语句。SQLAlchemy只读事务，输出明细及真实ID不提交Git。
 

@@ -1,0 +1,767 @@
+parameters:
+  project_id:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: authorized_resolution
+    description: 已授权且唯一定位的项目；null 仅在当前租户全项目查询获准时允许
+  main_org_id:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: authorized_resolution
+    description: 已在授权范围唯一解析的主部门；null 为范围内所有主部门
+  end_date:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    format: date
+    description: 业务日期窗口，起日包含、止日不含；允许null的范围见指标校验
+  performance_id:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: authorized_resolution
+    description: 已解析指标主键；null 为已授权范围内的全部指标
+  start_date:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    format: date
+    description: 业务日期窗口，起日包含、止日不含；允许null的范围见指标校验
+  year:
+    type:
+    - string
+    - 'null'
+    required: true
+    origin: user_intent
+    description: 年度阶段名称；仅允许全年度查询的指标可传null，见validation.required_values
+metrics:
+- id: performance_current_summary
+  name: 当前绩效指标统计
+  description: 按模块开关选择阶段绩效或无阶段绩效，统计当前具体指标数量、达标数量、平均进度及按条数达标率；不代表历史时点。
+  parameters:
+  - project_id
+  grain: selected current performance scope
+  sql: |
+    WITH performance_scope AS (SELECT perf.id_, perf.project_id_, perf.stage_id_, perf.parent_id_, perf.code_, perf.name_,
+             perf.level_, perf.progress_, perf.target_value_, perf.finish_value_
+      FROM t_hpm_project_performance perf
+      JOIN t_hpm_project p ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+      JOIN (
+        SELECT m.tenant_id_, m.project_id_, MIN(m.performance_stage_flag_) AS stage_flag
+        FROM t_hpm_project_module m
+        WHERE m.tenant_id_ = :tenant_id AND m.delete_flag_ = '0'
+        GROUP BY m.tenant_id_, m.project_id_
+        HAVING COUNT(*) = 1 AND MIN(m.performance_stage_flag_) IN ('0', '1')
+      ) module ON module.tenant_id_ = perf.tenant_id_ AND module.project_id_ = perf.project_id_
+      WHERE perf.tenant_id_ = :tenant_id AND perf.delete_flag_ = '0'
+        AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+        AND (:project_id IS NULL OR perf.project_id_ = :project_id)
+        AND ((module.stage_flag = '1' AND perf.stage_id_ IS NOT NULL)
+          OR (module.stage_flag = '0' AND perf.stage_id_ IS NULL)) AND perf.level_ >= 3)
+    SELECT COUNT(*) AS performance_count,
+           COUNT(CASE WHEN progress_ >= 100 THEN 1 END) AS reached_count,
+           COUNT(CASE WHEN progress_ < 100 OR progress_ IS NULL THEN 1 END) AS not_reached_count,
+           COUNT(CASE WHEN progress_ IS NULL THEN 1 END) AS missing_progress_count,
+           ROUND(AVG(COALESCE(progress_, 0)), 2) AS avg_progress,
+           ROUND(100.0 * COUNT(CASE WHEN progress_ >= 100 THEN 1 END) / NULLIF(COUNT(*), 0), 2) AS reached_rate FROM performance_scope
+  output:
+  - name: performance_count
+    description: 真实指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: reached_count
+    description: progress>=100 指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: not_reached_count
+    description: progress<100 或未填报指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: missing_progress_count
+    description: 未填报进度指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: avg_progress
+    description: NULL 视0平均进度
+    type: number
+    nullable: true
+    unit: '%'
+  - name: reached_rate
+    description: 按条数达标率
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 绩效完成情况
+    - 绩效达标率
+    - 当前绩效
+    - 未达标绩效
+    rules:
+    - 有效国双高项目+唯一有效模块；不使用 performance.high_flag_
+    - 真实指标 level_>=3；模块1取非空阶段，模块0取无阶段
+    - 当前指标快照，不能用来证明历史截止日实绩；目标/完成值可为定性文字
+    - 完成进度与按条数达标率同时提供；达标 progress_>=100，不按 state_ 排除
+    - reached_count+not_reached_count=performance_count
+    - 空集合均值和比例为null；平均进度可以超过100
+    requires_queries:
+    - performance_module_status
+    checks:
+    - query_id: performance_module_status
+      type: all_rows
+      allowed:
+        module_count:
+        - 1
+        stage_flag:
+        - '0'
+        - '1'
+- id: performance_department_metrics
+  name: 绩效负责部门当前完成情况
+  description: 按绩效负责主部门去重；使用 PerformanceOrg，不由任务或人员部门代替。
+  parameters:
+  - main_org_id
+  - project_id
+  grain: performance main department
+  sql: |
+    WITH performance_scope AS (SELECT perf.id_, perf.project_id_, perf.stage_id_, perf.parent_id_, perf.code_, perf.name_,
+             perf.level_, perf.progress_, perf.target_value_, perf.finish_value_
+      FROM t_hpm_project_performance perf
+      JOIN t_hpm_project p ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+      JOIN (
+        SELECT m.tenant_id_, m.project_id_, MIN(m.performance_stage_flag_) AS stage_flag
+        FROM t_hpm_project_module m
+        WHERE m.tenant_id_ = :tenant_id AND m.delete_flag_ = '0'
+        GROUP BY m.tenant_id_, m.project_id_
+        HAVING COUNT(*) = 1 AND MIN(m.performance_stage_flag_) IN ('0', '1')
+      ) module ON module.tenant_id_ = perf.tenant_id_ AND module.project_id_ = perf.project_id_
+      WHERE perf.tenant_id_ = :tenant_id AND perf.delete_flag_ = '0'
+        AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+        AND (:project_id IS NULL OR perf.project_id_ = :project_id)
+        AND ((module.stage_flag = '1' AND perf.stage_id_ IS NOT NULL)
+          OR (module.stage_flag = '0' AND perf.stage_id_ IS NULL)) AND perf.level_ >= 3), org_performance AS (
+      SELECT o.main_org_id_ AS department_id, MAX(o.main_org_name_) AS department_name,
+             COUNT(DISTINCT o.main_org_name_) AS name_variants,
+             perf.project_id_, perf.id_, perf.progress_
+      FROM performance_scope perf
+      JOIN t_hpm_project_performance_org o ON o.tenant_id_ = :tenant_id
+        AND o.project_id_ = perf.project_id_ AND o.performance_id_ = perf.id_
+      WHERE o.main_org_id_ IS NOT NULL AND o.main_org_id_ <> ''
+        AND (:main_org_id IS NULL OR o.main_org_id_ = :main_org_id)
+      GROUP BY o.main_org_id_, perf.project_id_, perf.id_, perf.progress_
+    )
+    SELECT department_id, MAX(department_name) AS department_name,
+           MAX(name_variants) AS max_indicator_name_variants,
+           COUNT(DISTINCT department_name) AS department_name_variants, COUNT(*) AS performance_count,
+           COUNT(CASE WHEN progress_ >= 100 THEN 1 END) AS reached_count,
+           COUNT(CASE WHEN progress_ < 100 OR progress_ IS NULL THEN 1 END) AS not_reached_count,
+           COUNT(CASE WHEN progress_ IS NULL THEN 1 END) AS missing_progress_count,
+           ROUND(AVG(COALESCE(progress_, 0)), 2) AS avg_progress,
+           ROUND(100.0 * COUNT(CASE WHEN progress_ >= 100 THEN 1 END) / NULLIF(COUNT(*), 0), 2) AS reached_rate
+    FROM org_performance GROUP BY department_id ORDER BY department_id
+  output:
+  - name: department_id
+    description: 绩效主部门键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: department_name
+    description: 主部门名
+    type: string
+    nullable: true
+  - name: max_indicator_name_variants
+    description: 同指标部门名版本数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: department_name_variants
+    description: 跨指标部门名版本数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: performance_count
+    description: 真实指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: reached_count
+    description: progress>=100 指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: not_reached_count
+    description: progress<100 或未填报指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: missing_progress_count
+    description: 未填报进度指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: avg_progress
+    description: NULL 视0平均进度
+    type: number
+    nullable: true
+    unit: '%'
+  - name: reached_rate
+    description: 按条数达标率
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 部门绩效
+    - 绩效负责部门
+    rules:
+    - 有效国双高项目+唯一有效模块；不使用 performance.high_flag_
+    - 真实指标 level_>=3；模块1取非空阶段，模块0取无阶段
+    - 当前指标快照，不能用来证明历史截止日实绩；目标/完成值可为定性文字
+    - 完成进度与按条数达标率同时提供；达标 progress_>=100，不按 state_ 排除
+    - 多个负责部门不可相加作为全校指标数；PerformanceOrg 无 delete_flag_
+    - 名称版本必须<=1；部门名冲突时先核实
+    requires_queries:
+    - performance_module_status
+    checks:
+    - query_id: performance_module_status
+      type: all_rows
+      allowed:
+        module_count:
+        - 1
+        stage_flag:
+        - '0'
+        - '1'
+- id: performance_feedback_candidates
+  name: 已审核绩效反馈版本候选
+  description: 返回年度/累计目标和完成值及材料提示；提交时间只用于筛候选，不自动认定业务年度或适用历史版本。
+  parameters:
+  - end_date
+  - performance_id
+  - project_id
+  - start_date
+  grain: project + performance + feedback
+  sql: |
+    WITH performance_scope AS (SELECT perf.id_, perf.project_id_, perf.stage_id_, perf.parent_id_, perf.code_, perf.name_,
+             perf.level_, perf.progress_, perf.target_value_, perf.finish_value_
+      FROM t_hpm_project_performance perf
+      JOIN t_hpm_project p ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+      JOIN (
+        SELECT m.tenant_id_, m.project_id_, MIN(m.performance_stage_flag_) AS stage_flag
+        FROM t_hpm_project_module m
+        WHERE m.tenant_id_ = :tenant_id AND m.delete_flag_ = '0'
+        GROUP BY m.tenant_id_, m.project_id_
+        HAVING COUNT(*) = 1 AND MIN(m.performance_stage_flag_) IN ('0', '1')
+      ) module ON module.tenant_id_ = perf.tenant_id_ AND module.project_id_ = perf.project_id_
+      WHERE perf.tenant_id_ = :tenant_id AND perf.delete_flag_ = '0'
+        AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+        AND (:project_id IS NULL OR perf.project_id_ = :project_id)
+        AND ((module.stage_flag = '1' AND perf.stage_id_ IS NOT NULL)
+          OR (module.stage_flag = '0' AND perf.stage_id_ IS NULL)) AND perf.level_ >= 3)
+    SELECT pf.id_ AS feedback_id, perf.project_id_ AS project_id, perf.id_ AS performance_id,
+           perf.name_ AS performance_name, pf.create_time_ AS submitted_at,
+           pf.year_target_value_ AS year_target_value, pf.year_complete_value_ AS year_complete_value,
+           pf.total_target_value_ AS total_target_value, pf.total_complete_value_ AS total_complete_value,
+           pf.progress_ AS year_progress, pf.total_progress_ AS total_progress, pf.content_ AS content,
+           CASE WHEN pf.attachment_ IS NOT NULL AND pf.attachment_ <> '' AND pf.attachment_ <> '[]' THEN 1 ELSE 0 END AS has_attachment
+    FROM performance_scope perf
+    JOIN t_hpm_project_performance_feedback pf ON pf.tenant_id_ = :tenant_id
+      AND pf.project_id_ = perf.project_id_ AND pf.performance_id_ = perf.id_
+    WHERE pf.delete_flag_ = '0' AND pf.state_ = '1'
+      AND (:performance_id IS NULL OR perf.id_ = :performance_id)
+      AND (:start_date IS NULL OR pf.create_time_ >= :start_date)
+      AND (:end_date IS NULL OR pf.create_time_ < :end_date)
+    ORDER BY perf.project_id_, perf.id_, pf.create_time_, pf.id_
+  output:
+  - name: feedback_id
+    description: 反馈内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: project_id
+    description: 项目键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_id
+    description: 绩效键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_name
+    description: 指标名称
+    type: string
+    nullable: true
+  - name: submitted_at
+    description: 提交时间，非业务年度或审核生效日期
+    type: string
+    nullable: true
+  - name: year_target_value
+    description: 反馈版本年度目标原文
+    type: string
+    nullable: true
+  - name: year_complete_value
+    description: 反馈版本年度完成原文
+    type: string
+    nullable: true
+  - name: total_target_value
+    description: 同版本累计目标原文
+    type: string
+    nullable: true
+  - name: total_complete_value
+    description: 同版本累计完成原文
+    type: string
+    nullable: true
+  - name: year_progress
+    description: 反馈版本年度进度
+    type: number
+    nullable: true
+    unit: '%'
+  - name: total_progress
+    description: 反馈版本累计进度
+    type: number
+    nullable: true
+    unit: '%'
+  - name: content
+    description: 已审核反馈内容
+    type: string
+    nullable: true
+  - name: has_attachment
+    description: 是否存在候选附件
+    type: integer
+    nullable: false
+  validation:
+    aliases:
+    - 绩效反馈
+    - 绩效历史提交
+    rules:
+    - 同一版本年度值与累计值成对使用；跨版本或跨年累计值不能相加
+    - start/end 仅过滤 create_time_；历史适用版本需明确业务年度和审核生效规则，未确定时不回填
+    - 附件交由 File Broker 授权，不能输出原始 attachment_ 地址
+    - 返回候选并不代表已选定年度快照；不能 ORDER BY create_time DESC LIMIT 1 代替版本确认
+    requires_queries:
+    - performance_module_status
+    checks:
+    - query_id: performance_module_status
+      type: all_rows
+      allowed:
+        module_count:
+        - 1
+        stage_flag:
+        - '0'
+        - '1'
+- id: performance_module_status
+  name: 绩效模块口径诊断
+  description: 逐项目返回模块数量和阶段开关；绩效查询前检查缺失、重复或无效开关。
+  parameters:
+  - project_id
+  grain: project
+  sql: |
+    SELECT p.id_ AS project_id, p.name_ AS project_name, COUNT(m.project_id_) AS module_count,
+           MIN(m.performance_stage_flag_) AS stage_flag,
+           COUNT(DISTINCT m.performance_stage_flag_) AS distinct_flag_count
+    FROM t_hpm_project p
+    LEFT JOIN t_hpm_project_module m ON m.tenant_id_ = :tenant_id
+      AND m.tenant_id_ = p.tenant_id_ AND m.project_id_ = p.id_ AND m.delete_flag_ = '0'
+    WHERE p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR p.id_ = :project_id)
+    GROUP BY p.id_, p.name_
+    ORDER BY p.id_
+  output:
+  - name: project_id
+    description: 项目内部键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: project_name
+    description: 项目名称
+    type: string
+    nullable: true
+  - name: module_count
+    description: 有效模块记录数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: stage_flag
+    description: 1 分阶段，0 不分阶段；仅 module_count=1 时可用
+    type: string
+    nullable: true
+  - name: distinct_flag_count
+    description: 不同非空开关数
+    type: integer
+    nullable: false
+    unit: 条
+  validation:
+    aliases:
+    - 绩效模块
+    - 绩效阶段开关
+    rules:
+    - 所有选定项目 module_count=1 且 stage_flag 为 0 或 1；否则拒绝后续绩效统计
+- id: performance_stage_summary
+  name: 指定年度阶段绩效统计
+  description: 仅用于明确启用阶段绩效的项目；无阶段绩效需另行确认反馈年度，不静默排除。
+  parameters:
+  - project_id
+  - year
+  grain: selected year staged performance
+  sql: |
+    WITH performance_scope AS (
+      SELECT perf.id_, perf.project_id_, perf.stage_id_, perf.parent_id_, perf.code_, perf.name_,
+             perf.level_, perf.progress_, perf.target_value_, perf.finish_value_
+      FROM t_hpm_project_performance perf
+      JOIN t_hpm_project p ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+      JOIN (
+        SELECT m.tenant_id_, m.project_id_, MIN(m.performance_stage_flag_) AS stage_flag
+        FROM t_hpm_project_module m
+        WHERE m.tenant_id_ = :tenant_id AND m.delete_flag_ = '0'
+        GROUP BY m.tenant_id_, m.project_id_
+        HAVING COUNT(*) = 1 AND MIN(m.performance_stage_flag_) IN ('0', '1')
+      ) module ON module.tenant_id_ = perf.tenant_id_ AND module.project_id_ = perf.project_id_
+      WHERE perf.tenant_id_ = :tenant_id AND perf.delete_flag_ = '0'
+        AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+        AND (:project_id IS NULL OR perf.project_id_ = :project_id)
+        AND ((module.stage_flag = '1' AND perf.stage_id_ IS NOT NULL)
+          OR (module.stage_flag = '0' AND perf.stage_id_ IS NULL)) AND perf.level_ >= 3 AND module.stage_flag = '1'
+        AND EXISTS (SELECT 1 FROM t_hpm_project_stage s
+          WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = perf.tenant_id_
+            AND s.project_id_ = perf.project_id_ AND s.id_ = perf.stage_id_
+            AND s.delete_flag_ = '0' AND s.name_ = :year)
+    )
+    SELECT COUNT(*) AS performance_count,
+           COUNT(CASE WHEN progress_ >= 100 THEN 1 END) AS reached_count,
+           COUNT(CASE WHEN progress_ < 100 OR progress_ IS NULL THEN 1 END) AS not_reached_count,
+           COUNT(CASE WHEN progress_ IS NULL THEN 1 END) AS missing_progress_count,
+           ROUND(AVG(COALESCE(progress_, 0)), 2) AS avg_progress,
+           ROUND(100.0 * COUNT(CASE WHEN progress_ >= 100 THEN 1 END) / NULLIF(COUNT(*), 0), 2) AS reached_rate FROM performance_scope
+  output:
+  - name: performance_count
+    description: 真实指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: reached_count
+    description: progress>=100 指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: not_reached_count
+    description: progress<100 或未填报指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: missing_progress_count
+    description: 未填报进度指标数
+    type: integer
+    nullable: false
+    unit: 条
+  - name: avg_progress
+    description: NULL 视0平均进度
+    type: number
+    nullable: true
+    unit: '%'
+  - name: reached_rate
+    description: 按条数达标率
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 年度绩效
+    - 阶段绩效
+    rules:
+    - 有效国双高项目+唯一有效模块；不使用 performance.high_flag_
+    - 真实指标 level_>=3；模块1取非空阶段，模块0取无阶段
+    - 当前指标快照，不能用来证明历史截止日实绩；目标/完成值可为定性文字
+    - 完成进度与按条数达标率同时提供；达标 progress_>=100，不按 state_ 排除
+    - year 必须明确；阶段当前值仍不是历史快照
+    requires_queries:
+    - performance_module_status
+    checks:
+    - query_id: performance_module_status
+      type: all_rows
+      allowed:
+        module_count:
+        - 1
+        stage_flag:
+        - '1'
+    required_values:
+    - year
+- id: performance_tree
+  name: 绩效分类树和当前值
+  description: 返回校双高绩效分类及具体指标，parent_id_用于树结构；first_item_id_/second_item_id_分类回溯见任务绩效关联查询。此查询不限制年度，不能直接作为年度汇总。
+  parameters:
+  - project_id
+  grain: project + performance node
+  sql: |
+    SELECT perf.project_id_ AS project_id, perf.id_ AS performance_id, perf.stage_id_ AS stage_id,
+           perf.parent_id_ AS parent_id, perf.code_ AS performance_code, perf.name_ AS performance_name,
+           perf.level_ AS performance_level, perf.target_value_ AS target_value,
+           perf.finish_value_ AS finish_value, perf.progress_ AS current_progress
+    FROM t_hpm_project_performance perf
+    JOIN t_hpm_project p ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+    WHERE perf.tenant_id_ = :tenant_id AND perf.delete_flag_ = '0'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND (:project_id IS NULL OR perf.project_id_ = :project_id)
+    ORDER BY perf.project_id_, perf.level_, perf.code_, perf.id_
+  output:
+  - name: project_id
+    description: 项目键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_id
+    description: 绩效键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: stage_id
+    description: 阶段键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: parent_id
+    description: 父指标键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_code
+    description: 业务编码
+    type: string
+    nullable: true
+  - name: performance_name
+    description: 指标/分类名
+    type: string
+    nullable: true
+  - name: performance_level
+    description: 1/2 分类，>=3 实绩节点
+    type: integer
+    nullable: true
+  - name: target_value
+    description: 当前目标原文
+    type: string
+    nullable: true
+  - name: finish_value
+    description: 当前完成原文
+    type: string
+    nullable: true
+  - name: current_progress
+    description: 当前进度
+    type: number
+    nullable: true
+    unit: '%'
+  validation:
+    aliases:
+    - 绩效分类树
+    - 绩效指标明细
+    - 产出指标
+    - 效益指标
+    - 满意度指标
+    rules:
+    - 目录数据包含全部节点，不直接聚合；实际取值需 module_status 和模块阶段规则
+    - 沿同项目父键恢复分类路径并检查环和缺父节点；阶段为空的分类可被该项目有阶段实绩节点引用
+    - 不能仅按指标名或编码唯一定位；完成/目标原文不能强制转数值
+- id: task_performance_links
+  name: 年度三级任务关联绩效目标与完成值
+  description: 按模块开关关联有阶段或无阶段绩效；分类回溯使用 first_item_id_/second_item_id_。
+  parameters:
+  - project_id
+  - year
+  grain: project_task_performance
+  sql: |
+    SELECT DISTINCT t.id_ AS task_id, perf.id_ AS performance_id,
+           t.name_ AS task_name, perf.name_ AS performance_name,
+           p1.name_ AS first_performance_name, p2.name_ AS second_performance_name,
+           perf.target_value_ AS current_target_value, perf.finish_value_ AS current_finish_value
+    FROM t_hpm_project_task t
+    JOIN t_hpm_project_stage s ON s.tenant_id_=t.tenant_id_ AND s.project_id_=t.project_id_ AND s.id_=t.stage_id_
+    JOIN t_hpm_project p ON p.tenant_id_=t.tenant_id_ AND p.id_=t.project_id_
+    JOIN t_hpm_project_task_performance_relation r
+      ON r.tenant_id_=t.tenant_id_ AND r.project_id_=t.project_id_ AND r.task_id_=t.id_
+    JOIN t_hpm_project_performance perf
+      ON perf.tenant_id_=r.tenant_id_ AND perf.project_id_=r.project_id_ AND perf.id_=r.performance_id_
+    LEFT JOIN t_hpm_project_performance p1
+      ON p1.tenant_id_=perf.tenant_id_ AND p1.project_id_=perf.project_id_ AND p1.id_=perf.first_item_id_
+      AND p1.level_=1 AND p1.delete_flag_='0'
+    LEFT JOIN t_hpm_project_performance p2
+      ON p2.tenant_id_=perf.tenant_id_ AND p2.project_id_=perf.project_id_ AND p2.id_=perf.second_item_id_
+      AND p2.level_=2 AND p2.delete_flag_='0'
+    WHERE t.tenant_id_=:tenant_id AND t.delete_flag_='0' AND t.high_flag_='1' AND t.level_=3
+      AND s.delete_flag_='0' AND s.name_=:year
+      AND p.delete_flag_='0' AND p.high_flag_='1' AND perf.delete_flag_='0' AND perf.level_>=3
+      AND (:project_id IS NULL OR t.project_id_=:project_id)
+      AND EXISTS (SELECT 1 FROM t_hpm_project_module m
+        WHERE m.tenant_id_=p.tenant_id_ AND m.project_id_=p.id_ AND m.delete_flag_='0'
+          AND ((m.performance_stage_flag_='0' AND (perf.stage_id_ IS NULL OR TRIM(perf.stage_id_)=''))
+            OR (m.performance_stage_flag_='1' AND perf.stage_id_=t.stage_id_)))
+    ORDER BY t.id_, perf.id_
+  output:
+  - name: task_id
+    description: 任务键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_id
+    description: 绩效键
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: task_name
+    description: 任务名称
+    type: string
+    nullable: true
+  - name: performance_name
+    description: 具体绩效指标
+    type: string
+    nullable: true
+  - name: first_performance_name
+    description: 绩效一级分类
+    type: string
+    nullable: true
+  - name: second_performance_name
+    description: 绩效二级分类
+    type: string
+    nullable: true
+  - name: current_target_value
+    description: 当前登记目标值
+    type: string
+    nullable: true
+  - name: current_finish_value
+    description: 当前登记完成值
+    type: string
+    nullable: true
+  validation:
+    aliases:
+    - 任务绩效关联
+    - 建设任务对应绩效
+    - 年度三级任务关联绩效目标与完成值
+    rules:
+    - 按模块开关关联有阶段或无阶段绩效；分类回溯使用 first_item_id_/second_item_id_。
+    - 当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。
+    - 详见 semantics/business.md及relationships.md；同项目及租户关联，内部ID不进入报告。
+    - task_id与performance_id组合唯一；按章节任务集合筛选后再按performance_id去重
+    - 保留定量、定性及单位含义；缺失不转0，不对基本形成或达成目标作数值运算
+    - 非空关联结果须核对一二级分类完整性及父子归属；空结果仅证明本次查询可执行，不能证明非空样本关联正确
+    - 仅提供目标及完成原值；中期时点、完成率方向与封顶、权重、分值、得分及等级另按适用评价规则确定
+    - 允许0行，无关联记录不否定表结构来源
+    - 目标项数按本节实际纳入评价的绩效ID去重后统计，不按任务数、关联行数或模板样例行数计数；跨章节汇总再次按项目和绩效ID去重，成果数从反馈证据另行整理
+    - 查询返回当前原值，未单独提供单位、统计范围及目标方向；须结合具体绩效说明和佐证核验。定性、百分比、数量、金额、人数、人次、人日及访问次数不可混算；括号其中值不与总数相加
+    - 跨表或正文引用相同事实前核对对象、期间、新增或累计、单位及统计范围；出现差异保留并查证，不修改样例或反推数据来凑一致
+    requires_queries:
+    - performance_module_status
+    checks:
+    - query_id: performance_module_status
+      type: all_rows
+      allowed:
+        module_count:
+        - 1
+        distinct_flag_count:
+        - 1
+        stage_flag:
+        - '0'
+        - '1'
+    required_values:
+    - year
+- id: project_performance_categories
+  name: 项目绩效一二级分类目录
+  description: 获取指定国双高项目的一二级绩效分类并保留父键和阶段归属；此查询只提供分类目录，不计算年度进度、自评得分或权重，不自动映射为正式评分表。
+  parameters:
+  - project_id
+  grain: project_performance_node
+  sql: |
+    SELECT perf.project_id_ AS project_id, perf.id_ AS performance_id,
+           perf.parent_id_ AS parent_id, perf.stage_id_ AS stage_id,
+           perf.code_ AS performance_code, perf.name_ AS performance_name,
+           perf.level_ AS performance_level
+    FROM t_hpm_project_performance perf
+    JOIN t_hpm_project p
+      ON p.tenant_id_ = perf.tenant_id_ AND p.id_ = perf.project_id_
+    WHERE perf.tenant_id_ = :tenant_id
+      AND perf.project_id_ = :project_id
+      AND perf.delete_flag_ = '0'
+      AND perf.level_ IN (1, 2)
+      AND p.delete_flag_ = '0'
+      AND p.high_flag_ = '1'
+    ORDER BY perf.level_, perf.code_, perf.id_
+  output:
+  - name: project_id
+    description: 项目ID，仅用于关联
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_id
+    description: 绩效分类ID，仅用于关联
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: parent_id
+    description: 父分类ID，用于恢复路径
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: stage_id
+    description: 所属阶段ID，空值表示无阶段分类
+    type: string
+    nullable: true
+    visibility: internal_only
+  - name: performance_code
+    description: 分类编码，不作为唯一键
+    type: string
+    nullable: true
+  - name: performance_name
+    description: 分类名称，不包含已核验评分含义
+    type: string
+    nullable: true
+  - name: performance_level
+    description: 分类层级，1为一级、2为二级
+    type: integer
+    nullable: true
+  validation:
+    aliases:
+    - 项目绩效一二级分类目录
+    rules:
+    - performance_id同项目内唯一且非空；performance_name非空；performance_level只能为1或2
+    - 二级分类必须能关联同项目的一级分类；缺父节点时停止组装该分类路径
+pending:
+  performance_historical_snapshot:
+    name: 报告期绩效反馈快照
+    description: 以 performance_feedback_candidates 取得候选后，需确定业务年度、审核生效时间和版本选取规则。
+    status: needs_definition
+    version: 1
+    blockers:
+    - create_time_ 不等于业务年度；无阶段绩效年度归属未知；不固化最新一条逻辑
+    candidate_queries:
+    - performance_feedback_candidates
+  indicator_completion_rate:
+    name: 单项指标完成率
+    description: 依据指标方向、单位、定性达标和封顶规则计算。
+    status: needs_definition
+    version: 1
+    blockers:
+    - 须定义指标方向、单位、定性达标与封顶；缺规则时无数值结果，文稿以黄色说明待核实，不编造得分
+  performance_scoring:
+    name: 绩效评价权重与自评得分
+    description: 评分办法或业务评分服务提供规则，不能以 progress_ 代替评分。
+    status: needs_definition
+    version: 1
+    blockers:
+    - 尚未提供适用评分版本、具体表/接口和公式
+  terminal_completion:
+    name: 终期累计完成度
+    description: 需终期目标、建设周期及聚合/加权方式；total_progress_ 仅是候选字段。
+    status: needs_definition
+    version: 1
+    blockers:
+    - 不能将年度进度相加或把单指标累计进度当学校终期完成度
+    candidate_queries:
+    - performance_feedback_candidates

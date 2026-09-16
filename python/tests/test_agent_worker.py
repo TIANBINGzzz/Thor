@@ -183,6 +183,13 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(path.name, "workflow.env")
         self.assertEqual(path.parent.name, "database-qa")
 
+    def test_template_writing_skill_is_injected_only_for_bound_templates(self):
+        config=load_workflow_config('writing-docx')
+        self.assertNotIn('## 按证据撰写',workflow_prompt_documents(config))
+        self.assertIn('## 按证据撰写',workflow_prompt_documents(config,template=True))
+        config['template_skills']=['../outside']
+        with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=True)
+
     def test_selected_workflow_environment_is_loaded_after_root_defaults(self):
         with tempfile.NamedTemporaryFile(suffix=".env") as env_file:
             with patch.dict("os.environ", {}, clear=True):

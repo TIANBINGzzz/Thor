@@ -330,6 +330,20 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, 
             if total_bytes > MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES:
                 raise RuntimeError("workflow 文档总量超过限制")
             sections.append(f"### {title}: {relative_value}\n{content.strip()}")
+    if template:
+        for name in workflow_config.get('template_skills', []):
+            if not isinstance(name,str) or not WORKFLOW_NAME.fullmatch(name):
+                raise RuntimeError('模板撰写Skill名称无效')
+            root = (PROJECT_ROOT / '.claude/skills').resolve()
+            path = (root / name / 'SKILL.md').resolve()
+            if not path.is_relative_to(root) or not path.is_file():
+                raise RuntimeError('模板撰写Skill不可用')
+            content = path.read_text(encoding='utf-8')
+            size = len(content.encode('utf-8'))
+            total_bytes += size
+            if size > MAX_WORKFLOW_DOCUMENT_BYTES or total_bytes > MAX_WORKFLOW_DOCUMENT_TOTAL_BYTES:
+                raise RuntimeError('模板撰写Skill过大')
+            sections.append(f'### 模板撰写Skill: {name}\n{content.strip()}')
     return "\n\n".join(sections)
 
 

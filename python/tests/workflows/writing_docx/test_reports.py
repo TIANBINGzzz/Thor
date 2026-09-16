@@ -164,18 +164,21 @@ class ReportingTests(unittest.TestCase):
             render(template,{'plan_ref':'test-draft','slots':slots,'report_parameters':{'years':['2025']}},[],executor)
         for slot in slots:
             if slot['kind']!='static':
-                slot.update(value_status='unavailable',value='/',reason='fixture_no_history')
+                slot.update(value_status='unavailable',value='需核对本期数据',reason='fixture_no_history')
         ref=executor.results.save([{'status':'no history'}],{'complete':True},[{'name':'status','type':'string'}])
         drafts=[]
         for slot in slots:
             if slot['kind']=='narrative':
                 slot['evidence_refs']=[ref]
                 drafts.append({'section_key':slot['section_key'],'slot_key':slot['slot_key'],
-                               'text':'No verifiable historical evidence.','evidence_refs':[ref]})
+                               'text':'Evaluate the original subject. Evidence is missing. Collect dated records.',
+                               'evidence_refs':[],'evidence_state':'none','analysis_basis':'Evaluate the original subject.',
+                               'gap':'Evidence is missing.','next_action':'Collect dated records.'})
         output=render(template,{'plan_ref':'test-draft','slots':slots,'report_parameters':{'years':['2025']}},drafts,executor)
         self.assertEqual(output['status'],'complete_with_data_gaps')
         before=document_xml(template['_docx'])
         after=document_xml(output['path'])
+        self.assertTrue(after.xpath('.//w:color[@w:val="FFC000"]',namespaces=NS))
         for tag in ('tbl','tr','tc','p','sectPr','drawing'):
             self.assertEqual(len(before.xpath(f'.//w:{tag}',namespaces=NS)),len(after.xpath(f'.//w:{tag}',namespaces=NS)))
         with ZipFile(template['_docx']) as old, ZipFile(output['path']) as new:
@@ -288,7 +291,7 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(len(data['slots']),1)
             slot=data['slots'][0]
             draft={'slot_key':slot['slot_key'],'section_key':'summary','text':'The recorded total is 10.',
-                   'evidence_refs':slot['evidence_refs']}
+                   'evidence_refs':slot['evidence_refs'],'evidence_state':'supported'}
             self.assertEqual(planner.save_drafts(reference,[draft])['saved'],1)
             plan=planner.plans[reference]
             plan.update(rendered={'path':'old'},validation={'validation_ref':'old'})
@@ -304,6 +307,47 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(len(plan['drafts']),1)
             await services.close()
         asyncio.run(scenario())
+
+    def test_evidence_modes_require_visible_gaps_and_reject_unfounded_numbers(self):
+        from workflows.writing_docx.rendering import validate_drafts
+        ref=self.executor.results.save([{'total':10}],{'complete':True},[{'name':'total','type':'number'}])
+        empty=self.executor.results.save([],{'complete':True},[{'name':'total','type':'number'}])
+        plan={'slots':[{'slot_key':'body','section_key':'summary','kind':'narrative','evidence_refs':[ref,empty]}],
+              'report_parameters':{}}
+        draft={'slot_key':'body','section_key':'summary','text':'Analyze coverage. Records missing. Collect evidence.',
+               'evidence_refs':[],'evidence_state':'none','analysis_basis':'Analyze coverage.',
+               'gap':'Records missing.','next_action':'Collect evidence.'}
+        self.assertIn('body',validate_drafts(plan,[draft],self.executor))
+        with self.assertRaisesRegex(DataError,'EVIDENCE_GAP_REQUIRED'):
+            validate_drafts(plan,[{**draft,'text':'Records missing.'}],self.executor)
+        with self.assertRaisesRegex(DataError,'EVIDENCE_REQUIRED'):
+            validate_drafts(plan,[{**draft,'evidence_state':'supported','evidence_refs':[empty]}],self.executor)
+        limited={**draft,'text':'Recorded 10. Historical records missing.', 'evidence_state':'limited',
+                 'gap':'Historical records missing.','evidence_refs':[ref]}
+        self.assertIn('body',validate_drafts(plan,[limited],self.executor))
+        with self.assertRaisesRegex(DataError,'EVIDENCE_STATE_CONFLICT'):
+            validate_drafts(plan,[{**limited,'evidence_state':'supported'}],self.executor)
+        with self.assertRaisesRegex(DataError,'DRAFT_NUMBER_UNSUPPORTED'):
+            validate_drafts(plan,[{**limited,'text':'Recorded 999. Historical records missing.'}],self.executor)
+
+    def test_yellow_color_preserves_style_and_disappears_when_evidence_is_supported(self):
+        from workflows.writing_docx.rendering import mark_uncertainty
+        from lxml import etree
+        template=self.template()
+        xml=document_xml(template['_docx'])
+        slot=next(s for s in template['_slots'] if s['kind']!='static')
+        paragraph=xml.xpath(slot['locator']['path'],namespaces=NS)[0]
+        mark_uncertainty(paragraph)
+        changed=self.root/'yellow.docx'
+        with ZipFile(template['_docx']) as source,ZipFile(changed,'w') as target:
+            for member in source.infolist():
+                target.writestr(member,etree.tostring(xml) if member.filename=='word/document.xml' else source.read(member.filename))
+        self.assertTrue(check_fidelity(template,changed)['unchanged_layout_and_run_properties'])
+        # Rendering always starts from the original, so confirmed values cannot inherit old yellow.
+        result=self.executor.execute_query_spec('first','sales','total',{},self.school())
+        plan={'plan_ref':'supported','slots':[{'slot_key':slot['slot_key'],'value_status':'filled','value':'10'}]}
+        output=render(template,plan,[],self.executor)
+        self.assertFalse(document_xml(output['path']).xpath('.//w:color[@w:val="FFC000"]',namespaces=NS))
 
     def test_report_mcp_publish_gate_and_page_images(self):
         async def scenario():

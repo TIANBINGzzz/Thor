@@ -39,8 +39,8 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
-- `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/维护定义与SQL，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`仅服务固定模板撰写，提供reports工具及全文核验。模板专属维护脚本放模板目录，业务知识放数据库包。
+- `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`提供原位撰写、证据状态校验、黄色缺口标记及全文核验。可信Workflow显式注入模板撰写Skill；模板维护脚本放模板目录，业务知识放数据库包。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions

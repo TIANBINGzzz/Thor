@@ -1,4 +1,4 @@
-"""Register the original template's reviewed 2025 reporting contract, without editing its DOCX."""
+"""Bind evidence sources to original locations; keep writing decisions with the agent."""
 import json
 from pathlib import Path
 import re
@@ -18,8 +18,8 @@ def configure():
     paragraphs=xml.xpath('.//w:p',namespaces=NS)
     positions={xml.getroottree().getpath(p):i for i,p in enumerate(paragraphs,1)}
     definitions=[('project_catalog',{'name_pattern':None}),('task_tree',{}),('task_progress_summary',{'level':3,'threshold':50}),
-                 ('report_task_sections',{}),('task_feedback_candidates',{}),('fund_totals',{}),
-                 ('fund_source_amounts',{}),('report_cycle_budget',{}),('report_task_performance_links',{}),
+                 ('first_task_progress_feedback',{}),('task_feedback_candidates',{}),('fund_totals',{}),
+                 ('fund_source_amounts',{}),('project_cycle_budget',{}),('task_performance_links',{}),
                  ('performance_tree',{})]
     datasets=[]
     from data_access.catalog import Catalog
@@ -31,7 +31,8 @@ def configure():
             if 'year' in spec['parameters']:
                 params['year']={'from':'report_parameter','key':'years','expand':'each'}
             datasets.append({'dataset_key':role+'_'+query,'source_role':'hpm','domain':'hpm','scope_role':role,
-                'query_id':query,'parameter_bindings':params,'section_keys':['overview','school',role,'measures','experience','improvements']})
+                'query_id':query,'parameter_bindings':params,'section_keys':['overview','school',role,'measures','experience','improvements','appendix']+
+                    [f'T{i:02}' for i in range(1,41) if i<=16 or i==40 or (17<=i<=27 if role=='group_a' else 28<=i<=39)]})
     def evidence(role):
         roles=[role] if role in ('group_a','group_b') else ['group_a','group_b']
         return [r+'_'+q for r in roles for q,_ in definitions]
@@ -82,20 +83,19 @@ def configure():
                 if '${'+key+'}' in revised: values[key]={'report_parameter':param}
             if not table and position<4394 and (slot['kind']=='narrative' or dynamic and 'N' in rules):
                 slot.update(kind='narrative',required=True,evidence_datasets=evidence(role),
-                    write_instruction='按本段原有主题撰写真实的年度自评正文，使用当前项目名称。学校独立项目未绑定，不得把两专业群当全校。当前任务/资金登记值必须明确标为当前值；无期内反馈时说明评价限制，不得声称已建成、获奖、达标、发布制度。原有一级建设标题保留为模板核验维度，不能把新旧名称硬认作同一指标。不要重复占位提示，分段讨论具体事项与核验结论；改进措施写建议而非已执行事实。')
+                    write_instruction='沿用原段主题、位置、结构和表达方式仿写或替换，不留空、不另起简版。先按本周期任务树核对下属反馈和关联绩效，再撰写：有证据写结论；证据不足写有限结论及缺口；无证据写本段分析框架、具体数据需求和后续动作。后两种状态标黄，不把建议写成已完成事实。学校范围与两个专业群分开，当前值不等于历史实绩，周期名称差异不否定来源。')
             elif ('E' in rules or 'E+X' in rules) and position>=4394:
-                revised=re.sub(r'_{2,}', '/', text).replace('【材料待补】','')
-                slot.update(kind='scalar',required=True,resolution={'text':revised+'（本期未提供佐证）',
-                    'reason':'period_material_unavailable','require_empty':[r+'_task_feedback_candidates' for r in (['group_a','group_b'] if role=='school' else [role])]},
-                    evidence_datasets=evidence(role))
+                revised=re.sub(r'_{2,}|【[^】]+】', '待核实', text)
+                slot.update(kind='scalar',required=True,resolution={'text':revised+'（需核对本期佐证）',
+                    'reason':'evidence_not_reviewed'}, evidence_datasets=evidence(role),
+                    write_instruction='保留材料目录位置，按实际核验的反馈与附件替换；未核实时用具体数据需求标黄，不虚构材料名称或声称不存在。')
             elif table and (slot['kind']!='static' or dynamic):
-                if rules=={'S'} or slot['business_context'].endswith((' / 分值',' / 得分')):
-                    slot.update(kind='scalar',required=False,intentional_blank=True)
-                else:
-                    revised=re.sub(r'_{2,}|【[^】]+】','/',revised)
-                    slot.update(kind='scalar',required=True,resolution={'text':revised,'reason':
-                        'school_project_unbound' if role=='school' else 'historical_metric_unavailable',
-                        'require_empty':[] if role=='school' else [role+'_report_task_performance_links',role+'_task_feedback_candidates']},evidence_datasets=evidence(role))
+                score=rules=={'S'} or slot['business_context'].endswith((' / 分值',' / 得分'))
+                label=('计分规则待明确' if score else '待核实目标' if slot['business_context'].endswith(' / 目标值')
+                       else '待核实本期实绩')
+                slot.update(kind='scalar',required=True,resolution={'text':label,'reason':
+                    'scoring_rule_undefined' if score else 'school_scope_unbound' if role=='school' else 'evidence_not_reviewed'},
+                    evidence_datasets=evidence(role),write_instruction='保留原表行列及单位；依据同对象同期间的具体绩效记录或材料写值。无法核实时以简短具体说明标黄，不留空、不填斜杠，不用任务进度当绩效或评分。')
             elif revised!=text:
                 slot.update(kind='scalar',required=True,text_template=revised,values=values)
             else:
