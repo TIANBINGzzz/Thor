@@ -60,7 +60,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 ## 7. Important boundaries/interfaces
 
 - Java ↔ Python：内部 Run 协议、Run JWT、状态/事件及取消；完整字段见 Runtime 规范。
-- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板统一引用仍为[提议](doc/ADR/025-unified-template-writing.md)。
+- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板沿用授权附件作撰写参考；共同Skill按模板加载说明的[设计](doc/ADR/025-unified-template-writing.md)不新增请求字段。
 - RunStore 内部记录与 HTTP 响应分离；身份用于 Python 归属校验，SDK Session 与执行元数据不返回 Java。
 - Run 身份仅取自已验证 Run JWT 的 `tenant`、`sub`；请求正文不重复声明身份，业务 MCP Token 不作为身份来源。
 - 父 Runtime ↔ Worker：JSONL 进程边界；独立执行使用 `query()`，持久执行由 SessionActor 独占 Client。

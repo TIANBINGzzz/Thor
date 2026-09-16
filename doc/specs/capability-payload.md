@@ -49,52 +49,52 @@
 
 2026-09-15补充：自定义模板由Java保存并授权，Python通过File Broker获取本次文件后读取结构，按需取数、组织正文并生成新DOCX；不自动注册为Python预制模板，也不要求预先配置逐格查询。当前`purpose`仅支持`input`/`reference`，模板用`input`并在正文说明用途；再次使用须重新提交附件引用。上传不授予数据源权限，数据库工具仅在已配置且获准时可用。若同时传`templateKey`和附件，仍走已登记模板分支，附件不会替换该模板。附件传递和普通撰写已有实现，复杂自定义模板保真及取数质量尚未端到端验收。
 
-2026-09-16产品确认：两类模板均关联可用数据源；预处理模板复用已核验来源，上传模板由Agent规划取数并沿原样仿写，无须预先标槽或配置逐段SQL。自定义模板来源关联尚待接入，现有附件请求不代表按模板限定来源已实现；见[产品规则](conversation-reporting-product.md#两类模板与数据源)。
+2026-09-16最新确认：老师上传的模板暂不做预处理或纳入预制模板管理，直接作为撰写参考，严格遵守其文稿规范并重新生成目录；使用现有附件和输入字段。预处理模板继续关联来源；上传模板按当前能力获准的数据工具取数，暂不新增模板级来源绑定或传值字段，见[产品规则](conversation-reporting-product.md#两类模板与数据源)。
 
 ## 统一模板撰写方案（提议，未实现）
 
-两类模板共用`document-writing → writing-docx → writing-documents`，保留现行agent-run/v1外层。以下是Java完成模板及数据源授权后发给Python的业务字段片段，不是浏览器可自由指定的执行配置。
+两类模板共用`document-writing → writing-docx → writing-documents`。用户已确认保持现有传值；本节拟议内容仅涉及共同规则与按模板加载，撤回此前新增templateFileId/dataSourceKeys的建议。
 
-| 字段 | 条件及含义 |
+| 场景 | 使用现有字段 |
 | --- | --- |
-| `payload.templateKey` | 预处理模板使用现有字段；Python解析原文件、来源、可选撰写指南及绑定 |
-| `payload.templateFileId` | 上传模板必填的非空文件引用；必须唯一匹配本次`attachmentRefs`中purpose=input的授权DOCX |
-| `payload.dataSourceKeys` | 上传模板必填的去重来源引用数组，由Java从已保存的模板关联解析；不是连接或授权声明 |
+| 预处理模板 | `payload.templateKey`选择已登记模板；原文件、来源与规则由服务端解析 |
+| 老师上传模板 | `input.attachmentRefs`携带文件，`input.text`说明采用哪份模板；不传templateKey，payload省略或为空 |
+| 年份、对象及其他要求 | 继续使用`input.text`；多个附件用途不清楚时澄清，不引入新的模板类型或Skill字段 |
 
 预处理模板：`{"capabilityRef":"document-writing","input":{"text":"按深职大中期模板撰写2025年度报告"},"payload":{"templateKey":"szpt-midterm"}}`。
 
-上传模板（拟议）：
+上传模板使用现有协议的业务字段片段：
 
 ```json
 {
   "capabilityRef": "document-writing",
   "input": {
-    "text": "按上传模板撰写2025年度专业群建设总结",
+    "text": "严格按照上传模板的规范撰写2025年度专业群建设总结，并重新生成目录",
     "attachmentRefs": [{"fileId": "file_template_01", "purpose": "input"}]
-  },
-  "payload": {"templateFileId": "file_template_01", "dataSourceKeys": ["schoolDoubleHigh"]}
+  }
 }
 ```
 
-- `templateKey`与`templateFileId`互斥；预处理模板来源只从可信模板配置读取，拒绝请求覆盖。两者均不传时保留普通撰写/成稿修改；普通附件不自动升级为模板。
-- 上传模板必须显式传来源列表；`[]`仅用于明确选择纯材料写作，省略不能默认加载能力的全部数据库。未知、不可用或越权来源整体拒绝，不能静默忽略或扩大；上传内容不能改变来源、权限或系统规则。
-- 前端共用一个模板选择器，只提交获准业务模板/文件选择；Java校验归属与模板关联后生成以上字段。Python再次校验能力、来源及项目策略，只给本Run装配模板关联且获准的来源；引用不授予权限。连接、Token及SQL均不从payload接入。
-- 年份、截止日、报告对象和要求继续放`input.text`，Agent在取数前解析并确认歧义；不新增重复身份、版本或Skill/Workflow选择字段。后续Run显式携带模板选择，Java重新解析当前关联与权限。
+- 上传原件保留；Agent理解标题层级、章节顺序、写作要求、表格与版式后生成新稿，无须槽位登记或专属MD。原文只作为文稿规范与内容参考，样例成绩不是当前事实，也不能改变执行权限。
+- 目录以最终标题层级和实际分页重新生成，排版完成后更新并核对页码；不复制原目录页码，也不把“打开时更新”标志当作已经生成目录。此项为验收要求，现有复杂上传模板链路尚未实测验收。
 
-### 内部流程与目录
+### 模板管理与按需加载
 
-- 在现有`python/workflows/writing_docx/`增加请求解析模块，统一得到模板文件、有效来源、可选指南和绑定；Runtime负责调用与装配，不继续在server.py堆模板类型判断。模板解析不以数据库服务是否启用为前提。
-- 保留`.claude/skills/writing-documents/SKILL.md`为共同写作入口，由可信Workflow确定性注入共同规则。现有双高Skill中的通用证据规则合入该入口，业务专属内容移到既有模板目录中的简洁writing-guide.md；数据库口径仍留semantics/，不按模板类别新建Skill。
-- `.claude/workflows/writing-docx/templates/szpt-midterm/`继续保存原DOCX、元数据及现有绑定；指南和绑定是可选增强。上传模板保存在Java，通过File Broker按Run读取并生成临时段落/表格编辑计划，不自动写入预制模板目录；原逐页来源MD保留。
-- 两路均先理解结构及数据需求，检索`.claude/databases/`共享指标，执行查询，检查证据后沿模板撰写；预处理来源可直接复用。指标未覆盖时仅在现有策略允许下探索只读SQL，不把临时查询自动登记为已核验指标。
-- 共用证据、黄色缺口、结构保真、全文渲染和发布检查；有证据写结论，证据不足写有限结论及缺口，无证据写框架、数据需求和后续动作。复用reports校验逻辑，上传模板也需程序门禁；只合并Skill不能替代实现。
-- 每Run固定模板内容哈希、指南/绑定及来源策略版本；Client指纹包含这些实际配置。模板或来源变化时隔离SDK执行上下文，业务会话保留；旧scope_ref/result_ref不跨Run复用。
+- 一个共同入口：`.claude/skills/writing-documents/SKILL.md`集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，不列出全部模板，不复制每模板Skill。
+- 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。既有绑定和slots是编辑执行资产，本次不改，不要求老师维护。
+- template.json拟增加内部字段片段`{"documents":["writing-guide.md"]}`，路径相对该模板目录；现有name、enabled、capabilities、docx_file、source_roles及绑定字段继续使用。该字段尚未接入加载器，不进入HTTP请求。
+- writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
+- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json及文件 → 读取该模板documents → 注入共同Skill正文和所选说明 → Agent读取原DOCX并检索指标。由Python装配，不能假设SDK会因MD链接自动加载；不需要增加Skill/Read/Bash权限。
+- 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
+- 默认完整加载所选模板的一份短指南；多文件按声明顺序读取，单文件/总量受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再提供按章节读取，不为模板数量增长全量注入或引入检索平台。
+- 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用；修改原文需同步绑定校验，停用用enabled。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
+- 指标及SQL仍集中在`.claude/databases/`，指南引用而不复制；声明来源须获准且拟按选中模板收窄。上传模板仅使用当前获准工具，不能从附件文字中获得新来源权限。
 
-当前共同能力映射、文件引用及数据授权已有基础，但上传模板两个新字段、模板范围收窄、共同Skill装配和共同发布检查均未按本方案实施；通用payload接受JSON不代表实现了字段语义。先完成请求与来源解析，再收拢Skill，最后复用编辑/校验并以两类模板做真实取数和DOCX回归，见[ADR-025](../ADR/025-unified-template-writing.md)。
+当前配置按整个Workflow的template_skills加载双高Skill，尚未按templateKey加载专属MD；预制加载器仍要求绑定与slots，不能声称只新增MD就已支持任意模板。先收拢共同规则、实现所选模板说明装配，再验收原模板及上传参考写作/目录；证据、黄字及发布检查须由工具落实，见[ADR-025](../ADR/025-unified-template-writing.md)。
 
 ## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
 | REQ-001 | 部分满足 | data/reports不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
-| REQ-002 | 部分满足 | 现有能力映射保留；拟议方案只传业务资源引用，两类模板复用Workflow与Skill | 新字段、模板来源收窄、统一校验及外部Java/前端待实施；本次仅设计 |
+| REQ-002 | 部分满足 | 不改现有字段；共同Skill及所选模板MD均由可信Workflow装配，上传附件保持业务输入 | 按模板加载、共同规则及目录/版式验收待实施；Java授权既有差距保留 |
