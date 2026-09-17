@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 \
 RUN sed -i \
       -e "s@deb.debian.org@${DEBIAN_MIRROR}@g" \
       -e "s@security.debian.org@${DEBIAN_MIRROR}@g" \
+      -e 's@http://@https://@g' \
       /etc/apt/sources.list.d/debian.sources \
     && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 libreoffice-writer fonts-noto-cjk \
