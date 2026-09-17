@@ -45,9 +45,11 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <div class="note">Java 只提交业务字段和 <code>capabilityRef</code>。Workflow、Skill、MCP、模型、工作目录、工具参数和 Provider Session 均由 Python Runtime 内部决定。</div></section>
 
 <section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
+<tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok":true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Java 列出或下载 Python 生成的交付物。</td></tr>
+<tr><td>会话执行索引</td><td><code>GET /internal/v1/sessions/{businessSessionId}/runs</code></td><td>按授权业务会话分页查询执行摘要；不管理标题和消息。</td></tr>
 <tr><td>File Broker</td><td>Java 提供授权端点</td><td>Python 按附件引用向 Java 请求文件；Java 校验业务权限后返回一次性 URL 或代理流。</td></tr>
 <tr><td>鉴权</td><td><code>Authorization: Bearer &lt;Run JWT&gt;</code></td><td>Java 签发短期 Run JWT；Python 校验签名、身份、scope 和请求绑定。</td></tr>
 </tbody></table></section>
@@ -220,7 +222,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
   ]
 }</pre></div>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts?name=result.docx</code></div>
-<p>返回文件二进制，并设置 <code>Content-Type</code>、<code>Content-Disposition</code> 和 <code>Cache-Control: no-store</code>。<code>name</code> 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，列表可能包含同一会话之前生成的文件。</p></section>
+<p>返回文件二进制，并设置 <code>Content-Type</code>、<code>Content-Disposition</code> 和 <code>Cache-Control: no-store</code>。列表也禁止缓存；点号开头的内部文件不列出且不可下载，路径穿越和符号链接不可下载。<code>name</code> 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，列表可能包含同一会话之前生成的文件。同名成果可被后续执行覆盖，Java 应及时下载归档并绑定业务消息，不能把此接口当作不可变版本库。</p></section>
 
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
@@ -277,12 +279,13 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
 <tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话，不再校验 <code>messageId</code>。</td></tr>
-<tr><td>scope</td><td>最小权限</td><td>使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>。</td></tr>
+<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>；会话执行索引使用独立 <code>session.read</code>。</td></tr>
 </tbody></table>
 <table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
 <tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
 <tr><td>查询、SSE、Artifact</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
 <tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>消费</td></tr>
+<tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
 <div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>
 
@@ -346,19 +349,37 @@ X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef<
 <p>文件准备超时通过 run.failed 返回 file_broker_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。Java 须确保文件授权 Token 在排队后和后续文件请求时仍有效，Python 不会自动刷新。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
-<p>Runtime 错误使用 <code>text/plain; charset=utf-8</code>，Java 应按 HTTP 状态和稳定错误码处理，不把错误正文当作 JSON 解析。</p>
+<p>业务错误使用 <code>text/plain; charset=utf-8</code>；查询参数校验失败返回 <code>422 application/json</code>，包含 detail 数组。Java 应先按 HTTP 状态及 Content-Type 分支处理，不能假设所有错误都是 JSON 或纯文本。不存在的 Run 可先返回 404，不应把该响应当成鉴权成功。</p>
 <table class="error-table"><thead><tr><th>HTTP</th><th>含义</th><th>常见场景</th></tr></thead><tbody>
 <tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability、附件或 control 操作不合法。</td></tr>
 <tr><td>401</td><td>Runtime 鉴权失败</td><td>JWT 缺失、签名无效、身份绑定不一致或 scope 不允许。</td></tr>
 <tr><td>403</td><td>请求来源被拒绝</td><td>内部 Runtime 请求带有浏览器 Origin，或不满足服务间调用边界。</td></tr>
 <tr><td>404</td><td>资源不存在</td><td>Run 或 Artifact 不存在。</td></tr>
 <tr><td>409</td><td>状态冲突</td><td>幂等请求归属/内容不一致，或 Run 状态不允许当前操作。</td></tr>
-<tr><td>421</td><td>Host 不允许</td><td>请求 Host 不是当前 Runtime 地址。</td></tr>
+<tr><td>422</td><td>查询参数校验失败</td><td>limit、cursor、afterSequence 的类型、范围或长度不合法，返回 JSON detail。</td></tr>
 <tr><td>504</td><td>控制超时</td><td>中断或取消命令在控制窗口内未完成。</td></tr>
 <tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失（Artifact 接口此时返回 401）；File Broker 配置或文件访问错误会在 Run 事件中返回稳定错误码。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">Error response · text/plain</div><button class="copy" type="button">复制</button><pre>capability_not_found</pre></div></section>
-<footer>本文档只描述当前已实现的 Java → Python Runtime 契约。接口字段、事件、鉴权或 File Broker 约束发生变化时，应同步更新 Runtime 规范、Java 设计、本文档和协议测试。</footer>
+<section id="flow-coverage"><h2>原型流程与接入边界</h2>
+<p>核对基线：2026-09-17，code 项目中的对话、能力管理及模板管理原型。原型的内存演示不代表后端已接入；本次范围为 Python 执行接口，旧 Java 实现不作为验收目标。</p>
+<table><thead><tr><th>用户操作</th><th>Python 契约</th><th>业务层责任与限制</th></tr></thead><tbody>
+<tr><td>普通对话、切换能力</td><td>创建 Run；省略能力即 conversation。</td><td>业务层授权并映射目录中的能力。原型的 template-writing、project-data 等演示 ID 不能直接发送；SDK 当前仅登记三种能力，Dify 独立路由。</td></tr>
+<tr><td>系统预制模板</td><td>document-writing + payload.templateKey；当前 szpt-midterm。</td><td>按模板加载指南及数据来源。Python 无模板 CRUD 或模板目录 API；业务模板库应维护可信 templateKey 映射，不能把任意上传文件视为已登记模板。</td></tr>
+<tr><td>老师上传模板、附件</td><td>attachmentRefs + input.text，经 HTTPS File Broker 获取后撰写。</td><td>保存原件、分配 fileId、校验 ACL；后续需要的附件再次提交。上传不自动生成指南或数据绑定，不改变数据权限。</td></tr>
+<tr><td>模板管理、学校可见范围、启停、重命名、删除</td><td>不属于执行 API。</td><td>由业务层维护模板记录、版本及学校授权；预制模板执行资产通过部署更新。修改数据库记录不等于 Python 模板已更新。</td></tr>
+<tr><td>停止生成</td><td>control option: cancel 或 /cancel。</td><td>断开 SSE 不停止执行；等待终态后更新消息。interrupt 不是暂停与恢复。</td></tr>
+<tr><td>重试、重新回答、编辑后发送</td><td>传输重试复用 runId 和原请求、新 jti；重新执行使用新 runId。</td><td>保存消息与各次 Run 的关联。没有 SDK 历史回滚/分叉接口；新 Run 不会撤销旧工具副作用或自动删除历史上下文。</td></tr>
+<tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、最后已消费序号并去重。Client 仅在相同身份、会话、能力及有效配置下复用；切换能力不自动转交全文历史，Query 模式不保证连续上下文。</td></tr>
+<tr><td>文档卡片、预览、下载、引用回对话</td><td>Artifact 列表及二进制下载。</td><td>结束后主动查询成果，无 artifact.created 事件或文档预览端点；业务层归档为 fileId，再次引用经 File Broker 授权。复杂排版与完整报告质量须另做成稿验收。</td></tr>
+<tr><td>点赞、反馈、分享、语音、业务知识库管理</td><td>当前无对应执行管理 API。</td><td>业务层负责反馈/分享 ACL 和语音转写；不能从原型展示推断 Python 已具备相应接口。</td></tr>
+</tbody></table>
+<h3>2026-09-17 验证结果</h3>
+<p>157 项 Python 自动化测试通过，覆盖所有 HTTP 路由的文档登记、请求示例、身份隔离、取消、附件失败、数据授权与分页。真实本地 HTTP + SDK + 模型测试通过普通对话、幂等/冲突、SSE 续传、上传模板生成 DOCX 并下载、同会话追问、预制模板上下文加载、实际数据库指标查询、取消后新执行及会话分页。File Broker 使用校验 Run JWT/文件授权的本地 HTTPS 测试服务，未连接真实 Java。</p>
+<p>预制模板仅验收上下文加载，未生成整份深职大报告；上传样例只核对 DOCX 可解析、章节和表格保留，未替代复杂版式与目录逐页验收。当前无跨进程重启恢复完整 SDK 对话的验收保证。部署冒烟脚本已修复鉴权探测及成功事件判定：成功状态是 succeeded，成功事件是 run.completed。</p>
+<p>REQ-001：部分满足，按 MCP 注入及隔离自动化测试通过，真实 Java Token 生命周期未验收。REQ-002：部分满足，Capability 受控入口及模板/数据授权检查通过，业务层 ACL 与生产隔离仍需接入方验证。</p>
+</section>
+<footer>本文档描述当前 Python Runtime 契约及明确标注的业务接入责任。接口字段、事件、鉴权或 File Broker 约束发生变化时，同步更新规范和协议测试。</footer>
 </main><aside><p class="toc-title">目录</p><nav class="toc"></nav></aside></div>
 <script>
 const sections=[...document.querySelectorAll("main section[id]")],links=[...document.querySelectorAll(".toc")].map(nav=>sections.map(section=>{const link=document.createElement("a");link.href="#"+section.id;link.textContent=section.querySelector("h2")?.textContent||section.id;nav.append(link);return link})).flat();

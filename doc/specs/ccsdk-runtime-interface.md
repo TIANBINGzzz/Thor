@@ -267,7 +267,7 @@ GET /internal/v1/runs/{runId}/artifacts?name=result.docx
 Authorization: Bearer <Run JWT>
 ```
 
-返回文件二进制，并设置 `Content-Type`、`Content-Disposition` 和 `Cache-Control: no-store`。`name` 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，因此列表可能包含同一会话之前生成的文件。
+返回文件二进制，并设置 `Content-Type`、`Content-Disposition` 和 `Cache-Control: no-store`。列表也禁止缓存；点号开头的内部文件不列出且不可下载，路径穿越和符号链接不可下载。`name` 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，因此列表可能包含同一会话之前生成的文件。同名文件可被后续覆盖，Java应及时下载归档并绑定消息，不将此接口当作不可变版本库。
 
 ## 7. 鉴权模块
 
@@ -395,7 +395,7 @@ Runtime 错误为 `text/plain`，常见状态：
 | `401` | Run JWT 缺失、签名/绑定/scope 校验失败 |
 | `404` | Run 或 Artifact 不存在 |
 | `409` | 幂等请求的归属/请求不一致，或状态冲突 |
-| `421` | Host 不允许 |
+| `422` | 查询参数校验失败，返回 JSON detail；其他业务错误通常为 text/plain |
 | `503` | Runtime JWT 或 File Broker 配置不可用 |
 
 File Broker 的文件不可用、无权或已过期会转换为 Run 的 `run.failed`，使用稳定错误码，例如 `file_access_denied`、`file_access_expired`、`file_broker_unavailable`、`file_validation_failed`。

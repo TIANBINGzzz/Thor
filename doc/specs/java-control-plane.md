@@ -1,6 +1,6 @@
 # Java 控制面：推荐设计与当前实现
 
-更新时间：2026-09-14。本次补充预制模板仅传 `payload.templateKey` 的业务约定与能力字段映射入口；未实现模板解析，当前接口实现仍以第 2 部分的源码核对范围为准。
+更新时间：2026-09-17。本次仅核验Python执行契约；以下Java源码差异保留为历史参考，不代表当前业务层验收。预制模板已按payload.templateKey加载指南与来源，上传模板沿用附件引用；具体契约与原型流程覆盖见[API HTML](../python-api.html#flow-coverage)。
 结论：Python 已提供 Run、鉴权、SSE 和文件接口；本地 Java 有接入骨架，但请求仍是旧协议，不能视为已经联通。
 
 ## 0. 维护约定与核对范围
@@ -437,7 +437,7 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
 }
 ```
 
-Python 列出 .deliverables 中普通文件，下载限制到该目录。Java 下载后登记到自身文件服务，生成业务 fileId、文件名、大小、受权 URL，再供前端展示或用于新 Run。Java 适配器尚无 Artifact 调用；Client 目录是会话级共享，不能直接把列表当作本 Run 新增文件，见 2.8。来源：server.py 的 internal_artifacts。
+Python列出交付目录中的非隐藏普通文件，禁止下载内部清单、路径穿越和符号链接，列表及下载均禁止缓存。Java下载后登记到自身文件服务，生成业务fileId，再供前端展示或新Run引用。Client目录是会话级共享，同名文件可被覆盖，不能把列表当作本Run新增文件或不可变历史版本。旧Java适配器的差异仅作历史参考。来源：server.py的internal_artifacts。
 
 ### 2.8 差异与问题记录
 

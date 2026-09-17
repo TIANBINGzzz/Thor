@@ -1,0 +1,56 @@
+"""Keep the published API page aligned with executable request contracts."""
+
+from html.parser import HTMLParser
+import json
+from pathlib import Path
+import re
+import unittest
+
+import server
+from runtime.protocol import AgentRunRequest
+
+
+class ReferenceParser(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.text = []
+        self.examples = []
+        self.current = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'pre':
+            self.current = []
+
+    def handle_data(self, data):
+        self.text.append(data)
+        if self.current is not None:
+            self.current.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'pre' and self.current is not None:
+            self.examples.append(''.join(self.current))
+            self.current = None
+
+
+class APIReferenceTests(unittest.TestCase):
+    def setUp(self):
+        self.page = ReferenceParser()
+        self.page.feed((Path(__file__).resolve().parents[2] / 'doc/python-api.html').read_text(encoding='utf-8'))
+
+    def test_all_runtime_routes_are_documented(self):
+        text = re.sub(r'\{[^}]+\}', '{}', '\n'.join(self.page.text))
+        for route in server.app.routes:
+            with self.subTest(path=route.path):
+                self.assertTrue(re.sub(r'\{[^}]+\}', '{}', route.path) in text,
+                                f'Undocumented route: {route.path}')
+
+    def test_full_run_request_examples_follow_current_protocol(self):
+        count = 0
+        for example in self.page.examples:
+            if not example.lstrip().startswith('{'):
+                continue
+            data = json.loads(example)
+            if data.get('protocol') == 'agent-run/v1':
+                AgentRunRequest.from_dict(data)
+                count += 1
+        self.assertGreater(count, 0)

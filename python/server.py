@@ -887,12 +887,17 @@ async def internal_artifacts(run_id: str, request: Request, name: str | None = N
     session_key = metadata.get("sessionKey")
     root = (_client_session_directory(session_key) if session_key else PROJECT_ROOT / ".scribe-runs" / "work" / run_id) / ".deliverables"
     if name is not None:
-        path = (root / name).resolve()
-        if path.parent != root.resolve() or path.is_symlink() or not path.is_file():
+        if name.startswith('.') or '/' in name or '\\' in name:
+            return _plain("文件不存在", 404)
+        candidate = root / name
+        path = candidate.resolve()
+        if path.parent != root.resolve() or candidate.is_symlink() or not path.is_file():
             return _plain("文件不存在", 404)
         return FileResponse(path, filename=path.name, headers={"x-content-type-options": "nosniff", "cache-control": "no-store"})
-    return {"files": [{"name": path.name, "size": path.stat().st_size}
-                      for path in root.iterdir() if path.is_file() and not path.is_symlink()] if root.is_dir() else []}
+    return JSONResponse({"files": [{"name": path.name, "size": path.stat().st_size}
+                      for path in root.iterdir() if not path.name.startswith('.')
+                      and path.is_file() and not path.is_symlink()] if root.is_dir() else []},
+                        headers={"cache-control": "no-store"})
 
 
 async def _apply_internal_control(run_id: str, request: Request, option: str):

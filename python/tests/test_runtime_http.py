@@ -210,3 +210,25 @@ class RuntimeHTTPTests(unittest.TestCase):
         download = self.client.get("/internal/v1/runs/run-test/artifacts?name=result.txt", headers=self.headers())
         self.assertEqual(download.content, b"result")
         self.assertNotIn(str(root), str(download.headers))
+
+    def test_artifacts_hide_internal_publication_metadata(self):
+        self.seed('succeeded')
+        root = Path(self.temp.name) / '.scribe-runs' / 'work' / 'run-test' / '.deliverables'
+        root.mkdir(parents=True)
+        (root / '.published.json').write_text('{"files":{}}', encoding='utf-8')
+        (root / 'report.txt').write_text('report', encoding='utf-8')
+        route = '/internal/v1/runs/run-test/artifacts'
+        response = self.client.get(route, headers=self.headers())
+        self.assertEqual(response.json(), {'files': [{'name': 'report.txt', 'size': 6}]})
+        self.assertEqual(self.client.get(route, params={'name': '.published.json'},
+                                        headers=self.headers()).status_code, 404)
+        self.assertEqual(response.headers['cache-control'], 'no-store')
+        link = root / 'alias.txt'
+        try:
+            link.symlink_to(root / 'report.txt')
+        except OSError:
+            return  # Windows may require elevated symlink privileges.
+        self.assertEqual(self.client.get(route, params={'name': link.name},
+                                        headers=self.headers()).status_code, 404)
+        self.assertEqual(self.client.get(route, headers=self.headers()).json(),
+                         {'files': [{'name': 'report.txt', 'size': 6}]})

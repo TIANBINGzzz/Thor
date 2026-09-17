@@ -31,11 +31,12 @@ async def main():
         return {"Authorization": "Bearer " + token}
 
     # Loopback refers to this running container, not the deployment host.
-    async with httpx.AsyncClient(base_url="http://127.0.0.1:4310", timeout=240, trust_env=False) as client:
+    async with httpx.AsyncClient(base_url=os.environ.get("CCSDK_SMOKE_BASE_URL", "http://127.0.0.1:4310"),
+                                 timeout=240, trust_env=False) as client:
         if (await client.get("/health")).status_code != 200:
             raise ValueError("Health check failed")
         route = "/internal/v1/runs/" + body["runId"]
-        if (await client.get(route)).status_code != 401:
+        if (await client.post("/internal/v1/runs", json=body)).status_code != 401:
             raise ValueError("Unauthenticated access was not rejected")
         response = await client.post("/internal/v1/runs", json=body, headers=headers("run.execute"))
         if response.status_code != 202:
@@ -49,7 +50,7 @@ async def main():
                         if line.startswith("data: "):
                             events.append(json.loads(line[6:]))
             text = "".join(event.get("payload", {}).get("textDelta", "") for event in events)
-            if not any(event["type"] == "run.succeeded" for event in events) or "391" not in text:
+            if not any(event["type"] == "run.completed" for event in events) or "391" not in text:
                 raise ValueError("Model Run or expected response check failed")
             sequences = [event["sequence"] for event in events]
             if sequences != sorted(set(sequences)):
