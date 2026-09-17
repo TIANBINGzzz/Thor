@@ -25,7 +25,7 @@ def excluded(name):
     if path.name.lower() in {"agent.md", "agents.md", "claude.md"}:
         return True
     if path.name.lower() == "readme.md":
-        return False
+        return True
     return path.suffix.lower() in {".md", ".mdx", ".rst"} and not name.startswith(".claude/")
 
 
@@ -51,7 +51,7 @@ def main():
                 input=("\0".join(removed) + "\0").encode())
         tree = git("write-tree", env=env).decode().strip()
     remaining = git("ls-tree", "-r", "--name-only", "-z", tree).decode().split("\0")
-    if "README.md" not in remaining or any(excluded(name) for name in remaining if name):
+    if any(excluded(name) for name in remaining if name):
         raise SystemExit("Filtered snapshot validation failed.")
     if tree == git("rev-parse", f"{parent}^{{tree}}").decode().strip():
         commit = parent
