@@ -419,13 +419,12 @@ class RegisteredAssetsTests(unittest.TestCase):
             if spec['status']=='defined':
                 with self.subTest(query=spec['id']): validate_sql(catalog.sql('schoolDoubleHigh','hpm',spec),policy)
 
-    def test_template_all_mappings_are_bound_to_original_physical_paragraphs(self):
+    def test_template_context_does_not_require_map_or_plan(self):
         template=load_template('szpt-midterm','document-writing')
-        self.assertEqual(template['_map_status']['matched_annotations'],3503)
-        self.assertGreater(len(template['_locations']),3503)
-        self.assertEqual(len([s for s in template['_locations'] if s['table'] and s.get('annotation')]),2710)
-        self.assertEqual(len({location['table']['table_id'] for location in template['_document_map']['locations']
-                              if location['table']}),40)
+        self.assertNotIn('_locations',template)
+        self.assertNotIn('_bindings',template)
+        self.assertTrue(template['_docx'].is_file())
+        self.assertTrue(template['_documents'])
         self.assertEqual(template['source_roles'],{'hpm':'schoolDoubleHigh'})
 
 

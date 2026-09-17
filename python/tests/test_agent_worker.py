@@ -60,19 +60,20 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn("DBHub", prompt)
         self.assertNotIn("semantics", config["documents"])
 
-    def test_fixed_template_only_mounts_data_and_report_tools(self):
-        with patch.dict("os.environ", {}, clear=True):
+    def test_fixed_template_uses_general_harness_and_stages_source(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {}, clear=True):
             options = build_options({"workflow_name":"writing-docx", "capability_ref":"document-writing",
-                "_template_key":"szpt-midterm", "session_directory":"session",
-                "work_directory":"work", "deliverables_directory":"output"})
-        self.assertEqual(set(options.mcp_servers), {"data", "reports"})
-        self.assertEqual(options.tools, [])
-        self.assertEqual(options.setting_sources, [])
-        self.assertTrue(options.strict_mcp_config)
-
-        self.assertIn('save_report_sections',options.system_prompt['append'])
-        self.assertIn('publish_report',options.system_prompt['append'])
-        self.assertNotIn('如果存在更快且可靠的实现方式',options.system_prompt['append'])
+                "_template_key":"szpt-midterm", "session_directory":directory,
+                "work_directory":str(Path(directory)/'work'), "deliverables_directory":str(Path(directory)/'output')})
+            copies=list(Path(directory).rglob('template.docx'))
+            self.assertEqual(len(copies),1)
+            self.assertIn(str(copies[0]),options.system_prompt['append'])
+        self.assertEqual(set(options.mcp_servers), {"data", "docx", "artifacts"})
+        self.assertEqual(options.tools, {'type':'preset','preset':'claude_code'})
+        self.assertEqual(options.setting_sources, ['project','local'])
+        self.assertFalse(options.strict_mcp_config)
+        self.assertNotIn('save_report_sections',options.system_prompt['append'])
+        self.assertIn('mcp__artifacts__publish_file',options.system_prompt['append'])
 
     def test_regular_writing_without_configured_database_keeps_normal_skill(self):
         with patch.dict('os.environ',{},clear=True), patch('runtime.config.Catalog') as catalog:

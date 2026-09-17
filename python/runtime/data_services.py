@@ -14,8 +14,6 @@ class RunServices:
         self.catalog = catalog or Catalog()
         self.source_keys = tuple(source_keys)
         self.executor = None
-        self.report = None
-        self.workflow_revision = None
         self.tasks = set()
         self.lock = asyncio.Lock()
 
@@ -23,7 +21,6 @@ class RunServices:
         await self.close()
         context = DataContext.from_payload(payload)
         from workflows.writing_docx.template_assets import load_template
-        from workflows.writing_docx.report_planner import ReportPlanner
         template = load_template(context.template_key, context.capability_ref) if context.template_key else None
         selected = self.source_keys
         if template:
@@ -38,10 +35,6 @@ class RunServices:
             for source in template["source_roles"].values():
                 executor.access(source)
         self.executor = executor
-        self.workflow_revision = (payload.get('_workflow_assets') or {}).get('revision')
-        self.artifact_directories = {k: payload.get(k) for k in
-                                    ("session_directory", "deliverables_directory")}
-        self.report = ReportPlanner(self, template) if template else None
 
     def current(self):
         if self.executor is None:
@@ -66,10 +59,6 @@ class RunServices:
     async def close(self):
         if self.executor:
             self.executor.connections.cancel()
-        if self.report:
-            await self.report.close()
         if self.tasks:
             await asyncio.gather(*self.tasks, return_exceptions=True)
         self.executor = None
-        self.report = None
-        self.workflow_revision = None

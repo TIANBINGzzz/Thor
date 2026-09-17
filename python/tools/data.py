@@ -14,11 +14,6 @@ PARAMETERS = {"type": "object", "maxProperties": 100}
 SOURCE = {"source_key": REFERENCE, "domain": REFERENCE}
 
 
-class ToolContent:
-    def __init__(self, content):
-        self.content = content
-
-
 def tool_server(name, definitions):
     registered = []
     for tool_name, description, properties, required, handler in definitions:
@@ -29,18 +24,13 @@ def tool_server(name, definitions):
                 if next(Draft202012Validator(_schema).iter_errors(args), None):
                     raise DataError("PARAMETERS_INVALID")
                 value = await _handler(**args)
-                if isinstance(value, ToolContent):
-                    return {"content": value.content}
                 return {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False, default=json_value, allow_nan=False)}]}
             except asyncio.CancelledError:
                 raise
             except Exception as error:
                 code = error.code if isinstance(error, DataError) else "EXECUTION_FAILED"
                 details = getattr(error, 'public_details', {}) if isinstance(error, DataError) else {}
-                message = {'DRAFT_NUMBER_UNSUPPORTED':'正文中的数字没有所引证据支持，请修改对应段落。',
-                           'REPORT_BODY_INCOMPLETE':'原模板必填正文尚未全部保存，请按原章节继续撰写。',
-                           'REPORT_VISUAL_REVIEW_REQUIRED':'还有页面未通过实际审阅，请查看页面图片并记录检查结论。'}.get(code,
-                           '数据操作未完成，请检查授权、参数或已登记的业务口径。')
+                message = '数据操作未完成，请检查授权、参数或已登记的业务口径。'
                 return {"isError": True, "content": [{"type": "text", "text": json.dumps({
                     "status": "failed", "error": {"code": code, "message": message, "retryable": False, **details}}, ensure_ascii=False)}]}
 

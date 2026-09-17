@@ -39,13 +39,13 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
-共同写作规则在 `.claude/skills/writing-documents/SKILL.md`。预制模板由`template.json.assets`登记，按templateKey加载逐段指南；位置地图和20个推荐数据集均按需使用。Agent依据当前DOCX编辑段落/表格，可拆分正文，不要求预标槽或填满旧地图；证据、实际修改及全文页面检查后发布。上传模板读取标题、表格和样式后生成新稿、重建目录，不生成地图或承诺原位编辑。原逐页来源与指标YAML保留，缺证据用黄色说明，详见[混合模板策略](doc/ADR/026-hybrid-template-editing.md)。
+共同写作规则在 `.claude/skills/writing-documents/SKILL.md`。预制模板按templateKey加载所选writing-guide.md及DOCX参考副本，Agent自主规划、取证和撰写；与上传模板、无模板共用通用DOCX、文件、代码、data及Artifact工具。地图和取数计划仅作维护参考，无专用报告草稿流水线。原逐页来源与指标YAML保留，不确定内容用黄色说明；目录、事实和全文版式须实际检查，发布成功不代表内容审核通过，详见[自主撰写决策](doc/ADR/027-agent-led-document-writing.md)。
 
 业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 
 [共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。按主题YAML内嵌指标定义与SQL为唯一维护源，检索索引由Python生成；data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
 
-[模板批量计划](doc/specs/template-batch-data-plan.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
+[模板撰写](doc/specs/template-batch-data-plan.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
 
 前端和Java按消息提交可选capabilityRef；不能提交Workflow、Skill、模型、MCP地址或工作目录。同一业务会话切换能力时，Python隔离各能力Client和工具上下文。
 
@@ -53,7 +53,7 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 
 模型配置写在根.env；数据库包的source.json登记可用能力；部署侧databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
-报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可配置`CCSDK_REPORT_RENDERER=wps`使用已安装WPS。无法渲染或逐页审阅未通过时禁止发布。
+报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可由Agent通过代码使用已安装Office/WPS。目录及逐页版式仍须实际验收，无法完成时明确披露，不能声称通过。
 
 ## 文档入口
 

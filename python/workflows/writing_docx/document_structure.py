@@ -1,12 +1,10 @@
-"""Current DOCX locations with optional, conservatively matched template annotations."""
+"""DOCX structure inspection for the optional maintenance map generator."""
 
 from collections import Counter
-from hashlib import sha256
 from zipfile import ZipFile
 
 from lxml import etree
 
-from data_access.context import DataError
 from .document_map import NS, document_xml, document_locations
 
 
@@ -77,34 +75,3 @@ def inspect_locations(path, document_map):
         result.append(hint)
     return result, {'matched_annotations': matched, 'unmatched_annotations': len(annotations) - matched,
                     'current_locations': len(current)}
-
-
-def resolve_target(locations, target):
-    """Resolve only exact selectors against the current Run's document snapshot."""
-    if (not isinstance(target, dict) or not target
-            or set(target) - {'location_hint', 'section', 'original_text', 'table'}):
-        raise DataError('DRAFT_TARGET_INVALID')
-    matches = locations
-    for key, field in (('location_hint', 'location_hint'), ('section', 'section'), ('original_text', 'text')):
-        if key in target:
-            matches = [item for item in matches if item[field] == target[key]]
-    if 'table' in target:
-        table = target['table']
-        if (not isinstance(table, dict) or set(table) != {'table_id', 'row', 'column', 'paragraph'}
-                or not isinstance(table['table_id'], str)
-                or any(type(table[k]) is not int or table[k] < 1 for k in ('row', 'column', 'paragraph'))):
-            raise DataError('DRAFT_TARGET_INVALID')
-        matches = [item for item in matches if item['table'] == table]
-    if len(matches) != 1:
-        raise DataError('DRAFT_LOCATION_AMBIGUOUS')
-    if matches[0].get('cell_layout', {}).get('vertical_merge') == 'continue':
-        raise DataError('DRAFT_MERGED_CELL_CONTINUATION')
-    return matches[0]
-
-
-def public_location(location):
-    return {key: value for key, value in location.items() if key != 'locator'}
-
-
-def document_digest(path):
-    return sha256(path.read_bytes()).hexdigest()

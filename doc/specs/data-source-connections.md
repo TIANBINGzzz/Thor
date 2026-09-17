@@ -14,7 +14,7 @@
   semantics/relationships.md 关联、归属和去重
 python/data_access/         通用连接、授权、查询和结果
 python/runtime/data_services.py  每Run装配及私有配置快照
-python/workflows/writing_docx/   固定模板绑定、批量计划、reports工具及回填核验
+python/workflows/writing_docx/   可信模板上下文、参考副本和可选地图维护
 python/tests/databases/      按数据库验证结构、指标SQL及覆盖
 config/databases.json        部署配置；集中保存各来源连接/策略，不入Git或镜像
 config/certificates/         部署侧CA证书，路径相对databases.json
@@ -73,5 +73,5 @@ TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配�
 
 | 要求 | 状态 | 依据与差距 |
 | --- | --- | --- |
-| REQ-001 | 部分满足 | data/reports不接业务Token，business沿原规则注入，Run重绑有测试；真实Java撤销及日志全链路待验收 |
+| REQ-001 | 部分满足 | data不接业务Token，business沿原规则注入，Run重绑有测试；真实Java撤销及日志全链路待验收 |
 | REQ-002 | 部分满足 | 来源/能力/模板受控；固定报告只挂数据和报告工具；外部Java旧协议及前端选择器仍须对齐 |

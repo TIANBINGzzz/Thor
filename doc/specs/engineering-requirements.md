@@ -67,7 +67,7 @@
 - 2026-09-14预制模板仅需payload.templateKey，年份/要求在input.text；Python解析模板、核验能力/来源并记录配置版本，见[能力payload映射](capability-payload.md)。原40表恢复为唯一启用模板，按章节保存正文及原位回填，结构样式与全文审阅均为发布前置；缺历史实值仍须明确披露。
 - 2026-09-14已接入[数据库包](../../.claude/databases/README.md)、固定/动态查询、静态来源策略及逐Run上下文。合成测试覆盖多来源同名查询、用户/租户/范围隔离及取消；真实Java授权、撤销和生产多租户仍未验收。
 - 当前唯一来源为校双高数据库schoolDoubleHigh，[ADR-022](../ADR/022-school-database-single-tenant.md)保留单租户边界，[ADR-023](../ADR/023-database-scoped-asset-packages.md)的按库目录已实施。单租户不删tenant过滤，来源发现不授权，selected项目范围不能扩大为全校。
-- 固定模板SDK只挂data/reports工具，报告工具复用Artifact发布；普通Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成。
+- 2026-09-17：预制模板与上传模板统一使用通用SDK/DOCX/data/Artifact工具，专用reports流水线已删除。模板选择、数据来源及Run结果引用边界保留；Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成，见[ADR-027](../ADR/027-agent-led-document-writing.md)。
 
 - 2026-09-16：撰写共同Skill已统一注入，所选预制模板以documents加载专属MD并限定数据源；请求字段不变，规则哈希参与Client隔离及模板计划。上传模板保留附件参考路径，目录重建为Skill要求，复杂DOCX/目录及真实Java验收尚未完成，见[ADR-025](../ADR/025-unified-template-writing.md)。
 - 2026-09-17：预制地图与取数计划改为可选参考，按当前DOCX结构唯一定位；上传模板只读语义结构生成新稿，不登记地图。相同Capability及外部传值不变，既有Token/Java/复杂成稿验收差距保留，见[ADR-026](../ADR/026-hybrid-template-editing.md)。

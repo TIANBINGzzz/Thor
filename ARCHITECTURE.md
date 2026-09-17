@@ -25,7 +25,7 @@ python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
   tools/      data、DOCX、Artifact通用工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
-  workflows/writing_docx/ 模板指南、可选地图、按需取数、当前文档编辑及全文核验
+  workflows/writing_docx/ 可信模板及指南加载、参考副本、可选地图维护工具
   tests/      后端测试
 .claude/      skills/、agents/、commands/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
@@ -40,7 +40,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`按逐段指南撰写，地图和指标计划仅供参考，report_locations读取当前DOCX并唯一解析编辑目标，report_renderer保留未改内容及样式，report_validator核验实际修改和全文页面。可信Workflow注入共同Skill及所选指南，实际DOCX指纹冻结到Run；指标含义和SQL只放数据库包。上传模板仅作结构/样式参考生成新稿，不登记地图。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow注入共同Skill及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收，统一使用通用DOCX、文件、代码及Artifact工具。地图和取数计划只作维护参考，指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图。发布工具校验文件边界，不代替业务与版式核验。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
@@ -72,7 +72,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 
 - 安全：当前 `bypassPermissions` 和路径约定不构成生产沙箱；多租户需文件、进程、网络及凭据隔离。
 - 可靠性与观测：Run 状态、事件回放、超时、取消和 Client 恢复分别管理；运行事件通过 RunStore 管理。
-- 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和report计划/成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
+- 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和文档成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
 - 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像，部署主机生成配置或保留学校现场配置。集中配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE定位databases.json；公开资产随镜像交付，命名卷保存运行数据。换Key需排空并重建；单副本单HTTP worker，容器不代表租户隔离或生产验收。

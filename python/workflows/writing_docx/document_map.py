@@ -61,7 +61,7 @@ def document_locations(xml):
 def build_document_map(template_key, template_version, docx_path, annotations=None):
     """Build structural locations and merge only explicit business classifications."""
     path = Path(docx_path)
-    from .report_locations import inspect_locations
+    from .document_structure import inspect_locations
     current, _ = inspect_locations(path, {'locations': annotations or []})
     # Reuse IDs only for exact, unambiguous matches; new locations get new IDs.
     reserved = {item['annotation']['location_id'] for item in current if item.get('annotation')}
@@ -120,19 +120,6 @@ def document_xml(path):
             archive.read("word/document.xml"),
             etree.XMLParser(resolve_entities=False, no_network=True),
         )
-
-
-def locate(xml, locator):
-    if locator.get("part") != "word/document.xml":
-        raise DataError("TEMPLATE_MISMATCH")
-    nodes = xml.xpath(locator["path"], namespaces=NS)
-    if (
-        len(nodes) != 1
-        or nodes[0].tag != "{" + NS["w"] + "}p"
-        or text_hash(nodes[0]) != locator["expected_text_hash"]
-    ):
-        raise DataError("TEMPLATE_MISMATCH")
-    return nodes[0]
 
 
 def main():

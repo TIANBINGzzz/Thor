@@ -15,7 +15,7 @@ from runtime.config import build_options, prepare_workflow_assets, workflow_prom
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
 from runtime.protocol import AgentRunRequest
 from workflows.writing_docx.document_map import build_document_map
-from workflows.writing_docx.template_assets import load_template
+from workflows.writing_docx.template_assets import load_template, stage_template
 
 
 class TemplateDocumentTests(unittest.TestCase):
@@ -155,3 +155,78 @@ class TemplateDocumentTests(unittest.TestCase):
         config=json.loads(path.read_text()); config['enabled']=False; self.save(path,config)
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
             prepare_workflow_assets(self.payload('alpha'))
+
+    def test_optional_maintenance_assets_are_not_runtime_dependencies(self):
+        directory=self.directory/'templates/alpha'
+        before=self.load('alpha','document-writing')
+        (directory/'document-map.json').unlink()
+        (directory/'report-data-plan.json').write_text('invalid maintenance draft')
+        after=self.load('alpha','document-writing')
+        self.assertEqual(before['_revision'],after['_revision'])
+        self.assertNotIn('_locations',after)
+
+    def test_staged_copy_is_repeatable_and_never_overwrites_edits(self):
+        template=self.load('alpha','document-writing')
+        source=template['_docx'].read_bytes()
+        staged=stage_template(template,self.root/'run-a')
+        self.assertEqual(staged.read_bytes(),source)
+        self.assertEqual(stage_template(template,self.root/'run-a'),staged)
+        other=stage_template(template,self.root/'run-b')
+        self.assertNotEqual(staged,other)
+        staged.write_bytes(b'changed')
+        with self.assertRaisesRegex(DataError,'TEMPLATE_COPY_MODIFIED'):
+            stage_template(template,self.root/'run-a')
+        self.assertEqual(staged.read_bytes(),b'changed')
+        self.assertEqual(template['_docx'].read_bytes(),source)
+        self.assertEqual(other.read_bytes(),source)
+
+    def test_changed_source_cannot_be_staged_with_frozen_digest(self):
+        template=self.load('alpha','document-writing')
+        template['_docx'].write_bytes(b'changed')
+        with self.assertRaisesRegex(DataError,'TEMPLATE_MISMATCH'):
+            stage_template(template,self.root/'run')
+
+    def test_registered_template_requires_run_workspace(self):
+        with patch('runtime.config.create_run_services',return_value=object()):
+            with self.assertRaisesRegex(DataError,'TEMPLATE_WORKSPACE_REQUIRED'):
+                build_options(self.payload('alpha'))
+
+    def test_template_copy_can_be_read_edited_and_published_with_general_tools(self):
+        from tools.docx import inspect_document, extract_document
+        from tools.artifacts import publish_artifact
+        source=self.directory/'templates/alpha/template.docx'
+        document=Document()
+        document.add_heading('Construction progress',1)
+        document.add_paragraph('Template example')
+        document.add_table(rows=1,cols=2).cell(0,0).text='Metric'
+        document.save(source)
+        original=source.read_bytes()
+        work=self.root/'session/work'
+        staged=stage_template(self.load('alpha','document-writing'),work)
+        structure=inspect_document(str(staged),work)['structure']
+        self.assertEqual(structure[0]['heading_level'],1)
+        self.assertEqual(structure[2]['type'],'table')
+        draft=Document(staged)
+        draft.paragraphs[1].text='Evidence still required'
+        from docx.shared import RGBColor
+        draft.paragraphs[1].runs[0].font.color.rgb=RGBColor(255,192,0)
+        output=work/'draft.docx'
+        draft.save(output)
+        self.assertIn('Evidence still required',extract_document(str(output),work)['text'])
+        result=publish_artifact(output,'report.docx',work,self.root/'session/deliverables',self.root/'session')
+        self.assertEqual(source.read_bytes(),original)
+        self.assertEqual(staged.read_bytes(),original)
+        self.assertTrue(result)
+        published=self.root/'session/deliverables/report.docx'
+        self.assertEqual(Document(published).paragraphs[1].text,'Evidence still required')
+        self.assertEqual(str(Document(published).paragraphs[1].runs[0].font.color.rgb),'FFC000')
+
+    def test_source_change_after_prompt_freeze_rejects_agent_start(self):
+        payload=self.payload('alpha')
+        prepare_workflow_assets(payload)
+        payload.update(session_directory=str(self.root/'session'),work_directory=str(self.root/'session/work'),
+                       deliverables_directory=str(self.root/'session/output'))
+        (self.directory/'templates/alpha/writing-guide.md').write_text('NEW_RULES')
+        with patch('runtime.config.create_run_services',return_value=object()):
+            with self.assertRaisesRegex(DataError,'TEMPLATE_MISMATCH'):
+                build_options(payload)

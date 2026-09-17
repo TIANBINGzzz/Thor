@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 from tools.artifacts import create_artifact_server
 from tools.docx import create_docx_server
 from tools.data import create_data_server
-from workflows.writing_docx.tools import create_reports_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
 from data_access.connections import load_config
@@ -70,7 +69,6 @@ WORKER_CONFIG_ENV_KEYS = {
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
-    "CCSDK_REPORT_RENDERER",
 }
 DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
 
@@ -415,17 +413,29 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
     registered_template = assets['template_revision'] is not None
-    restricted_tools = direct_workflow or registered_template
+    restricted_tools = direct_workflow
     mcp_servers: dict[str, Any] = {}
     if data_services:
         mcp_servers["data"] = create_data_server(data_services)
-        if payload.get("_template_key"):
-            mcp_servers["reports"] = create_reports_server(data_services)
     session_directory = payload.get("session_directory")
     work_directory = payload.get("work_directory")
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
     prompt_append = payload.get("system_prompt_append") or ""
+    if registered_template:
+        from workflows.writing_docx.template_assets import load_template, stage_template
+        if not artifact_enabled:
+            raise DataError('TEMPLATE_WORKSPACE_REQUIRED')
+        template = load_template(payload['_template_key'], payload.get('capability_ref'))
+        if template['_revision'] != assets['template_revision']:
+            raise DataError('TEMPLATE_MISMATCH')
+        template_path = stage_template(template, work_directory)
+        prompt_append += (
+            '\n本轮预制模板参考副本：' + str(template_path)
+            + '\n先读取该DOCX全文及结构，另存工作稿；不要修改参考副本。'
+            + '\n模板建议成果名称：' + template['file_name']
+            + '\n报告对象、期间及截止日按本轮用户要求确定。自行组织取证、撰写与文档处理步骤。'
+        )
     if artifact_enabled and not restricted_tools:
         prompt_append += (
             "\n当前执行的受控工作目录：" + str(work_directory)
@@ -468,8 +478,6 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
     allowed_tools = [] if restricted_tools else ["mcp__docx__*"]
     if database_enabled:
         allowed_tools.append("mcp__data__*")
-        if payload.get("_template_key"):
-            allowed_tools.append("mcp__reports__*")
     if artifact_enabled and not restricted_tools:
         allowed_tools.append("mcp__artifacts__*")
     requested_skills = (workflow_config or {}).get("skills", payload.get("skill_refs") or [])

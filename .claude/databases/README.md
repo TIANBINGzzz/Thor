@@ -15,6 +15,6 @@
 
 `python/data_access/`处理连接、授权、检索、执行和结果；`python/runtime/data_services.py`装配每Run服务；固定模板代码在`python/workflows/writing_docx/`。数据库测试和18问覆盖在`python/tests/databases/school_double_high/`，运行数据在Run目录。
 
-每Run冻结已登记知识和私有配置的独立副本；私有文件不计入知识版本，连接/策略版本单独记录。授权来源仍校验tenant、用户、Capability、模板和项目范围。来源发现不授予权限，data/reports不接业务Token。
+每Run冻结已登记知识和私有配置的独立副本；私有文件不计入知识版本，连接/策略版本单独记录。授权来源仍校验tenant、用户、Capability、模板和项目范围。来源发现不授予权限，data不接业务Token。
 
 所有连接和策略集中在部署侧`databases.json`的`sources.<source_key>`，不放数据库知识包。`CCSDK_DATABASES_FILE`指定文件位置，相对路径以项目根目录为基准，默认`config/databases.json`；CA相对该文件解析。示例见`deploy/data-access.example.json`。管理员在python目录执行`python -m data_access list/validate/probe`；前两者仅检查知识，probe读取集中配置。生产Java授权、撤销和多租户隔离仍须独立验收。
