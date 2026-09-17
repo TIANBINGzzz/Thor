@@ -28,7 +28,7 @@ class Capability:
 CAPABILITIES: dict[str, Capability] = {
     "conversation": Capability("conversation", None, True, "通用对话", "日常交流、内容总结与问题解答"),
     "document-writing": Capability("document-writing", "writing-docx", True, "文档撰写", "起草、修改与生成 Word 文档"),
-    "national-excellence-data-qa": Capability("national-excellence-data-qa", "database-qa", False, "双高问数", "查询国双高项目、任务、资金与绩效"),
+    "national-excellence-data-qa": Capability("national-excellence-data-qa", "double-high-qa", False, "双高问数", "查询国双高项目、任务、资金与绩效"),
 }
 
 

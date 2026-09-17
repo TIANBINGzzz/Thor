@@ -67,7 +67,7 @@ class AssetContractTests(unittest.TestCase):
         self.assertEqual(len(self.tables),13)
         self.assertEqual(sum(map(len,self.tables.values())),158)
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
-        for workflow in ('database-qa','writing-docx'):
+        for workflow in ('double-high-qa','writing-docx'):
             config=json.loads((ROOT/f'.claude/workflows/{workflow}/workflow.json').read_text(encoding='utf-8'))
             self.assertNotIn('data_sources',config)
         self.assertEqual(self.source['capabilities'],['national-excellence-data-qa','document-writing'])

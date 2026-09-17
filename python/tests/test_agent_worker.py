@@ -33,12 +33,14 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("不输出服务器本地路径", prompt)
 
     def test_data_tools_are_capability_selected(self):
+        from runtime.capabilities import resolve_capability
         with patch.dict("os.environ", {}, clear=True):
             self.assertIsNone(create_run_services({}))
-            config = load_workflow_config("database-qa")
+            capability = resolve_capability("national-excellence-data-qa")
+            config = load_workflow_config("double-high-qa")
             self.assertEqual(config["data_access"], "required")
             self.assertNotIn("data_sources", config)
-            options = build_options({"workflow_name": "database-qa", "capability_ref":"national-excellence-data-qa"})
+            options = build_options({"workflow_name": capability.workflow_ref, "capability_ref": capability.ref})
         self.assertEqual(options.tools, [])
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
@@ -48,7 +50,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
 
     def test_database_prompt_contains_guards_and_explicit_semantic_loading(self):
-        config = load_workflow_config("database-qa")
+        config = load_workflow_config("double-high-qa")
         prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
         self.assertNotIn("t_hpm_project", prompt)
         self.assertNotIn("schoolDoubleHigh", prompt)
@@ -100,8 +102,9 @@ class AgentWorkerTests(unittest.TestCase):
             load_workflow_config("../outside")
 
     def test_unknown_workflow_is_rejected(self):
-        with self.assertRaisesRegex(RuntimeError, "workflow 不存在"):
-            load_workflow_config("does-not-exist")
+        for name in ("does-not-exist", "database-qa"):
+            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "workflow 不存在"):
+                load_workflow_config(name)
 
     def test_unregistered_flat_script_is_not_a_workflow(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -117,7 +120,7 @@ class AgentWorkerTests(unittest.TestCase):
             "DB_PASSWORD": "do-not-leak",
         }
         with patch.dict("os.environ", values, clear=True):
-            config = load_workflow_config("database-qa")
+            config = load_workflow_config("double-high-qa")
             prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
         self.assertNotIn("do-not-leak", prompt)
 
@@ -181,16 +184,16 @@ class AgentWorkerTests(unittest.TestCase):
         )
 
     def test_workflow_documents_are_loaded_from_declared_paths(self):
-        config = load_workflow_config("database-qa")
+        config = load_workflow_config("double-high-qa")
         documents = workflow_prompt_documents(config)
         self.assertIn("问数流程", documents)
         self.assertNotIn("HPM 术语与指标语义层", documents)
 
     def test_workflow_environment_path_is_colocated(self):
-        config = load_workflow_config("database-qa")
+        config = load_workflow_config("double-high-qa")
         path = workflow_environment_path(config)
         self.assertEqual(path.name, "workflow.env")
-        self.assertEqual(path.parent.name, "database-qa")
+        self.assertEqual(path.parent.name, "double-high-qa")
 
     def test_common_instructions_are_injected_with_only_selected_template_guide(self):
         from workflows.writing_docx.template_assets import load_template
@@ -214,7 +217,7 @@ class AgentWorkerTests(unittest.TestCase):
             with patch.dict("os.environ", {}, clear=True):
                 with patch("runtime.config.load_dotenv") as load_dotenv:
                     with patch("runtime.config.workflow_environment_path", return_value=Path(env_file.name)):
-                        load_runtime_environment("database-qa")
+                        load_runtime_environment("double-high-qa")
         self.assertEqual(load_dotenv.call_count, 2)
         self.assertEqual(load_dotenv.call_args_list[1].args[0], Path(env_file.name))
 
@@ -247,9 +250,9 @@ class AgentWorkerTests(unittest.TestCase):
         event = direct_workflow_event({
             "type": "init",
             "tools": 2,
-            "skills": ["data-analysis"],
-            "agents": ["data-analyst"],
-            "commands": ["data-analysis"],
+            "skills": ["example-skill"],
+            "agents": ["example-agent"],
+            "commands": ["example-command"],
         })
         self.assertEqual(event["tools"], 2)
         self.assertEqual(event["skills"], [])

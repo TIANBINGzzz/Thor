@@ -214,7 +214,7 @@ JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可�
 
 | 字段 | 作用 |
 | --- | --- |
-| capabilities[].capabilityRef | 业务标识；内部依次映射无 Workflow、writing-docx、database-qa。 |
+| capabilities[].capabilityRef | 业务标识；内部依次映射无 Workflow、writing-docx、double-high-qa。 |
 | name/description | 展示名称与说明，Java 可加业务展示配置。 |
 | supportsAttachments | 布尔，是否允许 attachmentRefs；不是图片识别能力声明。 |
 

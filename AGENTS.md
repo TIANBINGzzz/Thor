@@ -22,9 +22,7 @@
 
 ## 已定义代理
 
-| 名称 | 职责 | 典型使用场景 |
-| --- | --- | --- |
-| [data-analyst](.claude/agents/data-analyst.md) | 使用授权data工具核对来源、指标口径及只读查询结果 | 查询分析与报告证据核验；是否可用由本轮实际工具决定 |
+当前未定义项目子代理。双高问数由`double-high-qa` Workflow直接使用授权data工具，撰写由`writing-docx` Workflow加载规则后执行。
 
 ## 文档管理规范
 

@@ -24,7 +24,7 @@ npm test
 
 ```text
 python/       FastAPI Runtime、SDK Worker、文件 Broker 和执行工具
-.claude/      Skills、Agents、Commands、Workflow、模板和databases数据库资产
+.claude/      Workflow配置、执行规则、模板和databases数据库资产
 deploy/       云效 ECS 容器构建、配置示例与部署脚本
 doc/          接口规范、工程要求、ADR 和静态 API 文档
 ```
@@ -38,7 +38,7 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 
 - 普通对话：请求可省略capabilityRef，内部解析为conversation
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
-- `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
+- `national-excellence-data-qa`：通过内部 `double-high-qa` Workflow 进行双高只读问数
 
 共同写作规则在 [instructions.md](.claude/workflows/writing-docx/instructions.md)，由writing-docx配置直接注入。预制模板按templateKey加载所选writing-guide.md及DOCX参考副本，Agent自主规划、取证和撰写；与上传模板、无模板共用通用DOCX、文件、代码、data及Artifact工具。地图和取数计划仅作维护参考，无专用报告草稿流水线。原逐页来源与指标YAML保留，不确定内容用黄色说明；目录、事实和全文版式须实际检查，发布成功不代表内容审核通过，详见[自主撰写决策](doc/ADR/027-agent-led-document-writing.md)。
 

@@ -27,7 +27,7 @@ python/       后端与 SDK 执行
   data_access/ 来源授权、连接、查询、结果及Run上下文
   workflows/writing_docx/ 可信模板及指南加载、参考副本、可选地图维护工具
   tests/      后端测试
-.claude/      skills/、agents/、workflows/执行资产；databases/按库共享语义和查询
+.claude/      workflows/执行配置与规则；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
 config/       databases.json集中连接/授权，随本版私有源码和镜像交付；其他文件默认忽略
 doc/         specs/ 规范、ADR/ 决策、静态 API HTML
@@ -90,6 +90,6 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | MCP 凭据与配置 | `python/runtime/mcp_auth.py`、`python/runtime/config.py` |
 | Client 与存储 | `python/runtime/session_actor.py`、`run_store.py` |
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
-| 流程与技能 | `.claude/workflows/`、`.claude/skills/` |
+| 流程与规则 | `.claude/workflows/double-high-qa/`、`.claude/workflows/writing-docx/` |
 | 数据源与共享查询资产 | [.claude/databases/README.md](.claude/databases/README.md) |
 | 数据管理、报告与产品流程 | [数据库管理](doc/specs/data-source-connections.md)、[模板计划](doc/specs/template-batch-data-plan.md)、[产品流程](doc/specs/conversation-reporting-product.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |

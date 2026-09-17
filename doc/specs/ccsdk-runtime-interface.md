@@ -99,7 +99,7 @@ Content-Type: application/json
 | --- | --- | --- |
 | `conversation` | 无 Workflow，使用通用对话配置 | 支持 |
 | `document-writing` | `writing-docx` | 支持 |
-| `national-excellence-data-qa` | `database-qa` | 不支持 |
+| `national-excellence-data-qa` | `double-high-qa` | 不支持 |
 
 Java 只传业务标识；映射表、Workflow、Skill、MCP 和运行模式由 Python 维护。
 

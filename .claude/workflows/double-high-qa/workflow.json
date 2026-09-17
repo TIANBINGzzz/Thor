@@ -1,6 +1,6 @@
 {
-  "name": "database-qa",
-  "description": "通过数据工具检索已授权指标、解析业务范围并回答问题",
+  "name": "double-high-qa",
+  "description": "通过授权数据工具回答双高项目、任务、资金与绩效问题",
   "execution": {
     "mode": "direct"
   },
