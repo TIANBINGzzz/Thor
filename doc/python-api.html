@@ -168,11 +168,66 @@ Content-Type: application/json</pre></div>
 </tbody></table></section>
 
 <section id="session-runs"><h2>按业务会话查询执行记录</h2>
-<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/sessions/{businessSessionId}/runs?limit=50&amp;cursor=...</code></div>
-<p>Java授权后签发短期JWT，必须包含iss、aud、iat、exp、jti、tenant、sub、businessSessionId和scope: session.read。会话必须与路径相同；不要求runId或capabilityRef，只读分页不消耗jti。Run JWT的run.read/run.execute权限不能替代session.read。</p>
-<pre>{"runs":[{"runId":"run_01","messageId":"message_01","capabilityRef":"conversation","status":"succeeded","createdAt":1725400000000,"updatedAt":1725400001000}],"nextCursor":null}</pre>
-<p>limit默认50，范围1–100。按创建时间、Run ID倒序，时间为Unix毫秒。首次不传cursor，下页原样传回nextCursor，null表示结束。无记录返回空数组；游标无效或不属于当前授权范围返回400，分页参数类型/范围/长度错误返回422，JWT无效返回401，密钥未配置返回503。响应禁止缓存。</p>
-<p>返回该身份、会话下各能力的执行摘要，不含消息正文、内部metadata或SDK会话。历史messageId可能为null。游标不是授权凭据，列表不是快照；新记录通过刷新首页获取。标题、会话列表及消息仍由Java维护；查询单Run、事件和成果仍使用对应Run JWT。</p>
+<p>用于查询<strong>某个业务会话在 Python Runtime 中发起过哪些执行，以及每次执行的当前状态</strong>。例如用户重新打开会话时，Java 可通过此接口取得 Run 列表，再按 <code>messageId</code> 关联自己保存的业务消息，显示“执行中”“已完成”或“失败”等状态。</p>
+<p>查询范围是 JWT 授权的<strong>同一租户、同一用户、同一业务会话</strong>，包含该会话下各能力的执行摘要。接口不返回聊天正文、会话标题、内部 metadata 或 SDK 会话；业务会话和消息仍由 Java 保存。需要执行详情、事件或生成文件时，取得 <code>runId</code> 后调用对应的 Run 接口。</p>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/sessions/{businessSessionId}/runs</code></div>
+<h3>输入：会话标识与分页参数</h3>
+<p>此接口没有请求体。会话标识放在路径中，分页参数放在 URL 中，JWT 放在请求头中。</p>
+<table><thead><tr><th>参数</th><th>位置 / 类型</th><th>说明</th></tr></thead><tbody>
+<tr><td>businessSessionId</td><td>路径 / string</td><td>必填。Java 维护的业务会话标识，例如 <code>session_01</code>；必须与 JWT 中的同名字段一致。</td></tr>
+<tr><td>limit</td><td>查询 / integer</td><td>可选，每页最多返回的记录数。默认 50，范围 1–100。</td></tr>
+<tr><td>cursor</td><td>查询 / string</td><td>可选，最长 345 字符。第一页不传；下一页使用上一页返回的 <code>nextCursor</code>，不要自行生成或修改。</td></tr>
+</tbody></table>
+<div class="code-wrap"><div class="code-label">请求示例：查询 session_01 的第一页</div><button class="copy" type="button">复制</button><pre>GET /internal/v1/sessions/session_01/runs?limit=50
+Authorization: Bearer &lt;包含 session.read 权限的 JWT&gt;
+Accept: application/json</pre></div>
+<h3>鉴权：Java 签发会话读取 JWT</h3>
+<p>Java 先校验当前用户是否有权访问该业务会话，再使用与 Python 约定的密钥签发短期 HS256 JWT。以下是签名前的 claims 示例，<strong>不是请求体，也不是可以直接放进 Authorization 的 Token</strong>：</p>
+<div class="code-wrap"><div class="code-label">会话读取 JWT 的 claims 示例</div><button class="copy" type="button">复制</button><pre>{
+  "iss": "string-ai-center-service",
+  "aud": "ccsdk-runtime",
+  "iat": 1725400000,
+  "exp": 1725400600,
+  "jti": "session_read_01",
+  "tenant": "tenant_01",
+  "sub": "user_01",
+  "businessSessionId": "session_01",
+  "scope": "session.read"
+}</pre></div>
+<p>以上字段均必填。<code>iss</code>、<code>aud</code> 必须匹配部署配置；<code>tenant</code>、<code>sub</code> 来自 Java 已认证的租户和用户。示例时间仅说明格式，实际签发时将 <code>iat</code> 设为当前 Unix 秒、<code>exp</code> 设为短期过期时间。这里不要求 <code>runId</code> 或 <code>capabilityRef</code>。</p>
+<p>只读分页不消耗 <code>jti</code>，同一 Token 可在有效期内查询多页。<code>run.read</code> / <code>run.execute</code> 不能代替 <code>session.read</code>；反过来，会话读取 Token 也不能直接查询或控制单个 Run，调用那些接口需要另行签发对应 Run JWT。</p>
+<h3>输出：执行摘要列表</h3>
+<div class="code-wrap"><div class="code-label">响应示例：200 · application/json</div><button class="copy" type="button">复制</button><pre>{
+  "runs": [
+    {
+      "runId": "run_01",
+      "messageId": "message_01",
+      "capabilityRef": "conversation",
+      "status": "succeeded",
+      "createdAt": 1725400000000,
+      "updatedAt": 1725400001000
+    }
+  ],
+  "nextCursor": null
+}</pre></div>
+<table><thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead><tbody>
+<tr><td>runs</td><td>object[]</td><td>本页可见的执行摘要；没有记录时为 <code>[]</code>。</td></tr>
+<tr><td>runs[].runId</td><td>string</td><td>执行标识，可用于后续查询状态、订阅事件及获取成果。</td></tr>
+<tr><td>runs[].messageId</td><td>string | null</td><td>关联 Java 业务消息；未保存该字段的历史记录可能为 <code>null</code>。</td></tr>
+<tr><td>runs[].capabilityRef</td><td>string</td><td>本次执行的业务能力，例如 <code>conversation</code>。</td></tr>
+<tr><td>runs[].status</td><td>string</td><td>当前执行状态，取值见页面前面的 Run 状态约定。</td></tr>
+<tr><td>runs[].createdAt / updatedAt</td><td>integer</td><td>创建 / 最近更新时间，单位为 Unix 毫秒；与 JWT 的秒级时间不同。</td></tr>
+<tr><td>nextCursor</td><td>string | null</td><td>下一页游标；<code>null</code> 表示已到最后一页。</td></tr>
+</tbody></table>
+<h3>分页与错误处理</h3>
+<p>记录按创建时间倒序排列，创建时间相同时按 Run ID 倒序。若 <code>nextCursor</code> 非空，Java 将其作为下一次请求的 <code>cursor</code> 查询参数（由 HTTP 客户端编码），并继续携带有效 JWT。游标本身不授予访问权限。</p>
+<p>分页结果不是某一时刻的固定快照；查询期间产生的新记录应通过重新请求第一页获取。成功响应带 <code>Cache-Control: no-store</code>，不得缓存。</p>
+<table class="error-table"><thead><tr><th>HTTP 状态</th><th>含义</th></tr></thead><tbody>
+<tr><td>400</td><td>游标无效，或不属于当前 JWT 授权的租户、用户及会话范围。</td></tr>
+<tr><td>401</td><td>JWT 缺失、无效、过期，缺少 session.read 权限，或 businessSessionId 与路径不一致。</td></tr>
+<tr><td>422</td><td>分页参数不合法，例如 limit 不是整数或超出 1–100，cursor 长度超过 345。</td></tr>
+<tr><td>503</td><td>Python Runtime 未配置 JWT 校验密钥。</td></tr>
+</tbody></table>
 </section>
 
 <section id="events"><h2>SSE 事件</h2>
