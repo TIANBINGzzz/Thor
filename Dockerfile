@@ -31,7 +31,9 @@ COPY .mcp.json ./
 COPY --chown=10001:10001 --chmod=0400 config/databases.json ./config/databases.json
 # Fixed /app paths are container-scoped; deployment helpers run from this image.
 COPY deploy/entrypoint.py deploy/write-env.py deploy/smoke.py ./deploy/
-RUN mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
+# COPY 的 chmod 也作用于新建父目录；目录必须可进入，JSON 仍保持只读。
+RUN chmod 0500 /app/config \
+    && mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
 USER 10001:10001
 RUN PYTHONPATH=python python -m data_access check-config
 EXPOSE 4310
