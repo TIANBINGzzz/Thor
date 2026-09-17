@@ -11,10 +11,11 @@ from docx import Document
 
 from data_access.context import DataError
 from runtime.data_services import RunServices
-from workflows.writing_docx.bindings import load_template, document_xml, text_hash, NS
-from workflows.writing_docx.planner import Planner
-from workflows.writing_docx.rendering import render
-from workflows.writing_docx.validation import check_fidelity, validated_plan, record_page_review
+from workflows.writing_docx.document_map import build_document_map, document_xml, text_hash, NS
+from workflows.writing_docx.template_assets import load_template
+from workflows.writing_docx.report_planner import ReportPlanner
+from workflows.writing_docx.report_renderer import render
+from workflows.writing_docx.report_validator import check_fidelity, validated_plan, record_page_review
 from tests import test_data_access as fixture
 save = fixture.save
 
@@ -47,14 +48,17 @@ class ReportingTests(unittest.TestCase):
             if index==2:
                 slot.update(text_template='${amount}',values={'amount':{'dataset_key':'total','field':'total'}})
             slots.append(slot)
-        save(directory/'slots.json',{'slots':slots})
-        save(directory/'bindings.json',{'template_version':1,'slot_files':['slots.json'],'datasets':[
+        save(directory/'document-map.json',build_document_map('demo',1,path,slots))
+        save(directory/'report-data-plan.json',{'plan_version':1,'template_key':'demo','template_version':1,'datasets':[
             {'dataset_key':'total','source_role':'sales','domain':'sales','scope_role':'school',
-             'query_id':'total','parameter_bindings':{},'section_keys':['summary']} ]})
+             'query_id':'total','parameter_bindings':{}} ]})
         save(directory/'template.json',{'template_key':'demo','enabled':True,'capabilities':['qa'],
-            'version':1,'docx_file':path.name,'docx_sha256':sha256(path.read_bytes()).hexdigest(),
-            'bindings_file':'bindings.json','source_roles':{'sales':'first'},'scope_roles':{'sales':['school']},
-            'missing_policy':'reject','preserve_structure':True,'parameters':{'type':'object'}})
+            'version':1,'assets':{'docx':{'file':path.name,'sha256':sha256(path.read_bytes()).hexdigest()},
+            'writing_guide':'writing-guide.md','document_map':'document-map.json','data_plan':'report-data-plan.json'},
+            'data':{'source_roles':{'sales':'first'},'scope_roles':{'sales':['school']}},
+            'report':{'parameters':{'type':'object'},'file_name':'report.docx'},
+            'output_policy':{'missing_policy':'reject','preserve_structure':True}})
+        (directory/'writing-guide.md').write_text('DEMO GUIDE',encoding='utf-8')
         return load_template('demo','qa',directory.parent)
 
     def test_plan_deduplicates_snapshot_and_fills_fixed_values(self):
@@ -65,7 +69,7 @@ class ReportingTests(unittest.TestCase):
             template['_bindings']['datasets'].append(duplicate)
             services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
-            planner=Planner(services,template)
+            planner=ReportPlanner(services,template)
             services.report=planner
             params={'years':['2025'],'period_mode':'annual','timezone':'Asia/Shanghai'}
             scopes={'sales':{'school':self.school()}}
@@ -86,24 +90,34 @@ class ReportingTests(unittest.TestCase):
             await services.close()
         asyncio.run(scenario())
 
-    def test_missing_definitions_reject_render_and_invented_evidence(self):
+    def test_unbound_location_requires_explicit_draft_and_rejects_invented_evidence(self):
         async def scenario():
             template=self.template(missing=True)
             services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
-            planner=Planner(services,template)
+            planner=ReportPlanner(services,template)
             services.report=planner
             result=await planner.prepare({'years':['2025'],'period_mode':'annual','timezone':'Asia/Shanghai'},
                 {'sales':{'school':self.school()}})
             await asyncio.gather(*list(planner.tasks))
             data=planner.get(result['plan_ref'],'summary')
-            self.assertEqual(data['status'],'blocked')
-            self.assertEqual(data['coverage']['required_missing'],1)
-            with self.assertRaisesRegex(DataError,'REPORT_INCOMPLETE'):
+            self.assertEqual(data['status'],'ready')
+            self.assertEqual(data['coverage']['required_missing'],0)
+            self.assertEqual(data['coverage']['drafts_required'],1)
+            with self.assertRaisesRegex(DataError,'REPORT_BODY_INCOMPLETE'):
                 await planner.render(result['plan_ref'],[])
             self.assertFalse(list((self.executor.context.run_directory/'report').glob('*.docx')))
             with self.assertRaises(DataError):
                 await planner.render(result['plan_ref'],[{'section_key':'summary','text':'999','evidence_refs':['invented']}])
+            slot=next(item for item in data['slots'] if item.get('draftable'))
+            output=await planner.render(result['plan_ref'],[{
+                'slot_key':slot['slot_key'],'section_key':'summary',
+                'text':'No applicable evidence was retrieved. Confirm the reporting rule.',
+                'evidence_refs':[],'evidence_state':'none',
+                'gap':'No applicable evidence was retrieved.',
+                'next_action':'Confirm the reporting rule.',
+            }])
+            self.assertEqual(output['status'],'complete_with_data_gaps')
             with self.assertRaises(DataError): planner.get('other-plan')
             await services.close()
         asyncio.run(scenario())
@@ -113,22 +127,26 @@ class ReportingTests(unittest.TestCase):
         path=template['_directory']/'template.json'
         original=json.loads(path.read_text())
         for change in ({'missing_policy':'annotated_draft'},{'preserve_structure':False}):
-            save(path,{**original,**change})
+            changed=deepcopy(original); changed['output_policy'].update(change); save(path,changed)
             with self.assertRaisesRegex(DataError,'TEMPLATE_CONTRACT_INVALID'):
                 load_template('demo','qa',path.parent.parent)
         save(path,original)
-        path=template['_directory']/'slots.json'
+        path=template['_directory']/'document-map.json'
         original=json.loads(path.read_text())
-        for change in ({'kind':'table'},{'dataset_key':'total','field':'total'},
-                       {'values':{'amount':{'dataset_key':'unknown','field':'total'}}}):
-            changed=deepcopy(original)
-            changed['slots'][2].update(change)
-            save(path,changed)
-            with self.assertRaisesRegex(DataError,'BINDING_INVALID'):
-                load_template('demo','qa',path.parent.parent)
+        changed=deepcopy(original)
+        changed['locations'][2]['node_type']='table'
+        save(path,changed)
+        with self.assertRaisesRegex(DataError,'DOCUMENT_MAP_INVALID'):
+            load_template('demo','qa',path.parent.parent)
+        changed=deepcopy(original)
+        changed['locations'][2]['fill']['values']['amount']['dataset_key']='unknown'
+        save(path,changed)
+        with self.assertRaisesRegex(DataError,'BINDING_INVALID'):
+            load_template('demo','qa',path.parent.parent)
+        save(path,original)
 
     def test_explicit_values_reject_private_columns_and_ambiguous_results(self):
-        from workflows.writing_docx.values import resolve_value
+        from workflows.writing_docx.report_values import resolve_value
         output=[{'name':'total'},{'name':'internal_id','visibility':'internal_only'}]
         ref=self.executor.results.save([{'total':10,'internal_id':'hidden'}],{'complete':True},output)
         plan={'nodes':[{'dataset_keys':['total'],'status':'succeeded','result_ref':ref}]}
@@ -144,36 +162,95 @@ class ReportingTests(unittest.TestCase):
 
     def test_template_drift_and_duplicate_locations_fail(self):
         template=self.template()
-        path=template['_directory']/'slots.json'
-        slots=json.loads(path.read_text())
-        slots['slots'].append(slots['slots'][0])
-        save(path,slots)
+        path=template['_directory']/'document-map.json'
+        document_map=json.loads(path.read_text())
+        original=deepcopy(document_map)
+        table_location=next(location for location in document_map['locations'] if location['table'])
+        self.assertEqual(table_location['table']['table_id'],'T01')
+        self.assertEqual(table_location['locator']['path'],
+                         '/w:document/w:body/w:tbl/w:tr/w:tc[1]/w:p')
+        document_map['locations'].append(document_map['locations'][0])
+        save(path,document_map)
         with self.assertRaisesRegex(DataError,'DUPLICATE_SLOT'): load_template('demo','qa',path.parent.parent)
+        document_map['locations'].pop()
+        table_location['table']['row']=99
+        save(path,document_map)
+        with self.assertRaisesRegex(DataError,'DOCUMENT_MAP_INVALID'): load_template('demo','qa',path.parent.parent)
+        save(path,original)
         document=Document(template['_docx'])
         document.add_paragraph('changed')
         document.save(template['_docx'])
         with self.assertRaisesRegex(DataError,'TEMPLATE_MISMATCH'): load_template('demo','qa',path.parent.parent)
+
+    def test_missing_bound_value_requires_draft_and_other_dataset_gaps_do_not_replace_values(self):
+        from workflows.writing_docx.report_values import resolve_value
+        binding={'kind':'scalar','required':True,'text_template':'${value}',
+                 'evidence_datasets':['total','blocked'],
+                 'values':{'value':{'dataset_key':'total','field':'total'}}}
+        for rows in ([], [{'total':None}], [{'total':0}]):
+            ref=self.executor.results.save(rows,{'complete':True},[{'name':'total'}])
+            plan={'nodes':[{'dataset_keys':['total'],'status':'succeeded','result_ref':ref},
+                           {'dataset_keys':['blocked'],'status':'blocked','result_ref':None}]}
+            result=resolve_value(binding,plan,self.executor)
+            if rows and rows[0]['total']==0:
+                self.assertEqual(result['value_status'],'filled')
+                self.assertEqual(result['value'],'0')
+            else:
+                self.assertTrue(result['draftable'])
+                self.assertNotIn('value',result)
+                self.assertEqual(result['missing_values'],['value'])
+        plan['nodes'][0].update(status='blocked',result_ref=None)
+        self.assertTrue(resolve_value(binding,plan,self.executor)['draftable'])
+
+    def test_supplemental_query_evidence_stays_inside_bound_source_and_scope(self):
+        async def scenario():
+            template=self.template(missing=True)
+            services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
+            services.executor=self.executor
+            planner=ReportPlanner(services,template)
+            services.report=planner
+            scope=self.school()
+            summary=await planner.prepare({'years':['2025'],'period_mode':'annual','timezone':'Asia/Shanghai'},
+                {'sales':{'school':scope}})
+            await asyncio.gather(*list(planner.tasks))
+            slot=planner.get(summary['plan_ref'],'summary',writing_only=True)['slots'][0]
+            extra=self.executor.execute_query_spec('first','sales','total',{},scope)
+            self.assertNotIn(extra['result_ref'],slot['evidence_refs'])
+            draft={'section_key':'summary','slot_key':slot['slot_key'],'text':'Recorded total: 10.',
+                   'evidence_state':'supported','evidence_refs':[extra['result_ref']]}
+            self.assertEqual(planner.save_drafts(summary['plan_ref'],[draft])['saved'],1)
+            foreign=self.executor.execute_query_spec('second','sales','total',{},self.school(source='second'))
+            wrong_scope=self.executor.execute_query_spec('first','sales','total',{},self.school())
+            truncated=self.executor.results.save([{'total':10}],
+                {**self.executor.results.get(extra['result_ref'])['metadata'],'complete':False},[{'name':'total'}])
+            for ref in (foreign['result_ref'],wrong_scope['result_ref'],truncated,'foreign_run_result'):
+                with self.subTest(reference=ref), self.assertRaisesRegex(DataError,'EVIDENCE_REQUIRED'):
+                    planner.save_drafts(summary['plan_ref'],[{**draft,'evidence_refs':[ref]}])
+            await services.close()
+        asyncio.run(scenario())
 
     def test_full_template_requires_body_and_preserves_all_package_parts(self):
         template=load_template('szpt-midterm','document-writing')
         executor=self.make_executor()
         from dataclasses import replace
         executor.context=replace(executor.context,capability_ref='document-writing')
-        slots=[{**s,'value_status':'static' if s['kind']=='static' else 'definition_missing'} for s in template['_slots']]
+        slots=[{**s,'value_status':'static' if s['kind']=='static' else 'definition_missing',
+                **({'draftable':True,'evidence_refs':[]} if s['kind']!='static' else {})}
+               for s in template['_slots']]
         with self.assertRaisesRegex(DataError,'REPORT_BODY_INCOMPLETE'):
             render(template,{'plan_ref':'test-draft','slots':slots,'report_parameters':{'years':['2025']}},[],executor)
-        for slot in slots:
-            if slot['kind']!='static':
-                slot.update(value_status='unavailable',value='需核对本期数据',reason='fixture_no_history')
-        ref=executor.results.save([{'status':'no history'}],{'complete':True},[{'name':'status','type':'string'}])
         drafts=[]
         for slot in slots:
+            if slot['kind']=='static':
+                continue
+            draft={'section_key':slot['section_key'],'slot_key':slot['slot_key'],
+                   'text':'Evidence is missing.','evidence_refs':[],'evidence_state':'none',
+                   'gap':'Evidence is missing.'}
             if slot['kind']=='narrative':
-                slot['evidence_refs']=[ref]
-                drafts.append({'section_key':slot['section_key'],'slot_key':slot['slot_key'],
-                               'text':'Evaluate the original subject. Evidence is missing. Collect dated records.',
-                               'evidence_refs':[],'evidence_state':'none','analysis_basis':'Evaluate the original subject.',
-                               'gap':'Evidence is missing.','next_action':'Collect dated records.'})
+                draft.update(text='Evaluate the original subject. Evidence is missing. Collect dated records.',
+                             analysis_basis='Evaluate the original subject.',
+                             next_action='Collect dated records.')
+            drafts.append(draft)
         output=render(template,{'plan_ref':'test-draft','slots':slots,'report_parameters':{'years':['2025']}},drafts,executor)
         self.assertEqual(output['status'],'complete_with_data_gaps')
         before=document_xml(template['_docx'])
@@ -187,7 +264,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_mixed_runs_preserve_markup_and_replace_text(self):
         from lxml import etree
-        from workflows.writing_docx.rendering import replace_paragraph
+        from workflows.writing_docx.report_renderer import replace_paragraph
         markup='<w:p xmlns:w="'+NS['w']+'"><w:pPr/><w:r><w:rPr><w:b/></w:rPr><w:t>abc</w:t></w:r><w:bookmarkStart w:id="1" w:name="x"/><w:r><w:t>def</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>'
         for replacement in ('abc123def','ABCdef','abcdefXYZ','','hello world','aXYcdeZ'):
             node=etree.fromstring(markup)
@@ -201,7 +278,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_fill_markers_only_clear_registered_editing_colors(self):
         from lxml import etree
-        from workflows.writing_docx.rendering import clear_fill_markers
+        from workflows.writing_docx.report_renderer import clear_fill_markers
         markup = '<w:p xmlns:w="' + NS['w'] + '"><w:r><w:rPr><w:b/><w:sz w:val="24"/><w:highlight w:val="yellow"/><w:color w:val="ee0000"/></w:rPr><w:t>Filled</w:t></w:r><w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>Value</w:t></w:r><w:r><w:rPr><w:color w:val="0070C0"/></w:rPr><w:t>Brand</w:t></w:r></w:p>'
         node = etree.fromstring(markup)
         clear_fill_markers(node)
@@ -221,7 +298,7 @@ class ReportingTests(unittest.TestCase):
 
     def test_fidelity_allows_marker_cleanup_but_not_other_format_changes(self):
         from lxml import etree
-        from workflows.writing_docx.rendering import clear_fill_markers
+        from workflows.writing_docx.report_renderer import clear_fill_markers
         template = self.template()
         template['clear_fill_markers'] = True
         xml = document_xml(template['_docx'])
@@ -247,7 +324,7 @@ class ReportingTests(unittest.TestCase):
             check_fidelity(template, changed)
 
     def test_file_name_follows_report_parameters_and_rejects_paths(self):
-        from workflows.writing_docx.rendering import report_file_name
+        from workflows.writing_docx.report_renderer import report_file_name
         template = {'file_name': 'Report-${years}.docx'}
         self.assertEqual(report_file_name(template, {'years': ['2026']}), 'Report-2026.docx')
         for parameters in ({}, {'years': ['../2025']}, {'years': ['a\\b']}):
@@ -281,7 +358,7 @@ class ReportingTests(unittest.TestCase):
             binding.update(kind='narrative',required=True,evidence_datasets=['total'])
             services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
-            planner=Planner(services,template)
+            planner=ReportPlanner(services,template)
             services.report=planner
             result=await planner.prepare({'years':['2025'],'period_mode':'annual','timezone':'Asia/Shanghai'},
                 {'sales':{'school':self.school()}})
@@ -318,7 +395,7 @@ class ReportingTests(unittest.TestCase):
                 '_data_run_directory':str(self.root/'selected-template'),
                 '_workflow_assets':{'template_revision':template['_revision']}}
             services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
-            with patch('workflows.writing_docx.bindings.load_template',return_value=template):
+            with patch('workflows.writing_docx.template_assets.load_template',return_value=template):
                 await services.bind(payload)
                 self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['first'])
                 with self.assertRaises(DataError): services.current().access('second')
@@ -329,10 +406,11 @@ class ReportingTests(unittest.TestCase):
         asyncio.run(scenario())
 
     def test_evidence_modes_require_visible_gaps_and_reject_unfounded_numbers(self):
-        from workflows.writing_docx.rendering import validate_drafts
+        from workflows.writing_docx.report_renderer import validate_drafts
         ref=self.executor.results.save([{'total':10}],{'complete':True},[{'name':'total','type':'number'}])
         empty=self.executor.results.save([],{'complete':True},[{'name':'total','type':'number'}])
-        plan={'slots':[{'slot_key':'body','section_key':'summary','kind':'narrative','evidence_refs':[ref,empty]}],
+        plan={'slots':[{'slot_key':'body','section_key':'summary','kind':'narrative','required':True,
+                        'draftable':True,'evidence_refs':[ref,empty]}],
               'report_parameters':{}}
         draft={'slot_key':'body','section_key':'summary','text':'Analyze coverage. Records missing. Collect evidence.',
                'evidence_refs':[],'evidence_state':'none','analysis_basis':'Analyze coverage.',
@@ -351,7 +429,7 @@ class ReportingTests(unittest.TestCase):
             validate_drafts(plan,[{**limited,'text':'Recorded 999. Historical records missing.'}],self.executor)
 
     def test_yellow_color_preserves_style_and_disappears_when_evidence_is_supported(self):
-        from workflows.writing_docx.rendering import mark_uncertainty
+        from workflows.writing_docx.report_renderer import mark_uncertainty
         from lxml import etree
         template=self.template()
         xml=document_xml(template['_docx'])
@@ -377,7 +455,7 @@ class ReportingTests(unittest.TestCase):
             template=self.template()
             services=RunServices(['first'],env=self.env,catalog=self.catalog)
             services.executor=self.executor
-            planner=Planner(services,template)
+            planner=ReportPlanner(services,template)
             services.report=planner
             summary=await planner.prepare({'years':['2025'],'period_mode':'annual','timezone':'Asia/Shanghai'},
                 {'sales':{'school':self.school()}})

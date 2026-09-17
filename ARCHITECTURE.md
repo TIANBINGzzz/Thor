@@ -25,7 +25,7 @@ python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
   tools/      data、DOCX、Artifact通用工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
-  workflows/writing_docx/ 固定模板绑定、批量计划、reports工具、回填及全文核验
+  workflows/writing_docx/ 模板资产加载、位置地图、批量计划、原位回填及全文核验
   tests/      后端测试
 .claude/      skills/、agents/、commands/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
@@ -40,7 +40,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`提供原位撰写、证据状态校验、黄色缺口标记及全文核验。可信Workflow注入共同Skill，按templateKey加载模板documents中的少量MD并冻结提示词；规则/模板指纹变更重建Client。模板维护脚本放模板目录，业务知识放数据库包。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务和可选报告计划；`workflows/writing_docx/`加载逐段指南、程序生成的位置地图和指标引用计划，提供证据状态校验、黄色缺口标记、原位撰写及全文核验。可信Workflow注入共同Skill，按templateKey加载模板指南并冻结提示词；规则/模板指纹变更重建Client。指标含义和SQL只放数据库包。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions

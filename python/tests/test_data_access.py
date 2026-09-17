@@ -15,7 +15,7 @@ from data_access.context import DataContext, DataError
 from data_access.executor import Executor
 from runtime.data_services import RunServices
 from data_access.sql_policy import validate_sql
-from workflows.writing_docx.bindings import load_template
+from workflows.writing_docx.template_assets import load_template
 from runtime.config import worker_environment, isolated_sdk_environment, data_source_keys
 
 
@@ -423,7 +423,8 @@ class RegisteredAssetsTests(unittest.TestCase):
         template=load_template('szpt-midterm','document-writing')
         self.assertEqual(len(template['_slots']),3503)
         self.assertEqual(len([s for s in template['_slots'] if s['section_key'].startswith('T')]),2710)
-        self.assertEqual(len(template['_bindings']['tables']),40)
+        self.assertEqual(len({location['table']['table_id'] for location in template['_document_map']['locations']
+                              if location['table']}),40)
         self.assertEqual(template['source_roles'],{'hpm':'schoolDoubleHigh'})
 
 

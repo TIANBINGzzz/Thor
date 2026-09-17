@@ -1,0 +1,277 @@
+{
+  "plan_version": 1,
+  "template_key": "szpt-midterm",
+  "template_version": 3,
+  "datasets": [
+    {
+      "dataset_key": "group_a_project_catalog",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "project_catalog",
+      "parameter_bindings": {
+        "name_pattern": {
+          "from": "literal",
+          "value": null
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_task_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "task_tree",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_task_progress_summary",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "task_progress_summary",
+      "parameter_bindings": {
+        "level": {
+          "from": "literal",
+          "value": 3
+        },
+        "threshold": {
+          "from": "literal",
+          "value": 50
+        },
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_first_task_progress_feedback",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "first_task_progress_feedback",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_task_feedback_candidates",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "task_feedback_candidates",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_fund_totals",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "fund_totals",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_fund_source_amounts",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "fund_source_amounts",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_project_cycle_budget",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "project_cycle_budget",
+      "parameter_bindings": {}
+    },
+    {
+      "dataset_key": "group_a_task_performance_links",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "task_performance_links",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_a_performance_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_a",
+      "query_id": "performance_tree",
+      "parameter_bindings": {}
+    },
+    {
+      "dataset_key": "group_b_project_catalog",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "project_catalog",
+      "parameter_bindings": {
+        "name_pattern": {
+          "from": "literal",
+          "value": null
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_task_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "task_tree",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_task_progress_summary",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "task_progress_summary",
+      "parameter_bindings": {
+        "level": {
+          "from": "literal",
+          "value": 3
+        },
+        "threshold": {
+          "from": "literal",
+          "value": 50
+        },
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_first_task_progress_feedback",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "first_task_progress_feedback",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_task_feedback_candidates",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "task_feedback_candidates",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_fund_totals",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "fund_totals",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_fund_source_amounts",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "fund_source_amounts",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_project_cycle_budget",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "project_cycle_budget",
+      "parameter_bindings": {}
+    },
+    {
+      "dataset_key": "group_b_task_performance_links",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "task_performance_links",
+      "parameter_bindings": {
+        "year": {
+          "from": "report_parameter",
+          "key": "years",
+          "expand": "each"
+        }
+      }
+    },
+    {
+      "dataset_key": "group_b_performance_tree",
+      "source_role": "hpm",
+      "domain": "hpm",
+      "scope_role": "group_b",
+      "query_id": "performance_tree",
+      "parameter_bindings": {}
+    }
+  ]
+}

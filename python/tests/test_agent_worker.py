@@ -185,7 +185,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(path.parent.name, "database-qa")
 
     def test_common_skill_is_injected_for_both_routes_with_only_selected_template_guide(self):
-        from workflows.writing_docx.bindings import load_template
+        from workflows.writing_docx.template_assets import load_template
         config=load_workflow_config('writing-docx')
         common=workflow_prompt_documents(config)
         template=load_template('szpt-midterm','document-writing')

@@ -17,7 +17,7 @@
 
 - 复用document-writing、writing-docx和writing-documents；每个预制模板默认一份普通MD，不新增模板Skill，共享指标仍在数据库包，逐页来源整理保留。
 - 预制模板沿用templateKey，上传模板只用attachmentRefs及input.text；暂不做上传模板登记或来源绑定，见[传值规范](../specs/capability-payload.md#统一模板撰写)。
-- 模板目录保留DOCX、template.json及既有绑定；以template.json.documents声明少量MD，由Python校验后仅装配所选模板说明和共同Skill，不扫描/注入全部模板，也不依赖模型自动点击链接。
+- 模板目录保留DOCX和template.json；以template.json.assets声明逐段指南、程序生成的位置地图和指标计划，由Python校验后仅装配所选模板说明和共同Skill，不扫描/注入全部模板，也不依赖模型自动点击链接。
 - 共同规则负责读模板、规划取数、按证据写作和质量检查；预制复用原位编辑，上传参考生成新稿并按最终标题/分页重建目录。共同规则不意味着上传模板预处理；工具继续承担验证。
 - 沿用现有登记、enabled及版本机制；指南变更纳入Run快照和Client指纹，声明文件缺失或越界拒绝。按模板限定获准来源，附件文字不能授权；业务会话保持连续。
 

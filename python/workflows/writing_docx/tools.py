@@ -35,7 +35,7 @@ def create_reports_server(services):
         if plan_ref!=planner.latest: raise DataError('PLAN_SUPERSEDED')
         plan=planner.plans[plan_ref]
         if not plan.get('rendered'): raise DataError('REPORT_NOT_RENDERED')
-        from workflows.writing_docx.validation import validate_document
+        from workflows.writing_docx.report_validator import validate_document
         result=await services.call(validate_document, planner.template, plan['rendered'], services.env)
         plan['validation']=result
         planner._save(plan)
@@ -43,7 +43,7 @@ def create_reports_server(services):
 
     async def publish(plan_ref, validation_ref):
         planner=report()
-        from workflows.writing_docx.validation import validated_plan
+        from workflows.writing_docx.report_validator import validated_plan
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         if validation.get('visual_review')!='passed': raise DataError('REPORT_VISUAL_REVIEW_REQUIRED')
         result=plan['rendered']
@@ -64,7 +64,7 @@ def create_reports_server(services):
     async def pages(plan_ref, validation_ref, page_numbers):
         import base64
         from pathlib import Path
-        from workflows.writing_docx.validation import validated_plan
+        from workflows.writing_docx.report_validator import validated_plan
         planner=report()
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         if any(n>validation['page_count'] for n in page_numbers): raise DataError('PAGE_INVALID')
@@ -77,7 +77,7 @@ def create_reports_server(services):
         return ToolContent(content)
 
     async def review(plan_ref, validation_ref, page_numbers, passed, notes):
-        from workflows.writing_docx.validation import validated_plan, record_page_review
+        from workflows.writing_docx.report_validator import validated_plan, record_page_review
         planner=report()
         plan,validation=validated_plan(planner,plan_ref,validation_ref)
         result=record_page_review(validation,page_numbers,passed,notes)
@@ -100,7 +100,7 @@ def create_reports_server(services):
              "type": "object", "additionalProperties": REFERENCE}}}, ["report_parameters", "scope_refs"], prepare),
         ("get_report_data", "不传参数读取当前模板角色及期间要求；传plan_ref读取计划、章节事实和缺项。",
          {"plan_ref": REFERENCE, "section_key": REFERENCE, "cursor": REFERENCE, "writing_only":{"type":"boolean"}}, [], get),
-        ("save_report_sections", "分批保存按原章节撰写的正文，保留其他已存段落。每段必须引用该位置获准的事实。",
+        ("save_report_sections", "分批保存按原结构撰写的动态段落和单元格，保留其他已存位置；每项只能引用该位置获准的事实。",
          {"plan_ref":REFERENCE,"section_drafts":draft_schema}, ["plan_ref","section_drafts"],save),
         ("validate_report", "核验原模板结构与样式，渲染全文页面；失败不得发布。",
          {"plan_ref":REFERENCE},["plan_ref"],validate),
@@ -111,6 +111,6 @@ def create_reports_server(services):
          ["plan_ref","validation_ref","page_numbers","passed","notes"],review),
         ("publish_report", "仅发布已通过结构与全文渲染检查的同一份报告。",
          {"plan_ref":REFERENCE,"validation_ref":REFERENCE},["plan_ref","validation_ref"],publish),
-        ("render_report", "校验全部正文及数据绑定，在原DOCX原位置回填；此步不发布。",
+        ("render_report", "校验全部动态位置、证据及确定值绑定，在原DOCX原位置回填；此步不发布。",
          {"plan_ref": REFERENCE, "section_drafts": draft_schema}, ["plan_ref", "section_drafts"], render),
     ])

@@ -334,7 +334,7 @@ def prepare_workflow_assets(payload):
     """Freeze trusted prompt text and template references before Client selection/worker dispatch."""
     selection = [payload.get('workflow_name'), payload.get('capability_ref'), payload.get('_template_key')]
     if (payload.get('_workflow_assets') or {}).get('selection') != selection:
-        from workflows.writing_docx.bindings import load_template
+        from workflows.writing_docx.template_assets import load_template
         workflow = load_workflow_config(payload.get('workflow_name'))
         template_key = payload.get('_template_key')
         template = load_template(template_key, payload.get('capability_ref')) if template_key is not None else None

@@ -72,21 +72,25 @@ class AssetContractTests(unittest.TestCase):
             self.assertNotIn('data_sources',config)
         self.assertEqual(self.source['capabilities'],['national-excellence-data-qa','document-writing'])
 
-    def test_template_rules_and_all_40_tables_keep_report_source(self):
-        path=ROOT/'.claude/workflows/writing-docx/templates/szpt-midterm/query-bindings.json'
-        bindings=json.loads(path.read_text(encoding='utf-8'))
-        self.assertEqual(bindings['source_key'],'schoolDoubleHigh')
-        self.assertEqual({t['table_id'] for t in bindings['tables']},{f'T{i:02}' for i in range(1,41)})
-        self.assertEqual(len(bindings['tables']),40)
-        for mapping in bindings['rules'].values():
-            for id in mapping['query_ids']:
-                self.assertIn(id,self.specs)
-        for table in bindings['tables']:
-            self.assertEqual(table['source_key'],'schoolDoubleHigh')
-            self.assertTrue(set(table['rules']) <= set(bindings['rules']))
-        source=(path.parent/bindings['source_document']).read_text(encoding='utf-8')
-        rule_section=source.split('## 取数规则索引',1)[1].split('###',1)[0]
-        self.assertEqual(set(re.findall(r'^\| ([A-Z]) \|',rule_section,re.M)),set(bindings['rules']))
+    def test_template_guide_references_metrics_and_document_map_keeps_all_tables(self):
+        from workflows.writing_docx.document_map import build_document_map
+        from workflows.writing_docx.template_assets import load_template
+        root=ROOT/'.claude/workflows/writing-docx/templates/szpt-midterm'
+        plan=json.loads((root/'report-data-plan.json').read_text(encoding='utf-8'))
+        document_map=json.loads((root/'document-map.json').read_text(encoding='utf-8'))
+        guide=(root/'writing-guide.md').read_text(encoding='utf-8')
+        for dataset in plan['datasets']:
+            self.assertIn(dataset['query_id'],self.specs)
+        referenced=set(re.findall(r'`([a-z][a-z0-9_]+)`',guide))
+        self.assertTrue(referenced <= set(self.specs) | {'szpt_midterm'})
+        tables={location['table']['table_id'] for location in document_map['locations'] if location['table']}
+        self.assertEqual(tables,{f'T{i:02}' for i in range(1,41)})
+        template=load_template('szpt-midterm','document-writing')
+        self.assertEqual(document_map,build_document_map('szpt-midterm',template['version'],
+                         template['_docx'],template['_slots']))
+        self.assertEqual(len(document_map['locations']),3503)
+        for location in document_map['locations']:
+            self.assertFalse(set(location) & {'sql','source_rules','resolution','review','evidence_datasets'})
 
 
 if __name__ == '__main__':

@@ -22,8 +22,8 @@ class RunServices:
     async def bind(self, payload):
         await self.close()
         context = DataContext.from_payload(payload)
-        from workflows.writing_docx.bindings import load_template
-        from workflows.writing_docx.planner import Planner
+        from workflows.writing_docx.template_assets import load_template
+        from workflows.writing_docx.report_planner import ReportPlanner
         template = load_template(context.template_key, context.capability_ref) if context.template_key else None
         selected = self.source_keys
         if template:
@@ -41,7 +41,7 @@ class RunServices:
         self.workflow_revision = (payload.get('_workflow_assets') or {}).get('revision')
         self.artifact_directories = {k: payload.get(k) for k in
                                     ("session_directory", "deliverables_directory")}
-        self.report = Planner(self, template) if template else None
+        self.report = ReportPlanner(self, template) if template else None
 
     def current(self):
         if self.executor is None:

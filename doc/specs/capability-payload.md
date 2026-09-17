@@ -45,7 +45,7 @@
 
 `szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX、逐段来源和绑定；缺历史实值必须明确标记，不能编造。此前简版不符合原模板要求，已停用且不可从入口选择。
 
-模板query-bindings.json以source_key+domain+query_id引用[数据库资产](../../.claude/databases/README.md)，当前唯一来源schoolDoubleHigh；[可信DataContext及静态策略](data-source-connections.md)由服务端装配，路径/DSN/密码/权限不加入payload。[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
+模板`report-data-plan.json`以source_role+domain+query_id引用[数据库资产](../../.claude/databases/README.md)，`writing-guide.md`只引用指标ID，`document-map.json`只维护DOCX结构位置；当前唯一来源schoolDoubleHigh。[可信DataContext及静态策略](data-source-connections.md)由服务端装配，路径/DSN/密码/权限不加入payload。[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
 
 2026-09-15补充：自定义模板由Java保存并授权，Python通过File Broker获取本次文件后读取结构，按需取数、组织正文并生成新DOCX；不自动注册为Python预制模板，也不要求预先配置逐格查询。当前`purpose`仅支持`input`/`reference`，模板用`input`并在正文说明用途；再次使用须重新提交附件引用。上传不授予数据源权限，数据库工具仅在已配置且获准时可用。若同时传`templateKey`和附件，仍走已登记模板分支，附件不会替换该模板。附件传递和普通撰写已有实现，复杂自定义模板保真及取数质量尚未端到端验收。
 
@@ -81,16 +81,16 @@
 ### 模板管理与按需加载
 
 - 一个共同入口：`.claude/skills/writing-documents/SKILL.md`集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，不列出全部模板，不复制每模板Skill。
-- 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。既有绑定和slots是编辑执行资产，本次不改，不要求老师维护。
-- template.json以内部字段片段`{"documents":["writing-guide.md"]}`，路径相对该模板目录；现有name、enabled、capabilities、docx_file、source_roles及绑定字段继续使用。该字段已接入加载器，不进入HTTP请求；省略或空数组表示无专属说明。
+- 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。位置地图由程序生成，不要求老师维护逐格槽位。
+- template.json通过`assets`登记DOCX、`writing_guide`、`document_map`和`data_plan`，并分别通过`data`、`report`、`output_policy`维护数据角色、报告参数和输出策略。所有路径相对模板目录；这些字段由可信加载器解析，不进入HTTP请求。
 - writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
-- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json及文件 → 读取该模板documents → 注入共同Skill正文和所选说明 → Agent读取原DOCX并检索指标。由Python装配，不能假设SDK会因MD链接自动加载；不需要增加Skill/Read/Bash权限。
+- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、DOCX、数据计划和位置地图 → 读取所选writing-guide.md → 注入共同Skill正文和所选说明 → Agent按指标计划取证并原位撰写。由Python装配，不能假设SDK会因MD链接自动加载；不需要增加Skill/Read/Bash权限。
 - 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
-- 默认完整加载所选模板的一份短指南；多文件按声明顺序读取，单文件24,000字节、合并上下文80,000字节受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再提供按章节读取，不为模板数量增长全量注入或引入检索平台。
+- 默认完整加载所选模板的一份短指南，单文件24,000字节、合并上下文80,000字节受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再设计按章节读取，不为模板数量增长全量注入或引入检索平台。
 - 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用；修改原文需同步绑定校验，停用用enabled。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
 - 指标及SQL仍集中在`.claude/databases/`，指南引用而不复制；声明来源须获准，Executor仅装配所选模板引用的来源。上传模板仅使用当前获准工具，不能从附件文字中获得新来源权限。
 
-已删除独立双高Skill及template_skills装配，业务规则集中到所选模板writing-guide.md。共同规则与说明在请求准备时冻结，指纹变化重建Client；执行前发现模板版本漂移则拒绝，报告计划记录实际模板资产哈希。预制加载器仍要求绑定/slots；上传复杂版式及目录实际页码尚未端到端验收，普通附件没有与reports相同的程序发布门禁，见[ADR-025](../ADR/025-unified-template-writing.md)。
+已删除独立双高Skill及template_skills装配，业务规则集中到所选模板writing-guide.md。共同规则与说明在请求准备时冻结，指纹变化重建Client；执行前发现模板版本漂移则拒绝，报告计划记录实际模板资产哈希。预制加载器要求数据计划及程序生成的位置地图；上传复杂版式及目录实际页码尚未端到端验收，普通附件没有与reports相同的程序发布门禁，见[ADR-025](../ADR/025-unified-template-writing.md)。
 
 ## 工程要求检查
 

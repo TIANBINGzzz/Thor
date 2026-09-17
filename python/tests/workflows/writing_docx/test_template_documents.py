@@ -14,7 +14,8 @@ from data_access.context import DataError
 from runtime.config import build_options, prepare_workflow_assets, workflow_prompt_documents
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
 from runtime.protocol import AgentRunRequest
-from workflows.writing_docx.bindings import load_template
+from workflows.writing_docx.document_map import build_document_map
+from workflows.writing_docx.template_assets import load_template
 
 
 class TemplateDocumentTests(unittest.TestCase):
@@ -36,20 +37,24 @@ class TemplateDocumentTests(unittest.TestCase):
             directory.mkdir(parents=True)
             path = directory / 'template.docx'
             Document().save(path)
-            self.save(directory/'slots.json', {'slots':[]})
-            self.save(directory/'bindings.json', {'template_version':1, 'slot_files':['slots.json'], 'datasets':[]})
+            self.save(directory/'document-map.json', build_document_map(name, 1, path, []))
+            self.save(directory/'report-data-plan.json', {'plan_version':1, 'template_key':name,
+                'template_version':1, 'datasets':[]})
             self.save(directory/'template.json', {'template_key':name, 'enabled':True,
                 'capabilities':['document-writing'], 'version':1,
-                'docx_file':'template.docx', 'docx_sha256':sha256(path.read_bytes()).hexdigest(),
-                'bindings_file':'bindings.json', 'source_roles':{'hpm':'source-a'},
-                'preserve_structure':True, 'missing_policy':'reject', 'documents':['writing-guide.md']})
+                'assets':{'docx':{'file':'template.docx','sha256':sha256(path.read_bytes()).hexdigest()},
+                    'writing_guide':'writing-guide.md','document_map':'document-map.json',
+                    'data_plan':'report-data-plan.json'},
+                'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
+                'report':{'parameters':{'type':'object'},'file_name':'report.docx'},
+                'output_policy':{'preserve_structure':True,'missing_policy':'reject'}})
             (directory/'writing-guide.md').write_text(name.upper()+'_GUIDE',encoding='utf-8')
             self.workflow['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
                             ('runtime.config.load_workflow_config', None)]:
             patcher = patch(name, return_value=self.workflow) if value is None else patch(name,value)
             patcher.start(); self.addCleanup(patcher.stop)
-        patcher = patch('workflows.writing_docx.bindings.load_template', side_effect=self.load)
+        patcher = patch('workflows.writing_docx.template_assets.load_template', side_effect=self.load)
         patcher.start(); self.addCleanup(patcher.stop)
 
     @staticmethod
@@ -82,12 +87,13 @@ class TemplateDocumentTests(unittest.TestCase):
     def test_declared_documents_order_and_unregistered_file_exclusion(self):
         directory=self.directory/'templates/alpha'
         config=json.loads((directory/'template.json').read_text())
-        config['documents']=['second.md','writing-guide.md']
+        config['assets']['writing_guide']='second.md'
         self.save(directory/'template.json',config)
         (directory/'second.md').write_text('SECOND_GUIDE')
         (directory/'unregistered.md').write_text('HIDDEN_GUIDE')
         prompt=prepare_workflow_assets(self.payload('alpha'))['prompt']
-        self.assertLess(prompt.index('SECOND_GUIDE'),prompt.index('ALPHA_GUIDE'))
+        self.assertIn('SECOND_GUIDE',prompt)
+        self.assertNotIn('ALPHA_GUIDE',prompt)
         self.assertNotIn('HIDDEN_GUIDE',prompt)
 
     def test_guide_mutation_changes_next_run_revision_but_not_frozen_prompt(self):
@@ -120,12 +126,12 @@ class TemplateDocumentTests(unittest.TestCase):
     def test_invalid_guides_are_rejected_before_agent_start(self):
         directory=self.directory/'templates/alpha'
         original=json.loads((directory/'template.json').read_text())
-        invalid=[None,'writing-guide.md',['missing.md'],['../beta/writing-guide.md'],
-                 ['writing-guide.md','writing-guide.md'],['private.not_for_model.md'],
-                 [str(directory/'writing-guide.md')],['config.json']]
+        invalid=[None,'missing.md','../beta/writing-guide.md',
+                 'private.not_for_model.md',str(directory/'writing-guide.md'),'config.json']
         for names in invalid:
             with self.subTest(names=names):
-                self.save(directory/'template.json',{**original,'documents':names})
+                changed=deepcopy(original); changed['assets']['writing_guide']=names
+                self.save(directory/'template.json',changed)
                 with self.assertRaisesRegex(DataError,'TEMPLATE_DOCUMENT_INVALID'):
                     prepare_workflow_assets(self.payload('alpha'))
         self.save(directory/'template.json',original)
