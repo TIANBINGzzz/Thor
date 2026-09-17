@@ -53,7 +53,7 @@
 
 ## 统一模板撰写
 
-两类模板共用`document-writing → writing-docx → writing-documents`。保持现有传值；共同Skill由服务端注入，专属MD仅按所选templateKey加载，不新增上传模板参数。
+两类模板共用`document-writing → writing-docx配置 → 注入共同规则和所选指南 → Agent使用工具执行`。保持现有传值；共同规则由服务端直接读取instructions.md，专属MD仅按所选templateKey加载，不新增上传模板参数。
 
 | 场景 | 使用现有字段 |
 | --- | --- |
@@ -80,11 +80,11 @@
 
 ### 模板管理与按需加载
 
-- 一个共同入口：`.claude/skills/writing-documents/SKILL.md`集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，不列出全部模板，不复制每模板Skill。
+- 一个共同入口：[instructions.md](../../.claude/workflows/writing-docx/instructions.md)集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，由workflow.json的documents.constraints显式加载，不额外包装为Skill。
 - 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。位置地图由程序生成，不要求老师维护逐格槽位。
 - template.json通过`assets`登记DOCX与`writing_guide`，`document_map`和`data_plan`仅登记维护参考；`data`、`report`、`output_policy`维护来源角色、成果命名/章节参考和输出要求，不维护强制报告参数Schema。路径相对模板目录，不进入HTTP请求。
 - writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
-- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、读取并冻结当前DOCX与所选writing-guide.md → 注入共同Skill及指南、复制参考DOCX到工作目录 → Agent用通用文件/代码/DOCX/data工具自主取证、撰写和验收 → Artifact发布。运行时不读取地图和取数计划。
+- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、读取并冻结当前DOCX与所选writing-guide.md → 注入共同规则及指南、复制参考DOCX到工作目录 → Agent用通用文件/代码/DOCX/data工具自主取证、撰写和验收 → Artifact发布。运行时不读取地图和取数计划。
 - 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
 - 默认完整加载所选模板的一份短指南，单文件24,000字节、合并上下文80,000字节受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再设计按章节读取，不为模板数量增长全量注入或引入检索平台。
 - 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用，停用用enabled；修改DOCX无需为运行重建地图。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
@@ -97,4 +97,4 @@
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
 | REQ-001 | 部分满足 | data/DOCX/Artifact不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
-| REQ-002 | 部分满足 | 不改现有字段；共同Skill及所选模板MD均由可信Workflow装配，上传附件保持业务输入 | 按模板加载和共同规则已实现；上传目录/复杂版式及Java授权验收差距保留 |
+| REQ-002 | 部分满足 | 不改现有字段；共同规则及所选模板MD均由可信Workflow装配，上传附件保持业务输入 | 按模板加载和共同规则已实现；上传目录/复杂版式及Java授权验收差距保留 |

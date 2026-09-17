@@ -486,7 +486,8 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
         # Declared Workflow skills are already injected in the frozen prompt.
         skills = [] if restricted_tools or workflow_config else requested_skills
     else:
-        skills = [] if restricted_tools else None
+        # Workflow规则已显式注入；移除Skill包装后仍关闭SDK的默认技能发现。
+        skills = [] if restricted_tools or workflow_config else None
     return build_agent_options(
         model=payload.get("model") or os.environ.get("ANTHROPIC_MODEL"),
         cwd=payload.get("cwd") or Path.cwd(),

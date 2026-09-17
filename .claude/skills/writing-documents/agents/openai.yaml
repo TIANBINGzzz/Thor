@@ -1,4 +1,0 @@
-interface:
-  display_name: "文稿撰写"
-  short_description: "创建、修改并验收长篇文稿和 DOCX 文件"
-  default_prompt: "使用 $writing-documents 完成长篇文稿或 DOCX 写作任务。"

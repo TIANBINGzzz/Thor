@@ -75,7 +75,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('save_report_sections',options.system_prompt['append'])
         self.assertIn('mcp__artifacts__publish_file',options.system_prompt['append'])
 
-    def test_regular_writing_without_configured_database_keeps_normal_skill(self):
+    def test_regular_writing_without_configured_database_keeps_common_instructions(self):
         with patch.dict('os.environ',{},clear=True), patch('runtime.config.Catalog') as catalog:
             catalog.return_value.sources_for.return_value=[]
             options=build_options({'workflow_name':'writing-docx','capability_ref':'document-writing'})
@@ -83,7 +83,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('reports',options.mcp_servers)
         self.assertNotIn('prepare_report_data',options.system_prompt['append'])
         self.assertEqual(options.skills,[])
-        self.assertIn('writing-documents/SKILL.md', options.system_prompt['append'])
+        self.assertIn('instructions.md', options.system_prompt['append'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -192,17 +192,20 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(path.name, "workflow.env")
         self.assertEqual(path.parent.name, "database-qa")
 
-    def test_common_skill_is_injected_for_both_routes_with_only_selected_template_guide(self):
+    def test_common_instructions_are_injected_with_only_selected_template_guide(self):
         from workflows.writing_docx.template_assets import load_template
         config=load_workflow_config('writing-docx')
         common=workflow_prompt_documents(config)
         template=load_template('szpt-midterm','document-writing')
         selected=workflow_prompt_documents(config,template=template)
+        self.assertFalse(config.get('skills'))
+        instructions=(Path(config['_directory'])/'instructions.md').read_bytes().decode('utf-8').strip()
+        self.assertIn(instructions,common)
         self.assertIn(common,selected)
         self.assertNotIn('szpt-midterm',common)
         self.assertNotIn('writing-guide.md',common)
         self.assertIn(template['_documents'][0]['text'].strip(),selected)
-        self.assertEqual(selected.count('writing-documents/SKILL.md'),1)
+        self.assertEqual(selected.count(instructions),1)
         config['skills']=['../outside']
         with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=template)
 

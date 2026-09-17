@@ -23,14 +23,12 @@ class TemplateDocumentTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        skill = self.root / '.claude/skills/writing-documents'
-        skill.mkdir(parents=True)
-        (skill / 'SKILL.md').write_text('COMMON_RULES', encoding='utf-8')
         self.directory = self.root / 'workflow'
         self.directory.mkdir()
+        (self.directory / 'instructions.md').write_text('COMMON_RULES', encoding='utf-8')
         (self.directory / 'adapter.md').write_text('REPORT_ADAPTER', encoding='utf-8')
         self.workflow = {'name':'writing-docx', '_directory':str(self.directory),
-                         'skills':['writing-documents'], 'documents':{'template':['adapter.md']},
+                         'documents':{'constraints':['instructions.md'], 'template':['adapter.md']},
                          'templates':{}, 'data_access':'optional'}
         for name in ('alpha','beta'):
             directory = self.directory / 'templates' / name
@@ -118,7 +116,7 @@ class TemplateDocumentTests(unittest.TestCase):
             old=self.payload('alpha')
             before=_client_config_fingerprint(request,old)
             json.dumps(old)
-            (self.root/'.claude/skills/writing-documents/SKILL.md').write_text('CHANGED_COMMON')
+            (self.directory/'instructions.md').write_text('CHANGED_COMMON')
             self.assertEqual(before,_client_config_fingerprint(request,old))
             self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('alpha')))
             self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('beta')))

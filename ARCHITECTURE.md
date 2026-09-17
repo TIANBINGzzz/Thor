@@ -40,7 +40,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow注入共同Skill及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收，统一使用通用DOCX、文件、代码及Artifact工具。地图和取数计划只作维护参考，指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图。发布工具校验文件边界，不代替业务与版式核验。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收，统一使用通用DOCX、文件、代码及Artifact工具。地图和取数计划只作维护参考，指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图。发布工具校验文件边界，不代替业务与版式核验。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
@@ -61,7 +61,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 
 - Java ↔ Python：内部 Run 协议、Run JWT、状态/事件及取消；完整字段见 Runtime 规范。
 - Java持有业务会话与消息；Python按tenant、user和businessSessionId分页查询现有Run执行摘要，使用独立session.read授权，不引入业务SessionStore或暴露SDK会话信息。
-- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板沿用授权附件作撰写参考；共同Skill按模板加载说明的[实现](doc/ADR/025-unified-template-writing.md)不新增请求字段。
+- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板沿用授权附件作撰写参考；共同规则及按模板加载说明的[实现](doc/ADR/025-unified-template-writing.md)不新增请求字段。
 - RunStore 内部记录与 HTTP 响应分离；身份用于 Python 归属校验，SDK Session 与执行元数据不返回 Java。
 - Run 身份仅取自已验证 Run JWT 的 `tenant`、`sub`；请求正文不重复声明身份，业务 MCP Token 不作为身份来源。
 - 父 Runtime ↔ Worker：JSONL 进程边界；独立执行使用 `query()`，持久执行由 SessionActor 独占 Client。
