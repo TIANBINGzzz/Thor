@@ -12,11 +12,18 @@ from .sql_policy import validate_sql
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['list', 'validate', 'probe'])
+    parser.add_argument('command', choices=['list', 'validate', 'check-config', 'probe'])
     parser.add_argument('--source')
     args = parser.parse_args()
     catalog = Catalog()
     try:
+        if args.command == 'check-config':
+            # 构建机仅核验运行时可加载的 JSON 结构，不连接部署环境的内网数据库。
+            config = load_config(os.environ)
+            if not config:
+                raise DataError('CONFIG_INVALID')
+            print(json.dumps({'status': 'ok', 'sources_checked': len(config)}))
+            return
         sources = [catalog.source(args.source)] if args.source else catalog.sources()
         if args.command == 'list':
             print(json.dumps([{'source_key': s['source_key'], 'name': s['name'], 'domains': list(s['domains'])}

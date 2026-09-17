@@ -4,6 +4,8 @@
 
 当前 97 的外部 `update_python.sh` 使用另一条路线：ACR 拉镜像 → `docker run --env-file` 注入主机配置 → 镜像内 `entrypoint.py` 启动服务。这条路线不调用本目录的 `deploy.sh`、Compose 和 Base64 配置生成器；主机须能访问 ACR。修改运行配置后重新创建容器，修改镜像内代码后重新构建、推送并部署。
 
+本版数据库配置直接提交私有Codeup的`config/databases.json`并复制到镜像内`/app/config/databases.json`，构建校验JSON可加载但不连接内网数据库。默认无需单独上传或挂载config；使用镜像内配置时保持`CCSDK_WITH_DATABASE=0`，env中的`CCSDK_DATABASES_FILE`删除或设为上述容器路径，不要再用旧config挂载覆盖镜像目录。模型/JWT仍由运行时env注入；改数据库连接或授权后须重新构建和部署。当前配置不依赖CA文件，未来启用TLS须另提供相应证书。
+
 - `entrypoint.py` 是两条路线共同的镜像入口；`smoke.py` 是可选的真实模型/API 验证。
 - `build.sh`、`flow*.yml`、`deploy.sh`、`compose*.yaml` 是镜像包部署路线；是否使用 `build.sh` 构建由实际流水线命令决定。
 - `encode-secret.py`、`write-env.py`、`secrets.example.json` 服务于云效私密配置生成；直接维护主机 env 时参考 `runtime.env.example`。数据库配置示例与模型/JWT 配置分开。
@@ -36,7 +38,7 @@ python deploy/encode-secret.py scratch/ccagentsdk.secret.json scratch/ccagentsdk
 
 复制secrets.example.json为忽略的*.secret.json，填写后编码。必需模型配置和非空JWT共享密钥；密钥不再校验长度或示例字符串，建议随机生成并与Java保持一致。数据库另提供CCSDK_DATABASES_JSON（参照data-access.example.json，sources按来源键集中所有连接、用户名、密码及策略）。需要TLS证书时提供CCSDK_DATABASE_CERTIFICATES_JSON，格式为`{"schoolDoubleHigh.pem":"证书内容"}`，连接的tls.ca_file写`certificates/schoolDoubleHigh.pem`。不再提供单独数据库账号/密码变量。
 
-CCSDK_WITH_DATABASE=1启用数据库挂载；CCSDK_GENERATE_ENV=1从云效变量生成runtime.env、databases.json及certificates/。配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE固定为/app/config/databases.json；新增连接无需增加挂载。配置目录权限750、root:10001，数据库文件400、10001:10001，runtime.env保持root专用600。
+仅需外部配置覆盖镜像内数据库时，CCSDK_WITH_DATABASE=1启用数据库挂载；配合CCSDK_GENERATE_ENV=1从云效变量生成runtime.env、databases.json及certificates/。配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE固定为/app/config/databases.json；新增连接无需增加挂载。配置目录权限750、root:10001，数据库文件400、10001:10001，runtime.env保持root专用600。
 
 学校现场可维护相同目录，CCSDK_GENERATE_ENV=0保留文件，升级只换镜像；Flow已开放此开关。不要同时在云效与主机维护同一环境。非Docker开发默认读取项目根config/databases.json，或由CCSDK_DATABASES_FILE指定；相对路径以项目根为准。学校切换地址、凭据、TLS及授权范围后排空任务并重新部署，无需重建镜像。
 
@@ -60,7 +62,7 @@ Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.servi
 2. `REPLACE_MACHINE_GROUP_ID`：包含 `192.168.10.97` 的主机组 ID。截图中的“开发环境-192.168.10.97（业务系统）”是显示名，不是 ID；在主机组详情或 YAML 编辑器中复制真实 ID。
 3. `CCSDK_DEPLOY_ROOT`：97 上的持久目录。
 
-普通部署设置在 YAML 的variables修改：CCSDK_BIND_IP默认回环；CCSDK_WITH_DATABASE默认0，启用问数改1并提供databases.json；CCSDK_GENERATE_ENV默认1，现场维护配置改0。JWT密钥、issuer/audience要与Java一致。容器内127.0.0.1指容器自身，数据库host/port/database全部由集中配置提供。完整迁移问题见[checks/README.md](checks/README.md)。
+普通部署设置在 YAML 的variables修改：CCSDK_BIND_IP默认回环；CCSDK_WITH_DATABASE默认0，使用镜像内配置问数无需改1；CCSDK_GENERATE_ENV默认1，现场维护env改0。JWT密钥、issuer/audience要与Java一致。容器内127.0.0.1指容器自身，数据库host/port/database全部由集中配置提供。完整迁移问题见[checks/README.md](checks/README.md)。
 
 构建任务会运行 `deploy/build.sh`：执行 Dockerfile 的完整 Python 测试，生成 `dist/release/image.tar`、镜像 ID、校验和及部署文件，然后通过 `ArtifactUpload` 上传。部署任务下载完整制品，校验 SHA256，`docker load` 后使用镜像内的 `write-env.py` 生成 `runtime.env`，再以 `docker compose --pull never` 启动。`CCSDK_SMOKE_TEST=1` 会额外执行健康、未认证拒绝、签名 Run、真实模型响应和 SSE 顺序检查；首次接入可先设为 `0`，待模型网络和 JWT 配置确认后再设为 `1`。
 
@@ -72,5 +74,5 @@ Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.servi
 
 | 要求编号 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
-| REQ-001 | 部分满足 | 密钥只在运行时生成配置；构建制品排除 env；沿用 MCP 按需注入 | Java 真 Token 透传、撤销和跨租户隔离仍需端到端验收 |
+| REQ-001 | 部分满足 | 模型/JWT密钥在运行时注入，构建排除 env；本版数据库JSON随镜像交付，业务Token仍按 MCP 按需注入 | Java 真 Token 透传、撤销和跨租户隔离仍需端到端验收 |
 | REQ-002 | 部分满足 | 执行资产随镜像内部交付；Capability 已映射内部 Workflow | 真实 Java 业务授权、配置审计及生产隔离仍需端到端验收 |

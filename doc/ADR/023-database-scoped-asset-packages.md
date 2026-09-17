@@ -7,7 +7,7 @@
 | 实现状态 | 部分实现 |
 | 最近核对 | 2026-09-15 |
 | 替代的旧 ADR | 部分替代[ADR-019](019-shared-query-spec-assets.md)和[ADR-022](022-school-database-single-tenant.md)的目录组织；保留共享查询、单租户起步及多租户扩展边界 |
-| 后续替代 | [ADR-024](024-grouped-metrics-evidence-writing.md)以主题YAML替代单指标定义与SQL分文件，保留本ADR的数据库包边界 |
+| 后续替代 | [ADR-024](024-grouped-metrics-evidence-writing.md)以主题YAML替代单指标定义与SQL分文件；[ADR-028](028-bundled-database-config.md)替代默认外置配置交付方式，保留本ADR的数据库包边界 |
 
 ## 背景
 

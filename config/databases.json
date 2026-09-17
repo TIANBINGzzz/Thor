@@ -1,0 +1,101 @@
+{
+  "sources": {
+    "schoolDoubleHigh": {
+      "policy": {
+        "tenant_id": "rehearsal-school",
+        "business_tenant_id": "17",
+        "revision": 1,
+        "users": [
+          "rehearsal-user"
+        ],
+        "capabilities": [
+          "national-excellence-data-qa",
+          "document-writing"
+        ],
+        "templates": [
+          "szpt-midterm",
+          "double-high-annual"
+        ],
+        "project_scope": {
+          "mode": "selected",
+          "project_ids": [
+            "06b1c41b12b80adc8fb5024300fd683e",
+            "7f992b3c7ed2ee48d367d478b3c4ab1d"
+          ]
+        },
+        "dynamic_sql_enabled": false,
+        "domains": {
+          "hpm": {
+            "queries": [
+              "completed_task_count",
+              "completed_tasks_without_material",
+              "fund_department_coverage",
+              "fund_source_amounts",
+              "fund_totals",
+              "performance_current_summary",
+              "performance_department_metrics",
+              "performance_feedback_candidates",
+              "performance_historical_snapshot",
+              "performance_module_status",
+              "performance_stage_summary",
+              "performance_tree",
+              "project_catalog",
+              "project_leaders",
+              "achievement_count",
+              "project_cycle_budget",
+              "income_budget_execution_rate",
+              "indicator_completion_rate",
+              "project_performance_categories",
+              "performance_scoring",
+              "task_performance_links",
+              "terminal_completion",
+              "stage_catalog",
+              "task_department_candidates",
+              "task_department_metrics",
+              "task_feedback_candidates",
+              "task_level_counts",
+              "task_members",
+              "task_progress_summary",
+              "task_project_candidates",
+              "task_project_flag_diagnostics",
+              "task_tree",
+              "first_task_progress_feedback"
+            ],
+            "tables": [
+              "t_hpm_project",
+              "t_hpm_project_stage",
+              "t_hpm_project_module",
+              "t_hpm_project_task",
+              "t_hpm_project_task_feedback",
+              "t_hpm_project_task_org",
+              "t_hpm_project_task_member",
+              "t_hpm_project_member",
+              "t_hpm_project_fund",
+              "t_hpm_project_performance",
+              "t_hpm_project_performance_feedback",
+              "t_hpm_project_performance_org",
+              "t_hpm_project_task_performance_relation"
+            ]
+          }
+        }
+      },
+      "connection": {
+        "tenant_id": "rehearsal-school",
+        "driver": "mysql+pymysql",
+        "host": "192.168.10.94",
+        "port": 3306,
+        "database": "test_hpm_dev",
+        "tls": {
+          "mode": "disabled"
+        },
+        "revision": 1,
+        "timeout_seconds": 30,
+        "max_rows": 10000,
+        "database_scope_enforced": false,
+        "username": "root",
+        "password": "String@1307!"
+      }
+    }
+  },
+  "version": 1
+}

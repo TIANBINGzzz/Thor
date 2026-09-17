@@ -26,10 +26,13 @@ COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
 COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./
+# 本版本将数据库配置随镜像交付；/app/config 是容器内目录。
+COPY --chown=10001:10001 --chmod=0400 config/databases.json ./config/databases.json
 # Fixed /app paths are container-scoped; deployment helpers run from this image.
 COPY deploy/entrypoint.py deploy/write-env.py deploy/smoke.py ./deploy/
 RUN mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
 USER 10001:10001
+RUN PYTHONPATH=python python -m data_access check-config
 EXPOSE 4310
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=4 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4310/health', timeout=3)"
@@ -37,6 +40,5 @@ ENTRYPOINT ["python", "deploy/entrypoint.py"]
 
 FROM runtime AS test
 COPY deploy/ ./deploy/
-COPY doc/python-api.html ./doc/python-api.html
 RUN python -m unittest discover -s python/tests -t python -p 'test_*.py'
-RUN python deploy/test_write_env.py && python deploy/test_build.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh
+RUN python deploy/test_write_env.py && python deploy/test_build.py && python deploy/test_databases.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh

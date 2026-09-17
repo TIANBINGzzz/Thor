@@ -66,7 +66,7 @@
 - workflow共同规则由workflow.json.skills及documents登记，预制模板通过template.json.assets登记逐段指南、位置地图和指标计划，仅按所选templateKey加载指南；公共数据库知识由source.json.domains登记并通过数据工具授权按需加载。两个加载器分别限制边界，未登记及not_for_model人工材料不进入Prompt。
 - `database-qa` 的语义来源维护在 DBProcessing 的 `doc/model_context`，接入时只提炼硬约束、业务口径和必要字段；`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照只作人工核验，不注入 prompt
 - `database-qa` 默认是国双高口径：项目/资金/绩效按有效项目标记，纯任务统计按任务标记；标记不一致必须披露，不能静默用另一种标记排除数据
-- 真实问数验证必须使用临时进程环境和只读 SQL，对照独立基准；不得把真实凭据、租户值、内部 ID 或结果明细写入仓库
+- 真实问数验证必须使用临时进程环境和只读 SQL，对照独立基准；不得把真实凭据、租户值、内部 ID 或结果明细写入仓库。本版用户授权的唯一例外为config/databases.json：进入私有Codeup并随镜像交付，模型/JWT密钥仍不入库，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
 - 架构决策写入 `doc/ADR/`，实现细节写代码注释，项目结构变化同步更新 `README.md`
 
 ## 当前安全状态

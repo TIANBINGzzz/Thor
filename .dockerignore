@@ -12,8 +12,8 @@
 !deploy/*.sh
 !deploy/data-access.example.json
 !deploy/compose*.yaml
-!doc/
-!doc/python-api.html
+!config/
+!config/databases.json
 **/__pycache__/
 **/*.pyc
 **/node_modules/
@@ -27,7 +27,6 @@
 **/*.secret.json
 **/*.secret.b64
 deploy/data-access.json
-/config/
 **/*.log
 **/settings.local.json
 **/~$*.docx

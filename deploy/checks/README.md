@@ -20,7 +20,7 @@
 | 本机 `.env` 没有 Runtime JWT 密钥 | 复制到部署环境会在 entrypoint 校验失败 | 独立配置至少 32 字节强随机密钥，Java 使用相同密钥及 issuer/audience；不要用模型 API Key 替代 |
 | `config.py` 的 dotenv `override=True` | 挂载根 `.env` 会覆盖流水线/容器注入值，Workflow 文件随后覆盖同名值 | 通用配置只使用 env_file 注入，不再挂载根 `.env`；流程凭据只读挂载到指定 Workflow |
 | Compose raw 与 python-dotenv 语法不同 | raw 会保留引号及 `$`；直接复制带引号的 dotenv 值可能导致鉴权失败 | runtime.env 写实际值、不加外层引号；Workflow 文件仍按 python-dotenv 规则解析，避免二次 shell 展开 |
-| 数据库连接与授权 | 部署侧databases.json集中连接/授权，Workflow和数据库知识包不保存连接 | 核对对应数据库包的物理库名、端口、只读账号、授权范围和TLS；私有文件通过只读挂载提供 |
+| 数据库连接与授权 | databases.json集中连接/授权，Workflow和数据库知识包不保存连接 | 本版默认随私有源码与镜像交付；核对物理库名、端口、只读账号、授权范围和TLS，构建不验证内网连通性 |
 | `.env.example` 的宿主机证书/SQLite 路径 | 宿主机路径在 Linux 中不指向部署文件 | 只读挂载证书并使用容器路径；工作数据放命名卷，不挂载宿主机整个项目目录 |
 | `file_broker.py` 的授权服务与下载 URL | Broker 要求 HTTPS；一次性下载 URL 只允许 443、白名单域名和公网解析，配置白名单也不会放行私网 IP | 内网 Java 可提供可信 HTTPS Broker 的 proxy_stream；对象存储 URL 模式需公网可达且符合白名单。不要为接入内网存储直接关闭 SSRF 校验 |
 | `/app` 为 root 所有、服务 UID 为 10001 | 默认 cwd 不可写；未指明工作目录时模型曾误选其他 Run 目录，下载 404 | 已在系统执行配置提供当前工作和交付目录及发布规则；仍须实现 OS 级租户隔离 |

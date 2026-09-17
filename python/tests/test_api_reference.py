@@ -32,6 +32,8 @@ class ReferenceParser(HTMLParser):
             self.current = None
 
 
+@unittest.skipUnless((Path(__file__).resolve().parents[2] / 'doc/python-api.html').is_file(),
+                     'API 文档仅在完整开发仓库校验，不随发布源码或镜像交付')
 class APIReferenceTests(unittest.TestCase):
     def setUp(self):
         self.page = ReferenceParser()

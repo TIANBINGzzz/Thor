@@ -29,7 +29,7 @@ python/       后端与 SDK 执行
   tests/      后端测试
 .claude/      skills/、agents/、workflows/执行资产；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
-config/       本地默认部署配置（忽略）；databases.json集中连接/授权，certificates/保存CA
+config/       databases.json集中连接/授权，随本版私有源码和镜像交付；其他文件默认忽略
 doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 ```
 
@@ -39,7 +39,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
-- `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；部署侧databases.json按source_key集中连接/授权，不进入镜像或模型资产快照。
+- `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
 - `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收，统一使用通用DOCX、文件、代码及Artifact工具。地图和取数计划只作维护参考，指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图。发布工具校验文件边界，不代替业务与版式核验。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
@@ -76,7 +76,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和文档成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
-- 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像，部署主机生成配置或保留学校现场配置。集中配置目录只读挂载到容器/app/config，CCSDK_DATABASES_FILE定位databases.json；公开资产随镜像交付，命名卷保存运行数据。换Key需排空并重建；单副本单HTTP worker，容器不代表租户隔离或生产验收。
+- 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像。本版默认读取镜像内/app/config/databases.json，不需要单独挂载；显式CCSDK_DATABASES_FILE或Compose数据库挂载可覆盖默认配置。模型/JWT仍由运行时env注入，命名卷保存运行数据。内置数据库配置修改须重建镜像；单副本单HTTP worker，容器不代表租户隔离或生产验收。
 
 ## 9. Where to look for X
 

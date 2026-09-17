@@ -16,7 +16,7 @@ python/data_access/         通用连接、授权、查询和结果
 python/runtime/data_services.py  每Run装配及私有配置快照
 python/workflows/writing_docx/   可信模板上下文、参考副本和可选地图维护
 python/tests/databases/      按数据库验证结构、指标SQL及覆盖
-config/databases.json        部署配置；集中保存各来源连接/策略，不入Git或镜像
+config/databases.json        部署配置；本版进入私有Git和镜像，集中保存各来源连接/策略
 config/certificates/         部署侧CA证书，路径相对databases.json
 ```
 
@@ -24,7 +24,7 @@ config/certificates/         部署侧CA证书，路径相对databases.json
 
 ## 字段与配置
 
-source.json不登记连接路径。部署侧databases.json结构为`{version:1,sources:{source_key:{connection,policy}}}`，内部不重复source_key。`CCSDK_DATABASES_FILE`指定该文件，相对路径以项目根目录为基准，默认config/databases.json。Docker只读挂载整个配置目录至容器/app/config，使用/app/config/databases.json；部署位置与镜像解耦。
+source.json不登记连接路径。databases.json结构为`{version:1,sources:{source_key:{connection,policy}}}`，内部不重复source_key。`CCSDK_DATABASES_FILE`指定该文件，相对路径以项目根目录为基准，默认config/databases.json。本版直接读取镜像内/app/config/databases.json，构建仅做离线结构检查，修改须重新构建部署；仍可显式挂载目录覆盖，见[ADR-028](../ADR/028-bundled-database-config.md)。
 数据库执行器按来源键读取用户名和密码；只有配置路径传给Worker，SDK环境不接收该变量。CA路径相对databases.json解析，不允许模型传连接参数。普通会话不加载数据库；普通撰写允许配置文件缺失，格式损坏则失败；问数和固定模板缺来源连接必须失败。每Run读取独立快照，配置内容变化触发Client重建。
 
 | 对象 | 字段 | 约束 |

@@ -52,7 +52,7 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 
 ## 配置与安全
 
-模型配置写在根.env；数据库包的source.json登记可用能力；部署侧databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。不要提交凭据、真实租户、内部ID或结果明细。固定报告和direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
+模型配置写在根.env；数据库包的source.json登记可用能力；databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。本版经用户确认将该JSON提交私有Codeup并打入镜像，修改后需重新构建部署；其他凭据及结果明细不提交。direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
 报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可由Agent通过代码使用已安装Office/WPS。目录及逐页版式仍须实际验收，无法完成时明确披露，不能声称通过。
 
