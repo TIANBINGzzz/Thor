@@ -22,8 +22,6 @@ def excluded(name):
     path = PurePosixPath(name)
     if path.parts[0].lower() in {"doc", "docs"}:
         return True
-    if name.startswith(".claude/skills/project-conventions/"):
-        return True
     if path.name.lower() in {"agent.md", "agents.md", "claude.md"}:
         return True
     if path.name.lower() == "readme.md":

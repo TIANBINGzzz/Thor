@@ -1,4 +1,0 @@
-interface:
-  display_name: "项目约定"
-  short_description: "应用本仓库的编码与验证规范"
-  default_prompt: "完成任务时遵循 $project-conventions 中的项目约定。"
