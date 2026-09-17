@@ -17,7 +17,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
 from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for, prepare_workflow_assets
-from runtime.auth import JWTError, verify_run_jwt
+from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
 from runtime.protocol import AgentRunRequest, ProtocolError
@@ -754,6 +754,35 @@ async def internal_create_run(request: Request):
         },
         status_code=202 if existing is None else 200,
     )
+
+
+@app.get("/internal/v1/sessions/{business_session_id}/runs")
+def internal_session_runs(
+    business_session_id: str, request: Request,
+    limit: int = Query(50, ge=1, le=100), cursor: str | None = Query(None, max_length=345),
+):
+    """列出Java授权会话的公开执行摘要，不维护业务会话或消息。"""
+    if not RUNTIME_JWT_SECRET:
+        return _plain("Runtime JWT 未配置", 503)
+    try:
+        claims = verify_session_read_jwt(
+            _bearer_from_request(request), RUNTIME_JWT_SECRET,
+            business_session_id=business_session_id,
+            audience=RUNTIME_JWT_AUDIENCE, issuer=RUNTIME_JWT_ISSUER,
+        )
+    except (JWTError, _InternalAuthError) as error:
+        return _plain(str(error), 401)
+    try:
+        runs, next_cursor = RUN_STORE.list_runs_by_session(
+            claims['tenant'], claims['sub'], business_session_id, limit=limit, cursor=cursor,
+        )
+    except ValueError as error:
+        return _plain(str(error), 400)
+    summaries = [{
+        **{key: run[key] for key in ('runId', 'capabilityRef', 'status', 'createdAt', 'updatedAt')},
+        'messageId': run['metadata'].get('messageId'),
+    } for run in runs]
+    return JSONResponse({'runs': summaries, 'nextCursor': next_cursor}, headers={'cache-control': 'no-store'})
 
 
 @app.get("/internal/v1/runs/{run_id}")

@@ -165,6 +165,14 @@ Content-Type: application/json</pre></div>
 <tr><td>error</td><td>可选；Run 失败时保存的稳定错误码。</td></tr>
 </tbody></table></section>
 
+<section id="session-runs"><h2>按业务会话查询执行记录</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/sessions/{businessSessionId}/runs?limit=50&amp;cursor=...</code></div>
+<p>Java授权后签发短期JWT，必须包含iss、aud、iat、exp、jti、tenant、sub、businessSessionId和scope: session.read。会话必须与路径相同；不要求runId或capabilityRef，只读分页不消耗jti。Run JWT的run.read/run.execute权限不能替代session.read。</p>
+<pre>{"runs":[{"runId":"run_01","messageId":"message_01","capabilityRef":"conversation","status":"succeeded","createdAt":1725400000000,"updatedAt":1725400001000}],"nextCursor":null}</pre>
+<p>limit默认50，范围1–100。按创建时间、Run ID倒序，时间为Unix毫秒。首次不传cursor，下页原样传回nextCursor，null表示结束。无记录返回空数组；游标无效或不属于当前授权范围返回400，分页参数类型/范围/长度错误返回422，JWT无效返回401，密钥未配置返回503。响应禁止缓存。</p>
+<p>返回该身份、会话下各能力的执行摘要，不含消息正文、内部metadata或SDK会话。历史messageId可能为null。游标不是授权凭据，列表不是快照；新记录通过刷新首页获取。标题、会话列表及消息仍由Java维护；查询单Run、事件和成果仍使用对应Run JWT。</p>
+</section>
+
 <section id="events"><h2>SSE 事件</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/events?afterSequence=0</code></div>
 <p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。首次订阅从 <code>afterSequence=0</code> 开始；若已成功处理到事件 7，重连时传 <code>afterSequence=7</code> 或请求头 <code>Last-Event-ID: 7</code>，只补取序号大于 7 的事件。查询参数优先于请求头；续传不重启模型执行，也不恢复 SDK 会话。</p>

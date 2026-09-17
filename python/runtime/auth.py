@@ -1,6 +1,6 @@
 """Small dependency-free HS256 JWT verifier for Java -> Runtime calls.
 
-This module authenticates the caller and binds a token to one Run.  It does not
+This module authenticates the caller and binds Run or session-read grants. It does not
 look up tenants or users in a database; the Java control plane remains the
 authority for those resources.  The in-memory replay cache is intentionally a
 single-process MVP and must be replaced by Redis/another atomic store when the
@@ -170,6 +170,20 @@ def _verify_signed_claims(
     if expected_scope and expected_scope not in scopes:
         raise JWTError("JWT scope is not allowed")
 
+    return claims
+
+
+def verify_session_read_jwt(
+    token: str, secret: str | bytes, *, business_session_id: str,
+    audience: str = "ccsdk-runtime", issuer: str | None = None,
+) -> dict[str, Any]:
+    """校验Java签发的会话读取授权；只读分页可在有效期内重复使用。"""
+    claims = _verify_signed_claims(
+        token, secret, audience=audience, issuer=issuer, expected_scope="session.read",
+        required_claims=("sub", "tenant", "jti", "businessSessionId"),
+    )
+    if claims["businessSessionId"] != business_session_id:
+        raise JWTError("businessSessionId mismatch")
     return claims
 
 

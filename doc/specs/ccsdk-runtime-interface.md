@@ -89,7 +89,7 @@ Content-Type: application/json
 }
 ```
 
-创建、查询、控制和取消共用同一 Run 响应：`runId: string` 为执行标识，`status: string` 为执行状态，`lastSequence: integer` 为事件续传游标；失败时可带 `error: string` 稳定错误码。身份、业务关联和 SDK 执行信息只保存在 Python 内部，不进入响应。
+创建、查询、控制和取消共用同一 Run 响应：`runId: string` 为执行标识，`status: string` 为执行状态，`lastSequence: integer` 为事件续传游标；失败时可带 `error: string` 稳定错误码。身份和SDK执行信息不进入响应；会话执行检索另返回messageId及capabilityRef等公开关联字段，见4.3。
 
 ### 3.2 Capability 字段
 
@@ -176,6 +176,21 @@ Content-Type: application/json
 两者都不删除业务会话或已有输出，不撤销工具已完成的操作；已结束的 Run 保持原状态。返回当前 Run，例如 `{"run":{"runId":"run_01","status":"cancelled","lastSequence":8}}`；执行可能仍在收尾，最终状态以 SSE 终态事件或后续查询为准。继续对话应创建新 Run。
 
 快捷接口 `POST /internal/v1/runs/{runId}/cancel` 等价于 control 的 `{"option":"cancel"}`。
+
+### 4.3 按业务会话查询执行记录
+
+`GET /internal/v1/sessions/{businessSessionId}/runs?limit=50&cursor=...`
+
+Java先校验用户对该业务会话的读取权限，再签发`scope: session.read`的短期JWT。必须包含`iss`、`aud`、`iat`、`exp`、`jti`、`tenant`、`sub`、`businessSessionId`，后者必须与路径相同；不要求runId或capabilityRef。使用相同Runtime签名配置，只读请求不消耗jti。普通run.read/run.execute权限不能访问此接口；session.read也不授予单Run读取、取消或执行权限。
+
+返回`{"runs":[{"runId":"run_01","messageId":"message_01","capabilityRef":"conversation","status":"succeeded","createdAt":1725400000000,"updatedAt":1725400001000}],"nextCursor":null}`。时间为Unix毫秒，历史记录缺少messageId时为null；不返回身份、消息正文、内部metadata或SDK会话引用。
+
+- 查询始终按JWT的tenant、sub及路径会话过滤，跨能力汇总；无记录返回200和空数组，不能据此判断Java业务会话是否存在。
+- limit默认50，范围1–100。按createdAt、runId倒序稳定排序；首次省略cursor，下页原样传回nextCursor，null表示结束。不要解析游标或把它当授权凭据。
+- 翻页使用固定的创建时间和Run ID位置，不受状态更新或已翻过位置之前的新记录影响；不是数据库快照，刷新首页才能看到最新记录。游标定位不到当前授权会话的记录时返回400，重新从首页查询。
+- 无效/跨范围游标返回400；分页参数类型、范围或长度错误返回422；JWT无效返回401，密钥未配置返回503。响应禁止缓存。
+
+会话标题、消息和会话列表仍由Java维护，Python仅查询现有RunStore，不接入SessionStore或新增业务会话表。
 
 ## 5. SSE 事件模块
 
@@ -300,6 +315,7 @@ scope 与接口的关系：
 | 创建 Run | `run.execute` | 是 |
 | 查询 Run、SSE、Artifact | `run.read` 或 `run.execute` | 否 |
 | 控制/取消 | `run.control` 或 `run.cancel` | 是 |
+| 按业务会话列出Run | `session.read`，绑定tenant、sub及businessSessionId | 否 |
 
 ### 7.3 Python 校验和输出
 

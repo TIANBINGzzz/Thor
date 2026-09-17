@@ -8,6 +8,7 @@ are stripped from metadata and events before persistence.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import re
@@ -106,6 +107,8 @@ class RunStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_run_events_after
                     ON run_events(run_id, sequence);
+                CREATE INDEX IF NOT EXISTS idx_runs_session_created
+                    ON runs(tenant_id, user_id, business_session_id, created_at DESC, run_id DESC);
                 """
             )
             columns = {
@@ -120,6 +123,49 @@ class RunStore:
                 self._connection.execute("ALTER TABLE runs ADD COLUMN last_sequence INTEGER NOT NULL DEFAULT 0")
             self._connection.commit()
             self._connection.commit()
+
+    def list_runs_by_session(
+        self, tenant_id: str, user_id: str, business_session_id: str, *,
+        limit: int = 50, cursor: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        """按身份和业务会话倒序分页；游标只定位记录，不携带访问权限。"""
+        if any(not isinstance(v, str) or not v.strip() for v in (tenant_id, user_id, business_session_id)):
+            raise ValueError("session identity is required")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
+        scope = (tenant_id, user_id, business_session_id)
+        condition = "tenant_id = ? AND user_id = ? AND business_session_id = ?"
+        with self._lock:
+            values: tuple = scope
+            if cursor is not None:
+                try:
+                    if not re.fullmatch(r"v1\.[A-Za-z0-9_-]{1,342}", cursor):
+                        raise ValueError()
+                    encoded = cursor[3:]
+                    run_id = _validate_run_id(base64.urlsafe_b64decode(encoded + '=' * (-len(encoded) % 4)).decode('ascii'))
+                    if cursor != self._session_cursor(run_id):
+                        raise ValueError()
+                except (ValueError, UnicodeError):
+                    raise ValueError("invalid cursor") from None
+                anchor = self._connection.execute(
+                    f"SELECT created_at, run_id FROM runs WHERE {condition} AND run_id = ?",
+                    (*scope, run_id),
+                ).fetchone()
+                if anchor is None:
+                    raise ValueError("invalid cursor")
+                condition += " AND (created_at, run_id) < (?, ?)"
+                values += (anchor['created_at'], anchor['run_id'])
+            rows = self._connection.execute(
+                f"SELECT * FROM runs WHERE {condition} ORDER BY created_at DESC, run_id DESC LIMIT ?",
+                (*values, limit + 1),
+            ).fetchall()
+        page = rows[:limit]
+        next_cursor = self._session_cursor(page[-1]['run_id']) if len(rows) > limit else None
+        return [self._run_row(row) for row in page], next_cursor
+
+    @staticmethod
+    def _session_cursor(run_id: str) -> str:
+        return 'v1.' + base64.urlsafe_b64encode(run_id.encode('ascii')).rstrip(b'=').decode('ascii')
 
     def close(self) -> None:
         with self._lock:
