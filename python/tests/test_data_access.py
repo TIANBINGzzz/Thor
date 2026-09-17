@@ -421,8 +421,9 @@ class RegisteredAssetsTests(unittest.TestCase):
 
     def test_template_all_mappings_are_bound_to_original_physical_paragraphs(self):
         template=load_template('szpt-midterm','document-writing')
-        self.assertEqual(len(template['_slots']),3503)
-        self.assertEqual(len([s for s in template['_slots'] if s['section_key'].startswith('T')]),2710)
+        self.assertEqual(template['_map_status']['matched_annotations'],3503)
+        self.assertGreater(len(template['_locations']),3503)
+        self.assertEqual(len([s for s in template['_locations'] if s['table'] and s.get('annotation')]),2710)
         self.assertEqual(len({location['table']['table_id'] for location in template['_document_map']['locations']
                               if location['table']}),40)
         self.assertEqual(template['source_roles'],{'hpm':'schoolDoubleHigh'})

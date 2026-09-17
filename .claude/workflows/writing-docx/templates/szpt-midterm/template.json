@@ -97,7 +97,6 @@
   },
   "output_policy": {
     "preserve_structure": true,
-    "clear_fill_markers": true,
-    "missing_policy": "reject"
+    "clear_fill_markers": true
   }
 }

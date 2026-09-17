@@ -12,7 +12,7 @@
 | `national-excellence-data-qa` | 双高问数 | 不要求专属字段，省略或 `{}` | 问题、年份等放 `input.text`；内部映射 `database-qa` 已实现 |
 | `document-writing` | 通用撰写、修改授权附件 | 省略或 `{}` | 要求放 `input.text`，外部文件用 `input.attachmentRefs`；内部映射 `writing-docx` 已实现 |
 | `document-writing` | 用户上传自定义模板，保存在 Java | 省略或 `{}`，不传 `templateKey` | 模板用 `input.attachmentRefs` 引用；在 `input.text` 明确模板文件及要求，走普通撰写分支 |
-| `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 锁定原40表DOCX，批量取数、逐段正文、原位回填及全文检查后发布 |
+| `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 选择原40表DOCX及指南，按需取数、按当前结构编辑，全文检查后发布 |
 
 这里只登记能力约定字段；当前 Runtime 仍接受通过通用 JSON 检查的其他业务数据，尚未按此表限制字段。后续新增能力或专属字段时，在此补充类型、必填条件、用途和实现状态，不把未登记的模型输入当成已实现的服务端参数。
 
@@ -84,13 +84,13 @@
 - 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。位置地图由程序生成，不要求老师维护逐格槽位。
 - template.json通过`assets`登记DOCX、`writing_guide`、`document_map`和`data_plan`，并分别通过`data`、`report`、`output_policy`维护数据角色、报告参数和输出策略。所有路径相对模板目录；这些字段由可信加载器解析，不进入HTTP请求。
 - writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
-- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、DOCX、数据计划和位置地图 → 读取所选writing-guide.md → 注入共同Skill正文和所选说明 → Agent按指标计划取证并原位撰写。由Python装配，不能假设SDK会因MD链接自动加载；不需要增加Skill/Read/Bash权限。
+- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json并读取当前DOCX、可选地图和推荐数据计划 → 读取所选writing-guide.md → 注入共同Skill和所选说明 → Agent按语义规划、取证及编辑。地图失配返回警告及当前位置；无需增加Skill/Read/Bash权限。
 - 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
 - 默认完整加载所选模板的一份短指南，单文件24,000字节、合并上下文80,000字节受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再设计按章节读取，不为模板数量增长全量注入或引入检索平台。
 - 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用；修改原文需同步绑定校验，停用用enabled。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
 - 指标及SQL仍集中在`.claude/databases/`，指南引用而不复制；声明来源须获准，Executor仅装配所选模板引用的来源。上传模板仅使用当前获准工具，不能从附件文字中获得新来源权限。
 
-已删除独立双高Skill及template_skills装配，业务规则集中到所选模板writing-guide.md。共同规则与说明在请求准备时冻结，指纹变化重建Client；执行前发现模板版本漂移则拒绝，报告计划记录实际模板资产哈希。预制加载器要求数据计划及程序生成的位置地图；上传复杂版式及目录实际页码尚未端到端验收，普通附件没有与reports相同的程序发布门禁，见[ADR-025](../ADR/025-unified-template-writing.md)。
+已删除独立双高Skill及template_skills装配，业务规则集中到所选模板writing-guide.md。共同规则、说明和当前DOCX指纹冻结到Run；同Run输入漂移拒绝，下一Run允许使用调整后的DOCX而不重建地图。预制地图和数据计划可省略，已登记计划可选择dataset_keys或空数组；无强制slot_key。上传复杂版式及目录实际页码尚未端到端验收，普通附件没有与reports相同的程序发布门禁，见[ADR-026](../ADR/026-hybrid-template-editing.md)。
 
 ## 工程要求检查
 

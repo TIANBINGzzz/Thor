@@ -20,7 +20,7 @@ class ReportPlanner:
         self.tasks = set()
         self.latest = None
 
-    async def prepare(self, report_parameters, scope_refs):
+    async def prepare(self, report_parameters, scope_refs, dataset_keys=None):
         executor = self.services.current()
         if next(Draft202012Validator(self.template["parameters"], format_checker=FormatChecker()).iter_errors(report_parameters), None):
             raise DataError("REPORT_PARAMETERS_INVALID")
@@ -38,7 +38,15 @@ class ReportPlanner:
             source_key = self.template["source_roles"][role]
             for ref in scope_refs[role].values():
                 executor.scope(source_key, role, ref)
-        identity = fingerprint([report_parameters, scope_refs, self.template["_revision"],
+        available = {item['dataset_key'] for item in self.template['_bindings']['datasets']}
+        selected = sorted(available if dataset_keys is None else set(dataset_keys))
+        if not set(selected) <= available:
+            raise DataError('DATASET_INVALID')
+        evidence_scopes = [dict(source_key=source, domain=domain, scope_ref=ref, scope_role=scope_role)
+            for role, source in self.template['source_roles'].items()
+            for domain in executor.catalog.source(source)['domains']
+            for scope_role, ref in scope_refs.get(role, {}).items()]
+        identity = fingerprint([report_parameters, scope_refs, selected, self.template["_revision"],
                                 executor._versions, executor.context.owner])
         for plan in self.plans.values():
             if plan["input_fingerprint"] == identity:
@@ -52,7 +60,9 @@ class ReportPlanner:
                 "writing_rules_revision": self.services.workflow_revision,
                 "asset_revision": executor._versions,
                 "report_parameters": report_parameters, "status": "queued", "nodes": [],
-                "slots": [], "drafts":{}, "coverage": {}, "connection_revisions": {}, "policy_revisions": {}}
+                "dataset_keys": selected, "locations": self.template['_locations'],
+                "evidence_scopes": evidence_scopes, "drafts":{}, "coverage": {},
+                "connection_revisions": {}, "policy_revisions": {}}
         self._compile(plan, scope_refs)
         self.plans[reference] = plan
         self.latest = reference
@@ -66,6 +76,8 @@ class ReportPlanner:
         parameters = plan["report_parameters"]
         seen = {}
         for dataset in self.template["_bindings"]["datasets"]:
+            if dataset['dataset_key'] not in plan['dataset_keys']:
+                continue
             source_key = self.template["source_roles"][dataset["source_role"]]
             _, policy, connection = executor.access(source_key)
             plan["connection_revisions"][source_key] = connection["revision"]
@@ -119,8 +131,8 @@ class ReportPlanner:
             plan["status"] = "running"
             async with asyncio.timeout(600):
                 await self.services.call(self._snapshots, plan)
-            self._slots(plan)
-            plan["status"] = "blocked" if plan["coverage"].get("required_missing") else "ready"
+            self._coverage(plan)
+            plan["status"] = "ready"
         except asyncio.CancelledError:
             plan["status"] = "cancelled"
             raise
@@ -161,31 +173,13 @@ class ReportPlanner:
                     node["status"], node["result_ref"] = "failed", None
                 raise
 
-    def _slots(self, plan):
-        executor = self.services.current()
-        slots = []
-        for binding in self.template["_slots"]:
-            binding = {**binding}
-            if binding["kind"] != "static":
-                role = binding.get("scope_role", "school")
-                binding["evidence_datasets"] = [
-                    dataset["dataset_key"] for dataset in self.template["_bindings"]["datasets"]
-                    if role == "school" or dataset["scope_role"] == role
-                ]
-            slot = {k: binding[k] for k in ("slot_key", "section_key", "name", "kind", "required")}
-            from .report_values import resolve_value
-            slot.update(resolve_value(binding, plan, executor))
-            slot['scope_role'] = binding.get('scope_role', 'school')
-            slot['evidence_scopes'] = [dict(zip(('source_key', 'domain', 'scope_ref'), scope))
-                for scope in sorted({(n['source_key'], n['domain'], n['scope_ref']) for n in plan['nodes']
-                    if set(n['dataset_keys']) & set(binding.get('evidence_datasets', []))})]
-            slots.append(slot)
-        plan["slots"] = slots
-        counts = dict(Counter(s["value_status"] for s in slots))
-        counts.update({"total": len(slots), "dynamic": sum(s["kind"] != "static" for s in slots),
-                       "required_missing": sum(s["required"] and s["value_status"] not in {"filled","unavailable","awaiting_draft"} for s in slots),
-                       "drafts_required":sum(s.get('draftable', False) and s['required'] for s in slots)})
-        plan["coverage"] = counts
+    def _coverage(self, plan):
+        recommended = {item['location_hint'] for item in plan['locations']
+                       if item.get('annotation', {}).get('node_type') in {'scalar', 'narrative'}}
+        plan['coverage'] = {'edited_locations': len(plan['drafts']),
+                            'recommended_locations': len(recommended),
+                            'unedited_recommendations': len(recommended - set(plan['drafts'])),
+                            'usage': 'advisory_not_completion_proof'}
 
     def _save(self, plan):
         directory = self.services.current().context.run_directory / "report"
@@ -199,14 +193,15 @@ class ReportPlanner:
         plan = self.plans.get(plan_ref)
         if plan is None:
             raise DataError("PLAN_FORBIDDEN")
-        sections = sorted({s["section_key"] for s in self.template["_slots"]})
+        self._coverage(plan)
+        sections = list(dict.fromkeys(s['section_key'] for s in plan['locations']))
         result = {**self.summary(plan), "sections": sections,
-                  "writing_sections":[s for s in sections if any(v['section_key']==s and v.get('draftable') for v in plan['slots'])],
+                  "map_status": self.template['_map_status'], "warnings": self.template['_warnings'],
                   "drafts_saved":len(plan.get('drafts',{})),
                   "progress": dict(Counter(n["status"] for n in plan["nodes"]))}
         if section_key is None:
             return result
-        if plan["status"] not in {"ready", "blocked"}:
+        if plan["status"] != "ready":
             return result
         if section_key not in sections:
             raise DataError("SECTION_INVALID")
@@ -216,25 +211,21 @@ class ReportPlanner:
             if not saved or saved[0] != section_key or saved[2] != writing_only:
                 raise DataError("CURSOR_INVALID")
             offset = saved[1]
-        slots = [s for s in plan["slots"] if s["section_key"] == section_key and (not writing_only or s.get('draftable'))]
-        definitions={s['slot_key']:s for s in self.template['_slots']}
-        slots=[{**s, 'name':definitions[s['slot_key']].get('business_context',s['name']),
-                'business_context':definitions[s['slot_key']].get('business_context',''),
-                'text':definitions[s['slot_key']].get('template_text',''),
-                'draft_saved':s['slot_key'] in plan.get('drafts',{})} for s in slots]
+        from .report_locations import public_location
+        locations = [{**public_location(item), 'draft_saved': item['location_hint'] in plan['drafts']}
+                     for item in plan['locations'] if item['section_key'] == section_key
+                     and (not writing_only or item.get('annotation', {}).get('node_type') != 'static')]
         next_cursor = None
-        if offset + 50 < len(slots):
+        if offset + 50 < len(locations):
             next_cursor = "cursor_" + token_urlsafe(18)
             plan.setdefault("cursors", {})[next_cursor] = (section_key, offset + 50, writing_only)
-        roles = {definition.get("scope_role", "school") for definition in self.template['_slots']
-                 if definition["section_key"] == section_key}
-        result.update({"slots": slots[offset:offset+50], "cursor": next_cursor,
+        result.update({"location_hints": locations[offset:offset+50], "cursor": next_cursor,
                        "facts": [{"query_id": n["query_id"], "parameters": n["parameters"],
+                                  "dataset_keys": n['dataset_keys'],
                                   "scope_roles": n["scope_roles"],
                                   "status": n["status"], "result_ref": n["result_ref"],
                                   "error_code": n["error_code"], "usage": "candidate_facts_require_period_validation"}
-                                 for n in plan["nodes"]
-                                 if "school" in roles or roles.intersection(n["scope_roles"])]})
+                                 for n in plan["nodes"]]})
         return result
 
     async def render(self, plan_ref, section_drafts):
@@ -242,12 +233,13 @@ class ReportPlanner:
         if plan_ref != self.latest or plan_ref not in self.plans:
             raise DataError("PLAN_SUPERSEDED")
         plan = self.plans[plan_ref]
-        if plan["status"] not in {"ready", "blocked"}:
+        if plan["status"] != "ready":
             raise DataError("PLAN_NOT_READY")
         from .report_renderer import validate_drafts
         drafts = {**plan.get('drafts', {}), **validate_drafts(plan, section_drafts, self.services.current())}
         output=await self.services.call(render, self.template, plan, list(drafts.values()), self.services.current())
         plan['drafts']=drafts
+        self._coverage(plan)
         plan['rendered']=output
         plan.pop('validation',None)
         self._save(plan)
@@ -257,12 +249,15 @@ class ReportPlanner:
         if plan_ref != self.latest:
             raise DataError('PLAN_SUPERSEDED')
         plan=self.plans[plan_ref]
+        if plan['status'] != 'ready':
+            raise DataError('PLAN_NOT_READY')
         from .report_renderer import validate_drafts
         plan.setdefault('drafts', {}).update(validate_drafts(plan, section_drafts, self.services.current()))
         plan.pop('rendered',None)
         plan.pop('validation',None)
+        self._coverage(plan)
         self._save(plan)
-        return {'saved':len(plan['drafts']), 'required':plan['coverage']['drafts_required']}
+        return {'saved':len(plan['drafts']), 'coverage':plan['coverage']}
 
     async def close(self):
         for task in list(self.tasks):

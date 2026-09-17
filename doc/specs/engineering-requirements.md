@@ -70,3 +70,4 @@
 - 固定模板SDK只挂data/reports工具，报告工具复用Artifact发布；普通Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成。
 
 - 2026-09-16：撰写共同Skill已统一注入，所选预制模板以documents加载专属MD并限定数据源；请求字段不变，规则哈希参与Client隔离及模板计划。上传模板保留附件参考路径，目录重建为Skill要求，复杂DOCX/目录及真实Java验收尚未完成，见[ADR-025](../ADR/025-unified-template-writing.md)。
+- 2026-09-17：预制地图与取数计划改为可选参考，按当前DOCX结构唯一定位；上传模板只读语义结构生成新稿，不登记地图。相同Capability及外部传值不变，既有Token/Java/复杂成稿验收差距保留，见[ADR-026](../ADR/026-hybrid-template-editing.md)。

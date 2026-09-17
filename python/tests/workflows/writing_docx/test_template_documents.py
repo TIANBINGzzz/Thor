@@ -47,7 +47,7 @@ class TemplateDocumentTests(unittest.TestCase):
                     'data_plan':'report-data-plan.json'},
                 'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
                 'report':{'parameters':{'type':'object'},'file_name':'report.docx'},
-                'output_policy':{'preserve_structure':True,'missing_policy':'reject'}})
+                'output_policy':{'preserve_structure':True}})
             (directory/'writing-guide.md').write_text(name.upper()+'_GUIDE',encoding='utf-8')
             self.workflow['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),

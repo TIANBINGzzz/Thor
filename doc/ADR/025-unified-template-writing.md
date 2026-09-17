@@ -7,7 +7,7 @@
 | 实现状态 | 部分实现 |
 | 最近核对 | 2026-09-16 |
 | 替代的旧 ADR | 部分替代[ADR-024](024-grouped-metrics-evidence-writing.md)的独立模板Skill装配；保留其指标及证据规则 |
-| 被哪份 ADR 替代 | 无 |
+| 被哪份 ADR 替代 | [ADR-026](026-hybrid-template-editing.md)替代强制地图/槽位执行约束；共用能力及按模板加载保留 |
 
 ## 背景
 
@@ -25,7 +25,7 @@
 
 - [工具装配](../../python/runtime/config.py)冻结共同Skill与所选说明；[数据服务](../../python/runtime/data_services.py)限制模板来源并复核版本，[请求入口](../../python/server.py)按规则哈希隔离Client；独立双高Skill已移除。
 - 2026-09-16：160项Python测试、Skill校验和77个文档链接检查通过；真实三路MCP取数通过。实际SDK两组各三段样稿发现无依据评价，补逐句证据规则后重测并复核；未执行全篇DOCX或生产验收。
-- 预制加载器仍要求绑定/slots；普通上传附件无同等reports程序门禁。复杂上传DOCX、目录实际页码和全篇报告未端到端验收，外部Java授权既有差距保留。
+- 当时预制加载器要求绑定/slots，后由ADR-026改为可选地图和当前文档编辑；普通上传附件无同等reports程序门禁。复杂上传DOCX、目录实际页码和全篇报告未端到端验收，外部Java授权既有差距保留。
 
 ## 后果
 

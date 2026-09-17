@@ -1,4 +1,4 @@
-"""Replace registered OOXML paragraphs while copying every other ZIP member."""
+"""Apply evidence-backed edits to current DOCX paragraphs, preserving other parts."""
 
 from decimal import Decimal
 from copy import deepcopy
@@ -13,6 +13,7 @@ from lxml import etree
 from data_access.context import DataError
 from .document_map import NS, document_xml, locate
 from .template_assets import load_template
+from .report_locations import resolve_target
 
 UNCERTAINTY_COLOR = 'FFC000'
 
@@ -31,34 +32,10 @@ def mark_uncertainty(node):
         color.set('{'+NS['w']+'}val', UNCERTAINTY_COLOR)
 
 
-def normalize_uncertainty(original, revised):
-    """Allow only the deliberate yellow color change, preserving all other run properties."""
-    before = original.xpath('.//w:r[not(ancestor::w:txbxContent)]', namespaces=NS)
-    after = revised.xpath('.//w:r[not(ancestor::w:txbxContent)]', namespaces=NS)
-    if len(before) != len(after):
-        raise DataError('TEMPLATE_STRUCTURE_CHANGED')
-    for old, new in zip(before, after):
-        properties = new.find('w:rPr', NS)
-        if properties is None:
-            continue
-        color = properties.find('w:color', NS)
-        if color is None or dict(color.attrib) != {'{'+NS['w']+'}val':UNCERTAINTY_COLOR}:
-            continue
-        properties.remove(color)
-        old_properties = old.find('w:rPr', NS)
-        if old_properties is None:
-            if len(properties)==0 and not properties.attrib:
-                new.remove(properties)
-        else:
-            for index, item in enumerate(old_properties):
-                if item.tag == '{'+NS['w']+'}color':
-                    properties.insert(index, deepcopy(item))
-
-
 class DraftNumberError(DataError):
-    def __init__(self, slot_key, numbers):
+    def __init__(self, target, numbers):
         super().__init__('DRAFT_NUMBER_UNSUPPORTED')
-        self.public_details = {'slot_key':slot_key, 'unsupported_numbers':sorted(numbers)}
+        self.public_details = {'target':target, 'unsupported_numbers':sorted(numbers)}
 
 
 def validate_draft_numbers(draft, plan, executor):
@@ -71,15 +48,14 @@ def validate_draft_numbers(draft, plan, executor):
         return {Decimal(n) for n in re.findall(r'\d+(?:\.\d+)?', text)}
     unsupported = numbers(draft['text']) - numbers(facts)
     if unsupported:
-        raise DraftNumberError(draft.get('slot_key',''), {str(n) for n in unsupported})
+        raise DraftNumberError(draft['target'], {str(n) for n in unsupported})
 
 
 def replace_paragraph(node, text):
     nodes = node.xpath('.//w:t[not(ancestor::w:txbxContent)]', namespaces=NS)
     if not nodes:
-        if text:
-            raise DataError("TEXT_SLOT_REQUIRED")
-        return
+        run = etree.SubElement(node, '{'+NS['w']+'}r')
+        nodes = [etree.SubElement(run, '{'+NS['w']+'}t')]
     original = [n.text or '' for n in nodes]
     offsets, position = [], 0
     for value in original:
@@ -121,45 +97,103 @@ def report_file_name(template, parameters):
 
 
 def validate_drafts(plan, section_drafts, executor):
-    slots = {s['slot_key']: s for s in plan['slots']}
     drafts = {}
     for draft in section_drafts:
-        key = draft.get('slot_key')
+        location = resolve_target(plan['locations'], draft.get('target'))
+        key = location['location_hint']
         if key in drafts:
             raise DataError('DRAFT_DUPLICATE')
-        slot = slots.get(key)
-        if not slot or not slot.get('draftable') or slot['section_key'] != draft['section_key']:
-            raise DataError('DRAFT_LOCATION_AMBIGUOUS')
         state = draft.get('evidence_state')
         if state not in {'supported','limited','none'}:
             raise DataError('EVIDENCE_STATE_REQUIRED')
-        if not draft['text'].strip() or len(draft['text']) > 1200:
+        if not draft['text'].strip() or len(draft['text']) > 12000:
             raise DataError('EVIDENCE_REQUIRED')
+        scopes = plan['evidence_scopes']
         for reference in draft['evidence_refs']:
-            if reference in slot.get('evidence_refs', []):
-                continue
             try:
                 metadata = executor.results.get(reference)['metadata']
             except DataError:
                 raise DataError('EVIDENCE_REQUIRED') from None
             if (metadata.get('complete') is not True or not any(
-                    all(metadata.get(k) == v for k, v in scope.items())
-                    for scope in slot.get('evidence_scopes', []))):
+                    all(metadata.get(k) == scope[k] for k in ('source_key', 'domain', 'scope_ref'))
+                    for scope in scopes)):
                 raise DataError('EVIDENCE_REQUIRED')
+        parameter_refs = draft.get('parameter_refs', [])
+        if any(name not in plan['report_parameters'] or plan['report_parameters'][name] in (None, '', [])
+               for name in parameter_refs):
+            raise DataError('EVIDENCE_REQUIRED')
         if state in {'supported','limited'}:
-            if not draft['evidence_refs'] or not any(executor.results.get(ref)['rows'] for ref in draft['evidence_refs']):
+            if not parameter_refs and not any(executor.results.get(ref)['rows'] for ref in draft['evidence_refs']):
                 raise DataError('EVIDENCE_REQUIRED')
         if state == 'supported' and draft.get('gap', '').strip():
             raise DataError('EVIDENCE_STATE_CONFLICT')
         if state != 'supported':
-            fields = ['gap'] + (['analysis_basis','next_action'] if state=='none' and slot['kind']=='narrative' else [])
+            fields = ['gap'] + (['analysis_basis','next_action'] if state=='none' and not location['table'] else [])
             if any(not draft.get(field,'').strip() or draft[field] not in draft['text'] for field in fields):
                 raise DataError('EVIDENCE_GAP_REQUIRED')
         if re.fullmatch(r'[\s/_\-—]+|待补|待填',draft['text']):
             raise DataError('REPORT_BODY_INCOMPLETE')
         validate_draft_numbers(draft, plan, executor)
-        drafts[key] = draft
+        drafts[key] = {**draft, 'target': {'location_hint': key}}
     return drafts
+
+
+def compose_document(template, drafts):
+    xml = document_xml(template['_docx'])
+    # Resolve before inserting paragraphs, so earlier splits cannot move later targets.
+    targets = [(locate(xml, resolve_target(template['_locations'], draft['target'])['locator']), draft)
+               for draft in drafts]
+    for node, draft in targets:
+        parts = re.split(r'\n\s*\n', draft['text'].strip())
+        if node.xpath('.//w:txbxContent', namespaces=NS):
+            raise DataError('DRAFT_TEXTBOX_UNSUPPORTED')
+        location = resolve_target(template['_locations'], draft['target'])
+        if len(parts) > 1 and (location['heading_level'] or node.xpath(
+                './/w:fldChar|.//w:fldSimple|.//w:instrText|.//w:drawing|.//w:pict|.//w:br|.//w:tab|.//w:hyperlink', namespaces=NS)):
+            raise DataError('PARAGRAPH_SPLIT_UNSUPPORTED')
+        inserted = [node]
+        for text in parts[1:]:
+            paragraph = etree.Element('{'+NS['w']+'}p')
+            properties = node.find('w:pPr', NS)
+            if properties is not None:
+                properties = deepcopy(properties)
+                for section in properties.findall('w:sectPr', NS):
+                    properties.remove(section)
+                paragraph.append(properties)
+            run = etree.SubElement(paragraph, '{'+NS['w']+'}r')
+            run_properties = node.find('w:r/w:rPr', NS)
+            if run_properties is not None:
+                run.append(deepcopy(run_properties))
+            etree.SubElement(run, '{'+NS['w']+'}t')
+            inserted[-1].addnext(paragraph)
+            inserted.append(paragraph)
+        # A section break belongs after all paragraphs produced from its original paragraph.
+        if len(inserted) > 1:
+            section = node.find('w:pPr/w:sectPr', NS)
+            if section is not None:
+                section.getparent().remove(section)
+                inserted[-1].find('w:pPr', NS).append(section)
+        for paragraph, text in zip(inserted, parts):
+            replace_paragraph(paragraph, text)
+            if template.get('clear_fill_markers'):
+                clear_fill_markers(paragraph)
+            if draft['evidence_state'] != 'supported':
+                mark_uncertainty(paragraph)
+    return xml
+
+
+def unresolved_markers(path):
+    issues = []
+    with ZipFile(path) as archive:
+        for name in archive.namelist():
+            if not re.fullmatch(r'word/(document|header\d+|footer\d+)\.xml', name):
+                continue
+            xml = etree.fromstring(archive.read(name), etree.XMLParser(resolve_entities=False, no_network=True))
+            for index, paragraph in enumerate(xml.xpath('.//w:p', namespaces=NS), 1):
+                text = ''.join(paragraph.xpath('.//w:t/text()', namespaces=NS))
+                if re.search(r'\{\{[^{}]+\}\}|\$\{[^{}]+\}|_{2,}|【待(?:填|补)[^】]*】|键入[章节]?标题|单击此处输入文字', text):
+                    issues.append({'part': name, 'paragraph': index, 'text': text[:160]})
+    return issues
 
 
 def render(template, plan, section_drafts, executor):
@@ -168,30 +202,10 @@ def render(template, plan, section_drafts, executor):
                             template["_directory"].parent)
     if current['_revision'] != template['_revision']:
         raise DataError('TEMPLATE_MISMATCH')
-    xml = document_xml(template["_docx"])
-    values = {s["slot_key"]: s for s in plan["slots"]}
-    bindings = {s["slot_key"]: s for s in template["_slots"]}
     drafts = validate_drafts(plan, section_drafts, executor)
-    draftable = {s['slot_key'] for s in plan['slots'] if s.get('draftable') and s.get('required')}
-    if not draftable <= set(drafts):
-        raise DataError('REPORT_BODY_INCOMPLETE')
-    values.update({key: {'value_status': 'filled' if draft['evidence_state']=='supported' else 'unavailable',
-                         'value': draft['text'], **({'reason':draft['gap']} if draft['evidence_state']!='supported' else {})}
-                   for key, draft in drafts.items()})
-    for slot_key, binding in bindings.items():
-        if binding['kind'] == 'static':
-            continue
-        value = values[slot_key]
-        if value['value_status'] not in {'filled', 'unavailable'}:
-            raise DataError('REPORT_INCOMPLETE')
-        if not str(value['value']).strip() or re.fullmatch(r'[\s/_\-—]+',str(value['value'])):
-            raise DataError('REPORT_INCOMPLETE')
-        node = locate(xml, binding['locator'])
-        replace_paragraph(node, str(value['value']))
-        if template.get('clear_fill_markers'):
-            clear_fill_markers(node)
-        if value['value_status']=='unavailable':
-            mark_uncertainty(node)
+    if not drafts:
+        raise DataError('REPORT_EDITS_REQUIRED')
+    xml = compose_document(template, list(drafts.values()))
     directory = executor.context.run_directory / "report"
     directory.mkdir(parents=True, exist_ok=True)
     name = report_file_name(template, plan.get('report_parameters', {}))
@@ -201,11 +215,14 @@ def render(template, plan, section_drafts, executor):
         for member in original.infolist():
             target.writestr(member, content if member.filename == "word/document.xml" else original.read(member.filename))
     missing_path = directory / (plan["plan_ref"] + "-missing.json")
-    gaps = [{"slot_key":key, 'reason':value['reason']} for key,value in values.items() if value.get('reason')]
-    missing_path.write_text(json.dumps({"missing": [], "data_gaps":gaps}, ensure_ascii=False, indent=2), encoding='utf-8')
+    gaps = [{'location_hint': key, 'reason': draft['gap']} for key, draft in drafts.items()
+            if draft['evidence_state'] != 'supported']
+    markers = unresolved_markers(output)
+    missing_path.write_text(json.dumps({'unresolved_markers': markers, 'data_gaps':gaps}, ensure_ascii=False, indent=2), encoding='utf-8')
     from .report_validator import check_fidelity
-    check_fidelity(template, output)
-    return {"status": "complete_with_data_gaps" if gaps else "complete", "path": str(output),
-            "file_name": name, "missing_count": 0, "missing_path": str(missing_path),
+    check_fidelity(template, output, list(drafts.values()))
+    return {"status": "rendered_with_data_gaps" if gaps else "rendered", "path": str(output),
+            'edits': list(drafts.values()), 'unresolved_markers': markers,
+            "file_name": name, "missing_count": len(markers), "missing_path": str(missing_path),
             "data_gap_count":len(gaps),
             "layout_validation": "required_before_final_acceptance"}

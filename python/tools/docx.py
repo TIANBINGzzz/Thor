@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from docx import Document
+from docx.table import Table
+from docx.text.paragraph import Paragraph
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 
 
@@ -37,16 +39,55 @@ def _resolve(path_value: str, roots: list[Path], *, must_exist: bool = True) -> 
     return path
 
 
+def _body_paragraphs(parent):
+    for block in parent.iter_inner_content():
+        if isinstance(block, Paragraph):
+            yield block
+        elif isinstance(block, Table):
+            seen = set()
+            for row in block.rows:
+                for cell in row.cells:
+                    if cell._tc not in seen:
+                        seen.add(cell._tc)
+                        yield from _body_paragraphs(cell)
+
+
 def _paragraphs(document: Document):
-    """接收 Word 文档对象，依次产出正文、顶层表格单元格、页眉和页脚中的段落。"""
-    yield from document.paragraphs
-    for table in document.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                yield from cell.paragraphs
+    """Read in document order, including nested tables without repeating merged cells."""
+    yield from _body_paragraphs(document)
     for section in document.sections:
         yield from section.header.paragraphs
         yield from section.footer.paragraphs
+
+
+def _semantic_blocks(parent):
+    blocks = []
+    for block in parent.iter_inner_content():
+        if isinstance(block, Paragraph):
+            style = block.style
+            level = block._p.xpath('./w:pPr/w:outlineLvl/@w:val')
+            visited = set()
+            inherited = style
+            while not level and inherited is not None and inherited.style_id not in visited:
+                visited.add(inherited.style_id)
+                level = inherited.element.xpath('./w:pPr/w:outlineLvl/@w:val')
+                inherited = inherited.base_style
+            blocks.append({'type':'paragraph', 'text':block.text, 'style':style.name if style else None,
+                           'heading_level':int(level[0]) + 1 if level and int(level[0]) < 9 else None})
+        else:
+            seen, rows = set(), []
+            for row in block.rows:
+                cells = []
+                for column, cell in enumerate(row.cells, 1):
+                    if cell._tc in seen:
+                        continue
+                    seen.add(cell._tc)
+                    span = cell._tc.xpath('./w:tcPr/w:gridSpan/@w:val')
+                    cells.append({'column':column, 'column_span':int(span[0]) if span else 1,
+                                  'blocks':_semantic_blocks(cell)})
+                rows.append(cells)
+            blocks.append({'type':'table', 'style':block.style.name if block.style else None, 'rows':rows})
+    return blocks
 
 
 def _document_summary(path: Path, document: Document) -> dict[str, Any]:
@@ -68,6 +109,10 @@ def _document_summary(path: Path, document: Document) -> dict[str, Any]:
         "tables": tables,
         "tableCount": len(tables),
         "placeholders": placeholders,
+        "structure": _semantic_blocks(document),
+        "sections": [{'width':s.page_width, 'height':s.page_height,
+                      'header':[p.text for p in s.header.paragraphs],
+                      'footer':[p.text for p in s.footer.paragraphs]} for s in document.sections],
     }
 
 
@@ -139,7 +184,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
 
     @sdk_tool(
         "docx_inspect",
-        "检查 DOCX 的段落、表格和 {{placeholder}} 占位符，返回结构化摘要。",
+        "按文档顺序读取DOCX标题层级、样式、嵌套表格和页眉页脚；返回语义结构供参考撰写，不生成位置地图。",
         {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
     )
     async def inspect_docx(args: dict[str, Any]) -> dict[str, Any]:
@@ -157,7 +202,7 @@ def create_docx_server(base_dir: str | Path, additional_dirs: list[str] | None =
 
     @sdk_tool(
         "docx_replace_text",
-        "按映射替换 DOCX 中的 {{placeholder}} 或普通文本，并保存为新文件。",
+        "按映射替换 DOCX 中的 {{placeholder}}，并保存为新文件。",
         {
             "type": "object",
             "properties": {

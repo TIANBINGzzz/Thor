@@ -13,26 +13,12 @@ from data_access.context import DataError
 from .document_map import NS, document_xml
 
 
-def check_fidelity(template, output):
-    before, after = document_xml(template['_docx']), document_xml(output)
-    for slot in template['_slots']:
-        if slot['kind']=='static':
-            continue
-        from .report_renderer import normalize_uncertainty
-        originals = before.xpath(slot['locator']['path'],namespaces=NS)
-        revisions = after.xpath(slot['locator']['path'],namespaces=NS)
-        if len(originals)!=1 or len(revisions)!=1:
-            raise DataError('TEMPLATE_STRUCTURE_CHANGED')
-        normalize_uncertainty(originals[0],revisions[0])
-        for xml in (before, after):
-            nodes=xml.xpath(slot['locator']['path'],namespaces=NS)
-            if len(nodes)!=1: raise DataError('TEMPLATE_STRUCTURE_CHANGED')
-            if template.get('clear_fill_markers'):
-                from .report_renderer import clear_fill_markers
-                clear_fill_markers(nodes[0])
-            for node in nodes[0].xpath('.//w:t[not(ancestor::w:txbxContent)]',namespaces=NS):
-                node.text=''
-                node.attrib.pop('{http://www.w3.org/XML/1998/namespace}space',None)
+def check_fidelity(template, output, edits=()):
+    from .report_locations import document_digest
+    from .report_renderer import compose_document
+    if document_digest(template['_docx']) != template['_docx_digest']:
+        raise DataError('TEMPLATE_MISMATCH')
+    before, after = compose_document(template, edits), document_xml(output)
     if etree.tostring(before,method='c14n')!=etree.tostring(after,method='c14n'):
         raise DataError('TEMPLATE_STRUCTURE_CHANGED')
     with ZipFile(template['_docx']) as old, ZipFile(output) as new:
@@ -44,7 +30,7 @@ def check_fidelity(template, output):
             'sections':len(after.xpath('.//w:sectPr',namespaces=NS)),
             'drawings':len(after.xpath('.//w:drawing',namespaces=NS)),
             'bookmarks':len(after.xpath('.//w:bookmarkStart',namespaces=NS)),
-            'unchanged_package_parts':True, 'unchanged_layout_and_run_properties':True,
+            'unchanged_package_parts':True, 'matches_declared_edits':True,
             'fill_markers_cleared':bool(template.get('clear_fill_markers'))}
 
 
@@ -52,7 +38,7 @@ def validate_document(template, rendered, environment):
     output=Path(rendered['path'])
     if rendered['missing_count']:
         raise DataError('REPORT_INCOMPLETE')
-    fidelity=check_fidelity(template,output)
+    fidelity=check_fidelity(template,output,rendered['edits'])
     folder=output.parent/(output.stem+'-preview')
     folder.mkdir(exist_ok=True)
     pdf=folder/(output.stem+'.pdf')

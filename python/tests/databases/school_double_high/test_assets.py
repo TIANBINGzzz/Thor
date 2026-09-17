@@ -87,7 +87,7 @@ class AssetContractTests(unittest.TestCase):
         self.assertEqual(tables,{f'T{i:02}' for i in range(1,41)})
         template=load_template('szpt-midterm','document-writing')
         self.assertEqual(document_map,build_document_map('szpt-midterm',template['version'],
-                         template['_docx'],template['_slots']))
+                         template['_docx'],document_map['locations']))
         self.assertEqual(len(document_map['locations']),3503)
         for location in document_map['locations']:
             self.assertFalse(set(location) & {'sql','source_rules','resolution','review','evidence_datasets'})

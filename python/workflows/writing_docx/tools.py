@@ -19,13 +19,18 @@ def create_reports_server(services):
             template = report().template
             return {"template_key":template["template_key"], "name":template["name"],
                     "report_parameters":template["parameters"], "source_roles":template["source_roles"],
-                    "scope_roles":template["scope_roles"], "missing_policy":template["missing_policy"],
+                    "scope_roles":template["scope_roles"],
+                    "recommended_datasets":template['_bindings']['datasets'],
+                    "map_status":template['_map_status'], "warnings":template['_warnings'],
+                    "location_policy":"optional_hints_current_document_targets",
                     "outline":template.get('outline',[]), "preserve_structure":template['preserve_structure']}
         return report().get(**args)
 
     async def render(**args):
         result = await report().render(**args)
-        return {k:result[k] for k in ('status','file_name','missing_count','data_gap_count','layout_validation')}
+        return {**{k:result[k] for k in ('status','file_name','missing_count','data_gap_count','layout_validation')},
+                'unresolved_markers':result['unresolved_markers'],
+                'coverage':report().plans[args['plan_ref']]['coverage']}
 
     async def save(**args):
         return report().save_drafts(**args)
@@ -86,21 +91,30 @@ def create_reports_server(services):
 
     page_numbers={"type":"array","minItems":1,"maxItems":4,"uniqueItems":True,"items":{"type":"integer","minimum":1}}
 
+    target_schema={"type":"object","minProperties":1,"additionalProperties":False,"properties":{
+        "location_hint":REFERENCE,"section":STRING,"original_text":{"type":"string"},
+        "table":{"type":"object","additionalProperties":False,
+            "properties":{"table_id":REFERENCE, **{key:{"type":"integer","minimum":1}
+                for key in ('row','column','paragraph')}},
+            "required":["table_id","row","column","paragraph"]}}}
     draft_schema={"type":"array","maxItems":100,"items":{"type":"object","additionalProperties":False,
-        "properties":{"section_key":REFERENCE,"slot_key":REFERENCE,"text":{"type":"string","minLength":1,"maxLength":1200},
+        "properties":{"target":target_schema,"text":{"type":"string","minLength":1,"maxLength":12000},
                       "evidence_refs":{"type":"array","items":REFERENCE},
+                      "parameter_refs":{"type":"array","uniqueItems":True,"items":STRING},
                       "evidence_state":{"type":"string","enum":["supported","limited","none"]},
                       "gap":{"type":"string"},"analysis_basis":{"type":"string"},"next_action":{"type":"string"}},
-        "required":["section_key","slot_key","text","evidence_refs","evidence_state"]}}
+        "required":["target","text","evidence_refs","evidence_state"]}}
     return tool_server("reports", [
-        ("prepare_report_data", "按可信模板绑定启动批量计划；不传模板路径或数据库连接。",
-         {"report_parameters": PARAMETERS, "scope_refs": {"type": "object",
+        ("prepare_report_data", "建立报告与授权范围，按需选择推荐数据集；省略dataset_keys查询全部推荐项，空数组不预取。",
+         {"report_parameters": PARAMETERS,
+          "dataset_keys":{"type":"array","uniqueItems":True,"items":REFERENCE},
+          "scope_refs": {"type": "object",
              "description": "按source_role嵌套scope_role，值只传resolve_entities返回的scope_ref字符串；角色以get_report_data为准，不传entity_ref或候选对象。",
              "additionalProperties": {
              "type": "object", "additionalProperties": REFERENCE}}}, ["report_parameters", "scope_refs"], prepare),
-        ("get_report_data", "不传参数读取当前模板角色及期间要求；传plan_ref读取计划、章节事实和缺项。",
-         {"plan_ref": REFERENCE, "section_key": REFERENCE, "cursor": REFERENCE, "writing_only":{"type":"boolean"}}, [], get),
-        ("save_report_sections", "分批保存按原结构撰写的动态段落和单元格，保留其他已存位置；每项只能引用该位置获准的事实。",
+        ("get_report_data", "不传参数读取模板及推荐数据集；传plan_ref按section_key分页读取当前DOCX的location_hints与候选事实。writing_only仅隐藏地图建议的静态段。",
+         {"plan_ref": REFERENCE, "section_key": STRING, "cursor": REFERENCE, "writing_only":{"type":"boolean"}}, [], get),
+        ("save_report_sections", "按当前location_hint、章节+原文或表格物理行列唯一定位并保存；无须预标注。text中空行可拆段，不能改表格行列；证据须在授权范围内。",
          {"plan_ref":REFERENCE,"section_drafts":draft_schema}, ["plan_ref","section_drafts"],save),
         ("validate_report", "核验原模板结构与样式，渲染全文页面；失败不得发布。",
          {"plan_ref":REFERENCE},["plan_ref"],validate),
@@ -111,6 +125,6 @@ def create_reports_server(services):
          ["plan_ref","validation_ref","page_numbers","passed","notes"],review),
         ("publish_report", "仅发布已通过结构与全文渲染检查的同一份报告。",
          {"plan_ref":REFERENCE,"validation_ref":REFERENCE},["plan_ref","validation_ref"],publish),
-        ("render_report", "校验全部动态位置、证据及确定值绑定，在原DOCX原位置回填；此步不发布。",
+        ("render_report", "应用已存及本次修改，校验证据与实际写入目标；未编辑的地图建议只提示，残留占位符阻止后续验收。此步不发布。",
          {"plan_ref": REFERENCE, "section_drafts": draft_schema}, ["plan_ref", "section_drafts"], render),
     ])

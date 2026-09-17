@@ -39,7 +39,7 @@ HTTP 入口仅保留 `/health` 和 `/internal/v1/runs...`。Java 使用 Run JWT 
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `database-qa` Workflow 进行只读问数
 
-共同写作规则在 `.claude/skills/writing-documents/SKILL.md`。预制模板放在 `.claude/workflows/writing-docx/templates/`，每模板通过`template.json.assets`登记逐段指南、位置地图和指标数据计划，按templateKey加载；上传模板沿用附件作参考并按原规范写作、重新生成目录。szpt-midterm锁定原40表，20个指标数据集批量取数，Agent逐一处理动态段落和单元格并原位回填，结构样式对照和逐页审阅通过后发布。历史实值缺口单独披露；此前简版已停用。
+共同写作规则在 `.claude/skills/writing-documents/SKILL.md`。预制模板由`template.json.assets`登记，按templateKey加载逐段指南；位置地图和20个推荐数据集均按需使用。Agent依据当前DOCX编辑段落/表格，可拆分正文，不要求预标槽或填满旧地图；证据、实际修改及全文页面检查后发布。上传模板读取标题、表格和样式后生成新稿、重建目录，不生成地图或承诺原位编辑。原逐页来源与指标YAML保留，缺证据用黄色说明，详见[混合模板策略](doc/ADR/026-hybrid-template-editing.md)。
 
 业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 

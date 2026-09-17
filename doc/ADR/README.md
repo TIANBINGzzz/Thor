@@ -76,6 +76,7 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 保留历史名称及单租户策略；目录被ADR-023部分替代，最新唯一来源为校双高库schoolDoubleHigh |
 | [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 部分实现 | schoolDoubleHigh接入data/reports；恢复原40表写作及全文检查，历史数据与外部前端/Java仍有差距 |
 | [025](025-unified-template-writing.md) | 两类模板共用撰写能力与Skill | 已采纳 | 部分实现 | 共同Skill、所选MD、规则版本及来源隔离已接入；上传复杂版式/目录和生产Java验收未覆盖 |
+| [026](026-hybrid-template-editing.md) | 语义撰写与可选位置地图 | 已采纳 | 部分实现 | 替代ADR-025强制槽位约束；当前文档定位及按需取数已接入，复杂成稿及Java验收差距保留 |
 
 ## 本次核验
 
