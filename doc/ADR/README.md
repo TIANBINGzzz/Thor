@@ -72,11 +72,12 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [017](017-capability-catalog-and-template-confirmation.md) | 能力目录与模板确认状态 | 提议 | 部分实现 | 静态原型已验证；Java 配置/草稿与 Python 目录/v2 待实现 |
 | [019](019-shared-query-spec-assets.md) | 问数与撰写共享QuerySpec | 已采纳 | 部分实现 | 后续目录和执行见ADR-023，原模板业务规则仍有缺口 |
 | [020](020-separate-data-sources-and-connections.md) | 业务数据源与物理连接分离 | 提议 | 未开始 | 凭据分离保留；工具/后端被ADR-021、首期绑定被ADR-022部分替代 |
-| [021](021-template-batch-data-plan.md) | 固定模板绑定与批量取数计划 | 已采纳 | 未开始 | 计划与动态SQL保留；首期Grant/独立data进程被ADR-022部分替代 |
+| [021](021-template-batch-data-plan.md) | 固定模板绑定与批量取数计划 | 已采纳 | 未开始 | 原提案状态保留；批量计划不再作为当前运行机制，现行撰写见ADR-027 |
 | [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 保留历史名称及单租户策略；目录被ADR-023部分替代，最新唯一来源为校双高库schoolDoubleHigh |
-| [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 部分实现 | schoolDoubleHigh接入data/reports；恢复原40表写作及全文检查，历史数据与外部前端/Java仍有差距 |
+| [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 部分实现 | schoolDoubleHigh接入data；reports流水线已由ADR-027替代，历史数据与外部前端/Java仍有差距 |
 | [025](025-unified-template-writing.md) | 两类模板共用撰写能力与Skill | 已采纳 | 部分实现 | 共同Skill、所选MD、规则版本及来源隔离已接入；上传复杂版式/目录和生产Java验收未覆盖 |
-| [026](026-hybrid-template-editing.md) | 语义撰写与可选位置地图 | 已采纳 | 部分实现 | 替代ADR-025强制槽位约束；当前文档定位及按需取数已接入，复杂成稿及Java验收差距保留 |
+| [026](026-hybrid-template-editing.md) | 语义撰写与可选位置地图 | 已采纳 | 部分实现 | 地图参考保留；专用计划、草稿、编辑和发布流水线被ADR-027替代 |
+| [027](027-agent-led-document-writing.md) | 上下文驱动的自主文稿撰写 | 已采纳 | 已实现代码与资产装配 | Agent使用通用工具，按模板加载上下文；完整报告与真实Java链路未端到端验收 |
 
 ## 本次核验
 

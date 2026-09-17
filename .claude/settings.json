@@ -9,9 +9,8 @@
       "Bash",
       "WebSearch",
       "WebFetch",
-      "mcp__db__*"
+      "mcp__data__*"
     ],
     "deny": []
-  },
-  "workflowSizeGuideline": "small"
+  }
 }

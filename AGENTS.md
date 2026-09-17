@@ -24,7 +24,7 @@
 
 | 名称 | 职责 | 典型使用场景 |
 | --- | --- | --- |
-| [data-analyst](.claude/agents/data-analyst.md) | 核对数据库结构、只读查询与指标口径 | 查询分析与报告证据核验；是否可用由本轮实际工具决定 |
+| [data-analyst](.claude/agents/data-analyst.md) | 使用授权data工具核对来源、指标口径及只读查询结果 | 查询分析与报告证据核验；是否可用由本轮实际工具决定 |
 
 ## 文档管理规范
 

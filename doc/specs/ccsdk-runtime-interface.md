@@ -131,14 +131,14 @@ GET /internal/v1/capabilities
 {"capabilityRef":"document-writing","input":{"text":"生成截至2025年底的双高中期自评报告"},"payload":{"templateKey":"szpt-midterm"}}
 ```
 
-`payload.templateKey` 必须是非空字符串，并且同时满足 Python 部署内的模板登记、启用状态、能力绑定、DOCX 摘要和绑定文件校验；它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 `input.text`，外部材料仍使用 `input.attachmentRefs`。当前登记的 `szpt-midterm` 会按可信配置绑定 `schoolDoubleHigh` 数据源及 `hpm` 领域查询；Java 不传连接、SQL、数据源路径或密码。未知、停用、未授权或校验不通过的模板会在 Run 执行前失败。
+`payload.templateKey` 必须是非空字符串，并且满足Python部署内的模板登记、启用状态、能力绑定和指南路径校验；运行时冻结实际DOCX与指南版本。位置地图及取数计划仅作维护参考，不参与启动校验。它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 `input.text`，外部材料仍使用 `input.attachmentRefs`。当前登记的 `szpt-midterm` 会按可信配置绑定 `schoolDoubleHigh` 数据源及 `hpm` 领域查询；Java 不传连接、SQL、数据源路径或密码。未知、停用、未授权或校验不通过的模板会在 Run 执行前失败。
 
 `national-excellence-data-qa` 不需要专属 payload 字段；问题、年份和范围要求放在 `input.text`，数据源、查询规范和身份范围由 Runtime 的可信资产及工具策略装配。
 
 自定义模板保存在Java时，使用`document-writing`且不传`templateKey`；通过`input.attachmentRefs`提交模板文件引用，在`input.text`明确哪份文件是模板及写作要求。Python经File Broker获取文件后走普通撰写分支：读取结构、按需收集事实、撰写并生成新DOCX，不自动注册预制模板。当前`purpose`仅支持`input`和`reference`，没有`template`值；再次使用文件仍须提交引用。数据库工具须已配置且获准，上传文件不改变数据权限。若同时传入`templateKey`和附件，仍绑定该预制模板，附件不会覆盖模板选择。
 
 ```json
-{"protocol":"agent-run/v1","runId":"run_custom_01","messageId":"message_custom_01","capabilityRef":"document-writing","input":{"text":"以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告，缺少依据的数据留空高亮。","attachmentRefs":[{"fileId":"file_template_01","purpose":"input"}]}}
+{"protocol":"agent-run/v1","runId":"run_custom_01","messageId":"message_custom_01","capabilityRef":"document-writing","input":{"text":"以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告；证据不足时写有限结论和具体缺口，无证据时按原主题写分析框架、数据需求及后续动作，不确定内容用黄色字体，不留空。","attachmentRefs":[{"fileId":"file_template_01","purpose":"input"}]}}
 ```
 
 以上为已有附件和普通撰写入口，不代表任意自定义模板的保真编辑与自动取数质量已验收。

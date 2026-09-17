@@ -214,17 +214,8 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
         directory.relative_to(WORKFLOWS_ROOT.resolve())
     except ValueError as error:
         raise RuntimeError("workflow 配置路径越界") from error
-    # Workflows such as professional-report are valid flat SDK scripts and do
-    # not need a colocated runtime config directory.
     if not directory.is_dir():
-        script_path = (WORKFLOWS_ROOT / f"{safe_name}.js").resolve()
-        try:
-            script_path.relative_to(WORKFLOWS_ROOT.resolve())
-        except ValueError as error:
-            raise RuntimeError("workflow 脚本路径越界") from error
-        if not script_path.is_file():
-            raise RuntimeError(f"workflow 不存在：{safe_name}")
-        return None
+        raise RuntimeError(f"workflow 不存在：{safe_name}")
     config_path = directory / "workflow.json"
     if not config_path.is_file():
         return None

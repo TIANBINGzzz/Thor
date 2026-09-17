@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import signal
 import sys
 import time
@@ -18,22 +17,6 @@ from runtime.config import worker_environment
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKER = PROJECT_ROOT / "python" / "agent_worker.py"
-WORKFLOW_PREFIX = re.compile(r"^/([A-Za-z0-9][A-Za-z0-9_-]*)(?:\s|$)")
-
-
-def workflow_name_from_prompt(prompt: Any) -> str | None:
-    """从提示词开头的 /名称 提取 Workflow 名称，不匹配或输入不是字符串时返回 None。"""
-    if not isinstance(prompt, str):
-        return None
-    match = WORKFLOW_PREFIX.match(prompt.strip())
-    return match.group(1) if match else None
-
-
-def prompt_without_workflow_prefix(prompt: str) -> str:
-    """接收提示词，移除开头的 Workflow 选择前缀并返回剩余文本。"""
-    normalized = prompt.strip()
-    match = WORKFLOW_PREFIX.match(normalized)
-    return normalized[match.end():].strip() if match else normalized
 
 
 async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:

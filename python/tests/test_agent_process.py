@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
-from runtime.process import _spawn_worker_process, prompt_without_workflow_prefix, stream_agent, workflow_name_from_prompt
+from runtime.process import _spawn_worker_process, stream_agent
 
 
 class HangingPipe:
@@ -68,18 +68,6 @@ class AgentProcessTests(unittest.TestCase):
                 select.assert_called_once_with(payload)
                 self.assertEqual(spawn.call_args.kwargs["env"], {"SELECTED_SECRET":"test"})
         asyncio.run(exercise())
-
-    def test_workflow_prefix(self):
-        self.assertEqual(workflow_name_from_prompt("/database-qa 统计项目数"), "database-qa")
-        self.assertEqual(workflow_name_from_prompt("  /professional-report 写报告"), "professional-report")
-
-    def test_plain_prompt_has_no_workflow(self):
-        self.assertIsNone(workflow_name_from_prompt("请统计项目数"))
-        self.assertIsNone(workflow_name_from_prompt("someone@example.com"))
-
-    def test_workflow_prefix_is_removed_before_sdk_query(self):
-        self.assertEqual(prompt_without_workflow_prefix(" /database-qa 统计项目数 "), "统计项目数")
-        self.assertEqual(prompt_without_workflow_prefix("请统计项目数"), "请统计项目数")
 
     def test_stream_agent_cancellation_terminates_worker_process(self):
         async def exercise():

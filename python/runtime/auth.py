@@ -62,11 +62,6 @@ def encode_hs256_jwt(claims: Mapping[str, Any], secret: str | bytes) -> str:
     return f"{encoded_header}.{encoded_claims}.{_b64encode(signature)}"
 
 
-def sign_hs256(claims: Mapping[str, Any], secret: str | bytes) -> str:
-    """Alias with a shorter name for adapter tests and local tooling."""
-    return encode_hs256_jwt(claims, secret)
-
-
 class ReplayCache:
     """Thread-safe TTL cache for one-time JWT ``jti`` values."""
 
@@ -263,11 +258,6 @@ def verify_run_jwt(
         if not cache.check_and_mark(claims["jti"], ttl_seconds=ttl, now=current):
             raise JWTError("JWT jti has already been used")
     return claims
-
-
-def verify_hs256_jwt(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    """Compatibility alias for callers that use the algorithm in the name."""
-    return verify_run_jwt(*args, **kwargs)
 
 
 _DEFAULT_REPLAY_CACHE = ReplayCache()

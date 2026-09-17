@@ -1,6 +1,6 @@
 {
   "name": "writing-docx",
-  "description": "普通文稿使用写作技能；已绑定模板使用确定的取数、撰写、回填和核验流程",
+  "description": "加载共同写作规则和所选模板上下文，由Agent自主规划、取证、撰写及验收",
   "execution": {
     "mode": "agent"
   },

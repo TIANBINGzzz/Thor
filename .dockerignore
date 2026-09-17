@@ -28,5 +28,4 @@ deploy/data-access.json
 /config/
 **/*.log
 **/settings.local.json
-.claude/launch.json
 **/~$*.docx
