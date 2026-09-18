@@ -82,7 +82,7 @@
 
 - 一个共同入口：[instructions.md](../../.claude/workflows/writing-docx/instructions.md)集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，由workflow.json的documents.constraints显式加载，不额外包装为Skill。
 - 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。不登记位置地图或逐格取数计划。
-- template.json通过`assets`登记DOCX与`writing_guide`；`data`、`report`、`output_policy`维护来源角色、成果命名/章节参考和输出要求，不维护强制报告参数Schema。路径相对模板目录，不进入HTTP请求。
+- template.json通过`assets`登记DOCX与`writing_guide`；`data`与`report.file_name`仅维护来源角色和建议成果名。结构及写作要求以当前DOCX和指南为准，不维护重复大纲、输出开关或强制报告参数Schema。路径相对模板目录，不进入HTTP请求。
 - writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
 - 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、读取并冻结当前DOCX与所选writing-guide.md → 注入共同规则及指南、复制参考DOCX到工作目录 → Agent用OfficeCLI原生MCP读取和编辑Office文档、Office引擎渲染并通过PDFium核验PDF页面，按需调用data取证 → Artifact发布。无报告状态机或地图/取数计划。
 - 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
