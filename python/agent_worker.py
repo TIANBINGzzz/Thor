@@ -32,8 +32,9 @@ from runtime.claude_sdk import (
 )
 DEFAULT_TIMEOUT_MS = 300_000
 
-# Windows consoles default to GBK. The parent Python process always reads JSONL
-# as UTF-8, so force the process boundary to use one encoding end to end.
+# 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
+if hasattr(sys.stdin, "reconfigure"):
+    sys.stdin.reconfigure(encoding="utf-8", errors="strict")
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 if hasattr(sys.stderr, "reconfigure"):

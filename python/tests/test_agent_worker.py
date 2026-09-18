@@ -20,6 +20,23 @@ from runtime.config import (
 
 
 class AgentWorkerTests(unittest.TestCase):
+    def test_worker_reads_utf8_json_under_local_encoding(self):
+        import json
+        import os
+        import subprocess
+        import sys
+        root = Path(__file__).resolve().parents[2]
+        env = {**os.environ, 'PYTHONPATH': str(root / 'python'), 'PYTHONUTF8': '0',
+               'PYTHONIOENCODING': 'gbk'}
+        payload = {'prompt': '按章节撰写，保留“学校”原文；参数使用 JSON。'}
+        result = subprocess.run(
+            [sys.executable, '-c', 'import agent_worker,json,sys; print(json.dumps(json.load(sys.stdin),ensure_ascii=False))'],
+            input=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
+            capture_output=True, env=env, cwd=root, timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', errors='replace'))
+        self.assertEqual(json.loads(result.stdout.decode('utf-8')), payload)
+
     def test_artifact_prompt_exposes_only_current_output_directories(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict("os.environ", {}, clear=True):
             work = str(Path(folder) / "work")
