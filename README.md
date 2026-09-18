@@ -54,7 +54,7 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 
 模型配置写在根.env；数据库包的source.json登记可用能力；databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。本版经用户确认将该JSON提交私有Codeup并打入镜像，修改后需重新构建部署；其他凭据及结果明细不提交。direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
-文档工具需要[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)可执行文件；默认从PATH启动，可用CCSDK_OFFICECLI_PATH指定位置。Linux镜像包含OfficeCLI、LibreOffice及中文字体；Windows渲染使用LibreOffice或已安装WPS。documents.render/read_pdf负责更新目录并另存DOCX与PDF、通过PDFium读取PDF页面；实际逐页验收仍由Agent完成，工具成功不代表内容审核通过。
+文档编辑使用[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)，默认从PATH启动，可用CCSDK_OFFICECLI_PATH指定位置。渲染统一使用LibreOffice与完整中文字体；Linux运行镜像内置引擎，Windows通过Docker复用同一引擎，不依赖桌面WPS。Windows先运行 `docker build --target document-renderer -t ccsdkscribe-renderer:local .`；自定义镜像名用CCSDK_RENDER_IMAGE配置。documents.render/read_pdf更新目录、另存DOCX与PDF并提供分页核验；渲染副本解除旧字体子集引用，原模板不变。字体替代可能改变分页，最终版式仍须核验。可用 `python scripts/benchmark-document.py 输入.docx scratch/render-check --pages 3,4,5` 复测。
 
 撰写预算由可信`writing-docx/workflow.json`配置为100轮、30分钟上限，普通会话沿用部署默认值；上限不是目标耗时。可选生图配置`CCSDK_IMAGE_BASE_URL`、`CCSDK_IMAGE_API_KEY`、`CCSDK_IMAGE_MODEL`（默认`qwen-image-3.0`），通过百炼OpenAI Images接口供Agent按需调用；支持1至3张本轮参考图，不额外安装生图SDK。配置或密钥变更后重启Runtime，问数能力不挂载生图工具。
 

@@ -83,7 +83,8 @@ def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[st
     with tempfile.TemporaryDirectory(prefix=".office-", dir=directory) as temporary:
         work = Path(temporary)
         staged_docx, staged_pdf = work / "updated.docx", work / "rendered.pdf"
-        result = _run_office(source, staged_docx, staged_pdf, work)
+        prepared, replaced_fonts = _prepare_fonts(source, work)
+        result = _run_office(prepared, staged_docx, staged_pdf, work)
         if (result.get("fieldsUpdated") is not True
                 or result.get("indexCount", -1) != result.get("indexesUpdated")
                 or result.get("tocCount", -1) < expected_tocs):
@@ -92,7 +93,36 @@ def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[st
             raise RuntimeError("Office 未生成完整的 DOCX 与 PDF")
         _publish_files([(staged_docx, docx_path), (staged_pdf, pdf_path)])
     return {**result, "docxPath": str(docx_path), "pdfPath": str(pdf_path),
-            "sourcePath": str(source), "tocStatus": "updated" if result["tocCount"] else "not_present"}
+            "sourcePath": str(source), "replacedFontSubsets": replaced_fonts,
+            "tocStatus": "updated" if result["tocCount"] else "not_present"}
+
+
+def _prepare_fonts(source: Path, work: Path) -> tuple[Path, list[str]]:
+    from lxml import etree
+
+    namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    with zipfile.ZipFile(source) as archive:
+        if "word/fontTable.xml" not in archive.namelist():
+            return source, []
+        root = etree.fromstring(archive.read("word/fontTable.xml"),
+                                etree.XMLParser(resolve_entities=False, no_network=True))
+        replaced = set()
+        # 模板字体子集不包含新增正文用字。仅在渲染副本解除子集引用，使用部署的完整字体。
+        for font in root:
+            for node in list(font):
+                if (node.tag in {namespace + name for name in ("embedRegular", "embedBold", "embedItalic", "embedBoldItalic")}
+                        and node.get(namespace + "subsetted") in ("1", "true", "on")):
+                    replaced.add(font.get(namespace + "name", ""))
+                    font.remove(node)
+        if not replaced:
+            return source, []
+        prepared = work / "input.docx"
+        with zipfile.ZipFile(prepared, "w", zipfile.ZIP_DEFLATED) as output:
+            for item in archive.infolist():
+                data = (etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+                        if item.filename == "word/fontTable.xml" else archive.read(item.filename))
+                output.writestr(item, data)
+        return prepared, sorted(replaced)
 
 
 def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str, Any]:
@@ -110,10 +140,10 @@ def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str,
 
 
 def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+    if os.name == "nt":
+        return _run_container(source, docx_path, pdf_path, work)
     soffice = os.environ.get("CCSDK_LIBREOFFICE_PATH") or shutil.which("soffice") or shutil.which("libreoffice")
     if not soffice:
-        if os.name == "nt":
-            return _run_script(sys.executable, _WPS_SCRIPT, [str(source), str(docx_path), str(pdf_path)])
         raise RuntimeError("未找到 LibreOffice；安装 libreoffice-writer 与 python3-uno 后重试")
     pipe = "scribe_" + uuid.uuid4().hex
     profile = work / "lo-profile"
@@ -124,7 +154,7 @@ def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> di
         f"--accept=pipe,name={pipe};urp;StarOffice.ComponentContext",
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        interpreter = os.environ.get("CCSDK_UNO_PYTHON") or (sys.executable if os.name == "nt" else "/usr/bin/python3")
+        interpreter = os.environ.get("CCSDK_UNO_PYTHON") or "/usr/bin/python3"
         return _run_script(interpreter, _UNO_SCRIPT, [pipe, str(source), str(docx_path), str(pdf_path)])
     finally:
         if process.poll() is None:
@@ -134,6 +164,29 @@ def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> di
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait(timeout=10)
+
+
+def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+    image = os.environ.get("CCSDK_RENDER_IMAGE", "ccsdkscribe-renderer:local")
+    docker = shutil.which("docker")
+    if not docker:
+        raise RuntimeError("Windows文档渲染需要Docker及document-renderer镜像，构建方法见README")
+    name = "scribe-render-" + uuid.uuid4().hex
+    # Windows复用部署镜像的同一引擎；只挂载本次输入与临时输出，不挂载仓库或Docker socket。
+    command = [docker, "run", "--rm", "--pull=never", "--name", name,
+               "--network=none", "--cap-drop=ALL", "--security-opt=no-new-privileges",
+               "--mount", f"type=bind,source={source},target=/input.docx,readonly",
+               "--mount", f"type=bind,source={work},target=/output", image,
+               "/input.docx", "/output/" + docx_path.name, "/output/" + pdf_path.name, "/output"]
+    try:
+        completed = subprocess.run(command, capture_output=True, encoding="utf-8", errors="replace", timeout=180)
+        if completed.returncode:
+            raise RuntimeError(f"文档渲染容器失败（镜像{image}）：{completed.stderr[-2000:]}")
+        return json.loads(completed.stdout)
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("文档渲染容器超时") from error
+    finally:
+        subprocess.run([docker, "rm", "--force", name], capture_output=True, timeout=15)
 
 
 _UNO_SCRIPT = r'''
@@ -180,44 +233,6 @@ try:
         "indexesUpdated":count, "fieldsUpdated":True}))
 finally:
     document.close(True)
-'''
-
-
-_WPS_SCRIPT = r'''
-import json, sys
-import pythoncom
-from win32com.client import DispatchEx
-
-pythoncom.CoInitialize()
-office = None
-try:
-    office = DispatchEx("KWPS.Application")
-    office.Visible = False
-    office.DisplayAlerts = 0
-    office.AutomationSecurity = 3
-    document = office.Documents.Open(sys.argv[1], False, True)
-    try:
-        collections = [document.TablesOfContents, document.TablesOfFigures, document.Indexes]
-        counts = [collection.Count for collection in collections]
-        for _ in range(2):
-            document.Repaginate()
-            failed = document.Fields.Update()
-            if failed not in (None, 0):
-                raise RuntimeError("WPS could not update field " + str(failed))
-            for collection, count in zip(collections, counts):
-                for index in range(1, count + 1):
-                    collection.Item(index).Update()
-        document.Repaginate()
-        document.SaveAs(sys.argv[2], 12)
-        document.ExportAsFixedFormat(sys.argv[3], 17)
-        print(json.dumps({"engine":"wps-com", "indexCount":sum(counts), "tocCount":counts[0],
-            "indexesUpdated":sum(counts), "fieldsUpdated":True}))
-    finally:
-        document.Close(0)
-finally:
-    if office is not None:
-        office.Quit()
-    pythoncom.CoUninitialize()
 '''
 
 
@@ -278,3 +293,7 @@ def _read_pdf_pages(source: Path, roots: list[Path], directory: Path | None, sta
                 "nextStart": stop + 1 if stop < count else None, "engine": "pdfium"}
     finally:
         document.close()
+
+
+if __name__ == "__main__":
+    print(json.dumps(_run_office(*(Path(value) for value in sys.argv[1:5])), ensure_ascii=False))

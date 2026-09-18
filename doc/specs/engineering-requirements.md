@@ -72,4 +72,4 @@
 - 2026-09-17：预制模板与上传模板统一使用通用SDK/DOCX/data/Artifact工具，专用reports流水线已删除。模板选择、数据来源及Run结果引用边界保留；Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成，见[ADR-027](../ADR/027-agent-led-document-writing.md)。
 
 - 2026-09-16：撰写共同规则已统一注入，所选预制模板加载专属MD并限定数据源；请求字段不变，规则哈希参与Client隔离。2026-09-17共同规则并入writing-docx/instructions.md，由documents.constraints直接加载，移除原Skill包装及重复模板规则。上传模板保留附件参考路径和目录重建要求，复杂DOCX/目录及真实Java验收尚未完成，见[ADR-025](../ADR/025-unified-template-writing.md)。
-- 2026-09-18：预制地图、取数计划及维护生成器已移除，OfficeCLI原生MCP编辑文档，LibreOffice/WPS渲染、PDFium分页核验；可选Qwen Image工具按需生图。模型自主规划、查询、撰写和检查，Capability及外部字段不变。REQ-001部分满足（新工具不接业务Token，生图密钥仅留Worker）；REQ-002部分满足（可信装配保留，问数不加载文档及生图工具）。Java授权及生产沙箱仍待验收；工具与成稿验证见[ADR-029](../ADR/029-native-office-document-tools.md)。
+- 2026-09-18：预制地图、取数计划及维护生成器已移除，OfficeCLI原生MCP编辑文档，LibreOffice统一渲染、PDFium分页核验；可选Qwen Image工具按需生图。模型自主规划、查询、撰写和检查，Capability及外部字段不变。REQ-001部分满足（新工具不接业务Token，生图密钥仅留Worker）；REQ-002部分满足（可信装配保留，问数不加载文档及生图工具）。Java授权及生产沙箱仍待验收；工具与成稿验证见[ADR-029](../ADR/029-native-office-document-tools.md)，替代WPS及Docker渲染实测见[ADR-031](../ADR/031-unified-document-renderer.md)。

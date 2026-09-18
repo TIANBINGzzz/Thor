@@ -41,7 +41,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收；OfficeCLI原生MCP读取和编辑Office文档，LibreOffice/WPS更新目录并另存DOCX与PDF，PDFium提供分页核验。指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图或取数流水线。发布工具校验文件边界，不代替业务与版式核验。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收；OfficeCLI原生MCP读取和编辑Office文档，LibreOffice更新目录并另存DOCX与PDF，PDFium提供分页核验。Windows开发通过Docker复用Linux渲染引擎；渲染副本解除旧字体子集引用，完整开源字体由镜像提供，见[ADR-031](doc/ADR/031-unified-document-renderer.md)。指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图或取数流水线。发布工具校验文件边界，不代替业务与版式核验。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions

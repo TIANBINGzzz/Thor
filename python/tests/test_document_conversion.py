@@ -1,4 +1,7 @@
 import tempfile
+import subprocess
+import zipfile
+import sys
 import threading
 import time
 import unittest
@@ -10,7 +13,7 @@ from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-from tools.document_conversion import read_pdf, render_document
+from tools.document_conversion import _prepare_fonts, _run_container, read_pdf, render_document
 
 
 def make_pdf(path):
@@ -44,6 +47,62 @@ class DocumentConversionTests(unittest.TestCase):
         document.add_heading("Conversion sample", 1)
         document.add_paragraph("Document body")
         document.save(self.source)
+
+    def test_subset_fonts_are_detached_only_in_render_copy(self):
+        from lxml import etree
+        with zipfile.ZipFile(self.source) as archive:
+            parts = {item.filename: archive.read(item.filename) for item in archive.infolist()}
+        fonts = etree.fromstring(parts["word/fontTable.xml"])
+        subset = etree.SubElement(fonts[0], qn("w:embedRegular"))
+        subset.set(qn("w:subsetted"), "1")
+        complete = etree.SubElement(fonts[0], qn("w:embedBold"))
+        complete.set(qn("w:subsetted"), "0")
+        parts["word/fontTable.xml"] = etree.tostring(fonts)
+        with zipfile.ZipFile(self.source, "w") as archive:
+            for name, data in parts.items():
+                archive.writestr(name, data)
+        original = self.source.read_bytes()
+        prepared, names = _prepare_fonts(self.source, self.root)
+        self.assertEqual(names, [fonts[0].get(qn("w:name"))])
+        self.assertNotEqual(prepared, self.source)
+        self.assertEqual(self.source.read_bytes(), original)
+        with zipfile.ZipFile(prepared) as archive:
+            after = etree.fromstring(archive.read("word/fontTable.xml"))
+            self.assertIsNone(after[0].find(qn("w:embedRegular")))
+            self.assertIsNotNone(after[0].find(qn("w:embedBold")))
+            for name, content in parts.items():
+                if name != "word/fontTable.xml":
+                    self.assertEqual(archive.read(name), content)
+
+    def test_container_timeout_removes_only_its_own_instance(self):
+        def run(command, **kwargs):
+            if command[1] == "run":
+                raise subprocess.TimeoutExpired(command, 180)
+            return subprocess.CompletedProcess(command, 0)
+        with patch("tools.document_conversion.shutil.which", return_value="docker"), \
+                patch("tools.document_conversion.subprocess.run", side_effect=run) as process:
+            with self.assertRaisesRegex(RuntimeError, "超时"):
+                _run_container(self.source, self.root / "updated.docx", self.root / "rendered.pdf", self.root)
+        command = process.call_args_list[0].args[0]
+        self.assertIn("--network=none", command)
+        self.assertIn(f"type=bind,source={self.source},target=/input.docx,readonly", command)
+        self.assertEqual(process.call_args_list[1].args[0],
+                         ["docker", "rm", "--force", command[command.index("--name") + 1]])
+
+    def test_pdf_read_in_fresh_worker_thread_does_not_load_numpy(self):
+        make_pdf(self.root / "sample.pdf")
+        script = """import asyncio, sys
+from tools.document_conversion import read_pdf
+async def main():
+    result = await asyncio.to_thread(read_pdf, sys.argv[1], sys.argv[2], render=True)
+    assert result['pageCount'] == 2
+    assert 'numpy' not in sys.modules
+asyncio.run(main())
+"""
+        result = subprocess.run([sys.executable, "-c", script, str(self.root / "sample.pdf"), str(self.root)],
+                                cwd=Path(__file__).resolve().parents[1],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_read_pdf_paginates_text_and_renders_only_selected_page(self):
         make_pdf(self.root / "sample.pdf")

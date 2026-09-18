@@ -10,6 +10,8 @@
 !deploy/
 !deploy/*.py
 !deploy/*.sh
+!deploy/*.sources
+!deploy/*.conf
 !deploy/data-access.example.json
 !deploy/compose*.yaml
 !config/

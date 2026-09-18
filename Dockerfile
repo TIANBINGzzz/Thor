@@ -5,21 +5,32 @@ ARG DEBIAN_MIRROR=mirrors.aliyun.com
 FROM ${NODE_IMAGE} AS node-deps
 WORKDIR /deps
 
-FROM ${PYTHON_IMAGE} AS runtime
-ARG PIP_INDEX_URL
+FROM ${PYTHON_IMAGE} AS document-base
 ARG DEBIAN_MIRROR
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUTF8=1 \
     HOME=/home/scribe CLAUDE_CONFIG_DIR=/app/.scribe-runs/claude-config
+COPY deploy/bookworm-backports.sources /etc/apt/sources.list.d/backports.sources
 RUN sed -i \
       -e "s@deb.debian.org@${DEBIAN_MIRROR}@g" \
       -e "s@security.debian.org@${DEBIAN_MIRROR}@g" \
       -e 's@http://@https://@g' \
-      /etc/apt/sources.list.d/debian.sources \
+      /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list.d/backports.sources \
     && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git curl libstdc++6 libreoffice-writer python3-uno fonts-noto-cjk \
+    && apt-get install -y --no-install-recommends ca-certificates git curl libstdc++6 fonts-noto-cjk fonts-liberation2 \
+    && apt-get install -y --no-install-recommends -t bookworm-backports libreoffice-writer python3-uno \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 scribe \
     && useradd --uid 10001 --gid scribe --create-home scribe
+COPY deploy/cjk-fonts.conf /etc/fonts/conf.d/99-scribe-cjk.conf
+
+# Windows本地开发复用此无桌面的渲染目标；Linux运行时直接继承相同引擎和字体。
+FROM document-base AS document-renderer
+COPY python/tools/document_conversion.py /opt/scribe/document_conversion.py
+USER 10001:10001
+ENTRYPOINT ["python", "/opt/scribe/document_conversion.py"]
+
+FROM document-base AS runtime
+ARG PIP_INDEX_URL
 WORKDIR /app
 # 固定上游版本并核对发布哈希；/usr/local/bin 是容器内工具目录。
 RUN curl -fL --retry 3 "https://github.com/iOfficeAI/OfficeCLI/releases/download/v1.0.151/officecli-linux-x64" -o /usr/local/bin/officecli \

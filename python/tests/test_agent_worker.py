@@ -167,6 +167,7 @@ class AgentWorkerTests(unittest.TestCase):
             "BUSINESS_MCP_URL": "https://mcp.internal",
             "CCSDK_LIBREOFFICE_PATH": "configured-office",
             "CCSDK_UNO_PYTHON": "configured-python",
+            "CCSDK_RENDER_IMAGE": "renderer:test",
         }
         with patch.dict("os.environ", values, clear=True):
             provider = agent_environment()
@@ -179,6 +180,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", worker)
         self.assertEqual(provider["CCSDK_LIBREOFFICE_PATH"], "configured-office")
         self.assertEqual(provider["CCSDK_UNO_PYTHON"], "configured-python")
+        self.assertEqual(provider["CCSDK_RENDER_IMAGE"], "renderer:test")
+        self.assertEqual(worker["CCSDK_RENDER_IMAGE"], "renderer:test")
 
     def test_business_mcp_requires_explicit_capability_allowlist(self):
         values = {
