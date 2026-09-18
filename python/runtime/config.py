@@ -257,6 +257,9 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
     if runtime.get("mode", "query") not in {"query", "client"}:
         raise RuntimeError(f"workflow runtime.mode 配置无效：{config_path}")
     for field in ("max_turns", "timeout_ms"):
+        # SDK以None表示不限制轮数；超时仍须明确配置为正整数。
+        if field == "max_turns" and runtime.get(field) is None:
+            continue
         if field in runtime and (type(runtime[field]) is not int or runtime[field] < 1):
             raise RuntimeError(f"workflow runtime.{field} 必须为正整数：{config_path}")
     if 'data_sources' in config or config.get('data_access') not in {None, 'required', 'optional'}:
@@ -537,7 +540,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
             prompt_documents=assets['prompt'],
         ),
         tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
-        disallowed_tools=["WebSearch"],
+        disallowed_tools=[],
         allowed_tools=allowed_tools,
         skills=skills,
         permission_mode="bypassPermissions",

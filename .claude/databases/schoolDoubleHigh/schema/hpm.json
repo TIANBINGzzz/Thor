@@ -10,8 +10,7 @@
       "end_time_": "TIMESTAMP",
       "level_name_": "VARCHAR",
       "progress_": "INT",
-      "state_": "VARCHAR",
-      "province_high_flag_": "VARCHAR"
+      "state_": "VARCHAR"
     },
     "t_hpm_project_stage": {
       "tenant_id_": "VARCHAR",
@@ -186,7 +185,7 @@
     }
   },
   "descriptions": {
-    "t_hpm_project": "一行一个项目，id_为主键；name_为双高项目/专业群名称。high_flag_='1'为国双高，province_high_flag_为省双高标记；不能混用。progress_为当前进度，state_的0/1/2/3分别为未启动/已启动/终止/归档。start_time_/end_time_为起止时间，level_name_可能为多值级别文本。delete_flag_='0'有效。",
+    "t_hpm_project": "一行一个项目，id_为主键；name_为双高项目/专业群名称。high_flag_='1'为国双高；新库无独立省双高标记字段，不能仅凭high_flag_='0'推断省市级认定。progress_为当前进度，state_的0/1/2/3分别为未启动/已启动/终止/归档。start_time_/end_time_为起止时间，level_name_可能为多值级别文本。delete_flag_='0'有效。",
     "t_hpm_project_stage": "一行一个项目的年度阶段；id_为阶段键，name_通常是年份，按用户年度精确匹配。同名年度在不同项目有不同阶段键。start_time_/end_time_为阶段起止时间；current_flag_的1/0表示当前/非当前；delete_flag_='0'有效。",
     "t_hpm_project_module": "项目模块配置，须检查有效配置数量及开关是否冲突。task_flag_/fund_flag_/performance_flag_为模块开关；performance_stage_flag_的1/0表示绩效按阶段/不按阶段；delete_flag_='0'有效。具体取值范围见查询依赖检查。",
     "t_hpm_project_member": "项目、人员、角色关系；user_id_/user_code_为内部人员标识，user_name_仅在明确询问且授权时输出。type_='0'为项目负责人；main_org_id_/main_org_name_是人员主部门，不能代替任务牵头部门。按项目、人员、角色去重，delete_flag_='0'有效。",

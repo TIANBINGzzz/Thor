@@ -8,8 +8,8 @@
     "schoolDoubleHigh": {
       "policy": {
         "tenant_id": "rehearsal-school",
-        "business_tenant_id": "17",
-        "revision": 1,
+        "business_tenant_id": "14183",
+        "revision": 2,
         "users": [
           "rehearsal-user"
         ],
@@ -22,13 +22,9 @@
           "double-high-annual"
         ],
         "project_scope": {
-          "mode": "selected",
-          "project_ids": [
-            "06b1c41b12b80adc8fb5024300fd683e",
-            "7f992b3c7ed2ee48d367d478b3c4ab1d"
-          ]
+          "mode": "all_school"
         },
-        "dynamic_sql_enabled": false,
+        "dynamic_sql_enabled": true,
         "domains": {
           "hpm": {
             "queries": [
@@ -96,9 +92,11 @@
         "revision": 1,
         "timeout_seconds": 30,
         "max_rows": 10000,
-        "database_scope_enforced": false,
+        "database_scope_enforced": true,
         "username": "root",
-        "password": "String@1307!"
+        "password": "String@1307!",
+        "scope_source_key": "schoolDoubleHigh",
+        "scope_policy_revision": 2
       }
     }
   },

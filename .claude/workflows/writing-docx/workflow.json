@@ -6,8 +6,8 @@
   },
   "runtime": {
     "mode": "client",
-    "max_turns": 100,
-    "timeout_ms": 1800000
+    "max_turns": null,
+    "timeout_ms": 7200000
   },
   "documents": {
     "constraints": [
