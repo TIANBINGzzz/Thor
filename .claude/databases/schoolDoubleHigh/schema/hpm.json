@@ -216,20 +216,5 @@
     "ABS",
     "RANK"
   ],
-  "internal_columns": [
-    "attachment_",
-    "full_id_",
-    "id_",
-    "main_org_id_",
-    "master_id_",
-    "parent_id_",
-    "performance_id_",
-    "project_id_",
-    "stage_id_",
-    "task_id_",
-    "tenant_id_",
-    "user_id_",
-    "first_item_id_",
-    "second_item_id_"
-  ]
+  "internal_columns": []
 }

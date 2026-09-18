@@ -65,7 +65,8 @@ class AssetContractTests(unittest.TestCase):
 
     def test_schema_has_verified_types_and_no_duplicate_workflow_binding(self):
         self.assertEqual(len(self.tables),13)
-        self.assertEqual(sum(map(len,self.tables.values())),158)
+        self.assertEqual(sum(map(len,self.tables.values())),157)
+        self.assertNotIn('province_high_flag_', self.tables['t_hpm_project'])
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
         for workflow in ('double-high-qa','writing-docx'):
             config=json.loads((ROOT/f'.claude/workflows/{workflow}/workflow.json').read_text(encoding='utf-8'))
