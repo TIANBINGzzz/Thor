@@ -22,7 +22,9 @@ MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
         "prefix": "Bearer ",
     },
     "data": {"required": False, "transport": "sdk"},
-    "docx": {"required": False, "transport": "stdio"},
+    "office": {"required": False, "transport": "stdio"},
+    "documents": {"required": False, "transport": "sdk"},
+    "images": {"required": False, "transport": "sdk"},
     "artifacts": {"required": False, "transport": "stdio"},
 }
 

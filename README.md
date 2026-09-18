@@ -40,13 +40,13 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `double-high-qa` Workflow 进行双高只读问数
 
-共同写作规则在 [instructions.md](.claude/workflows/writing-docx/instructions.md)，由writing-docx配置直接注入。预制模板按templateKey加载所选writing-guide.md及DOCX参考副本，Agent自主规划、取证和撰写；与上传模板、无模板共用通用DOCX、文件、代码、data及Artifact工具。地图和取数计划仅作维护参考，无专用报告草稿流水线。原逐页来源与指标YAML保留，不确定内容用黄色说明；目录、事实和全文版式须实际检查，发布成功不代表内容审核通过，详见[自主撰写决策](doc/ADR/027-agent-led-document-writing.md)。
+共同写作规则在 [instructions.md](.claude/workflows/writing-docx/instructions.md)，由writing-docx配置直接注入。预制模板按templateKey加载所选writing-guide.md及DOCX参考副本，Agent自主规划、取证和撰写；与上传模板、无模板共用OfficeCLI原生MCP、Office渲染/PDF读取、data及Artifact工具，不维护地图或专用报告流水线。原逐页来源与指标YAML保留，不确定内容用黄色说明；目录、事实和全文版式须实际检查，发布成功不代表内容审核通过，详见[文档工具决策](doc/ADR/029-native-office-document-tools.md)。
 
 业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
 
 [共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。按主题YAML内嵌指标定义与SQL为唯一维护源，检索索引由Python生成；data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
 
-[模板撰写](doc/specs/template-batch-data-plan.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
+[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
 
 前端和Java按消息提交可选capabilityRef；不能提交Workflow、Skill、模型、MCP地址或工作目录。同一业务会话切换能力时，Python隔离各能力Client和工具上下文。
 
@@ -54,7 +54,9 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 
 模型配置写在根.env；数据库包的source.json登记可用能力；databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。本版经用户确认将该JSON提交私有Codeup并打入镜像，修改后需重新构建部署；其他凭据及结果明细不提交。direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
 
-报告全文检查需要Office渲染器：Linux镜像包含LibreOffice及中文字体；Windows可由Agent通过代码使用已安装Office/WPS。目录及逐页版式仍须实际验收，无法完成时明确披露，不能声称通过。
+文档工具需要[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)可执行文件；默认从PATH启动，可用CCSDK_OFFICECLI_PATH指定位置。Linux镜像包含OfficeCLI、LibreOffice及中文字体；Windows渲染使用LibreOffice或已安装WPS。documents.render/read_pdf负责更新目录并另存DOCX与PDF、通过PDFium读取PDF页面；实际逐页验收仍由Agent完成，工具成功不代表内容审核通过。
+
+撰写预算由可信`writing-docx/workflow.json`配置为100轮、30分钟上限，普通会话沿用部署默认值；上限不是目标耗时。可选生图配置`CCSDK_IMAGE_BASE_URL`、`CCSDK_IMAGE_API_KEY`、`CCSDK_IMAGE_MODEL`（默认`qwen-image-3.0`），通过百炼OpenAI Images接口供Agent按需调用；支持1至3张本轮参考图，不额外安装生图SDK。配置或密钥变更后重启Runtime，问数能力不挂载生图工具。
 
 ## 文档入口
 

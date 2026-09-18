@@ -70,7 +70,8 @@ class AgentWorkerTests(unittest.TestCase):
             copies=list(Path(directory).rglob('template.docx'))
             self.assertEqual(len(copies),1)
             self.assertIn(str(copies[0]),options.system_prompt['append'])
-        self.assertEqual(set(options.mcp_servers), {"data", "docx", "artifacts"})
+        self.assertEqual(set(options.mcp_servers), {"data", "office", "documents", "artifacts"})
+        self.assertEqual(options.max_turns, 100)
         self.assertEqual(options.tools, {'type':'preset','preset':'claude_code'})
         self.assertEqual(options.setting_sources, ['project','local'])
         self.assertFalse(options.strict_mcp_config)
@@ -147,6 +148,8 @@ class AgentWorkerTests(unittest.TestCase):
             "SCRIBE_TOKEN": "ui-secret",
             "DB_PASSWORD": "db-secret",
             "BUSINESS_MCP_URL": "https://mcp.internal",
+            "CCSDK_LIBREOFFICE_PATH": "configured-office",
+            "CCSDK_UNO_PYTHON": "configured-python",
         }
         with patch.dict("os.environ", values, clear=True):
             provider = agent_environment()
@@ -157,6 +160,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn("DB_PASSWORD", provider)
         self.assertIn("BUSINESS_MCP_URL", worker)
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", worker)
+        self.assertEqual(provider["CCSDK_LIBREOFFICE_PATH"], "configured-office")
+        self.assertEqual(provider["CCSDK_UNO_PYTHON"], "configured-python")
 
     def test_business_mcp_requires_explicit_capability_allowlist(self):
         values = {
@@ -182,6 +187,18 @@ class AgentWorkerTests(unittest.TestCase):
             options.mcp_servers["business"]["headers"]["Authorization"],
             "Bearer token",
         )
+        for name in ("office", "documents"):
+            self.assertNotIn("headers", options.mcp_servers[name])
+            self.assertNotIn("token", str(options.mcp_servers[name].get("env", {})))
+
+    def test_shell_and_mcp_resolve_same_office_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / 'officecli'
+            binary.touch()
+            with patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH': str(binary), 'PATH': 'previous'}, clear=True):
+                options = build_options({})
+                self.assertEqual(options.mcp_servers['office']['command'], str(binary))
+                self.assertTrue(options.env['PATH'].startswith(directory))
 
     def test_workflow_documents_are_loaded_from_declared_paths(self):
         config = load_workflow_config("double-high-qa")

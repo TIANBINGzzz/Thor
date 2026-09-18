@@ -111,6 +111,15 @@ class RuntimeHTTPTests(unittest.TestCase):
                                         headers=self.headers("run.execute"))
             self.assertEqual(response.status_code, 409, response.text)
 
+    def test_writing_budget_comes_from_trusted_workflow_for_both_modes(self):
+        request = AgentRunRequest.from_dict({**self.body, 'capabilityRef': 'document-writing'})
+        with patch.object(server, 'MODELS', ['test-model']), patch.object(server, 'RUN_EXECUTION_TIMEOUT_MS', 500):
+            for mode in ('query', 'client'):
+                payload = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
+                self.assertEqual(payload['timeout_ms'], 1800000)
+            conversation = server._internal_worker_payload(AgentRunRequest.from_dict(self.body), Path(self.temp.name))
+            self.assertEqual(conversation['timeout_ms'], 500)
+
     def assert_public_run(self, response, status_code=200):
         self.assertEqual(response.status_code, status_code, response.text)
         run = response.json()["run"]

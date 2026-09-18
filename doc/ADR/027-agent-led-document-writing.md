@@ -6,7 +6,7 @@
 | 决策状态 | 已采纳 |
 | 实现状态 | 已实现代码与资产装配；完整报告端到端未验收 |
 | 替代的旧 ADR | 部分替代[ADR-026](026-hybrid-template-editing.md)的专用报告流水线 |
-| 被哪份 ADR 替代 | 无 |
+| 被哪份 ADR 替代 | [ADR-029](029-native-office-document-tools.md)替代自有DOCX工具并删除地图/计划参考；自主撰写与可信上下文保留 |
 
 ## 背景
 

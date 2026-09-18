@@ -7,7 +7,7 @@
 | 实现状态 | 部分实现 |
 | 最近核对 | 2026-09-17 |
 | 替代的旧 ADR | 部分替代[ADR-025](025-unified-template-writing.md)的强制地图/槽位约束，共同能力及按模板加载保留 |
-| 被哪份 ADR 替代 | [ADR-027](027-agent-led-document-writing.md)替代专用计划、草稿、编辑与发布流水线；可选地图和共同能力保留 |
+| 被哪份 ADR 替代 | [ADR-027](027-agent-led-document-writing.md)替代专用计划、草稿、编辑与发布流水线；[ADR-029](029-native-office-document-tools.md)移除地图维护，共同能力保留 |
 
 ## 背景
 

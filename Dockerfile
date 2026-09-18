@@ -16,11 +16,16 @@ RUN sed -i \
       -e 's@http://@https://@g' \
       /etc/apt/sources.list.d/debian.sources \
     && apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git libstdc++6 libreoffice-writer fonts-noto-cjk \
+    && apt-get install -y --no-install-recommends ca-certificates git curl libstdc++6 libreoffice-writer python3-uno fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 scribe \
     && useradd --uid 10001 --gid scribe --create-home scribe
 WORKDIR /app
+# 固定上游版本并核对发布哈希；/usr/local/bin 是容器内工具目录。
+RUN curl -fL --retry 3 "https://github.com/iOfficeAI/OfficeCLI/releases/download/v1.0.151/officecli-linux-x64" -o /usr/local/bin/officecli \
+    && echo "8e2512234ae1111e51ad3a9fadbdeca266adfa7f683773469aa45b83fe06dc7f  /usr/local/bin/officecli" | sha256sum -c - \
+    && chmod +x /usr/local/bin/officecli
+ENV OFFICECLI_SKIP_UPDATE=1
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" -r requirements.txt
 COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node

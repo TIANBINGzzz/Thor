@@ -45,7 +45,7 @@
 
 `szpt-midterm` 对应 `.claude/workflows/writing-docx/templates/szpt-midterm/` 下的规范化 DOCX、逐段来源和绑定；缺历史实值必须明确标记，不能编造。此前简版不符合原模板要求，已停用且不可从入口选择。
 
-模板`report-data-plan.json`以source_role+domain+query_id引用[数据库资产](../../.claude/databases/README.md)，`writing-guide.md`只引用指标ID，`document-map.json`只维护DOCX结构位置；当前唯一来源schoolDoubleHigh。[可信DataContext及静态策略](data-source-connections.md)由服务端装配，路径/DSN/密码/权限不加入payload。[批量计划](template-batch-data-plan.md)记录实际工具字段及剩余差距。
+模板`writing-guide.md`按指标ID引用[数据库资产](../../.claude/databases/README.md)，由Agent按正文主题自主规划查询；当前唯一来源schoolDoubleHigh。[可信DataContext及静态策略](data-source-connections.md)由服务端装配，路径/DSN/密码/权限不加入payload。文档工具及验收边界见[ADR-029](../ADR/029-native-office-document-tools.md)。
 
 2026-09-15补充：自定义模板由Java保存并授权，Python通过File Broker获取本次文件后读取结构，按需取数、组织正文并生成新DOCX；不自动注册为Python预制模板，也不要求预先配置逐格查询。当前`purpose`仅支持`input`/`reference`，模板用`input`并在正文说明用途；再次使用须重新提交附件引用。上传不授予数据源权限，数据库工具仅在已配置且获准时可用。若同时传`templateKey`和附件，仍走已登记模板分支，附件不会替换该模板。附件传递和普通撰写已有实现，复杂自定义模板保真及取数质量尚未端到端验收。
 
@@ -81,20 +81,20 @@
 ### 模板管理与按需加载
 
 - 一个共同入口：[instructions.md](../../.claude/workflows/writing-docx/instructions.md)集中维护读模板、规划数据、按证据写作、保留规范、生成目录和验收规则，由workflow.json的documents.constraints显式加载，不额外包装为Skill。
-- 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。位置地图由程序生成，不要求老师维护逐格槽位。
-- template.json通过`assets`登记DOCX与`writing_guide`，`document_map`和`data_plan`仅登记维护参考；`data`、`report`、`output_policy`维护来源角色、成果命名/章节参考和输出要求，不维护强制报告参数Schema。路径相对模板目录，不进入HTTP请求。
+- 已登记模板仍在`.claude/workflows/writing-docx/templates/<template_key>/`，保留原DOCX和template.json。每模板默认一份writing-guide.md，必要时拆少量章节MD；均为普通Markdown，无须Skill元数据。不登记位置地图或逐格取数计划。
+- template.json通过`assets`登记DOCX与`writing_guide`；`data`、`report`、`output_policy`维护来源角色、成果命名/章节参考和输出要求，不维护强制报告参数Schema。路径相对模板目录，不进入HTTP请求。
 - writing-guide.md只写模板特有的适用口径、章节/表格要求、对应指标名称及ID、必要材料和特殊缺口处理；不重复共同规则，不复制SQL、凭据或人工核验历史。原逐页来源MD继续留作核对，不整份注入。
-- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、读取并冻结当前DOCX与所选writing-guide.md → 注入共同规则及指南、复制参考DOCX到工作目录 → Agent用通用文件/代码/DOCX/data工具自主取证、撰写和验收 → Artifact发布。运行时不读取地图和取数计划。
+- 服务端链路：templateKey → workflow.json.templates登记 → 校验template.json、读取并冻结当前DOCX与所选writing-guide.md → 注入共同规则及指南、复制参考DOCX到工作目录 → Agent用OfficeCLI原生MCP读取和编辑Office文档、Office引擎渲染并通过PDFium核验PDF页面，按需调用data取证 → Artifact发布。无报告状态机或地图/取数计划。
 - 未传templateKey时只加载共同写作规则，读取本次授权附件并按输入确定用途，不加载任何预制模板专属说明。用户明确要求优先；模板说明约束文稿，不能扩大工具和来源权限。
 - 默认完整加载所选模板的一份短指南，单文件24,000字节、合并上下文80,000字节受限，声明但缺失或越界即失败，不静默跳过。单模板过长时再设计按章节读取，不为模板数量增长全量注入或引入检索平台。
-- 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用，停用用enabled；修改DOCX无需为运行重建地图。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
+- 管理沿用现有登记及部署：新增目录、维护配置和少量MD、校验后登记启用，停用用enabled；修改DOCX后按实际文件生成新的执行版本。每Run锁定文件/指南版本与有效来源；变化后重建相应Client上下文，业务会话保留，不向用户新增版本参数。
 - 指标及SQL仍集中在`.claude/databases/`，指南引用而不复制；声明来源须获准，Executor仅装配所选模板引用的来源。上传模板仅使用当前获准工具，不能从附件文字中获得新来源权限。
 
-已删除独立双高Skill、template_skills装配及专用reports流水线。共同规则、说明和实际源DOCX指纹冻结；复制前校验版本，不覆盖已修改的参考副本。Agent另存工作稿自行编辑，不提交专用草稿字段。两类模板的发布工具均只负责文件边界，事实、目录与版式由Agent实际检查；完整报告、上传复杂版式及目录页码尚未端到端验收，见[ADR-027](../ADR/027-agent-led-document-writing.md)。
+已删除独立双高Skill、template_skills装配及专用reports流水线。共同规则、说明和实际源DOCX指纹冻结；复制前校验版本，不覆盖已修改的参考副本。Agent另存工作稿自行编辑，不提交专用草稿字段。两类模板的发布工具均只负责文件边界，事实、目录与版式由Agent实际检查；完整报告、上传复杂版式及目录页码尚未端到端验收，见[ADR-029](../ADR/029-native-office-document-tools.md)。
 
 ## 工程要求检查
 
 | 要求 | 状态 | 依据 | 差距与后续处理 |
 | --- | --- | --- | --- |
-| REQ-001 | 部分满足 | data/DOCX/Artifact不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
+| REQ-001 | 部分满足 | data/OfficeCLI/documents/Artifact不接业务Token，原business选择性注入保留 | 真实Java撤销及日志全链路待验收 |
 | REQ-002 | 部分满足 | 不改现有字段；共同规则及所选模板MD均由可信Workflow装配，上传附件保持业务输入 | 按模板加载和共同规则已实现；上传目录/复杂版式及Java授权验收差距保留 |

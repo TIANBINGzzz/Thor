@@ -499,7 +499,8 @@ def _internal_worker_payload(
         )
     capability = resolve_capability(run_request.capability_ref)
     workflow_name = capability.workflow_ref
-    if workflow_name and load_workflow_config(workflow_name) is None:
+    workflow_config = load_workflow_config(workflow_name) if workflow_name else None
+    if workflow_name and workflow_config is None:
         raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
@@ -527,9 +528,10 @@ def _internal_worker_payload(
         "session_directory": str(session_directory),
         "work_directory": str(work_directory),
         "deliverables_directory": str(deliverables_directory),
-        "skill_refs": (load_workflow_config(workflow_name) or {}).get("skills", []),
+        "skill_refs": (workflow_config or {}).get("skills", []),
         "runtime_mode": runtime_mode,
-        "timeout_ms": RUN_EXECUTION_TIMEOUT_MS,
+        # 长篇撰写预算来自可信Workflow，业务请求不能覆盖执行限制。
+        "timeout_ms": (workflow_config or {}).get("runtime", {}).get("timeout_ms", RUN_EXECUTION_TIMEOUT_MS),
     }
     if workflow_assets is not None:
         payload['_workflow_assets'] = workflow_assets
@@ -592,7 +594,7 @@ async def _execute_internal_run(
                     workflow_assets=worker_payload['_workflow_assets'],
                 )
                 await _run_phase(run_id, {"name": "model_starting"})
-                return {**prepared_payload, "timeout_ms": RUN_EXECUTION_TIMEOUT_MS}
+                return prepared_payload
 
             async def cleanup_client_run() -> None:
                 # Accepted Client commands are cleaned inside the Actor. This
@@ -641,7 +643,7 @@ async def _execute_internal_run(
                 "business_session_id": run_request.business_session_id,
                 "message_id": run_request.message_id,
                 "capability_ref": run_request.capability_ref or "conversation",
-                "timeout_ms": RUN_EXECUTION_TIMEOUT_MS,
+                "timeout_ms": worker_payload["timeout_ms"],
                 "queue_timeout_ms": CLIENT_QUEUE_TIMEOUT_MS,
             }
             await _run_phase(run_id, {"name": "queued"})
@@ -668,7 +670,7 @@ async def _execute_internal_run(
             # Cancelling this wait propagates through stream_agent and terminates
             # the child worker process tree.
             await _run_phase(run_id, {"name": "model_starting"})
-            await asyncio.wait_for(consume_agent(), timeout=RUN_EXECUTION_TIMEOUT_MS / 1000)
+            await asyncio.wait_for(consume_agent(), timeout=worker_payload["timeout_ms"] / 1000)
         if not saw_terminal:
             if runtime_mode == "query":
                 await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})

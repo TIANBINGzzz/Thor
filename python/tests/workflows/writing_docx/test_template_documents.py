@@ -14,7 +14,6 @@ from data_access.context import DataError
 from runtime.config import build_options, prepare_workflow_assets, workflow_prompt_documents
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
 from runtime.protocol import AgentRunRequest
-from workflows.writing_docx.document_map import build_document_map
 from workflows.writing_docx.template_assets import load_template, stage_template
 
 
@@ -35,17 +34,12 @@ class TemplateDocumentTests(unittest.TestCase):
             directory.mkdir(parents=True)
             path = directory / 'template.docx'
             Document().save(path)
-            self.save(directory/'document-map.json', build_document_map(name, 1, path, []))
-            self.save(directory/'report-data-plan.json', {'plan_version':1, 'template_key':name,
-                'template_version':1, 'datasets':[]})
             self.save(directory/'template.json', {'template_key':name, 'enabled':True,
                 'capabilities':['document-writing'], 'version':1,
                 'assets':{'docx':{'file':'template.docx','sha256':sha256(path.read_bytes()).hexdigest()},
-                    'writing_guide':'writing-guide.md','document_map':'document-map.json',
-                    'data_plan':'report-data-plan.json'},
+                    'writing_guide':'writing-guide.md'},
                 'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
-                'report':{'parameters':{'type':'object'},'file_name':'report.docx'},
-                'output_policy':{'preserve_structure':True}})
+                'report':{'file_name':'report.docx'}})
             (directory/'writing-guide.md').write_text(name.upper()+'_GUIDE',encoding='utf-8')
             self.workflow['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
@@ -81,6 +75,10 @@ class TemplateDocumentTests(unittest.TestCase):
         for marker in ('ALPHA_GUIDE','BETA_GUIDE','REPORT_ADAPTER'):
             self.assertNotIn(marker,options.system_prompt['append'])
         self.assertNotIn('reports',options.mcp_servers)
+        self.assertEqual(options.mcp_servers['office']['command'],'officecli')
+        self.assertEqual(options.mcp_servers['office']['args'],['mcp'])
+        self.assertIn('documents',options.mcp_servers)
+        self.assertNotIn('docx',options.mcp_servers)
 
     def test_declared_documents_order_and_unregistered_file_exclusion(self):
         directory=self.directory/'templates/alpha'
@@ -154,15 +152,6 @@ class TemplateDocumentTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
             prepare_workflow_assets(self.payload('alpha'))
 
-    def test_optional_maintenance_assets_are_not_runtime_dependencies(self):
-        directory=self.directory/'templates/alpha'
-        before=self.load('alpha','document-writing')
-        (directory/'document-map.json').unlink()
-        (directory/'report-data-plan.json').write_text('invalid maintenance draft')
-        after=self.load('alpha','document-writing')
-        self.assertEqual(before['_revision'],after['_revision'])
-        self.assertNotIn('_locations',after)
-
     def test_staged_copy_is_repeatable_and_never_overwrites_edits(self):
         template=self.load('alpha','document-writing')
         source=template['_docx'].read_bytes()
@@ -189,8 +178,7 @@ class TemplateDocumentTests(unittest.TestCase):
             with self.assertRaisesRegex(DataError,'TEMPLATE_WORKSPACE_REQUIRED'):
                 build_options(self.payload('alpha'))
 
-    def test_template_copy_can_be_read_edited_and_published_with_general_tools(self):
-        from tools.docx import inspect_document, extract_document
+    def test_draft_publication_preserves_source_and_staged_reference(self):
         from tools.artifacts import publish_artifact
         source=self.directory/'templates/alpha/template.docx'
         document=Document()
@@ -201,16 +189,14 @@ class TemplateDocumentTests(unittest.TestCase):
         original=source.read_bytes()
         work=self.root/'session/work'
         staged=stage_template(self.load('alpha','document-writing'),work)
-        structure=inspect_document(str(staged),work)['structure']
-        self.assertEqual(structure[0]['heading_level'],1)
-        self.assertEqual(structure[2]['type'],'table')
+        self.assertEqual(Document(staged).paragraphs[0].text,'Construction progress')
+        self.assertEqual(len(Document(staged).tables),1)
         draft=Document(staged)
         draft.paragraphs[1].text='Evidence still required'
         from docx.shared import RGBColor
         draft.paragraphs[1].runs[0].font.color.rgb=RGBColor(255,192,0)
         output=work/'draft.docx'
         draft.save(output)
-        self.assertIn('Evidence still required',extract_document(str(output),work)['text'])
         result=publish_artifact(output,'report.docx',work,self.root/'session/deliverables',self.root/'session')
         self.assertEqual(source.read_bytes(),original)
         self.assertEqual(staged.read_bytes(),original)

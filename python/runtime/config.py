@@ -17,7 +17,8 @@ from typing import Any
 from dotenv import load_dotenv
 
 from tools.artifacts import create_artifact_server
-from tools.docx import create_docx_server
+from tools.documents import create_document_server
+from tools.images import create_image_server
 from tools.data import create_data_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
@@ -55,6 +56,9 @@ BASE_PROCESS_ENV_KEYS = {
     "NO_PROXY",
 }
 SDK_ENV_KEYS = {
+    # 渲染回调在 SDK 环境内执行，保留非秘密的引擎位置配置。
+    "CCSDK_LIBREOFFICE_PATH",
+    "CCSDK_UNO_PYTHON",
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_MODEL",
@@ -65,6 +69,13 @@ SDK_ENV_KEYS = {
     "CLAUDE_CONFIG_DIR",
 }
 WORKER_CONFIG_ENV_KEYS = {
+    "CCSDK_IMAGE_BASE_URL",
+    "CCSDK_IMAGE_API_KEY",
+    "CCSDK_IMAGE_MODEL",
+    "CCSDK_OFFICECLI_PATH",
+    "CCSDK_LIBREOFFICE_PATH",
+    "CCSDK_UNO_PYTHON",
+    "SCRIBE_MAX_TURNS",
     "CCSDK_DATABASES_FILE",
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
@@ -135,7 +146,13 @@ def agent_environment() -> dict[str, str]:
 
     数据库凭据仅由受保护配置提供给进程内 data 执行器。
     """
-    return _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
+    environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
+    office = os.environ.get('CCSDK_OFFICECLI_PATH')
+    if office and Path(office).is_file():
+        # Bash与原生MCP使用同一工具版本，避免系统PATH上的旧版本读取同一文件。
+        path_key = next((key for key in environment if key.upper() == 'PATH'), 'PATH')
+        environment[path_key] = str(Path(office).resolve().parent) + os.pathsep + environment.get(path_key, '')
+    return environment
 
 
 def worker_environment(payload: dict[str, Any] | None = None) -> dict[str, str]:
@@ -237,6 +254,9 @@ def load_workflow_config(workflow_name: str | None) -> dict[str, Any] | None:
         raise RuntimeError(f"workflow runtime 配置必须是对象：{config_path}")
     if runtime.get("mode", "query") not in {"query", "client"}:
         raise RuntimeError(f"workflow runtime.mode 配置无效：{config_path}")
+    for field in ("max_turns", "timeout_ms"):
+        if field in runtime and (type(runtime[field]) is not int or runtime[field] < 1):
+            raise RuntimeError(f"workflow runtime.{field} 必须为正整数：{config_path}")
     if 'data_sources' in config or config.get('data_access') not in {None, 'required', 'optional'}:
         raise RuntimeError("workflow 只声明 data_access 工具需求，来源绑定由数据库包管理")
     documents = config.get("documents", {})
@@ -455,18 +475,28 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
     if business_mcp_url and business_allowed:
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
     if not restricted_tools:
-        docx_server = create_docx_server(
-            payload.get("cwd") or Path.cwd(),
+        mcp_servers["documents"] = create_document_server(
+            work_directory or payload.get("cwd") or Path.cwd(),
             [
                 *(payload.get("additional_directories") or []),
                 *(item for item in [work_directory, deliverables_directory] if item),
             ],
         )
-        mcp_servers["docx"] = docx_server
+        mcp_servers["office"] = {"command": os.environ.get("CCSDK_OFFICECLI_PATH", "officecli"),
+                                 "args": ["mcp"], "env": {"OFFICECLI_SKIP_UPDATE": "1"}}
+        if os.environ.get("CCSDK_IMAGE_BASE_URL") and os.environ.get("CCSDK_IMAGE_API_KEY"):
+            mcp_servers["images"] = create_image_server(
+                work_directory or payload.get("cwd") or Path.cwd(),
+                base_url=os.environ["CCSDK_IMAGE_BASE_URL"], api_key=os.environ["CCSDK_IMAGE_API_KEY"],
+                model=os.environ.get("CCSDK_IMAGE_MODEL", "qwen-image-3.0"),
+                additional_dirs=payload.get("additional_directories"),
+            )
     # Credentials are request-scoped. Rules decide which registered MCP may
     # receive the bearer; no process-global environment is changed.
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
-    allowed_tools = [] if restricted_tools else ["mcp__docx__*"]
+    allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
+    if "images" in mcp_servers:
+        allowed_tools.append("mcp__images__*")
     if database_enabled:
         allowed_tools.append("mcp__data__*")
     if artifact_enabled and not restricted_tools:
@@ -492,7 +522,8 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
         model=payload.get("model") or os.environ.get("ANTHROPIC_MODEL"),
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
-        max_turns=payload.get("max_turns") or int(os.environ.get("SCRIBE_MAX_TURNS", "30")),
+        max_turns=payload.get("max_turns") or (workflow_config or {}).get("runtime", {}).get(
+            "max_turns", int(os.environ.get("SCRIBE_MAX_TURNS", "30"))),
         include_partial_messages=bool(payload.get("include_partial_messages")),
         setting_sources=[] if restricted_tools else ["project", "local"],
         system_prompt=build_system_prompt(

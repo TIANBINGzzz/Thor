@@ -76,9 +76,10 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [022](022-school-database-single-tenant.md) | 校本数据库单租户起步与多租户扩展边界 | 已采纳 | 未开始 | 保留历史名称及单租户策略；目录被ADR-023部分替代，最新唯一来源为校双高库schoolDoubleHigh |
 | [023](023-database-scoped-asset-packages.md) | 按数据库集中管理执行资产 | 已采纳 | 部分实现 | schoolDoubleHigh接入data；reports流水线已由ADR-027替代，历史数据与外部前端/Java仍有差距 |
 | [025](025-unified-template-writing.md) | 两类模板共用撰写能力与Skill | 已采纳 | 部分实现 | 共同规则已并入Workflow普通MD，所选指南、规则版本及来源隔离保留；上传复杂版式/目录和生产Java验收未覆盖 |
-| [026](026-hybrid-template-editing.md) | 语义撰写与可选位置地图 | 已采纳 | 部分实现 | 地图参考保留；专用计划、草稿、编辑和发布流水线被ADR-027替代 |
+| [026](026-hybrid-template-editing.md) | 语义撰写与可选位置地图 | 已采纳 | 部分实现 | 专用流水线被ADR-027替代，地图维护被ADR-029移除；共同能力保留 |
 | [027](027-agent-led-document-writing.md) | 上下文驱动的自主文稿撰写 | 已采纳 | 已实现代码与资产装配 | Agent使用通用工具，按模板加载上下文；完整报告与真实Java链路未端到端验收 |
 | [028](028-bundled-database-config.md) | 本版数据库配置随镜像交付 | 已采纳 | 已实现打包与离线检查 | 用户接受JSON进入私有Codeup及镜像；97连通性和真实Java待验收 |
+| [029](029-native-office-document-tools.md) | 原生Office文档工具与模型自主撰写 | 已采纳 | 部分实现 | 原生编辑、分页渲染及可选生图已实测；整篇报告未通过验收 |
 
 ## 本次核验
 

@@ -27,15 +27,12 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
     assets = template.get("assets") or {}
     data = template.get("data") or {}
     report = template.get("report") or {}
-    output = template.get("output_policy") or {}
     try:
         documents = read_documents(directory, [assets["writing_guide"]])
     except RuntimeError as error:
         raise DataError('TEMPLATE_DOCUMENT_INVALID') from error
     except (KeyError, TypeError):
         raise DataError('TEMPLATE_DOCUMENT_INVALID') from None
-    if output.get('preserve_structure') is not True:
-        raise DataError('TEMPLATE_CONTRACT_INVALID')
     docx = assets.get("docx") or {}
     path = asset_path(directory, docx.get("file"))
     digest = document_digest(path)
@@ -45,9 +42,6 @@ def load_template(template_key, capability_ref, root=TEMPLATES):
     runtime = {
         "source_roles": data["source_roles"],
         "file_name": report["file_name"],
-        "outline": report.get("outline", []),
-        "preserve_structure": output["preserve_structure"],
-        "clear_fill_markers": output.get("clear_fill_markers", False),
     }
     return {**template, **runtime, "_directory": directory, "_docx": path,
             "_documents": documents, '_docx_digest': digest, '_warnings': warnings,

@@ -5,7 +5,9 @@
     "mode": "agent"
   },
   "runtime": {
-    "mode": "client"
+    "mode": "client",
+    "max_turns": 100,
+    "timeout_ms": 1800000
   },
   "documents": {
     "constraints": [

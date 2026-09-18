@@ -11,9 +11,7 @@
       "file": "深圳职业技术学院双高计划中期自评报告规范化模板.docx",
       "sha256": "0bfe299226c714ac9d583ca4377851e00135ece988e933207d6b63a27c03ad2c"
     },
-    "writing_guide": "writing-guide.md",
-    "document_map": "document-map.json",
-    "data_plan": "report-data-plan.json"
+    "writing_guide": "writing-guide.md"
   },
   "data": {
     "source_roles": {
@@ -21,44 +19,6 @@
     }
   },
   "report": {
-    "file_name": "双高计划中期自评报告.docx",
-    "outline": [
-      {
-        "section_key": "overview",
-        "title": "一、总体实现程度"
-      },
-      {
-        "section_key": "school",
-        "title": "二、学校层面任务及绩效指标完成情况"
-      },
-      {
-        "section_key": "group_a",
-        "title": "三、专业群层面任务及绩效指标完成情况（一）"
-      },
-      {
-        "section_key": "group_b",
-        "title": "三、专业群层面任务及绩效指标完成情况（二）"
-      },
-      {
-        "section_key": "measures",
-        "title": "四、实现绩效目标采取的措施"
-      },
-      {
-        "section_key": "experience",
-        "title": "五、特色经验与做法"
-      },
-      {
-        "section_key": "improvements",
-        "title": "六、问题与改进措施"
-      },
-      {
-        "section_key": "appendix",
-        "title": "附件：佐证材料目录清单"
-      }
-    ]
-  },
-  "output_policy": {
-    "preserve_structure": true,
-    "clear_fill_markers": true
+    "file_name": "双高计划中期自评报告.docx"
   }
 }

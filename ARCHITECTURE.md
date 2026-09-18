@@ -23,9 +23,9 @@ Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相�
 ```text
 python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
-  tools/      data、DOCX、Artifact通用工具入口
+  tools/      data、文档渲染/PDF读取、生图、Artifact通用工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
-  workflows/writing_docx/ 可信模板及指南加载、参考副本、可选地图维护工具
+  workflows/writing_docx/ 可信模板及指南加载、参考副本
   tests/      后端测试
 .claude/      workflows/执行配置与规则；databases/按库共享语义和查询
 deploy/       单实例容器构建、部署脚本及配置示例
@@ -40,7 +40,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
-- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收，统一使用通用DOCX、文件、代码及Artifact工具。地图和取数计划只作维护参考，指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图。发布工具校验文件边界，不代替业务与版式核验。
+- `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收；OfficeCLI原生MCP读取和编辑Office文档，LibreOffice/WPS更新目录并另存DOCX与PDF，PDFium提供分页核验。指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图或取数流水线。发布工具校验文件边界，不代替业务与版式核验。
 - 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
@@ -92,4 +92,4 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与规则 | `.claude/workflows/double-high-qa/`、`.claude/workflows/writing-docx/` |
 | 数据源与共享查询资产 | [.claude/databases/README.md](.claude/databases/README.md) |
-| 数据管理、报告与产品流程 | [数据库管理](doc/specs/data-source-connections.md)、[模板计划](doc/specs/template-batch-data-plan.md)、[产品流程](doc/specs/conversation-reporting-product.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |
+| 数据管理、报告与产品流程 | [数据库管理](doc/specs/data-source-connections.md)、[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[产品流程](doc/specs/conversation-reporting-product.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |

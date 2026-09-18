@@ -1,6 +1,6 @@
 # 对话、能力选择与报告产品流程
 
-2026-09-14，按用户确认：普通会话不传能力，用户可在同一业务会话中选择已开通能力。本文区分当前代码与产品目标；数据库和报告执行设计分别见[data](data-source-connections.md)、[report](template-batch-data-plan.md)。
+2026-09-14，按用户确认：普通会话不传能力，用户可在同一业务会话中选择已开通能力。本文区分当前代码与产品目标；数据库和报告执行设计分别见[data](data-source-connections.md)、[文档工具](../ADR/029-native-office-document-tools.md)。
 
 ## 角色与页面
 

@@ -27,9 +27,12 @@ class DeploymentEnvironmentTests(unittest.TestCase):
 
     def test_raw_runtime_round_trip_and_allowlist(self):
         environment = self.environment()
+        environment.update(CCSDK_IMAGE_BASE_URL='https://images.example/v1',
+                           CCSDK_IMAGE_API_KEY='image-secret', CCSDK_IMAGE_MODEL='qwen-image-3.0')
         parsed = dict(line.split("=", 1) for line in writer.render(environment).splitlines())
         self.assertEqual(parsed["ANTHROPIC_AUTH_TOKEN"], environment["ANTHROPIC_AUTH_TOKEN"])
         self.assertNotIn("UNRELATED_SECRET", parsed)
+        self.assertEqual(parsed['CCSDK_IMAGE_API_KEY'], 'image-secret')
 
     def test_custom_jwt_secret_survives_bundle_and_container_check(self):
         entrypoint = Path(__file__).with_name("entrypoint.py")
