@@ -207,7 +207,7 @@ Accept: text/event-stream
 ```text
 id: 4
 event: message.delta
-data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"message.delta","payload":{"textDelta":"回复片段"}}
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"message.delta","payload":{"textDelta":"回复片段","displayName":""}}
 ```
 
 公共事件：
@@ -217,15 +217,19 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `run.started` | `status: "running"` | 明确 Run 已进入执行。 |
 | `phase` | `name` 为下表准备阶段或 `started\|thinking\|response\|working`；思考阶段另有 `visible:true` | 展示准备与执行进度，不暴露思考正文。 |
 | `message.delta` | `textDelta` | 本次新收到的一小段回答，加在已有回答末尾；按事件sequence顺序处理，重复序号不重复添加。 |
-| `tool.started` | `toolCallId`、`toolName`、`status: started` | 展示工具调用开始。 |
-| `tool.progress` | `toolCallId`、`toolName`、`status: running` | 展示工具仍在执行。 |
-| `tool.finished` | `toolCallId`、`toolName`、`status: finished`、`isError` | 展示工具完成或失败。 |
+| `tool.started` | `toolCallId`（可选）、`toolKey`、`displayName`、`scope`、`status: started` | 名称非空时展示工具调用开始。 |
+| `tool.progress` | 同上，`status: running` | 按Run、scope和toolCallId更新已有调用；名称从开始事件补齐。 |
+| `tool.finished` | 同上，`status: finished`、`isError` | 结束该调用，isError标记工具错误，不等同于Run失败。 |
 | `artifact.pending / uploading / ready / failed / unknown` | 本节Artifact文件对象 | Runtime上传状态，ready才包含远端fileId；与模型正文无关。 |
 | `run.completed` | `inputTokens`、`outputTokens`、`turns`（可选） | 表示执行成功并提供统计。 |
 | `run.failed` | `code`，可带统计 | 表示执行失败；使用稳定错误码。 |
-| `run.cancelled` | 空对象 | 表示执行被取消。 |
+| `run.cancelled` | `displayName`，默认“已停止” | 表示执行被取消。 |
 
-公共事件不包含工具参数、工具结果正文、Prompt、文件路径、凭据或供应商原始消息。每个 Run 的 `sequence` 从 1 递增，RunStore 负责持久化和回放。
+所有事件payload含字符串displayName，可信字典集中在`python/runtime/event_display.py`；空字符串只隐藏状态提示，正文、文件及终态仍必须处理。message.delta默认空名称，不需新增可见状态；已有组件追加正文时不能重复追加。工具只返回公开toolKey及显示名，不返回toolName；未知工具为other和空名称。名称不承载执行权限，也不作为成功判断依据。
+
+公共事件不包含内部工具名、工具参数、工具结果正文、Prompt、文件路径、凭据或供应商原始消息。每个Run的sequence从1递增，RunStore负责持久化和回放；回放也按当前字典设置名称并移除旧toolName，历史缺少toolKey的工具事件默认隐藏。变更名称须重启/重新部署Python，Java/前端无需维护工具名称字典。完整格式化示例见[API HTML](../python-api.html#events)。
+
+工程要求检查：REQ-001部分满足，显示字典不读取或转发凭据，测试覆盖原始参数不外泄；REQ-002部分满足，公开分类不暴露执行入口、不新增授权。既有Java授权和生产隔离差距不变。
 
 ### 5.1 文件准备阶段
 
@@ -248,7 +252,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 ```text
 id: 4
 event: phase
-data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904}}
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904,"displayName":"正在获取文件"}}
 ```
 
 所有准备阶段通过同一 RunStore 保存并按序回放；断开 SSE 不取消下载。停止生成使用 control 的 `option: cancel`，取消下载并清理本次临时输入，不删除 Java 原文件。文件流不通过 SSE 传输。

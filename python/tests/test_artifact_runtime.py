@@ -59,9 +59,11 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     events = store.events_after('run_01')
                     types = [e['type'] for e in events]
                     self.assertEqual(types[-2:], ['artifact.ready', 'run.completed'])
-                    self.assertIn({'name': 'saving_files'}, [e['payload'] for e in events if e['type'] == 'phase'])
+                    self.assertIn({'name': 'saving_files', 'displayName': '正在保存文件'},
+                                  [e['payload'] for e in events if e['type'] == 'phase'])
                     self.assertEqual(store.get_run('run_01')['status'], 'succeeded')
-                    self.assertEqual(delivery.list('run_01')[0], events[-2]['payload'])
+                    self.assertEqual(delivery.list('run_01')[0],
+                                     {k: v for k, v in events[-2]['payload'].items() if k != 'displayName'})
                     self.assertEqual(delivery.list('run_02'), [])
                 finally:
                     release.set()

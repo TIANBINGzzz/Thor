@@ -263,5 +263,17 @@ class RuntimeHTTPTests(unittest.TestCase):
         response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
         events = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
         self.assertEqual(events[-1]['type'], 'run.completed')
-        self.assertIn(item, [e['payload'] for e in events if e['type'] == 'artifact.failed'])
+        self.assertIn({**item, 'displayName': '上传失败'},
+                      [e['payload'] for e in events if e['type'] == 'artifact.failed'])
         self.assertEqual([e['sequence'] for e in events], list(range(1, len(events) + 1)))
+
+    def test_sse_replay_removes_old_internal_tool_names(self):
+        self.seed('succeeded')
+        self.store.append_event('run-test', {'type': 'tool.started', 'payload': {
+            'toolName': 'private-internal-tool', 'toolCallId': 'old-call', 'status': 'started'}})
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        event = json.loads(next(line[6:] for line in response.text.splitlines() if line.startswith('data: ')))
+        self.assertNotIn('private-internal-tool', response.text)
+        self.assertNotIn('toolName', event['payload'])
+        self.assertEqual(event['payload']['displayName'], '')
+        self.assertEqual(event['payload']['toolCallId'], 'old-call')

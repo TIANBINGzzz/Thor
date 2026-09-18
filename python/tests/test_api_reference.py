@@ -8,6 +8,7 @@ import unittest
 
 import server
 from runtime.protocol import AgentRunRequest
+from runtime.event_display import with_display_name
 
 
 class ReferenceParser(HTMLParser):
@@ -56,3 +57,12 @@ class APIReferenceTests(unittest.TestCase):
                 AgentRunRequest.from_dict(data)
                 count += 1
         self.assertGreater(count, 0)
+
+    def test_event_examples_use_the_python_display_dictionary(self):
+        events = [json.loads(example) for example in self.page.examples
+                  if example.lstrip().startswith('{')]
+        events = [event for event in events if event.get('protocolVersion') == 'agent-events/v1']
+        self.assertTrue(events)
+        for event in events:
+            with self.subTest(type=event['type']):
+                self.assertEqual(event, with_display_name(event))

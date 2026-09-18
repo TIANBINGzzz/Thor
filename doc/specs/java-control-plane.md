@@ -87,7 +87,7 @@ Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabili
 | message：answer、content_type=answer | 仅追加正文。Python textDelta 是增量，按序号去重，不使用前后缀猜测去重，以免丢失合法重复文字。 |
 | status：phase | queued 排队；文件准备显示“正在准备附件/模板”；校验显示“正在校验文件”；model_starting 处理；只有 thinking 显示思考。 |
 | status：fileId/receivedBytes/totalBytes | 映射已知附件显示字节进度；未知总量用不定进度，下载 100% 不表示回答完成。 |
-| status：toolCallId/status/isError | 工具运行/完成/失败；使用通用标签，省略原始 toolName。工具失败不自动等同于 Run 失败。 |
+| status：toolCallId/toolKey/displayName/status/isError | 工具运行/完成/失败；显示Python提供的displayName，空字符串不新增提示但仍更新状态。按Run、scope、调用ID关联，工具失败不自动等同于Run失败。 |
 | file：fileId/fileName/fileSize/url | Java 归档后提供受 ACL 保护的预览/下载，对接现有附件组件。不要把 Runtime 下载 URL 直接交给浏览器。 |
 | message_end：status；error：code/message | 区分 completed、stopped、failed；取消保留已有正文，连接结束不能直接算成功。 |
 | sequence/run_id | 同 Run 内排序去重；Java 合并多来源或增加文件事件时应生成统一的 Java 序号，另存 Python 游标。 |
@@ -343,7 +343,7 @@ SSE 完整示例（帧末有空行）：
 ```text
 id: 4
 event: phase
-data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","sequence":4,"occurredAt":1789012000000,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":512,"totalBytes":1024}}
+data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","sequence":4,"occurredAt":1789012000000,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":512,"totalBytes":1024,"displayName":"正在获取文件"}}
 
 ```
 
@@ -351,13 +351,15 @@ data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","
 | --- | --- |
 | 公共信封 | protocolVersion 固定 agent-events/v1；eventId 为事件标识；runId 关联执行；sequence 从 1 递增；occurredAt 为 Unix 毫秒；type 决定 payload。 |
 | run.started | payload.status=running；此时可能仍在准备文件或等待 Client，不表示模型已启动。 |
-| phase | name：queued、preparing_files、preparing_file、downloading_file、validating_file、file_ready、files_ready、model_starting、started、thinking、response、working。 |
+| phase | name：queued、preparing_files、preparing_file、downloading_file、validating_file、file_ready、files_ready、model_starting、started、thinking、response、working、saving_files。 |
 | 文件 phase | 按阶段可带 fileId、fileCount、receivedBytes、totalBytes；数值分别为数量/字节，不是百分比。 |
 | message.delta | payload.textDelta: string，正文增量。 |
-| tool.started/progress/finished | status=started/running/finished，scope 默认 main；可带 toolCallId、toolName；finished 有 isError 布尔。当前 Python 返回工具名，Java 面向浏览器应筛除。 |
-| run.completed | 可带 inputTokens/outputTokens/turns 整数统计，也可为空对象。 |
+| tool.started/progress/finished | status=started/running/finished，scope默认main；可带toolCallId，固定包含toolKey及displayName；finished有isError布尔。Python不再返回内部toolName。 |
+| run.completed | displayName默认“已完成”，可带inputTokens/outputTokens/turns整数统计。 |
 | run.failed | code，如 timeout、sdk_execution_error、file_access_denied、file_validation_failed；可能带统计。 |
-| run.cancelled | 空 payload，当前执行已取消。 |
+| run.cancelled | displayName默认“已停止”，当前执行已取消。 |
+
+每条事件payload都含displayName，由Python的`runtime/event_display.py`集中维护，允许空字符串。Java转发名称即可，不再维护内部工具名字典；空名称仅隐藏状态提示，不能停止正文追加、忽略文件登记或跳过Run结束处理。回放使用当前显示字典并移除旧toolName；toolKey只用于展示分类，不是可授权的工具调用入口。新增字段和空字符串不可被Bridge丢弃；Java/前端实际接入仍需单独修改和验证。
 
 SSE断开不取消执行或上传，终态后关闭，空闲发送心跳；持久事件分页回放。生成文件由artifact.pending/uploading/ready/failed/unknown报告，详情见2.7。SDK结束后仍在上传时发送phase.name=saving_files，Run保持running；文件收尾后才发Run终态，run.completed不保证文件全部ready。来源：server.py、artifact_delivery.py、run_store.py。
 
@@ -455,7 +457,7 @@ Java须用创建时保存的runId→messageId关联确定业务归属，按artif
 | 阻断：Java 报文/能力不匹配 | Java 的 RuntimeRunRequest/Factory 仍发送 turnId、agentRef、execution、runtime、limits、context，Python 拒绝；Java 用 writing-docx/database-qa，Python 用 document-writing/national-excellence-data-qa；Java 也没传 payload。 | Java DTO/Factory 按 2.4 收敛，并读取 2.3 的业务名称。 |
 | 阻断：凭据来源与业务 ACL | 前端的 getHeaders 发 token 头；Java 的 BusinessTokenResolver 只读 Authorization Bearer。UserContextHelper 反射取 tenant 或 org；Registry 只验证全局名称，未见用户/Agent 能力 ACL 与文件 ACL 闭环。 | 明确已认证上下文如何提供原业务 Token 与真实 tenant；先校验业务权限再签 JWT，不能默认 org 就是租户。 |
 | 缺口：文件接入/前后端版本 | 前端调用附件登记、模板等接口，当前 Java 的 ChatController 无附件登记，未找到 Broker；RuntimeClient 无 Artifact API。重命名/删除方法也与前端不一致。 | 先确定对应 Java 分支及文件服务，再接 2.6/2.7；不能以本地前端 API 清单证明 Java 已支持。 |
-| 缺口：状态与结束判定 | Bridge 将全部 phase 和工具开始/完成映射 agent_thought，忽略 tool.progress 与 sequence；SSE 无终态就 EOF 时仍可能保存 completed。Python toolName 也不符合之前期望的浏览器泛化展示。 | 单独映射准备/工具状态、序号及终态；异常断线查询/续订阅，Java 过滤原始工具名。 |
+| 缺口：状态与结束判定 | 旧Bridge将phase和工具开始/完成映射agent_thought，忽略tool.progress与sequence；SSE无终态就EOF时仍可能保存completed。Python已提供安全toolKey/displayName。 | Java接入显示字段及空名称语义，单独处理准备/工具状态、序号和终态；异常断线查询/续订阅。 |
 | 缺口：默认 resume 与图片模型 | server 的 Query payload 固定 resume=None；Client 仅 Actor 内持有会话，重建未从 RunStore 恢复。模型固定 MODELS[0]，无按 Capability 的图片模型配置。 | Python 实现持久会话查找与串行约束；图片能力首轮选视觉模型并验证图片读取；Java 不增加调度字段。 |
 | 风险：同 Run 重执行 | server 在记录非终态但没有本进程 Task 时会重新启动同一 runId；Java Bridge 运行记录也只有内存。 | worker 丢失先核实状态/副作用，避免同 Run 自动再执行；实际重执行用新 runId，补 Java Run/Event 持久化。 |
 | 已修正（2026-09-18）：回放截断 | Python已循环分页回放，覆盖超过500条后文件事件及终态的回归。 | Java仍需按sequence去重、断线续读。 |

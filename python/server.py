@@ -24,6 +24,7 @@ from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
+from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
 
 
@@ -52,6 +53,7 @@ RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
 pending_terminals: dict[str, dict[str, Any]] = {}
 ARTIFACT_DELIVERY: ArtifactDelivery | None = None
+TOOL_DISPLAYS = ToolCallDisplays()
 internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
@@ -275,8 +277,7 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
         payload: dict[str, Any] = {"status": status, "scope": raw.get("scope") or "main"}
         if raw.get("id"):
             payload["toolCallId"] = str(raw["id"])
-        if raw.get("name"):
-            payload["toolName"] = str(raw["name"])
+        payload.update(TOOL_DISPLAYS.resolve(run_id, raw))
         if raw_type == "tool_result":
             payload["isError"] = raw.get("isError") is True
         return {
@@ -315,7 +316,7 @@ def _public_run(run: dict[str, Any]) -> dict[str, Any]:
 
 async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any]:
     """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
-    clean = {"protocolVersion": "agent-events/v1", **event}
+    clean = with_display_name({"protocolVersion": "agent-events/v1", **event})
     stored = RUN_STORE.append_event(run_id, clean)
     await _notify_stored_event(stored)
     return stored
@@ -712,6 +713,7 @@ async def _execute_internal_run(
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
         pending_terminals.pop(run_id, None)
+        TOOL_DISPLAYS.clear(run_id)
         # Query owns a private directory and can clean it here. Client's
         # current-input directory is shared by the Session and is cleaned by
         # the accepted Actor command; an outer task must never clear it while
@@ -843,6 +845,7 @@ async def internal_run_events(
         nonlocal cursor
 
         def format_event(event: dict[str, Any]) -> str:
+            event = with_display_name(event)
             lines = [f"id: {event['sequence']}", f"event: {event['type']}"]
             lines.append(f"data: {json.dumps(event, ensure_ascii=False)}")
             return "\n".join(lines) + "\n\n"

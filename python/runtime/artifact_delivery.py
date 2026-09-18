@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from data_access.connections import config_path
+from runtime.event_display import with_display_name
 
 ARTIFACT_ID = re.compile(r'artifact_[0-9a-f]{32}\Z')
 UPLOAD_PATH = '/fwk_manage_service/sys_attachment/ai/upload/'
@@ -91,10 +92,10 @@ class ArtifactDelivery:
 
     async def _state(self, record, status, **fields):
         record.update(status=status, **fields)
-        event = self.store.save_artifact(record, {
+        event = self.store.save_artifact(record, with_display_name({
             'protocolVersion': 'agent-events/v1', 'runId': record['runId'],
             'type': 'artifact.' + status, 'payload': public_artifact(record),
-        })
+        }))
         # 订阅者断开不能回滚已提交的上传结果；客户端可按序回放或查询状态。
         try:
             await self.notify(event)
