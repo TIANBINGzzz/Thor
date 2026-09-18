@@ -82,6 +82,18 @@ class QuerySemanticsTests(unittest.TestCase):
         self.assertIsNone(money['budget_amount'])
         self.assertIsNone(money['budget_execution_rate'])
 
+    def test_project_resolution_includes_city_projects_without_crossing_scope(self):
+        self.project()
+        self.add('project', id_='city', name_='市级专业群', high_flag_='0', level_name_='市级')
+        self.add('project', id_='foreign', name_='其他学校', tenant_id_='tenant-b', high_flag_='1')
+        self.add('project', id_='deleted', name_='已删除', delete_flag_='1', high_flag_='1')
+        self.add('stage', id_='city-stage', project_id_='city', name_='2026')
+        rows = self.query('project_catalog')
+        self.assertEqual({r['project_id'] for r in rows}, {'p1', 'city'})
+        city = self.query('project_catalog', project_id='city')[0]
+        self.assertEqual((city['national_flag'], city['level_name']), ('0', '市级'))
+        self.assertEqual(len(self.query('stage_catalog', project_id='city', year='2026')), 1)
+
     def test_report_relation_accepts_unstaged_performance_and_deduplicates(self):
         self.project()
         self.add('stage',id_='s1',project_id_='p1',name_='2025')

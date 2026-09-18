@@ -20,7 +20,8 @@
           "query_id": "project_catalog",
           "id_field": "project_id",
           "name_field": "project_name",
-          "parameter": "project_id"
+          "parameter": "project_id",
+          "context_fields": ["level_name", "national_flag"]
         },
         "task_project": {
           "query_id": "task_project_candidates",
