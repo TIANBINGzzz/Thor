@@ -37,6 +37,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 
 - Java 控制面：业务身份、租户、资源 ACL、Capability、会话/文件和审计。
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
+- `runtime/artifact_delivery.py`：接收发布快照、绑定可信Run、自动上传文件服务并持久化文件状态；Java按artifactId/fileId关联消息和下载ACL，不解析模型链接。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
@@ -74,6 +75,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 安全：当前 `bypassPermissions` 和路径约定不构成生产沙箱；多租户需文件、进程、网络及凭据隔离。
 - 可靠性与观测：Run 状态、事件回放、超时、取消和 Client 恢复分别管理；运行事件通过 RunStore 管理。
 - 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和文档成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
+- 输出文件按artifactId保留独立快照；上传状态与SSE事件原子保存。SDK结束后等待上传收尾，文件失败与Run失败分别表达；重启恢复pending，上传结果不确定不自动重传。配置与边界见[ADR-030](doc/ADR/030-runtime-artifact-delivery.md)。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
 - 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像。本版默认读取镜像内/app/config/databases.json，不需要单独挂载；显式CCSDK_DATABASES_FILE或Compose数据库挂载可覆盖默认配置。模型/JWT仍由运行时env注入，命名卷保存运行数据。内置数据库配置修改须重建镜像；单副本单HTTP worker，容器不代表租户隔离或生产验收。

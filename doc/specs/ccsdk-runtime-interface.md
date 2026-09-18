@@ -216,10 +216,11 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | --- | --- | --- |
 | `run.started` | `status: "running"` | 明确 Run 已进入执行。 |
 | `phase` | `name` 为下表准备阶段或 `started\|thinking\|response\|working`；思考阶段另有 `visible:true` | 展示准备与执行进度，不暴露思考正文。 |
-| `message.delta` | `textDelta` | 传输助手回复增量，客户端按顺序拼接。 |
+| `message.delta` | `textDelta` | 本次新收到的一小段回答，加在已有回答末尾；按事件sequence顺序处理，重复序号不重复添加。 |
 | `tool.started` | `toolCallId`、`toolName`、`status: started` | 展示工具调用开始。 |
 | `tool.progress` | `toolCallId`、`toolName`、`status: running` | 展示工具仍在执行。 |
 | `tool.finished` | `toolCallId`、`toolName`、`status: finished`、`isError` | 展示工具完成或失败。 |
+| `artifact.pending / uploading / ready / failed / unknown` | 本节Artifact文件对象 | Runtime上传状态，ready才包含远端fileId；与模型正文无关。 |
 | `run.completed` | `inputTokens`、`outputTokens`、`turns`（可选） | 表示执行成功并提供统计。 |
 | `run.failed` | `code`，可带统计 | 表示执行失败；使用稳定错误码。 |
 | `run.cancelled` | 空对象 | 表示执行被取消。 |
@@ -240,6 +241,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `file_ready` | 同上 | 当前文件校验成功。 |
 | `files_ready` | `fileCount` | 全部附件就绪。 |
 | `model_starting` | 无 | 已结束输入准备，进入 SDK 执行阶段；不是模型思考事件。 |
+| `saving_files` | 无 | SDK已结束，等待已提交文件上传收尾，Run仍为running。 |
 
 文件逐个下载，进度属于当前 fileId，不是整个 Run 的完成百分比。准备授权时显示不定进度；大小为 0 时不做除法。SSE 示例：
 
@@ -253,23 +255,19 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 
 ## 6. Artifact 模块
 
-### 6.1 列出交付物
+发布工具生成不可变artifactId，父Runtime按可信Run登记快照，并自动向部署配置fileService上传。模型不提供上传地址或业务身份，工具pending不代表上传成功。同名再次发布产生新ID，各Run列表互不混用。
 
-```http
-GET /internal/v1/runs/{runId}/artifacts
-Authorization: Bearer <Run JWT>
-```
+| GET 路径 | 响应 |
+| --- | --- |
+| `/internal/v1/runs/{runId}/artifacts` | `{"files": [...]}`，仅本Run已登记文件，无查询参数 |
+| `/internal/v1/runs/{runId}/artifacts/{artifactId}` | `{"file": {...}}`，单文件状态 |
+| `/internal/v1/runs/{runId}/artifacts/{artifactId}/content` | 本地快照二进制，用于Java鉴权代理、核验或人工恢复 |
 
-返回：`{"files":[{"name":"result.docx","size":24576}]}`。
+均使用run.read或run.execute的Run JWT，不消耗jti，禁止缓存。文件对象包含artifactId/name/size/suffix/status；仅ready包含fileId（上传响应data.id），failed/unknown包含稳定error。列表无成果返回空数组；旧?name定位返回400，JWT无效401，密钥未配置503，不存在或跨Run文件404。内容接口可读取failed/unknown的本地快照，不证明远端ready。
 
-### 6.2 下载交付物
+状态为pending→uploading→ready/failed/unknown；发送前配置失败可直接failed。超时、无效成功响应、服务端5xx或上传中断可能已经产生远端文件，记unknown，不自动重试；本版没有重试API。重启仅恢复pending，原uploading标为unknown，不代表恢复SDK执行。状态与事件同事务持久化，SSE分页回放；终态Run事件等已登记上传全部收尾后发送。run.completed代表SDK成功，不保证文件ready，取消不撤销已提交上传。
 
-```http
-GET /internal/v1/runs/{runId}/artifacts?name=result.docx
-Authorization: Bearer <Run JWT>
-```
-
-返回文件二进制，并设置 `Content-Type`、`Content-Disposition` 和 `Cache-Control: no-store`。列表也禁止缓存；点号开头的内部文件不列出且不可下载，路径穿越和符号链接不可下载。`name` 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，因此列表可能包含同一会话之前生成的文件。同名文件可被后续覆盖，Java应及时下载归档并绑定消息，不将此接口当作不可变版本库。
+Java按已保存的runId/messageId及artifactId更新文件卡片，ready后关联fileId、校验业务下载ACL；不解析回答链接。data.url是内部存储路径，不公开也不推测下载URL。上传服务未提供租户授权/幂等对账，Java和前端仍需接入。完整格式化JSON、错误码与fileService配置见[API HTML](../python-api.html#artifacts)，决策见[ADR-030](../ADR/030-runtime-artifact-delivery.md)。
 
 ## 7. 鉴权模块
 

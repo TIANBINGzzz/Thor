@@ -357,7 +357,7 @@ async def run_client(initial: dict[str, Any]) -> None:
         emit({"type": "client_error", "code": "configuration_error"})
         return
     data_services = create_run_services(initial)
-    options = build_options(initial, data_services=data_services)
+    options = build_options(initial, data_services=data_services, artifact_sink=emit)
     direct_workflow = options.tools == [] and options.strict_mcp_config
     client = ClaudeSDKClient(
         options,
@@ -447,7 +447,7 @@ async def run(payload: dict[str, Any]) -> None:
     data_services = create_run_services(payload)
     if data_services:
         await data_services.bind(payload)
-    options = build_options(payload, data_services=data_services)
+    options = build_options(payload, data_services=data_services, artifact_sink=emit)
     direct_workflow = options.tools == [] and options.strict_mcp_config
     streaming: dict[str, str] = {}
     # The SDK merges ``options.env`` with the worker process environment.  Keep

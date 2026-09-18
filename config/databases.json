@@ -1,4 +1,9 @@
 {
+  "fileService": {
+    "baseUrl": "https://newtest.stringedu.com",
+    "domainName": "newtest.stringedu.com",
+    "remoteUrl": "https://newtest.stringedu.com"
+  },
   "sources": {
     "schoolDoubleHigh": {
       "policy": {

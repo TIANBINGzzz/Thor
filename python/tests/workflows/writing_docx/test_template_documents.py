@@ -201,7 +201,7 @@ class TemplateDocumentTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(),original)
         self.assertEqual(staged.read_bytes(),original)
         self.assertTrue(result)
-        published=self.root/'session/deliverables/report.docx'
+        published=self.root/'session/deliverables'/result['artifactId']/'content'
         self.assertEqual(Document(published).paragraphs[1].text,'Evidence still required')
         self.assertEqual(str(Document(published).paragraphs[1].runs[0].font.color.rgb),'FFC000')
 

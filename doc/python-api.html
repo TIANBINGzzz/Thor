@@ -18,6 +18,7 @@ table{width:100%;margin:12px 0 20px;border-collapse:collapse;font-size:13px}th,t
 aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);overflow:auto;padding:4px 0 8px}.toc-title{margin:0 0 11px;color:var(--muted);font-size:12px}.toc a{display:block;padding:6px 10px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;font-size:13px}.toc a:hover,.toc a.active{border-left-color:var(--blue);color:var(--blue);background:var(--blue-soft)}.mobile-toc{display:none}footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 @media(max-width:880px){.layout{display:block;width:min(100% - 32px,780px);padding-top:34px}aside{display:none}.mobile-toc{display:block;margin:26px 0 0;border:1px solid var(--line);border-radius:8px}.mobile-toc summary{padding:9px 12px;color:var(--muted);cursor:pointer}.mobile-toc .toc{padding:0 10px 10px}.topbar{padding-inline:16px}.server-bar{display:none}}
 @media(max-width:520px){.layout{width:calc(100% - 24px)}h2{font-size:20px}th,td{padding:8px 7px}td:first-child{width:34%}}
+.path{min-width:0;overflow-wrap:anywhere}p{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -48,7 +49,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok": true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
-<tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Java 列出或下载 Python 生成的交付物。</td></tr>
+<tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Python 自动上传已发布成果；Java 按 artifactId 获取状态，按 fileId 关联业务消息。</td></tr>
 <tr><td>会话执行索引</td><td><code>GET /internal/v1/sessions/{businessSessionId}/runs</code></td><td>按授权业务会话分页查询执行摘要；不管理标题和消息。</td></tr>
 <tr><td>File Broker</td><td>Java 提供授权端点</td><td>Python 按附件引用向 Java 请求文件；Java 校验业务权限后返回一次性 URL 或代理流。</td></tr>
 <tr><td>鉴权</td><td><code>Authorization: Bearer &lt;Run JWT&gt;</code></td><td>Java 签发短期 Run JWT；Python 校验签名、身份、scope 和请求绑定。</td></tr>
@@ -345,19 +346,43 @@ event: message.delta
 data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段"}}
 
 </pre></div></details>
-<table><thead><tr><th>事件 type</th><th>payload</th><th>用途</th></tr></thead><tbody>
-<tr><td>run.started</td><td><code>status: "running"</code></td><td>Run 已进入执行。</td></tr>
-<tr><td>phase</td><td><code>name</code>：下表文件阶段或 <code>started</code>、<code>thinking</code>、<code>response</code>、<code>working</code>；思考阶段可带 <code>visible: true</code></td><td>展示文件准备和模型执行阶段；不返回思考正文。</td></tr>
-<tr><td>message.delta</td><td><code>textDelta</code></td><td>助手回复增量，按 <code>sequence</code> 拼接。</td></tr>
-<tr><td>tool.started</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "started"</code></td><td>展示工具调用开始。</td></tr>
-<tr><td>tool.progress</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "running"</code></td><td>展示工具仍在执行。</td></tr>
-<tr><td>tool.finished</td><td><code>toolCallId</code>、<code>toolName</code>、<code>status: "finished"</code>、<code>isError</code></td><td>展示工具完成或失败。</td></tr>
-<tr><td>run.completed</td><td>可选 <code>inputTokens</code>、<code>outputTokens</code>、<code>turns</code></td><td>执行成功并结束事件流。</td></tr>
-<tr><td>run.failed</td><td><code>code</code>，可带统计字段</td><td>执行失败并结束事件流。</td></tr>
-<tr><td>run.cancelled</td><td>空对象</td><td>执行被取消并结束事件流。</td></tr>
+<p><code>type</code> 告诉接入方“发生了什么”；<code>payload</code> 是这件事的具体数据；<code>runId</code> 表示属于哪一次请求。下表的前端处理是接入建议，需由 Java 转发和前端实现。</p>
+<table><thead><tr><th>事件 type / 什么时候收到</th><th>payload 字段是什么意思</th><th>前端怎么处理</th></tr></thead><tbody>
+<tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>显示“正在处理”。不代表已经开始生成回答。</td></tr>
+<tr><td><code>phase</code><br>当前处理步骤有变化</td><td><code>name</code> 是步骤名称，取值见下表。例如 thinking 表示模型正在思考；该事件可带 <code>visible: true</code>，但没有思考内容。</td><td>更新“正在准备文件”“正在思考”“正在保存文件”等提示；不要把步骤名加进回答正文。</td></tr>
+<tr><td><code>message.delta</code><br>收到一小段新回答</td><td><code>textDelta</code> 是这次新生成的文字，不是完整回答。例如本次是“你好”，下次可能是“，有什么可以帮你？”。</td><td>把这段文字加在已有回答的末尾，效果像逐字显示。按 sequence 的顺序处理，同一条事件只加一次，详见下面示例。</td></tr>
+<tr><td><code>tool.started</code><br>开始调用一个工具</td><td><code>toolCallId</code> 区分这一次调用；<code>toolName</code> 是工具名称；<code>status: "started"</code> 表示开始。标识和名称在上游提供时才有。</td><td>显示“正在使用工具”，例如查询数据或编辑文档。工具状态与回答正文分开显示。</td></tr>
+<tr><td><code>tool.progress</code><br>工具报告自己仍在执行</td><td><code>toolCallId</code> 对应之前的调用；<code>toolName</code> 是工具名称；<code>status: "running"</code> 表示未结束。不包含完成百分比。</td><td>保持该工具的处理中状态。并非每次调用都会收到此事件，没有收到不等于卡住。</td></tr>
+<tr><td><code>tool.finished</code><br>这一次工具调用结束</td><td><code>status: "finished"</code> 表示结束；<code>isError: true</code> 表示这次工具调用报错，false 表示未报告错误；标识和名称同上。</td><td>更新该工具的成功或失败提示。一次工具失败不代表整次请求失败，模型可能继续处理。</td></tr>
+<tr><td><code>artifact.pending</code><br>最终文件已提交给 Python</td><td>文件 ID、名称、大小等，<code>status: "pending"</code>。Python 已保存这一版文件，等待上传。</td><td>按 artifactId 新建文件卡片，显示“等待上传”，暂不提供远端下载。</td></tr>
+<tr><td><code>artifact.uploading</code><br>Python 开始上传文件</td><td>同一个文件的描述，<code>status: "uploading"</code>。当前没有上传百分比。</td><td>把该卡片改为“正在上传”。不要根据回答里的“已完成”提前启用下载。</td></tr>
+<tr><td><code>artifact.ready</code><br>文件服务确认已保存</td><td><code>status: "ready"</code>；新增 <code>fileId</code>，它是文件服务分配的 ID，不是下载网址。</td><td>Java 将 fileId 关联到本条消息并提供有权限检查的下载入口后，卡片才启用“下载”。</td></tr>
+<tr><td><code>artifact.failed</code><br>文件没有成功完成上传</td><td><code>status: "failed"</code>；<code>error</code> 是原因代码，例如没有配置文件服务、无法连接或服务拒绝。</td><td>显示“上传失败”；其他文件仍分别显示自己的状态，回答正文可以保留。</td></tr>
+<tr><td><code>artifact.unknown</code><br>无法确认文件是否上传成功</td><td><code>status: "unknown"</code>；<code>error</code> 是原因代码。例如请求超时，但文件服务可能已经收到了文件。</td><td>显示“上传结果待确认”。不启用远端下载，也不要自动重传，以免重复保存文件。</td></tr>
+<tr><td><code>run.completed</code><br>本次模型执行成功结束</td><td>可能有 <code>inputTokens</code>（输入用量）、<code>outputTokens</code>（输出用量）、<code>turns</code>（模型执行轮数），也可能是空对象。</td><td>停止回答加载状态。已提交文件的上传也已收尾，但可能失败，文件卡片仍以各自状态为准。</td></tr>
+<tr><td><code>run.failed</code><br>本次执行失败并结束</td><td><code>code</code> 是失败原因代码，例如 timeout；也可能带用量统计。</td><td>停止回答加载状态并显示失败提示。可以保留已收到的文字和文件，不能当作一次完整成功的回答。</td></tr>
+<tr><td><code>run.cancelled</code><br>本次执行已取消并结束</td><td>空对象 <code>{}</code>，没有额外字段。</td><td>显示“已停止”，保留之前收到的文字和文件。该事件不表示删除文件。</td></tr>
+</tbody></table>
+<h3>一段段回答如何显示</h3>
+<p>三个工具事件还带 <code>scope</code>：<code>main</code> 表示主助手，<code>sub:...</code> 表示内部子任务；用于区分工具状态，不是回答文字。它们不返回工具的具体输入或结果内容。</p>
+<p><code>sequence</code> 是同一次 Run 中所有事件的序号，从 1 开始递增。它不是字数，也不是“第几段回答”；工具、步骤和文件事件同样占用序号，所以两段回答的序号可能不连续。</p>
+<table><thead><tr><th>依次收到的事件</th><th>本次操作</th><th>页面上的完整回答</th></tr></thead><tbody>
+<tr><td>sequence=4，message.delta，textDelta 为“你好”</td><td>加入第一段文字</td><td>你好</td></tr>
+<tr><td>sequence=5，phase，name 为 thinking</td><td>只更新状态提示，正文不变</td><td>你好</td></tr>
+<tr><td>sequence=6，message.delta，textDelta 为“，有什么可以帮你？”</td><td>在末尾接上新文字，不替换已有文字</td><td>你好，有什么可以帮你？</td></tr>
+<tr><td>重连时又收到 sequence=6</td><td>已处理过，忽略这条重复事件</td><td>你好，有什么可以帮你？</td></tr>
+</tbody></table>
+<p>每个 runId 单独保存“最后成功处理的 sequence”。按服务返回的顺序逐条处理，处理成功才更新序号；重连从这个序号继续读取。不要只给 message.delta 计数，也不要自行增加空格或换行，按 textDelta 原文追加。</p>
+<h3>通用处理步骤</h3>
+<table><thead><tr><th>phase.name</th><th>含义与建议显示</th></tr></thead><tbody>
+<tr><td>started</td><td>SDK 已初始化，可显示“正在处理”。它与 run.started 是两个不同层次的通知。</td></tr>
+<tr><td>thinking</td><td>模型报告正在思考，可显示“正在思考”；不返回思考文字，也不保证每次请求都有此事件。</td></tr>
+<tr><td>response</td><td>收到没有正文的回答信号，可显示“正在生成回答”；真正要显示的文字看 message.delta。</td></tr>
+<tr><td>working</td><td>收到其他运行活动，可继续显示“正在处理”；不能由此推算剩余时间。</td></tr>
+</tbody></table>
 </tbody></table>
 <h3>文件准备进度</h3>
-<p>Run 的 running 包含文件准备和 SDK 执行；run.started 不代表模型已经启动。无附件时跳过文件阶段，文件未就绪不查询模型。</p>
+<p>Run 的 running 包含输入文件准备、SDK 执行及输出文件保存；run.started 不代表模型已经启动。无附件时跳过输入准备，附件未就绪不查询模型。输出文件的状态与输入准备进度独立。</p>
 <table><thead><tr><th>phase.name</th><th>额外字段</th><th>建议展示</th></tr></thead><tbody>
 <tr><td>queued</td><td>无</td><td>等待当前会话可执行（Client 模式）。</td></tr>
 <tr><td>preparing_files</td><td>fileCount</td><td>正在准备模板或附件。</td></tr>
@@ -367,6 +392,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td>file_ready</td><td>fileId、receivedBytes、totalBytes</td><td>当前文件就绪。</td></tr>
 <tr><td>files_ready</td><td>fileCount</td><td>全部附件就绪。</td></tr>
 <tr><td>model_starting</td><td>无</td><td>正在处理；收到 thinking 后才显示模型思考。</td></tr>
+<tr><td>saving_files</td><td>无</td><td>SDK 已结束，正在等待已发布文件上传结束；不是模型思考。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">事件 JSON · 文件下载进度</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
@@ -387,21 +413,101 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 
 </pre></div></details>
 <p>文件逐个获取；receivedBytes / totalBytes 是当前文件进度，不是整个 Run 的完成比例。下载开始报告 0 字节，中间最多每 500ms 更新一次，结束补发最终字节数。授权前没有总大小，显示不定进度；totalBytes 为 0 时不计算百分比。进度事件与回复共用 sequence，支持 SSE 断线回放。断开 SSE 不取消下载。</p>
-<div class="note">公共事件只暴露阶段、文件标识与字节数、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、文件路径、凭据和 Provider 原始消息不会进入此接口。</div></section>
+<h3>生成文件状态与结束顺序</h3>
+<p>模型通过发布工具提交最终文件，Runtime 创建独立 <code>artifactId</code>，自动上传并发送结构化事件。每次发布都是新版本，同名文件不会覆盖旧版本。工具返回 pending 不等于上传成功；只有 <code>artifact.ready</code> 携带确认后的远端 <code>fileId</code>。</p>
+<div class="code-wrap"><div class="code-label">事件 JSON · artifact.ready</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_01",
+  "sequence": 12,
+  "eventId": "evt_12",
+  "occurredAt": 1725400009500,
+  "type": "artifact.ready",
+  "payload": {
+    "artifactId": "artifact_0123456789abcdef0123456789abcdef",
+    "fileId": "570ad1a296de79ecb815981e50e83584",
+    "name": "实践总结报告.pdf",
+    "size": 1646339,
+    "suffix": "pdf",
+    "status": "ready"
+  }
+}</pre></div>
+<details class="wire-example"><summary>原始 SSE 帧 · artifact.ready</summary>
+<div class="code-wrap"><div class="code-label">text/event-stream</div><button class="copy" type="button">复制</button><pre>id: 12
+event: artifact.ready
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"eventId":"evt_12","occurredAt":1725400009500,"type":"artifact.ready","payload":{"artifactId":"artifact_0123456789abcdef0123456789abcdef","fileId":"570ad1a296de79ecb815981e50e83584","name":"实践总结报告.pdf","size":1646339,"suffix":"pdf","status":"ready"}}
+
+</pre></div></details>
+<div class="code-wrap"><div class="code-label">事件 JSON · 上传结果不确定</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_01",
+  "sequence": 13,
+  "eventId": "evt_13",
+  "occurredAt": 1725400010500,
+  "type": "artifact.unknown",
+  "payload": {
+    "artifactId": "artifact_abcdef0123456789abcdef0123456789",
+    "name": "报告附件.xlsx",
+    "size": 4096,
+    "suffix": "xlsx",
+    "status": "unknown",
+    "error": "file_upload_uncertain"
+  }
+}</pre></div>
+<p>通常顺序为 pending → uploading → ready / failed / unknown；配置缺失等可由 pending 直接 failed。多个文件的事件可能交错，按 artifactId 分别更新。SDK 结束后若仍有上传，发送 phase.name=saving_files，Run 保持 running；待全部文件进入终态，再发 run.completed / run.failed / run.cancelled。Run 的终态描述执行结果，<strong>run.completed 不保证每个文件都 ready</strong>，必须检查各文件状态。</p>
+<p>断开 SSE 不取消上传；事件按 sequence 持久化并分页回放。重启仅恢复尚未发送的 pending，原 uploading 转为 unknown，ready 保留；不会自动重试 failed / unknown。文件服务尚无幂等键或结果对账接口，本版没有重试 API。取消 Run 不撤销已提交的上传，控制接口可能先返回 running，再由文件事件和 Run 终态报告收尾。</p>
+<p><strong>Java 与前端的对接约定：</strong>Java 通过创建时保存的 runId → messageId 关联找到业务消息，按 artifactId 幂等更新文件记录；收到 ready 后保存 fileId 并校验文件访问权限。前端把正文增量与文件卡片分开显示，只有业务下载入口就绪后启用下载。回答中提到的文件名、Markdown 链接或 URL 均不作为文件登记凭据。本次实现 Python 接口，Java 关联及前端卡片需接入方实现。</p>
+<div class="note">公共事件只暴露阶段、文件元数据、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、内部文件路径、凭据和 Provider 原始消息不会进入此接口。模型主动写在回复正文中的内容仍需业务展示层处理。</div></section>
 
 <section id="artifacts"><h2>Artifact 交付物</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts</code></div>
-<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。省略 <code>name</code> 时返回文件列表，提供 <code>name</code> 时下载指定文件。</p>
+<p>查询本次 Run 经发布工具登记的文件及上传状态，用于历史消息展示、SSE 断线补查和结果核对。只返回该 Run 的成果，不扫描共享会话目录；普通聊天未发布文件时返回 <code>{"files": []}</code>。使用绑定该 Run、身份、会话和能力的 <code>run.read</code> 或 <code>run.execute</code> JWT，不消耗 jti。没有请求正文和查询参数。</p>
 <div class="code-wrap"><div class="code-label">Response 200 · list</div><button class="copy" type="button">复制</button><pre>{
   "files": [
     {
-      "name": "result.docx",
-      "size": 24576
+      "artifactId": "artifact_0123456789abcdef0123456789abcdef",
+      "fileId": "570ad1a296de79ecb815981e50e83584",
+      "name": "实践总结报告.pdf",
+      "size": 1646339,
+      "suffix": "pdf",
+      "status": "ready"
     }
   ]
 }</pre></div>
-<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts?name=result.docx</code></div>
-<p>返回文件二进制，并设置 <code>Content-Type</code>、<code>Content-Disposition</code> 和 <code>Cache-Control: no-store</code>。列表也禁止缓存；点号开头的内部文件不列出且不可下载，路径穿越和符号链接不可下载。<code>name</code> 只能定位该 Run 关联的交付物目录；独立执行使用 Run 目录，持久会话执行共享会话目录，列表可能包含同一会话之前生成的文件。同名成果可被后续执行覆盖，Java 应及时下载归档并绑定业务消息，不能把此接口当作不可变版本库。</p></section>
+<table><thead><tr><th>文件字段</th><th>类型</th><th>含义</th></tr></thead><tbody>
+<tr><td>artifactId</td><td>string</td><td>Python 分配的不可变版本 ID，用于事件合并、详情和本地内容读取；同名重发得到新 ID。</td></tr>
+<tr><td>fileId</td><td>string，可选</td><td>仅 ready 存在，原样取上传响应 data.id；Java 用其关联业务消息和文件权限。</td></tr>
+<tr><td>name / size / suffix</td><td>string / integer / string</td><td>发布文件名、字节数、不含点的后缀；name 仅用于展示，不作为定位键。</td></tr>
+<tr><td>status</td><td>string</td><td>pending、uploading、ready、failed、unknown，语义见 SSE 文件事件。</td></tr>
+<tr><td>error</td><td>string，可选</td><td>失败或不确定时的稳定错误码；不返回下游原始报错、地址或凭据。</td></tr>
+</tbody></table>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts/{artifactId}</code></div>
+<p>按文件 ID 补查单个成果，同样需要 Run JWT。返回 <code>file</code> 对象，其字段与列表中的每项、artifact 事件的 payload 一致。</p>
+<div class="code-wrap"><div class="code-label">Response 200 · 单文件状态</div><button class="copy" type="button">复制</button><pre>{
+  "file": {
+    "artifactId": "artifact_0123456789abcdef0123456789abcdef",
+    "name": "实践总结报告.pdf",
+    "size": 1646339,
+    "suffix": "pdf",
+    "status": "uploading"
+  }
+}</pre></div>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts/{artifactId}/content</code></div>
+<p>按 ID 返回 Python 保存的本地快照字节，供 Java 鉴权代理下载、核验或人工恢复；无需再经模型。下载本地快照不代表远端上传成功，failed / unknown 也可在本地快照保留时读取。设置 Content-Disposition 文件名、Content-Type 和 Cache-Control: no-store；不能直接让浏览器持有 Run JWT 调此内部接口。旧 <code>?name=...</code> 定位已删除，列表收到查询参数返回 400。</p>
+<p>列表、详情和内容均禁止缓存。JWT 无效或身份不符返回 401；密钥未配置返回 503；Run 不存在、文件不属于该 Run 或内容已不可用返回 404。缺少本地内容时详情仍可保留远端 ready 记录，远端下载由 Java 文件服务处理。</p>
+<h3>部署侧文件服务配置</h3>
+<p>在 <code>config/databases.json</code> 顶层增加 <code>fileService</code>，与 version、sources 并列。仍由 CCSDK_DATABASES_FILE 指定配置文件，默认项目根目录下该文件；下面是新增字段片段，合并时保留现有数据源配置。修改后重启服务；镜像内配置需重建镜像。</p>
+<div class="code-wrap"><div class="code-label">配置片段 · fileService</div><button class="copy" type="button">复制</button><pre>{
+  "fileService": {
+    "baseUrl": "https://newtest.stringedu.com",
+    "domainName": "newtest.stringedu.com",
+    "remoteUrl": "https://newtest.stringedu.com",
+    "timeoutSeconds": 600,
+    "maxFileBytes": 1073741824
+  }
+}</pre></div>
+<p>Python 向 baseUrl 下固定路径 <code>/fwk_manage_service/sys_attachment/ai/upload/</code> 发 POST，multipart 字段名为 <code>file</code>，请求头 domain-name / remote-url 分别取对应配置；HTTP 客户端自动生成 multipart boundary。三个地址字段必填；baseUrl、remoteUrl 只接受 http(s) 来源地址，不带业务路径、查询或账号密码。timeoutSeconds 默认 600（1–3600），maxFileBytes 默认 1 GiB（1 字节至 10 GiB），为单文件上传上限，不是总磁盘配额。</p>
+<p>只有 HTTP 2xx 且业务 state=200、success=true、data 中 ID 与文件大小等字段合法，才记录 ready。data.id 映射 fileId；data.url 只在内部保存，当前是存储路径，<strong>不能拼成已确认可下载的 URL</strong>。上传在 Runtime 父进程完成，不把服务配置主动注入模型，不转发 Run JWT 或业务 Token，不跟随重定向。domain-name、remote-url 不是鉴权凭据；文件服务未提供租户 ACL，Java 仍须做消息归属和下载授权。当前 Agent 具有进程文件权限，这不构成生产凭据沙箱。</p>
+<p>常用错误码：file_service_not_configured、file_service_config_invalid、artifact_snapshot_missing、artifact_too_large、file_service_unreachable、file_upload_rejected（failed）；file_upload_response_invalid、file_upload_http_error、file_upload_uncertain（unknown）。file_upload_interrupted、file_upload_error 需结合 status 判断。unknown 需与文件服务人工核对后再决定如何处理。</p></section>
 
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
@@ -555,7 +661,7 @@ X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef<
 <tr><td>停止生成</td><td>control option: cancel 或 /cancel。</td><td>断开 SSE 不停止执行；等待终态后更新消息。interrupt 不是暂停与恢复。</td></tr>
 <tr><td>重试、重新回答、编辑后发送</td><td>传输重试复用 runId 和原请求、新 jti；重新执行使用新 runId。</td><td>保存消息与各次 Run 的关联。没有 SDK 历史回滚/分叉接口；新 Run 不会撤销旧工具副作用或自动删除历史上下文。</td></tr>
 <tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、最后已消费序号并去重。Client 仅在相同身份、会话、能力及有效配置下复用；切换能力不自动转交全文历史，Query 模式不保证连续上下文。</td></tr>
-<tr><td>文档卡片、预览、下载、引用回对话</td><td>Artifact 列表及二进制下载。</td><td>结束后主动查询成果，无 artifact.created 事件或文档预览端点；业务层归档为 fileId，再次引用经 File Broker 授权。复杂排版与完整报告质量须另做成稿验收。</td></tr>
+<tr><td>文档卡片、预览、下载、引用回对话</td><td>artifact 状态事件、按 ID 查询及本地快照下载；Python 自动上传。</td><td>Java 需消费 artifact.ready 并绑定消息与 fileId，提供鉴权下载；前端需实现文件卡片。无预览端点，再次引用经 File Broker 授权。复杂排版与报告质量仍须成稿验收。</td></tr>
 <tr><td>点赞、反馈、分享、语音、业务知识库管理</td><td>当前无对应执行管理 API。</td><td>业务层负责反馈/分享 ACL 和语音转写；不能从原型展示推断 Python 已具备相应接口。</td></tr>
 </tbody></table>
 <h3>2026-09-17 验证结果</h3>

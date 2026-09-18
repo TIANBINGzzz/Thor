@@ -107,6 +107,13 @@ class RunStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_run_events_after
                     ON run_events(run_id, sequence);
+                CREATE TABLE IF NOT EXISTS artifacts (
+                    artifact_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+                    status TEXT NOT NULL,
+                    record_json TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
                 CREATE INDEX IF NOT EXISTS idx_runs_session_created
                     ON runs(tenant_id, user_id, business_session_id, created_at DESC, run_id DESC);
                 """
@@ -123,6 +130,38 @@ class RunStore:
                 self._connection.execute("ALTER TABLE runs ADD COLUMN last_sequence INTEGER NOT NULL DEFAULT 0")
             self._connection.commit()
             self._connection.commit()
+
+    def artifact(self, artifact_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._connection.execute('SELECT record_json FROM artifacts WHERE artifact_id = ?',
+                                           (artifact_id,)).fetchone()
+            return json.loads(row['record_json']) if row else None
+
+    def artifacts(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._connection.execute(
+                'SELECT record_json FROM artifacts' + (' WHERE run_id = ?' if run_id is not None else '') + ' ORDER BY rowid',
+                (run_id,) if run_id is not None else (),
+            ).fetchall()
+            return [json.loads(row['record_json']) for row in rows]
+
+    def save_artifact(self, record: Mapping[str, Any], event: Mapping[str, Any]) -> dict[str, Any]:
+        """同一事务保存产物状态和对应事件；外部通知失败后仍可查询和回放。"""
+        run_id = _validate_run_id(record['runId'])
+        artifact_id = _validate_run_id(record['artifactId'])
+        with self._lock:
+            existing = self.artifact(artifact_id)
+            if existing and existing['runId'] != run_id:
+                raise ValueError('artifact owner mismatch')
+            try:
+                self._connection.execute(
+                    'INSERT INTO artifacts VALUES (?,?,?,?) ON CONFLICT(artifact_id) DO UPDATE SET status=excluded.status, record_json=excluded.record_json',
+                    (artifact_id, run_id, record['status'], _json(record)),
+                )
+                return self.append_event(run_id, event)
+            except BaseException:
+                self._connection.rollback()
+                raise
 
     def list_runs_by_session(
         self, tenant_id: str, user_id: str, business_session_id: str, *,

@@ -23,6 +23,7 @@ from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capabili
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
 from runtime.run_store import RunStore
+from runtime.artifact_delivery import ArtifactDelivery
 from runtime.session_actor import SessionActorError, SessionManager
 
 
@@ -49,6 +50,8 @@ RUNTIME_JWT_ISSUER = os.environ.get(
 ).strip()
 RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe-runs" / "runs.sqlite3")))
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
+pending_terminals: dict[str, dict[str, Any]] = {}
+ARTIFACT_DELIVERY: ArtifactDelivery | None = None
 internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
@@ -67,6 +70,7 @@ async def lifespan(_: FastAPI):
     """管理 FastAPI 生命周期，启动时创建会话管理器，退出时关闭 Client 并取消后台 Run。"""
     global SESSION_MANAGER
     SESSION_MANAGER = _create_session_manager()
+    await _artifact_delivery().recover()
     yield
     manager = SESSION_MANAGER
     if manager is not None:
@@ -81,6 +85,7 @@ async def lifespan(_: FastAPI):
     tasks = list(internal_tasks.values())
     for task in tasks:
         task.cancel()
+    await _artifact_delivery().close()
     if tasks:
         await asyncio.gather(*tasks, return_exceptions=True)
     SESSION_MANAGER = None
@@ -312,11 +317,50 @@ async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[st
     """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
     clean = {"protocolVersion": "agent-events/v1", **event}
     stored = RUN_STORE.append_event(run_id, clean)
+    await _notify_stored_event(stored)
+    return stored
+
+
+async def _notify_stored_event(stored: dict[str, Any]) -> None:
+    """产物状态与事件已在同一事务提交，这里只通知订阅者，不重复写事件。"""
     async with internal_runs_lock:
-        queues = list(internal_subscribers.get(run_id, set()))
+        queues = list(internal_subscribers.get(stored['runId'], set()))
     for queue in queues:
         queue.put_nowait(stored)
-    return stored
+
+
+def _artifact_delivery() -> ArtifactDelivery:
+    global ARTIFACT_DELIVERY
+    if ARTIFACT_DELIVERY is None or ARTIFACT_DELIVERY.store is not RUN_STORE:
+        ARTIFACT_DELIVERY = ArtifactDelivery(RUN_STORE, PROJECT_ROOT / '.scribe-runs' / 'artifacts', _notify_stored_event)
+    return ARTIFACT_DELIVERY
+
+
+async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
+    if raw.get('type') == 'artifact.published':
+        run = RUN_STORE.get_run(run_id)
+        session_key = run.get('metadata', {}).get('sessionKey')
+        root = _client_session_directory(session_key) if session_key else PROJECT_ROOT / '.scribe-runs' / 'work' / run_id
+        await _artifact_delivery().accept(run_id, root / '.deliverables', raw.get('artifactId'))
+        return
+    public = _public_internal_event(run_id, raw)
+    if public['type'] in {'run.completed', 'run.failed'}:
+        # SDK 已结束，但交付物可能仍在上传；终态在上传收敛后统一发布。
+        pending_terminals[run_id] = public
+    else:
+        await _publish_internal_event(run_id, public)
+
+
+async def _finish_run(run_id: str, event: dict[str, Any]) -> None:
+    delivery = _artifact_delivery()
+    if any(item['status'] in {'pending', 'uploading'} for item in delivery.list(run_id)):
+        await _run_phase(run_id, {'name': 'saving_files'})
+    await delivery.wait(run_id)
+    current = RUN_STORE.get_run(run_id)
+    if current and current['status'] not in TERMINAL_RUN_STATUSES:
+        status = {'run.completed': 'succeeded', 'run.failed': 'failed', 'run.cancelled': 'cancelled'}[event['type']]
+        RUN_STORE.update_status(run_id, status, error=event.get('payload', {}).get('code'))
+        await _publish_internal_event(run_id, event)
 
 
 def _create_session_manager() -> SessionManager:
@@ -338,12 +382,7 @@ async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
             RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
         except (KeyError, ValueError):
             LOGGER.warning("无法保存 Client session 引用：run=%s", run_id)
-    public = _public_internal_event(run_id, raw)
-    await _publish_internal_event(run_id, public)
-    if public["type"] == "run.completed":
-        RUN_STORE.update_status(run_id, "succeeded")
-    elif public["type"] == "run.failed":
-        RUN_STORE.update_status(run_id, "failed", error=str(public.get("payload", {}).get("code") or "runtime_error"))
+    await _handle_agent_event(run_id, raw)
 
 
 def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) -> str:
@@ -613,10 +652,7 @@ async def _execute_internal_run(
             )
         if runtime_mode == "client":
             worker_payload["_credential_binding"] = _client_config_fingerprint(run_request, worker_payload)
-        saw_terminal = False
-
         async def consume_agent() -> None:
-            nonlocal saw_terminal
             async for raw in stream_agent(worker_payload):
                 provider_session = raw.get("sessionId")
                 if provider_session:
@@ -624,14 +660,7 @@ async def _execute_internal_run(
                         RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
                     except (KeyError, ValueError):
                         LOGGER.warning("无法保存 Query session 引用：run=%s", run_id)
-                public = _public_internal_event(run_id, raw)
-                await _publish_internal_event(run_id, public)
-                if public["type"] == "run.completed":
-                    saw_terminal = True
-                    RUN_STORE.update_status(run_id, "succeeded")
-                elif public["type"] == "run.failed":
-                    saw_terminal = True
-                    RUN_STORE.update_status(run_id, "failed")
+                await _handle_agent_event(run_id, raw)
 
         if runtime_mode == "client":
             manager = SESSION_MANAGER
@@ -658,43 +687,31 @@ async def _execute_internal_run(
             if outcome.get("runtimeSessionRef"):
                 RUN_STORE.update_runtime_session_ref(run_id, str(outcome["runtimeSessionRef"]))
             if outcome.get("status") == "cancelled":
-                current = RUN_STORE.get_run(run_id)
-                if current and current.get("status") not in TERMINAL_RUN_STATUSES:
-
-                    await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
-                    RUN_STORE.update_status(run_id, "cancelled")
-            elif (RUN_STORE.get_run(run_id) or {}).get("status") not in TERMINAL_RUN_STATUSES:
-                await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})
-                RUN_STORE.update_status(run_id, "succeeded")
+                pending_terminals[run_id] = {"runId": run_id, "type": "run.cancelled", "payload": {}}
         else:
             # Cancelling this wait propagates through stream_agent and terminates
             # the child worker process tree.
             await _run_phase(run_id, {"name": "model_starting"})
             await asyncio.wait_for(consume_agent(), timeout=worker_payload["timeout_ms"] / 1000)
-        if not saw_terminal:
-            if runtime_mode == "query":
-                await _publish_internal_event(run_id, {"runId": run_id, "type": "run.completed", "payload": {}})
-                RUN_STORE.update_status(run_id, "succeeded")
+        await _finish_run(run_id, pending_terminals.pop(run_id, {"runId": run_id, "type": "run.completed", "payload": {}}))
     except asyncio.TimeoutError:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
 
-            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": "timeout"}})
-            RUN_STORE.update_status(run_id, "failed", error="timeout")
+            await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": "timeout"}})
     except asyncio.CancelledError:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
 
-            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
-            RUN_STORE.update_status(run_id, "cancelled")
+            await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
         raise
     except Exception as error:
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
             code = getattr(error, "code", None) or "runtime_error"
-            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
-            RUN_STORE.update_status(run_id, "failed", error=code)
+            await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
+        pending_terminals.pop(run_id, None)
         # Query owns a private directory and can clean it here. Client's
         # current-input directory is shared by the Session and is cleaned by
         # the accepted Actor command; an outer task must never clear it while
@@ -830,22 +847,18 @@ async def internal_run_events(
             lines.append(f"data: {json.dumps(event, ensure_ascii=False)}")
             return "\n".join(lines) + "\n\n"
 
-        for event in RUN_STORE.events_after(run_id, cursor):
-            cursor = event["sequence"]
-            yield format_event(event)
-        current = RUN_STORE.get_run(run_id)
-        if current is None or current.get("status") in TERMINAL_RUN_STATUSES:
-            return
-
         queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         async with internal_runs_lock:
             internal_subscribers.setdefault(run_id, set()).add(queue)
-            # Fill the gap between the initial replay and registration.
-            gap = RUN_STORE.events_after(run_id, cursor)
-        for event in gap:
-            cursor = event["sequence"]
-            yield format_event(event)
         try:
+            # 先订阅再分页回放，避免长回答尾部的文件事件或终态被500条上限截断。
+            while batch := RUN_STORE.events_after(run_id, cursor):
+                for event in batch:
+                    cursor = event['sequence']
+                    yield format_event(event)
+            current = RUN_STORE.get_run(run_id)
+            if current is None or current.get('status') in TERMINAL_RUN_STATUSES:
+                return
             while True:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=SSE_HEARTBEAT_SECONDS)
@@ -876,30 +889,50 @@ async def internal_run_events(
 
 
 @app.get("/internal/v1/runs/{run_id}/artifacts")
-async def internal_artifacts(run_id: str, request: Request, name: str | None = None):
-    """鉴权指定 Run 后返回交付目录的文件列表；传入 name 时校验路径并返回文件下载响应。"""
+async def internal_artifacts(run_id: str, request: Request):
+    """返回本 Run 已登记的产物状态；仅 ready 文件带可交给 Java 关联的 fileId。"""
+    error = _authorize_artifacts(run_id, request)
+    if error is not None:
+        return error
+    if request.query_params:
+        return _plain('文件请使用 artifactId 路径查询，不支持文件名定位', 400)
+    return JSONResponse({'files': _artifact_delivery().list(run_id)}, headers={'cache-control': 'no-store'})
+
+
+def _authorize_artifacts(run_id: str, request: Request):
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
     try:
         _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
     except _InternalAuthError as error:
-        return _plain(str(error), 401)
-    metadata = run.get("metadata", {})
-    session_key = metadata.get("sessionKey")
-    root = (_client_session_directory(session_key) if session_key else PROJECT_ROOT / ".scribe-runs" / "work" / run_id) / ".deliverables"
-    if name is not None:
-        if name.startswith('.') or '/' in name or '\\' in name:
-            return _plain("文件不存在", 404)
-        candidate = root / name
-        path = candidate.resolve()
-        if path.parent != root.resolve() or candidate.is_symlink() or not path.is_file():
-            return _plain("文件不存在", 404)
-        return FileResponse(path, filename=path.name, headers={"x-content-type-options": "nosniff", "cache-control": "no-store"})
-    return JSONResponse({"files": [{"name": path.name, "size": path.stat().st_size}
-                      for path in root.iterdir() if not path.name.startswith('.')
-                      and path.is_file() and not path.is_symlink()] if root.is_dir() else []},
-                        headers={"cache-control": "no-store"})
+        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
+    return None
+
+
+@app.get('/internal/v1/runs/{run_id}/artifacts/{artifact_id}')
+async def internal_artifact(run_id: str, artifact_id: str, request: Request):
+    """用于 SSE 断线后的单文件状态补查，按 Run 归属鉴权。"""
+    error = _authorize_artifacts(run_id, request)
+    if error is not None:
+        return error
+    item = next((item for item in _artifact_delivery().list(run_id) if item['artifactId'] == artifact_id), None)
+    if item is None:
+        return _plain('文件不存在', 404)
+    return JSONResponse({'file': item}, headers={'cache-control': 'no-store'})
+
+
+@app.get('/internal/v1/runs/{run_id}/artifacts/{artifact_id}/content')
+async def internal_artifact_content(run_id: str, artifact_id: str, request: Request):
+    """按 ID 下载本地快照，供 Java 恢复或核验；本地可读不代表远端上传成功。"""
+    error = _authorize_artifacts(run_id, request)
+    if error is not None:
+        return error
+    path = _artifact_delivery().path(run_id, artifact_id)
+    if path is None:
+        return _plain('文件不存在', 404)
+    record = RUN_STORE.artifact(artifact_id)
+    return FileResponse(path, filename=record['name'], headers={'x-content-type-options': 'nosniff', 'cache-control': 'no-store'})
 
 
 async def _apply_internal_control(run_id: str, request: Request, option: str):
@@ -946,12 +979,13 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         return {"run": _public_run(RUN_STORE.get_run(run_id))}
     async with internal_runs_lock:
         task = internal_tasks.get(run_id)
-    if option == "interrupt" and task is not None and not task.done():
+    if task is not None and not task.done():
         task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
-    elif task is not None and not task.done():
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+        # 已提交的上传继续收尾，控制请求最多等待5秒，不阻塞到上传超时。
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout=5)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            pass
     else:
         if option == "cancel":
             RUN_STORE.update_status(run_id, "cancelled")

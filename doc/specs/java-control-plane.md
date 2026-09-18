@@ -359,7 +359,7 @@ data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","
 | run.failed | code，如 timeout、sdk_execution_error、file_access_denied、file_validation_failed；可能带统计。 |
 | run.cancelled | 空 payload，当前执行已取消。 |
 
-SSE 断开只移除订阅，不取消执行；终态后关闭，空闲发送注释心跳。没有 artifact.created 事件，产物使用下一节接口拉取。完整回放的限制见 2.8。来源：server.py、run_store.py。
+SSE断开不取消执行或上传，终态后关闭，空闲发送心跳；持久事件分页回放。生成文件由artifact.pending/uploading/ready/failed/unknown报告，详情见2.7。SDK结束后仍在上传时发送phase.name=saving_files，Run保持running；文件收尾后才发Run终态，run.completed不保证文件全部ready。来源：server.py、artifact_delivery.py、run_store.py。
 
 ### 2.6 输入文件：Python -> Java File Broker
 
@@ -417,12 +417,13 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
 默认预算：单文件 256 MiB，文件准备 10 分钟，网络操作等待 15 秒，模型执行 5 分钟，Client 排队 5 分钟，分别计时。配置名与 TLS 选项见 [Runtime 规范](ccsdk-runtime-interface.md#84-大文件与超时)。Java 应流式代理并匹配超时；原 Run JWT 须覆盖后续文件授权，Python 不自动刷新；创建 jti 防重放不能阻止合法文件回调。
 来源：[file_broker.py](../../python/runtime/file_broker.py)、server.py。这是 Python 已实现的回调契约；本次未在 Java 应用控制器找到对应 Broker 实现。
 
-### 2.7 生成文件：Java -> Python -> Java 文件服务
+### 2.7 生成文件：Python自动上传，Java关联消息
 
 | 请求 | 输入与鉴权 | 输出与字段 |
 | --- | --- | --- |
-| GET /internal/v1/runs/{runId}/artifacts | run.read 或 run.execute；无正文 | HTTP 200：生成文件列表响应；name 文件名、size 字节数，无 artifactId/业务 fileId。 |
-| 同一路径 ?name=result.docx | 相同 JWT；name 取列表并 URL 编码 | HTTP 200 原始字节，Content-Disposition 下载文件名、Cache-Control: no-store；不是 JSON。 |
+| GET /internal/v1/runs/{runId}/artifacts | run.read或run.execute；无正文/查询参数 | 本Run的files列表，按artifactId区分不可变版本。 |
+| GET /internal/v1/runs/{runId}/artifacts/{artifactId} | 相同JWT | file对象，用于状态补查。 |
+| GET /internal/v1/runs/{runId}/artifacts/{artifactId}/content | 相同JWT | 本地快照字节，供Java鉴权代理或恢复；不证明远端上传成功。 |
 
 **生成文件列表响应**
 
@@ -430,14 +431,20 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
 {
   "files": [
     {
+      "artifactId": "artifact_0123456789abcdef0123456789abcdef",
+      "fileId": "570ad1a296de79ecb815981e50e83584",
       "name": "result.docx",
-      "size": 2048
+      "size": 2048,
+      "suffix": "docx",
+      "status": "ready"
     }
   ]
 }
 ```
 
-Python列出交付目录中的非隐藏普通文件，禁止下载内部清单、路径穿越和符号链接，列表及下载均禁止缓存。Java下载后登记到自身文件服务，生成业务fileId，再供前端展示或新Run引用。Client目录是会话级共享，同名文件可被覆盖，不能把列表当作本Run新增文件或不可变历史版本。旧Java适配器的差异仅作历史参考。来源：server.py的internal_artifacts。
+Python发布工具提交快照，父Runtime自动上传；Java无需批准或再次上传。上传目标由部署fileService配置，响应data.id作为fileId；data.url是内部路径，不当作下载URL。文件状态及错误码以[Runtime契约](ccsdk-runtime-interface.md#6-artifact-模块)和[格式化示例](../python-api.html#artifacts)为准，旧?name接口已删除。
+
+Java须用创建时保存的runId→messageId关联确定业务归属，按artifactId幂等更新卡片；ready后登记fileId和ACL，再向前端提供业务下载入口。正文增量照常展示，文件卡片由结构化事件驱动，不识别模型输出中的文件名或链接。fileId本身不是授权凭据，存储服务当前没有租户隔离，Java需校验会话及用户权限。再次引用仍走File Broker授权。本节Python接口已实现，Java/前端接入未在本仓库实施。
 
 ### 2.8 差异与问题记录
 
@@ -451,8 +458,8 @@ Python列出交付目录中的非隐藏普通文件，禁止下载内部清单�
 | 缺口：状态与结束判定 | Bridge 将全部 phase 和工具开始/完成映射 agent_thought，忽略 tool.progress 与 sequence；SSE 无终态就 EOF 时仍可能保存 completed。Python toolName 也不符合之前期望的浏览器泛化展示。 | 单独映射准备/工具状态、序号及终态；异常断线查询/续订阅，Java 过滤原始工具名。 |
 | 缺口：默认 resume 与图片模型 | server 的 Query payload 固定 resume=None；Client 仅 Actor 内持有会话，重建未从 RunStore 恢复。模型固定 MODELS[0]，无按 Capability 的图片模型配置。 | Python 实现持久会话查找与串行约束；图片能力首轮选视觉模型并验证图片读取；Java 不增加调度字段。 |
 | 风险：同 Run 重执行 | server 在记录非终态但没有本进程 Task 时会重新启动同一 runId；Java Bridge 运行记录也只有内存。 | worker 丢失先核实状态/副作用，避免同 Run 自动再执行；实际重执行用新 runId，补 Java Run/Event 持久化。 |
-| 风险：回放可能不完整 | RunStore.events_after 默认最多 500 条；SSE 未循环翻页，终态 Run 首批返回后关闭；大积压可能漏事件。 | 分页读到游标追平并覆盖 500 条以上回放；暂不宣称任意长度完整回放。 |
-| 风险：产物不是 Run 快照 | Client 多个 Run 共用 .deliverables，旧 Run 列表可见其他轮文件，同名文件可能被后续覆盖。 | 保存每 Run 产物清单/不可变副本后归档，避免把会话目录绑定到一条消息。 |
+| 已修正（2026-09-18）：回放截断 | Python已循环分页回放，覆盖超过500条后文件事件及终态的回归。 | Java仍需按sequence去重、断线续读。 |
+| 已修正（2026-09-18）：产物Run归属 | Python每次发布分配artifactId并保存独立快照，按Run记录归属；同名不会覆盖。 | Java接入新事件和ID接口，不能继续按文件名定位。 |
 | 部署限制 | SDK 非 direct 模式仍用 bypassPermissions 和完整工具预设；JWT replay cache 在进程内存。 | Capability 白名单不能代替进程/目录隔离；生产多实例前补共享防重放、租约及安全验收。 |
 
 ### 2.9 验证与工程要求

@@ -479,7 +479,7 @@ class SessionActor:
                         raise SessionActorError("Claude Client 执行失败", code=str(event.get("code") or "sdk_execution_error"))
                     if event_type == "worker_exit":
                         raise ClientWorkerError("Client worker 已退出")
-                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error"}:
+                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published"}:
                         session_id = event.get("sessionId")
                         if session_id:
                             self._last_session_id = str(session_id)

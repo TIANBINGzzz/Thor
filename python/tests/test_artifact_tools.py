@@ -19,11 +19,16 @@ class ArtifactToolTests(unittest.TestCase):
 
             result = publish_artifact("draft.py", "最终报告.md", work, deliverables, session)
 
-            self.assertTrue(result["published"])
+            self.assertEqual(result["status"], "pending")
             self.assertEqual(result["name"], "最终报告.md")
-            self.assertEqual((deliverables / "最终报告.md").read_text(encoding="utf-8"), "print('internal')")
-            manifest = json.loads((deliverables / ".published.json").read_text(encoding="utf-8"))
-            self.assertIn("最终报告.md", manifest["files"])
+            snapshot = deliverables / result['artifactId']
+            self.assertEqual((snapshot / 'content').read_text(encoding='utf-8'), "print('internal')")
+            manifest = json.loads((snapshot / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(manifest['name'], '最终报告.md')
+            source.write_text('new version', encoding='utf-8')
+            second = publish_artifact('draft.py', '最终报告.md', work, deliverables, session)
+            self.assertNotEqual(result['artifactId'], second['artifactId'])
+            self.assertEqual((snapshot / 'content').read_text(encoding='utf-8'), "print('internal')")
 
     def test_rejects_source_outside_session(self):
         with tempfile.TemporaryDirectory() as root:

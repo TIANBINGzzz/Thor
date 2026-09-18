@@ -1,3 +1,4 @@
+import asyncio
 import json
 import tempfile
 import time
@@ -13,6 +14,8 @@ import server
 from runtime.auth import encode_hs256_jwt
 from runtime.protocol import AgentRunRequest
 from runtime.run_store import RunStore
+from runtime.artifact_delivery import ArtifactDelivery
+from tools.artifacts import publish_artifact
 
 
 class RuntimeHTTPTests(unittest.TestCase):
@@ -31,6 +34,9 @@ class RuntimeHTTPTests(unittest.TestCase):
             "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
+            "pending_terminals": {},
+            "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
+                server._notify_stored_event, env={'CCSDK_DATABASES_FILE': str(Path(self.temp.name) / 'missing.json')}),
         }.items():
             patcher = patch.object(server, name, value)
             patcher.start()
@@ -55,6 +61,18 @@ class RuntimeHTTPTests(unittest.TestCase):
             tenant_id="tenant-test", user_id="user-test",
             runtime_session_ref="provider-private", metadata={"messageId": "msg-test", "private": "internal-value"},
         )
+
+    def seed_artifact(self):
+        root = Path(self.temp.name)
+        work = root / 'work'
+        work.mkdir(exist_ok=True)
+        (work / 'result.txt').write_bytes(b'result')
+        item = publish_artifact('result.txt', 'result.txt', work, root / 'spool', root)
+        async def register():
+            await server.ARTIFACT_DELIVERY.accept('run-test', root / 'spool', item['artifactId'])
+            await server.ARTIFACT_DELIVERY.wait('run-test')
+        asyncio.run(register())
+        return server.ARTIFACT_DELIVERY.list('run-test')[0]
 
     def test_catalog_is_public_and_does_not_grant_run_access(self):
         for secret in ("test-runtime-secret", ""):
@@ -211,33 +229,39 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(events.status_code, 200)
         for private in ("provider-private", "business-token", "internal-value", "tenantId", "userId", "turnId"):
             self.assertNotIn(private, events.text)
-        root = Path(self.temp.name) / ".scribe-runs" / "work" / "run-test" / ".deliverables"
-        root.mkdir(parents=True)
-        (root / "result.txt").write_text("result", encoding="utf-8")
+        item = self.seed_artifact()
         listing = self.client.get("/internal/v1/runs/run-test/artifacts", headers=self.headers())
-        self.assertEqual(listing.json(), {"files": [{"name": "result.txt", "size": 6}]})
-        download = self.client.get("/internal/v1/runs/run-test/artifacts?name=result.txt", headers=self.headers())
+        self.assertEqual(listing.json(), {"files": [item]})
+        download = self.client.get(f"/internal/v1/runs/run-test/artifacts/{item['artifactId']}/content", headers=self.headers())
         self.assertEqual(download.content, b"result")
-        self.assertNotIn(str(root), str(download.headers))
+        self.assertNotIn(self.temp.name, str(download.headers))
 
     def test_artifacts_hide_internal_publication_metadata(self):
         self.seed('succeeded')
-        root = Path(self.temp.name) / '.scribe-runs' / 'work' / 'run-test' / '.deliverables'
-        root.mkdir(parents=True)
-        (root / '.published.json').write_text('{"files":{}}', encoding='utf-8')
-        (root / 'report.txt').write_text('report', encoding='utf-8')
+        item = self.seed_artifact()
         route = '/internal/v1/runs/run-test/artifacts'
         response = self.client.get(route, headers=self.headers())
-        self.assertEqual(response.json(), {'files': [{'name': 'report.txt', 'size': 6}]})
+        self.assertEqual(response.json(), {'files': [item]})
+        for private in ('sha256', 'storagePath', self.temp.name, 'runId'):
+            self.assertNotIn(private, response.text)
         self.assertEqual(self.client.get(route, params={'name': '.published.json'},
-                                        headers=self.headers()).status_code, 404)
+                                        headers=self.headers()).status_code, 400)
         self.assertEqual(response.headers['cache-control'], 'no-store')
-        link = root / 'alias.txt'
-        try:
-            link.symlink_to(root / 'report.txt')
-        except OSError:
-            return  # Windows may require elevated symlink privileges.
-        self.assertEqual(self.client.get(route, params={'name': link.name},
-                                        headers=self.headers()).status_code, 404)
-        self.assertEqual(self.client.get(route, headers=self.headers()).json(),
-                         {'files': [{'name': 'report.txt', 'size': 6}]})
+        detail = route + '/' + item['artifactId']
+        self.assertEqual(self.client.get(detail, headers=self.headers()).json(), {'file': item})
+        self.assertEqual(self.client.get(route + '/unknown', headers=self.headers()).status_code, 404)
+        for suffix in ('', '/' + item['artifactId'], '/' + item['artifactId'] + '/content'):
+            for identity in ({'sub': 'other-user'}, {'tenant': 'other-tenant'}):
+                self.assertEqual(self.client.get(route + suffix, headers=self.headers(**identity)).status_code, 401)
+
+    def test_event_replay_includes_file_result_after_more_than_500_events(self):
+        self.seed('succeeded')
+        for _ in range(505):
+            self.store.append_event('run-test', {'type': 'message.delta', 'payload': {'textDelta': 'x'}})
+        item = self.seed_artifact()
+        self.store.append_event('run-test', {'type': 'run.completed', 'payload': {}})
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        events = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+        self.assertEqual(events[-1]['type'], 'run.completed')
+        self.assertIn(item, [e['payload'] for e in events if e['type'] == 'artifact.failed'])
+        self.assertEqual([e['sequence'] for e in events], list(range(1, len(events) + 1)))

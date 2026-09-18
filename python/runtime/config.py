@@ -410,7 +410,7 @@ def build_system_prompt(
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
 
 
-def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOptions:
+def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None) -> ClaudeAgentOptions:
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -452,14 +452,16 @@ def build_options(payload: dict[str, Any], data_services=None) -> ClaudeAgentOpt
             "\n当前执行的受控工作目录：" + str(work_directory)
             + "\n当前执行的交付目录：" + str(deliverables_directory)
             + "\n生成文件时使用工作目录下的绝对路径；不要写入项目根目录、猜测目录或扫描其他会话。"
-            "完成后必须调用 mcp__artifacts__publish_file 发布，成功后才能告知用户文件可下载。"
-            "回复仅提供文件名，不输出服务器本地路径；发布失败必须如实说明。"
+            "完成后必须调用 mcp__artifacts__publish_file 提交最终文件。pending 只表示已提交后台上传，不代表可下载。"
+            "文件是否可下载由系统文件卡片确认；不要自行生成下载链接或声称上传已完成。"
+            "回复仅提供文件名，不输出服务器本地路径；提交失败必须如实说明。"
         )
     if artifact_enabled and not restricted_tools:
         mcp_servers["artifacts"] = create_artifact_server(
             session_directory,
             work_directory,
             deliverables_directory,
+            on_published=artifact_sink,
         )
     business_mcp_url = os.environ.get("BUSINESS_MCP_URL", "").strip()
     business_capabilities = _csv_environment("CCSDK_BUSINESS_MCP_CAPABILITIES")
