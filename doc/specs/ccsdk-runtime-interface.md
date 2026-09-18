@@ -267,11 +267,11 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `/internal/v1/runs/{runId}/artifacts/{artifactId}` | `{"file": {...}}`，单文件状态 |
 | `/internal/v1/runs/{runId}/artifacts/{artifactId}/content` | 本地快照二进制，用于Java鉴权代理、核验或人工恢复 |
 
-上述GET均使用run.read或run.execute的Run JWT，不消耗jti，禁止缓存。文件对象包含artifactId/name/size/suffix/status/retryable；仅ready包含fileId（上传响应data.id），failed/unknown包含稳定error。retryable仅在failed且错误类别允许重传时为true，不保证当前配置和快照有效。列表无成果返回空数组；旧?name定位返回400，JWT无效401，密钥未配置503，不存在或跨Run文件404。内容接口可读取failed/unknown的本地快照，不证明远端ready。
+上述GET均使用run.read或run.execute的Run JWT，不消耗jti，禁止缓存。文件对象包含artifactId/name/size/suffix/status；仅ready包含fileId（上传响应data.id），failed/unknown包含稳定error。列表无成果返回空数组；旧?name定位返回400，JWT无效401，密钥未配置503，不存在或跨Run文件404。内容接口可读取failed/unknown的本地快照，不证明远端ready。
 
-状态为pending→uploading→ready/failed/unknown；发送前配置失败可直接failed。超时、无效成功响应、服务端5xx或上传中断可能已经产生远端文件，记unknown，禁止重传。重启仅恢复pending，原uploading标为unknown，不代表恢复SDK执行。状态与事件同事务持久化，SSE分页回放；终态Run事件等已登记上传全部收尾后发送。run.completed代表SDK成功，不保证文件ready，取消不撤销已提交上传。
+状态为pending→uploading→ready/failed/unknown；发送前配置失败可直接failed。HTTP500或2xx响应体state=500按文件服务约定视为明确失败；连接建立失败也自动重试，最多共3次，等待2秒、5秒，全部尝试和等待共用timeoutSeconds预算。期间保持uploading，不发中间失败事件；成功发ready，次数/预算耗尽发failed及file_upload_server_error或file_service_unreachable。配置、快照、超限、明确拒绝不重试；请求发出后超时、无效成功响应、其他HTTP5xx或发送中断记unknown，不自动重传。
 
-`POST /internal/v1/runs/{runId}/artifacts/{artifactId}/retry`仅重传可确认失败的原快照，复用Run JWT的run.execute并消费新jti，不新增scope；不接受查询参数，正文只能省略或为`{}`。检查当前配置、大小与快照哈希后返回202的`{"file": {...}}`；pending/uploading复用当前任务，ready返回200且不重复上传。参数错误400，JWT/权限/重放401，不存在或跨Run404，不可重传/快照缺失或损坏409，超限413，配置缺失/无效503；错误为纯文本，全部禁止缓存。授权后即消费jti，后续失败也须重新签发。不会重跑模型或更改Run终态；原SSE关闭后Java用run.read或run.execute轮询单文件GET，直到ready/failed/unknown，不能依赖新的Run终态。
+重试完全由Python内部执行，保留artifactId和原文件快照，不重跑模型，不提供外部重传API或retryable字段。Java订阅文件终态，GET仅补查，不负责触发重传。本契约不定义Java到前端的展示方式。重启仅恢复pending，原uploading标为unknown，不重启终态文件或SDK。状态与事件同事务持久化，终态Run事件等已登记上传及重试全部收尾后发送；run.completed代表SDK成功，不保证文件ready，取消不撤销已提交上传。
 
 Java按已保存的runId/messageId及artifactId更新文件卡片，ready后关联fileId、校验业务下载ACL；不解析回答链接。data.url是内部存储路径，不公开也不推测下载URL。上传服务未提供租户授权/幂等对账，Java和前端仍需接入。完整格式化JSON、错误码与fileService配置见[API HTML](../python-api.html#artifacts)，决策见[ADR-030](../ADR/030-runtime-artifact-delivery.md)。
 
@@ -320,7 +320,6 @@ scope 与接口的关系：
 | --- | --- | --- |
 | 创建 Run | `run.execute` | 是 |
 | 查询 Run、SSE、Artifact GET | `run.read` 或 `run.execute` | 否 |
-| Artifact POST重传 | `run.execute` | 是，每次请求新jti |
 | 控制/取消 | `run.control` 或 `run.cancel` | 是 |
 | 按业务会话列出Run | `session.read`，绑定tenant、sub及businessSessionId | 否 |
 

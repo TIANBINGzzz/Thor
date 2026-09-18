@@ -7,7 +7,6 @@ import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
-import httpx
 
 from fastapi.testclient import TestClient
 
@@ -279,67 +278,9 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(event['payload']['displayName'], '')
         self.assertEqual(event['payload']['toolCallId'], 'old-call')
 
-    def test_artifact_retry_requires_write_scope_identity_and_fresh_jti(self):
+    def test_artifact_retry_endpoint_is_removed(self):
         self.seed('succeeded')
         item = self.seed_artifact()
         route = '/internal/v1/runs/run-test/artifacts/' + item['artifactId'] + '/retry'
-        for scope in ('run.read', 'run.control', 'session.read'):
-            self.assertEqual(self.client.post(route, headers=self.headers(scope)).status_code, 401)
-        for identity in ({'sub': 'other'}, {'tenant': 'other'}, {'runId': 'other'}):
-            self.assertEqual(self.client.post(route, headers=self.headers('run.execute', **identity)).status_code, 401)
-        headers = self.headers('run.execute')
-        response = self.client.post(route, headers=headers)
-        self.assertEqual(response.status_code, 503, response.text)
-        self.assertEqual(response.text, 'file_service_not_configured')
-        self.assertEqual(self.client.post(route, headers=headers).status_code, 401)
-        self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
-
-    def test_artifact_retry_rejects_unknown_cross_run_and_body_overrides(self):
-        self.seed('succeeded')
-        item = self.seed_artifact()
-        route = '/internal/v1/runs/run-test/artifacts/' + item['artifactId'] + '/retry'
-        response = self.client.post(route, json={'url': 'https://untrusted.test'}, headers=self.headers('run.execute'))
-        self.assertEqual(response.status_code, 400)
-        record = self.store.artifact(item['artifactId'])
-        record.update(status='unknown', error='file_upload_uncertain')
-        self.store.save_artifact(record, {'type': 'artifact.unknown', 'payload': {}})
-        response = self.client.post(route, headers=self.headers('run.execute'))
-        self.assertEqual(response.status_code, 409)
-        self.store.create_run('other-run', tenant_id='tenant-test', user_id='user-test')
-        other = {**record, 'runId': 'other-run', 'artifactId': 'artifact_' + 'a' * 32}
-        self.store.save_artifact(other, {'type': 'artifact.unknown', 'payload': {}})
-        route = '/internal/v1/runs/run-test/artifacts/' + other['artifactId'] + '/retry'
         self.assertEqual(self.client.post(route, headers=self.headers('run.execute')).status_code, 404)
-
-    def test_artifact_retry_completes_without_reexecuting_a_finished_run(self):
-        self.seed('succeeded')
-        item = self.seed_artifact()
-        self.assertIn('retryable', item)
-        path = Path(self.temp.name) / 'files.json'
-        path.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
-            'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
-        delivery = server.ARTIFACT_DELIVERY
-        delivery.env['CCSDK_DATABASES_FILE'] = str(path)
-        requests = []
-        def upload(request):
-            requests.append(request)
-            return httpx.Response(200, json={'state': 200, 'success': True, 'data': {
-                'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 6, 'fileSuffix': 'txt', 'url': 'private'}})
-        delivery.transport = httpx.MockTransport(upload)
-        route = '/internal/v1/runs/run-test/artifacts/' + item['artifactId']
-        with self.client as client, patch.object(server, '_execute_internal_run', new_callable=AsyncMock) as execute:
-            result = client.post(route + '/retry', json={}, headers=self.headers('run.execute'))
-            self.assertEqual(result.status_code, 202, result.text)
-            self.assertEqual(result.json()['file']['artifactId'], item['artifactId'])
-            for _ in range(100):
-                file = client.get(route, headers=self.headers()).json()['file']
-                if file['status'] == 'ready':
-                    break
-                time.sleep(0.01)
-            self.assertEqual(file['status'], 'ready')
-            self.assertEqual(file['fileId'], 'file_01')
-            self.assertFalse(file['retryable'])
-            self.assertEqual(client.post(route + '/retry', headers=self.headers('run.execute')).status_code, 200)
-            self.assertEqual(len(requests), 1)
-            self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
-            execute.assert_not_called()
+        self.assertNotIn('retryable', item)

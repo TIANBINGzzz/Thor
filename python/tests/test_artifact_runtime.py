@@ -18,6 +18,52 @@ from tools.artifacts import publish_artifact
 
 
 class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_run_waits_for_automatic_retries_before_final_file_result(self):
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                store = RunStore(root / 'runs.sqlite3')
+                self.addCleanup(store.close)
+                store.create_run('run_01')
+                store.update_status('run_01', 'running')
+                config = root / 'files.json'
+                config.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
+                    'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
+                requests, events = [], []
+                async def notify(event):
+                    events.append(event)
+                def upload(request):
+                    requests.append(request)
+                    self.assertEqual(store.get_run('run_01')['status'], 'running')
+                    if len(requests) < 3 or not succeeds:
+                        return httpx.Response(500)
+                    return httpx.Response(200, json={'state': 200, 'success': True, 'data': {
+                        'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 5,
+                        'fileSuffix': 'txt', 'url': 'private/path'}})
+                delivery = ArtifactDelivery(store, root / 'archive', notify,
+                    env={'CCSDK_DATABASES_FILE': str(config)}, transport=httpx.MockTransport(upload))
+                work = root / 'work'
+                work.mkdir()
+                (work / 'result.txt').write_bytes(b'hello')
+                item = publish_artifact('result.txt', 'result.txt', work, root / 'spool', root)
+                with patch.multiple(server, RUN_STORE=store, ARTIFACT_DELIVERY=delivery,
+                                    internal_subscribers={}), \
+                     patch('runtime.artifact_delivery.RETRY_DELAYS', (0, 0), create=True):
+                    try:
+                        await delivery.accept('run_01', root / 'spool', item['artifactId'])
+                        await server._finish_run('run_01', {'runId': 'run_01', 'type': 'run.completed', 'payload': {}})
+                        self.assertEqual(len(requests), 3)
+                        file_type = 'artifact.ready' if succeeds else 'artifact.failed'
+                        saved = store.events_after('run_01')
+                        self.assertEqual([e['type'] for e in saved][-2:], [file_type, 'run.completed'])
+                        self.assertEqual(store.get_run('run_01')['status'], 'succeeded')
+                        self.assertNotIn('retryable', events[-1]['payload'])
+                        if not succeeds:
+                            self.assertEqual(events[-1]['payload']['error'], 'file_upload_server_error')
+                    finally:
+                        await delivery.close()
+                        store.close()
+
     async def test_run_terminal_waits_for_upload_and_replay_matches_state(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

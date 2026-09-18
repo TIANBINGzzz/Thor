@@ -76,7 +76,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 安全：当前 `bypassPermissions` 和路径约定不构成生产沙箱；多租户需文件、进程、网络及凭据隔离。
 - 可靠性与观测：Run 状态、事件回放、超时、取消和 Client 恢复分别管理；运行事件通过 RunStore 管理。
 - 数据生命周期：`.scribe-runs/`含运行记录、SDK会话、data物化结果和文档成果；每Run绑定身份、包及策略快照，不共享结果引用。业务会话/上传由Java管理，运行数据不是可整体删除的缓存。
-- 输出文件按artifactId保留独立快照；上传状态与SSE事件原子保存。SDK结束后等待上传收尾，文件失败与Run失败分别表达；重启恢复pending，上传结果不确定不自动重传。配置与边界见[ADR-030](doc/ADR/030-runtime-artifact-delivery.md)。
+- 输出文件按artifactId保留独立快照；上传状态与SSE事件原子保存，Python内部有限重试明确上传故障，不提供外部重传入口。SDK结束后等待上传及重试收尾，文件失败与Run失败分别表达；重启恢复pending，上传结果不确定不自动重传。配置与边界见[ADR-030](doc/ADR/030-runtime-artifact-delivery.md)。
 - 临时内容：`.tmp/`、`scratch/` 用于临时验证/笔记，清理前确认无占用和唯一成果；依赖与构建缓存可重建。
 - 容量：局部限额不等于磁盘总配额；运行数据仍需保留、归档和清理策略。
 - 部署：deploy/提供云效Linux试运行模板；构建测试并导出镜像。本版默认读取镜像内/app/config/databases.json，不需要单独挂载；显式CCSDK_DATABASES_FILE或Compose数据库挂载可覆盖默认配置。模型/JWT仍由运行时env注入，命名卷保存运行数据。内置数据库配置修改须重建镜像；单副本单HTTP worker，容器不代表租户隔离或生产验收。

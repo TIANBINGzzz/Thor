@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 
@@ -15,6 +16,9 @@ from tools.artifacts import publish_artifact
 class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         from runtime.artifact_delivery import ArtifactDelivery
+        delays = patch('runtime.artifact_delivery.RETRY_DELAYS', (0, 0), create=True)
+        delays.start()
+        self.addCleanup(delays.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -95,6 +99,9 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.delivery.list('run_01')[0]['status'], 'failed')
         self.assertEqual(self.events[-1]['type'], 'artifact.failed')
         self.assertNotIn('private', json.dumps(self.events))
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual([e['type'] for e in self.events],
+                         ['artifact.pending', 'artifact.uploading', 'artifact.failed'])
 
     async def test_missing_configuration_never_uses_an_implicit_host(self):
         self.config.write_text('{"version": 1, "sources": {}}')
@@ -160,85 +167,84 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
             await self.delivery.wait('run_01')
             self.assertEqual(self.store.artifact(item['artifactId'])['status'], 'unknown')
 
-    async def test_retry_uploads_same_snapshot_and_clears_previous_error(self):
-        self.assertTrue(callable(getattr(self.delivery, 'retry', None)), '缺少文件上传重试实现')
+    async def test_http_500_retries_same_file_then_succeeds(self):
         success = self.reply
-        self.reply = lambda request: httpx.Response(403)
+        self.reply = lambda request: httpx.Response(500) if len(self.requests) < 3 else success(request)
         item = self.publish()
         await self.delivery.accept('run_01', self.spool, item['artifactId'])
-        await self.delivery.wait('run_01')
-        self.assertTrue(self.delivery.list('run_01')[0]['retryable'])
-        self.store.update_status('run_01', 'succeeded')
-        self.reply = success
-        file, status = await self.delivery.retry('run_01', item['artifactId'])
-        self.assertEqual(status, 202)
-        self.assertEqual(file['status'], 'pending')
-        self.assertNotIn('error', file)
         await self.delivery.wait('run_01')
         file = self.delivery.list('run_01')[0]
         self.assertEqual(file['artifactId'], item['artifactId'])
         self.assertEqual(file['status'], 'ready')
         self.assertEqual(file['fileId'], 'remote_01')
-        self.assertFalse(file['retryable'])
+        self.assertNotIn('retryable', file)
         self.assertNotIn('error', file)
-        self.assertEqual(self.store.get_run('run_01')['status'], 'succeeded')
-        self.assertEqual(len(self.requests), 2)
-        self.assertEqual((await self.delivery.retry('run_01', item['artifactId']))[1], 200)
-        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(len(self.requests), 3)
+        self.assertTrue(all(b'hello' in r.content for r in self.requests))
+        self.assertEqual([e['type'] for e in self.events],
+                         ['artifact.pending', 'artifact.uploading', 'artifact.ready'])
 
-    async def test_concurrent_retries_share_one_upload(self):
-        self.assertTrue(callable(getattr(self.delivery, 'retry', None)))
+    async def test_concurrent_registrations_share_automatic_retries(self):
         item = self.publish()
-        record = self.delivery._snapshot('run_01', self.spool, item['artifactId'])
-        await self.delivery._state(record, 'failed', error='file_service_unreachable')
-        started, release = asyncio.Event(), asyncio.Event()
-        async def handler(request):
-            self.requests.append(request)
-            started.set()
-            await release.wait()
-            return self.reply(request)
-        self.delivery.transport = httpx.MockTransport(handler)
-        results = await asyncio.gather(*(self.delivery.retry('run_01', item['artifactId']) for _ in range(5)))
-        self.assertTrue(all(status == 202 for _, status in results))
-        await asyncio.wait_for(started.wait(), 2)
-        self.assertEqual(len(self.requests), 1)
-        release.set()
+        self.reply = lambda request: httpx.Response(500)
+        await asyncio.gather(*(self.delivery.accept('run_01', self.spool, item['artifactId']) for _ in range(5)))
         await self.delivery.wait('run_01')
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual(self.delivery.list('run_01')[0]['error'], 'file_upload_server_error')
+        self.assertEqual([e['type'] for e in self.events],
+                         ['artifact.pending', 'artifact.uploading', 'artifact.failed'])
 
-    async def test_retry_rejects_unknown_missing_and_damaged_files(self):
-        self.assertTrue(callable(getattr(self.delivery, 'retry', None)))
-        from runtime.artifact_delivery import DeliveryError
+    async def test_connect_error_retries_but_explicit_rejection_does_not(self):
+        def unreachable(request):
+            raise httpx.ConnectError('private', request=request)
+        self.reply = unreachable
         item = self.publish()
-        record = self.delivery._snapshot('run_01', self.spool, item['artifactId'])
-        await self.delivery._state(record, 'unknown', error='file_upload_uncertain')
-        with self.assertRaisesRegex(DeliveryError, 'artifact_retry_not_allowed'):
-            await self.delivery.retry('run_01', item['artifactId'])
-        with self.assertRaisesRegex(DeliveryError, 'artifact_not_found'):
-            await self.delivery.retry('other_run', item['artifactId'])
-        await self.delivery._state(record, 'failed', error='file_service_unreachable')
-        path = self.delivery.path('run_01', item['artifactId'])
-        path.write_bytes(b'other')
-        with self.assertRaisesRegex(DeliveryError, 'artifact_snapshot_invalid'):
-            await self.delivery.retry('run_01', item['artifactId'])
-        self.assertFalse(self.delivery.list('run_01')[0]['retryable'])
-        path.unlink()
-        await self.delivery._state(record, 'failed', error='file_service_unreachable')
-        with self.assertRaisesRegex(DeliveryError, 'artifact_snapshot_missing'):
-            await self.delivery.retry('run_01', item['artifactId'])
-        self.assertEqual(self.requests, [])
+        await self.delivery.accept('run_01', self.spool, item['artifactId'])
+        await self.delivery.wait('run_01')
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual(self.store.artifact(item['artifactId'])['error'], 'file_service_unreachable')
+        for response in (httpx.Response(403), httpx.Response(200, json={'state': 403, 'success': False})):
+            self.requests.clear()
+            self.reply = lambda request: response
+            item = self.publish()
+            await self.delivery.accept('run_01', self.spool, item['artifactId'])
+            await self.delivery.wait('run_01')
+            self.assertEqual(len(self.requests), 1)
+            self.assertEqual(self.store.artifact(item['artifactId'])['error'], 'file_upload_rejected')
 
-    async def test_retry_configuration_and_size_checks_happen_before_network(self):
-        self.assertTrue(callable(getattr(self.delivery, 'retry', None)))
-        from runtime.artifact_delivery import DeliveryError
+    async def test_size_check_happens_before_network(self):
         item = self.publish()
-        record = self.delivery._snapshot('run_01', self.spool, item['artifactId'])
-        await self.delivery._state(record, 'failed', error='file_service_unreachable')
         config = json.loads(self.config.read_text())
         config['fileService']['maxFileBytes'] = 1
         self.config.write_text(json.dumps(config))
-        with self.assertRaisesRegex(DeliveryError, 'artifact_too_large'):
-            await self.delivery.retry('run_01', item['artifactId'])
-        self.config.unlink()
-        with self.assertRaisesRegex(DeliveryError, 'file_service_not_configured'):
-            await self.delivery.retry('run_01', item['artifactId'])
+        await self.delivery.accept('run_01', self.spool, item['artifactId'])
+        await self.delivery.wait('run_01')
+        self.assertEqual(self.store.artifact(item['artifactId'])['error'], 'artifact_too_large')
         self.assertEqual(self.requests, [])
+
+    async def test_total_deadline_includes_retry_waits(self):
+        config = json.loads(self.config.read_text())
+        config['fileService']['timeoutSeconds'] = 1
+        self.config.write_text(json.dumps(config))
+        self.reply = lambda request: httpx.Response(500)
+        with patch('runtime.artifact_delivery.RETRY_DELAYS', (5, 5), create=True):
+            item = self.publish()
+            await self.delivery.accept('run_01', self.spool, item['artifactId'])
+            await asyncio.wait_for(self.delivery.wait('run_01'), 2)
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.store.artifact(item['artifactId'])['status'], 'failed')
+        self.assertEqual(self.events[-1]['type'], 'artifact.failed')
+
+    async def test_cancellation_during_backoff_stops_retries(self):
+        attempted = asyncio.Event()
+        def fail(request):
+            attempted.set()
+            return httpx.Response(500)
+        self.reply = fail
+        with patch('runtime.artifact_delivery.RETRY_DELAYS', (5, 5), create=True):
+            item = self.publish()
+            await self.delivery.accept('run_01', self.spool, item['artifactId'])
+            await asyncio.wait_for(attempted.wait(), 2)
+            await self.delivery.close()
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.store.artifact(item['artifactId'])['status'], 'failed')

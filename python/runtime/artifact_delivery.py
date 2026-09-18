@@ -20,10 +20,7 @@ from runtime.event_display import with_display_name
 ARTIFACT_ID = re.compile(r'artifact_[0-9a-f]{32}\Z')
 UPLOAD_PATH = '/fwk_manage_service/sys_attachment/ai/upload/'
 PUBLIC_FIELDS = ('artifactId', 'fileId', 'name', 'size', 'suffix', 'status', 'error')
-RETRYABLE_ERRORS = frozenset({
-    'file_service_not_configured', 'file_service_config_invalid', 'file_service_unreachable',
-    'artifact_too_large', 'file_upload_rejected', 'file_upload_interrupted', 'file_upload_error',
-})
+RETRY_DELAYS = (2, 5)
 LOGGER = logging.getLogger('ccsdk.artifacts')
 
 
@@ -34,8 +31,7 @@ class DeliveryError(ValueError):
 
 
 def public_artifact(record):
-    return {**{key: record[key] for key in PUBLIC_FIELDS if key in record},
-            'retryable': record.get('status') == 'failed' and record.get('error') in RETRYABLE_ERRORS}
+    return {key: record[key] for key in PUBLIC_FIELDS if key in record}
 
 
 def file_service_config(env):
@@ -173,52 +169,6 @@ class ArtifactDelivery:
             await self._state(record, 'pending')
             self._start(record)
 
-    def _check_snapshot(self, record):
-        path = self.path(record['runId'], record['artifactId'])
-        if path is None:
-            raise DeliveryError('artifact_snapshot_missing')
-        try:
-            with path.open('rb') as reader:
-                digest = hashlib.file_digest(reader, 'sha256').hexdigest()
-            if path.stat().st_size != record['size'] or digest != record['sha256']:
-                raise DeliveryError('artifact_snapshot_invalid')
-        except OSError:
-            raise DeliveryError('artifact_snapshot_missing') from None
-
-    async def retry(self, run_id, artifact_id):
-        """只重传可确认失败的原快照；锁内检查与登记，重复请求不产生并行上传。"""
-        async with self.lock:
-            record = self.store.artifact(artifact_id)
-            if not record or record['runId'] != run_id:
-                raise DeliveryError('artifact_not_found')
-            if record['status'] == 'ready':
-                return public_artifact(record), 200
-            if record['status'] in {'pending', 'uploading'}:
-                return public_artifact(record), 202
-            if not public_artifact(record)['retryable']:
-                raise DeliveryError('artifact_retry_not_allowed')
-            # 上次任务可能刚落库failed但仍在通知订阅者，先等其收尾再创建新任务。
-            previous = self.tasks.get(artifact_id)
-            if previous is not None:
-                await asyncio.shield(asyncio.gather(previous, return_exceptions=True))
-            config = file_service_config(self.env)
-            if record['size'] > config['maxFileBytes']:
-                raise DeliveryError('artifact_too_large')
-            check = asyncio.create_task(asyncio.to_thread(self._check_snapshot, record))
-            try:
-                await asyncio.shield(check)
-            except asyncio.CancelledError:
-                await asyncio.gather(check, return_exceptions=True)
-                raise
-            except DeliveryError as error:
-                await self._state(record, 'failed', error=error.code)
-                raise
-            for field in ('error', 'fileId', 'storagePath', 'remoteName'):
-                record.pop(field, None)
-            await self._state(record, 'pending')
-            self._start(record)
-            return public_artifact(record), 202
-
     def _start(self, record):
         artifact_id = record['artifactId']
         task = asyncio.create_task(self._upload(record), name='upload:' + artifact_id)
@@ -244,6 +194,9 @@ class ArtifactDelivery:
                 mime = mimetypes.guess_type(record['name'])[0] or 'application/octet-stream'
                 async with client.stream('POST', config['baseUrl'] + UPLOAD_PATH, headers=headers,
                                          files={'file': (record['name'], stream, mime)}) as response:
+                    # 现有文件服务约定500表示上传失败；网关等其他5xx仍按结果不确定处理。
+                    if response.status_code == 500:
+                        raise DeliveryError('file_upload_server_error')
                     if response.status_code >= 500:
                         raise DeliveryError('file_upload_http_error', 'unknown')
                     if not 200 <= response.status_code < 300:
@@ -257,6 +210,8 @@ class ArtifactDelivery:
             value = json.loads(body)
             if not isinstance(value, dict):
                 raise ValueError()
+            if value.get('state') == 500:
+                raise DeliveryError('file_upload_server_error')
             if value.get('state') != 200 or value.get('success') is not True:
                 raise DeliveryError('file_upload_rejected')
             data = value['data']
@@ -276,29 +231,50 @@ class ArtifactDelivery:
             raise DeliveryError('file_upload_response_invalid', 'unknown') from None
 
     async def _upload(self, record):
-        sent = False
+        """同一快照最多上传三次，所有尝试共用时限，仅落库一次最终结果。"""
+        in_flight = False
+        last_failure = None
         try:
             config = file_service_config(self.env)
             await self._state(record, 'uploading')
-            sent = True
             async with asyncio.timeout(config['timeoutSeconds']):
-                fields = await self._send(record, config)
+                for attempt in range(len(RETRY_DELAYS) + 1):
+                    in_flight = True
+                    try:
+                        fields = await self._send(record, config)
+                    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout):
+                        last_failure = DeliveryError('file_service_unreachable')
+                    except DeliveryError as error:
+                        if error.code != 'file_upload_server_error':
+                            raise
+                        last_failure = error
+                    else:
+                        in_flight = False
+                        break
+                    # 收到明确失败才等待重试；等待中取消或超时不误报为远端结果不确定。
+                    in_flight = False
+                    if attempt == len(RETRY_DELAYS):
+                        raise last_failure
+                    LOGGER.info('文件上传重试：artifact=%s attempt=%s code=%s',
+                                record['artifactId'], attempt + 2, last_failure.code)
+                    await asyncio.sleep(RETRY_DELAYS[attempt])
             await self._state(record, 'ready', **fields)
         except DeliveryError as error:
             await self._state(record, error.status, error=error.code)
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout):
-            await self._state(record, 'failed', error='file_service_unreachable')
         except (httpx.HTTPError, TimeoutError):
-            await self._state(record, 'unknown', error='file_upload_uncertain')
+            if not in_flight and last_failure is not None:
+                await self._state(record, 'failed', error=last_failure.code)
+            else:
+                await self._state(record, 'unknown', error='file_upload_uncertain')
         except asyncio.CancelledError:
             if record.get('status') not in {'ready', 'failed', 'unknown'}:
-                await self._state(record, 'unknown' if sent else 'failed', error='file_upload_interrupted')
+                await self._state(record, 'unknown' if in_flight else 'failed', error='file_upload_interrupted')
             raise
         except Exception:
-            await self._state(record, 'unknown' if sent else 'failed', error='file_upload_error')
+            await self._state(record, 'unknown' if in_flight else 'failed', error='file_upload_error')
 
     async def wait(self, run_id):
-        # 等待期间可能接受新的重试；Run终态前再次检查本Run的上传任务。
+        # 重试包含在上传任务内；Run终态前等待本Run所有已登记文件收尾。
         while tasks := [self.tasks[r['artifactId']] for r in self.store.artifacts(run_id) if r['artifactId'] in self.tasks]:
             await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))
 

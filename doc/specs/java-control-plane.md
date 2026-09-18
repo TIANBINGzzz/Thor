@@ -173,7 +173,7 @@ JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可�
 | --- | --- |
 | iss/aud | 匹配部署配置，默认上例值；aud 可为字符串或包含目标值的数组。 |
 | iat/exp | 数值，Unix 秒；exp 大于 iat，默认允许 5 秒时钟偏差。 |
-| jti | 非空唯一字符串；创建、控制与文件重传消费防重放，查询/订阅不消费；每次写请求须新签 jti。 |
+| jti | 非空唯一字符串；创建与控制消费防重放，查询/订阅不消费；每次写请求须新签 jti。 |
 | sub/tenant | Run 接口必须有用户/租户；Python 仅从已验证 JWT 取身份，不接受正文 context。 |
 | runId/capabilityRef | Run 接口必须有，与请求或已保存 Run 一致。 |
 | businessSessionId | 请求/记录存在时必须匹配；无会话请求建议正文和 JWT 一起省略。 |
@@ -426,7 +426,6 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
 | GET /internal/v1/runs/{runId}/artifacts | run.read或run.execute；无正文/查询参数 | 本Run的files列表，按artifactId区分不可变版本。 |
 | GET /internal/v1/runs/{runId}/artifacts/{artifactId} | 相同JWT | file对象，用于状态补查。 |
 | GET /internal/v1/runs/{runId}/artifacts/{artifactId}/content | 相同JWT | 本地快照字节，供Java鉴权代理或恢复；不证明远端上传成功。 |
-| POST /internal/v1/runs/{runId}/artifacts/{artifactId}/retry | 复用run.execute及新jti；无查询参数，正文省略或{} | 202接受/已有上传任务，200已ready；均返回file，不重跑模型。 |
 
 **生成文件列表响应**
 
@@ -439,8 +438,7 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
       "name": "result.docx",
       "size": 2048,
       "suffix": "docx",
-      "status": "ready",
-      "retryable": false
+      "status": "ready"
     }
   ]
 }
@@ -448,7 +446,7 @@ Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其�
 
 Python发布工具提交快照，父Runtime自动上传；Java无需批准或再次上传。上传目标由部署fileService配置，响应data.id作为fileId；data.url是内部路径，不当作下载URL。文件状态及错误码以[Runtime契约](ccsdk-runtime-interface.md#6-artifact-模块)和[格式化示例](../python-api.html#artifacts)为准，旧?name接口已删除。
 
-artifactId标记一个文件版本，不是整次Run；重传保持原artifactId，成功后获得fileId。failed且retryable=true时可提供重试入口，Java完成业务权限检查后沿用现有Run JWT签发逻辑和run.execute，不新增权限系统或scope；每次POST使用新jti，授权后即消费，包括随后配置/状态检查失败。unknown不允许重传；ready和正在上传的文件不重复上传。终态Run不会重新打开，Java用run.read或run.execute轮询单文件GET并设置等待上限，ready后更新同一文件卡片，failed/unknown停止轮询；GET本身不会触发重传，也不消费jti。
+artifactId标记一个文件版本，不是整次Run；Python自动重试保留原artifactId，成功后获得fileId。HTTP500、2xx响应体state=500及连接建立失败最多共尝试3次，等待2秒/5秒且共用总预算；仅最终结果通过artifact.ready/failed报告，不确定结果保留artifact.unknown。Java订阅结果，GET仅断线补查；不提供外部重传API或retryable字段，不新增scope，不要求Java调度重试。本次改造只定义Python对Java的结果契约，不新增Java到前端的事件或展示规则。
 
 Java须用创建时保存的runId→messageId关联确定业务归属，按artifactId幂等更新卡片；ready后登记fileId和ACL，再向前端提供业务下载入口。正文增量照常展示，文件卡片由结构化事件驱动，不识别模型输出中的文件名或链接。fileId本身不是授权凭据，存储服务当前没有租户隔离，Java需校验会话及用户权限。再次引用仍走File Broker授权。本节Python接口已实现，Java/前端接入未在本仓库实施。
 
