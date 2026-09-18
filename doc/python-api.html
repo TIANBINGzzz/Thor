@@ -12,8 +12,8 @@
 .server-bar{display:flex;align-items:center;gap:8px;min-width:0;color:var(--muted)}.server-url{max-width:min(42vw,430px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 10px;border:1px solid #d8dee8;border-radius:7px;color:var(--ink);background:var(--soft);font-family:Consolas,monospace;font-size:12px}.status{padding:3px 9px;border:1px solid #b8ead5;border-radius:7px;color:var(--green);background:#f0fcf7;font-size:12px;white-space:nowrap}
 .layout{display:grid;grid-template-columns:minmax(0,780px) 250px;gap:72px;width:min(1110px,calc(100% - 48px));margin:0 auto;padding:58px 0 100px}main{min-width:0}.eyebrow{margin:0 0 8px;color:var(--blue);font-family:Consolas,monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase}h1{margin:0;font-size:clamp(28px,4vw,40px);line-height:1.2;letter-spacing:-.03em}.lead{max-width:680px;margin:12px 0 0;color:var(--muted);font-size:15px}
 section{scroll-margin-top:82px;margin-top:58px}h2{margin:0 0 16px;padding-top:18px;border-top:1px solid var(--line);font-size:22px;line-height:1.3}h3{margin:32px 0 10px;font-size:16px;line-height:1.35}p{margin:8px 0 14px}code,.inline{padding:2px 5px;border:1px solid #dce2ea;border-radius:4px;color:#315b9e;background:var(--soft);font-family:Consolas,monospace;font-size:.92em}
-.code-wrap{position:relative;margin:14px 0 22px;overflow:hidden;border-radius:10px;background:var(--code);box-shadow:0 5px 18px rgba(22,32,48,.12)}.code-label{padding:10px 15px;border-bottom:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:650}.copy{position:absolute;top:7px;right:9px;padding:3px 8px;border:1px solid rgba(255,255,255,.2);border-radius:5px;color:#cbd5e4;background:transparent;cursor:pointer;font-size:11px}.copy:hover{color:#fff;border-color:rgba(255,255,255,.5)}pre{margin:0;overflow:auto;padding:16px;color:var(--code-ink);font:12px/1.7 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;word-break:break-word}
-table{width:100%;margin:12px 0 20px;border-collapse:collapse;font-size:13px}th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);background:var(--soft);font-size:12px;font-weight:650}td:first-child{width:28%;color:var(--ink);font:12px Consolas,monospace}
+.code-wrap{position:relative;margin:14px 0 22px;overflow:hidden;border-radius:8px;background:var(--code);box-shadow:0 5px 18px rgba(22,32,48,.12)}.code-label{padding:10px 90px 10px 15px;border-bottom:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:650;overflow-wrap:anywhere}.copy{position:absolute;top:7px;right:9px;min-width:68px;height:28px;padding:3px 8px;border:1px solid rgba(255,255,255,.2);border-radius:5px;color:#cbd5e4;background:transparent;cursor:pointer;font-size:11px}.copy:hover{color:#fff;border-color:rgba(255,255,255,.5)}.copy:focus-visible{outline:2px solid #9fc5ff;outline-offset:2px}pre{margin:0;overflow:auto;padding:16px;color:var(--code-ink);font:13px/1.75 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;word-break:break-word;tab-size:2}.wire-example{margin:0 0 22px}.wire-example summary{width:fit-content;color:var(--blue);cursor:pointer;font-size:13px}.wire-example .code-wrap{margin-bottom:0}
+table{width:100%;margin:12px 0 20px;border-collapse:collapse;font-size:13px}th,td{padding:10px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);background:var(--soft);font-size:12px;font-weight:650}td:first-child{width:28%;color:var(--ink);font:12px Consolas,monospace}
 .endpoint{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:26px 0 10px}.method{padding:2px 7px;border:1px solid #abd1ff;border-radius:5px;color:#1767cb;background:var(--blue-soft);font:700 11px Consolas,monospace}.method.post{border-color:#b8ead5;color:var(--green);background:#f0fcf7}.method.patch{border-color:#ead4a7;color:#97641b;background:#fff9ea}.method.delete{border-color:#f0c2cb;color:var(--danger);background:#fff3f5}.path{padding:0;border:0;color:var(--ink);background:transparent;font:13px Consolas,monospace}.note{margin:14px 0;padding:10px 13px;border-left:3px solid var(--blue);color:var(--muted);background:var(--blue-soft);font-size:13px}.error-table td:first-child{color:var(--danger)}
 aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);overflow:auto;padding:4px 0 8px}.toc-title{margin:0 0 11px;color:var(--muted);font-size:12px}.toc a{display:block;padding:6px 10px;border-left:2px solid transparent;color:var(--muted);text-decoration:none;font-size:13px}.toc a:hover,.toc a.active{border-left-color:var(--blue);color:var(--blue);background:var(--blue-soft)}.mobile-toc{display:none}footer{margin-top:72px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 @media(max-width:880px){.layout{display:block;width:min(100% - 32px,780px);padding-top:34px}aside{display:none}.mobile-toc{display:block;margin:26px 0 0;border:1px solid var(--line);border-radius:8px}.mobile-toc summary{padding:9px 12px;color:var(--muted);cursor:pointer}.mobile-toc .toc{padding:0 10px 10px}.topbar{padding-inline:16px}.server-bar{display:none}}
@@ -45,7 +45,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <div class="note">Java 只提交业务字段和 <code>capabilityRef</code>。Workflow、Skill、MCP、模型、工作目录、工具参数和 Provider Session 均由 Python Runtime 内部决定。</div></section>
 
 <section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
-<tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok":true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
+<tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok": true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Java 列出或下载 Python 生成的交付物。</td></tr>
@@ -69,7 +69,10 @@ Content-Type: application/json</pre></div>
   "input": {
     "text": "请整理这个文档",
     "attachmentRefs": [
-      {"fileId": "file_01", "purpose": "input"}
+      {
+        "fileId": "file_01",
+        "purpose": "input"
+      }
     ]
   },
   "credentials": {
@@ -124,7 +127,7 @@ Content-Type: application/json</pre></div>
 <tr><td>conversation</td><td>省略或 {}</td><td>当前没有 payload 字段，问题放 input.text。</td></tr>
 <tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
 <tr><td>document-writing：普通撰写</td><td>省略或 {}</td><td>不选择预制模板时不传字段。修改文档或上传模板使用附件引用。</td></tr>
-<tr><td>document-writing：预制模板</td><td>{"templateKey":"szpt-midterm"}</td><td>templateKey 是当前明确登记并由服务端解析的专属字段。</td></tr>
+<tr><td>document-writing：预制模板</td><td><code>{"templateKey": "szpt-midterm"}</code></td><td>templateKey 是当前明确登记并由服务端解析的专属字段。</td></tr>
 </tbody></table>
 <div class="note">实现边界：当前后端通用 JSON 校验仍可能接受未约定字段，并将非空 payload 附加到模型输入，但“未被拒绝”不代表接口支持。Java 必须按上表构造请求；本次仅收紧文档约定，未新增后端字段白名单校验。</div>
 <h3>示例一：普通撰写不传额外参数</h3>
@@ -150,8 +153,12 @@ Content-Type: application/json</pre></div>
   "messageId": "message_template_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
-  "input": {"text": "生成截至2025年底的双高中期自评报告"},
-  "payload": {"templateKey": "szpt-midterm"}
+  "input": {
+    "text": "生成截至2025年底的双高中期自评报告"
+  },
+  "payload": {
+    "templateKey": "szpt-midterm"
+  }
 }</pre></div>
 <p><code>templateKey</code> 只能选择 Python 已登记、启用且绑定当前能力的模板；它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 <code>input.text</code>，外部材料仍使用 <code>input.attachmentRefs</code>。当前 <code>szpt-midterm</code> 由 Runtime 绑定 <code>schoolDoubleHigh</code> 数据源和 <code>hpm</code> 领域查询，Java 不提交连接、SQL、路径或密码。未知、停用、未授权或完整性校验失败的模板会在执行前失败。<code>national-excellence-data-qa</code> 不需要专属 payload 字段，问题、年份和范围要求放在 <code>input.text</code>。</p>
 <p>不选择预制模板时省略 templateKey，不传 null、空字符串或自定义值。当前代码将 null 当作未选择，但这不是推荐的接入写法。字段名必须精确为 <code>templateKey</code>；其他拼写不在约定内。其他能力不得传此字段。错误类型、非法标识、未登记、停用或能力不匹配的模板会在执行准备阶段失败。</p>
@@ -167,7 +174,12 @@ Content-Type: application/json</pre></div>
   "capabilityRef": "document-writing",
   "input": {
     "text": "以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告；证据不足时写有限结论和具体缺口，无证据时按原主题写分析框架、数据需求及后续动作，不确定内容用黄色字体，不留空。",
-    "attachmentRefs": [{"fileId": "file_template_01", "purpose": "input"}]
+    "attachmentRefs": [
+      {
+        "fileId": "file_template_01",
+        "purpose": "input"
+      }
+    ]
   }
 }</pre></div>
 <p>当前 <code>purpose</code> 仅支持 <code>input</code> / <code>reference</code>，不支持 <code>template</code>；多个附件通过正文明确模板与参考资料。Java 保存文件，Python 按本次授权获取工作副本；再次使用须重新提交附件引用，无需为每个上传模板建立 Python 配置。数据库工具仅在已配置且获准时可用，文件上传不授予数据权限。</p>
@@ -195,9 +207,24 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <p>鉴权：无需 Authorization 请求头，不依赖 Runtime JWT 密钥配置。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "capabilities": [
-    {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
-    {"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},
-    {"capabilityRef":"national-excellence-data-qa","name":"双高问数","description":"查询国双高项目、任务、资金与绩效","supportsAttachments":false}
+    {
+      "capabilityRef": "conversation",
+      "name": "通用对话",
+      "description": "日常交流、内容总结与问题解答",
+      "supportsAttachments": true
+    },
+    {
+      "capabilityRef": "document-writing",
+      "name": "文档撰写",
+      "description": "起草、修改与生成 Word 文档",
+      "supportsAttachments": true
+    },
+    {
+      "capabilityRef": "national-excellence-data-qa",
+      "name": "双高问数",
+      "description": "查询国双高项目、任务、资金与绩效",
+      "supportsAttachments": false
+    }
   ]
 }</pre></div>
 <table><thead><tr><th>字段</th><th>类型</th><th>用途</th></tr></thead><tbody>
@@ -300,9 +327,24 @@ Accept: application/json</pre></div>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Run JWT&gt;
 Accept: text/event-stream
 Last-Event-ID: 3</pre></div>
-<div class="code-wrap"><div class="code-label">SSE frame</div><button class="copy" type="button">复制</button><pre>id: 4
+<p>每个 SSE 事件的 <code>data</code> 是 JSON 字符串，接入方解析后读取 <code>type</code> 和 <code>payload</code>。下方展示解析后的事件对象；原始 SSE 帧中的 <code>data:</code> 保持单行，帧末尾以空行结束。</p>
+<div class="code-wrap"><div class="code-label">事件 JSON · message.delta</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_01",
+  "sequence": 4,
+  "eventId": "evt_04",
+  "occurredAt": 1725400001500,
+  "type": "message.delta",
+  "payload": {
+    "textDelta": "回复片段"
+  }
+}</pre></div>
+<details class="wire-example"><summary>原始 SSE 帧 · message.delta</summary>
+<div class="code-wrap"><div class="code-label">text/event-stream</div><button class="copy" type="button">复制</button><pre>id: 4
 event: message.delta
-data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段"}}</pre></div>
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段"}}
+
+</pre></div></details>
 <table><thead><tr><th>事件 type</th><th>payload</th><th>用途</th></tr></thead><tbody>
 <tr><td>run.started</td><td><code>status: "running"</code></td><td>Run 已进入执行。</td></tr>
 <tr><td>phase</td><td><code>name</code>：下表文件阶段或 <code>started</code>、<code>thinking</code>、<code>response</code>、<code>working</code>；思考阶段可带 <code>visible: true</code></td><td>展示文件准备和模型执行阶段；不返回思考正文。</td></tr>
@@ -326,9 +368,24 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td>files_ready</td><td>fileCount</td><td>全部附件就绪。</td></tr>
 <tr><td>model_starting</td><td>无</td><td>正在处理；收到 thinking 后才显示模型思考。</td></tr>
 </tbody></table>
-<div class="code-wrap"><div class="code-label">SSE frame · file progress</div><button class="copy" type="button">复制</button><pre>id: 4
+<div class="code-wrap"><div class="code-label">事件 JSON · 文件下载进度</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_01",
+  "sequence": 4,
+  "type": "phase",
+  "payload": {
+    "name": "downloading_file",
+    "fileId": "file_01",
+    "receivedBytes": 26214400,
+    "totalBytes": 109051904
+  }
+}</pre></div>
+<details class="wire-example"><summary>原始 SSE 帧 · 文件下载进度</summary>
+<div class="code-wrap"><div class="code-label">text/event-stream</div><button class="copy" type="button">复制</button><pre>id: 4
 event: phase
-data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904}}</pre></div>
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":26214400,"totalBytes":109051904}}
+
+</pre></div></details>
 <p>文件逐个获取；receivedBytes / totalBytes 是当前文件进度，不是整个 Run 的完成比例。下载开始报告 0 字节，中间最多每 500ms 更新一次，结束补发最终字节数。授权前没有总大小，显示不定进度；totalBytes 为 0 时不计算百分比。进度事件与回复共用 sequence，支持 SSE 断线回放。断开 SSE 不取消下载。</p>
 <div class="note">公共事件只暴露阶段、文件标识与字节数、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、文件路径、凭据和 Provider 原始消息不会进入此接口。</div></section>
 
@@ -337,7 +394,10 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 <p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。省略 <code>name</code> 时返回文件列表，提供 <code>name</code> 时下载指定文件。</p>
 <div class="code-wrap"><div class="code-label">Response 200 · list</div><button class="copy" type="button">复制</button><pre>{
   "files": [
-    {"name": "result.docx", "size": 24576}
+    {
+      "name": "result.docx",
+      "size": 24576
+    }
   ]
 }</pre></div>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts?name=result.docx</code></div>
@@ -346,7 +406,9 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
 <p>使用 <code>run.control</code> 或 <code>run.cancel</code> scope。控制请求消耗 JWT 的 <code>jti</code>。</p>
-<div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{"option":"interrupt"}</pre></div>
+<div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
+  "option": "interrupt"
+}</pre></div>
 <p><code>option</code> 是必填字符串，只允许以下两个值：</p>
 <table><thead><tr><th>option</th><th>执行效果与状态</th></tr></thead><tbody>
 <tr><td>interrupt</td><td>文件准备期间等同取消准备，进入 cancelled。模型执行期间请求中断当前响应，不代表可恢复暂停：持久 Client 调用 SDK interrupt，最终状态由随后 SDK 结果决定；独立执行停止任务并进入 cancelled。没有活动任务时不改变状态。</td></tr>
@@ -354,7 +416,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 </tbody></table>
 <p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
-<p>快捷取消接口，等价于 control 的 <code>{"option":"cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。</p>
+<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -374,7 +436,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <table><thead><tr><th>配置</th><th>设计约束</th></tr></thead><tbody>
 <tr><td>CCSDK_RUNTIME_JWT_SECRET</td><td>非空随机密钥，只放 Java/Python 服务端环境或 Secret Manager，不进入浏览器、代码库、日志和请求正文。</td></tr>
 <tr><td>audience / issuer</td><td>Java 签发值必须分别等于 Python 当前配置；不匹配即拒绝。</td></tr>
-<tr><td>算法</td><td>固定 <code>HS256</code>，Header 为 <code>{"alg":"HS256","typ":"JWT"}</code>。</td></tr>
+<tr><td>算法</td><td>固定 <code>HS256</code>，Header 为 <code>{"alg": "HS256", "typ": "JWT"}</code>。</td></tr>
 </tbody></table>
 <h3>JWT Claims</h3>
 <div class="code-wrap"><div class="code-label">Create Run token claims</div><button class="copy" type="button">复制</button><pre>{
@@ -420,12 +482,15 @@ Python → SSE 准备进度和回复 → Java → 前端
 <p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Java 通过 Artifact 接口取得并向用户提供下载。</p>
 <p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
 <h3>Python → Java 请求</h3>
-<div class="code-wrap"><div class="code-label">Request</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;
 Authorization: Bearer &lt;Run JWT 或 File Broker 服务 Token&gt;
 Accept: application/json, application/octet-stream
-Content-Type: application/json
-
-{"runId":"run_01","fileId":"file_01","purpose":"input"}</pre></div>
+Content-Type: application/json</pre></div>
+<div class="code-wrap"><div class="code-label">Request body · application/json</div><button class="copy" type="button">复制</button><pre>{
+  "runId": "run_01",
+  "fileId": "file_01",
+  "purpose": "input"
+}</pre></div>
 <table><thead><tr><th>字段</th><th>类型</th><th>Java 校验</th></tr></thead><tbody>
 <tr><td>runId</td><td>string</td><td>校验 Run、业务会话和当前用户权限。</td></tr>
 <tr><td>fileId</td><td>string</td><td>校验文件归属、ACL 和请求用途。</td></tr>
