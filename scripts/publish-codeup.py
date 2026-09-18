@@ -32,7 +32,15 @@ def excluded(name):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--push", action="store_true")
+    parser.add_argument("--version", default="V1.0.0")
+    parser.add_argument("--product-version", default="v1.0.0")
+    parser.add_argument("--changes", default="sdk调用测试")
     args = parser.parse_args()
+    # 发布说明保持三行；版本和更新内容可由每次发布传入。
+    for value in (args.version, args.product_version, args.changes):
+        if not value.strip() or any(c in value for c in "\r\n"):
+            parser.error("Release fields must be nonempty single-line values.")
+    message = f"版本编号:[{args.version}]\n产品版本:[{args.product_version}]\n更新内容：{args.changes}"
     if git("status", "--porcelain").strip():
         raise SystemExit("Commit local changes before building the Codeup snapshot.")
     source = git("rev-parse", "HEAD").decode().strip()
@@ -53,11 +61,12 @@ def main():
     remaining = git("ls-tree", "-r", "--name-only", "-z", tree).decode().split("\0")
     if any(excluded(name) for name in remaining if name):
         raise SystemExit("Filtered snapshot validation failed.")
-    if tree == git("rev-parse", f"{parent}^{{tree}}").decode().strip():
+    if (tree == git("rev-parse", f"{parent}^{{tree}}").decode().strip()
+            and git("show", "-s", "--format=%B", parent).decode("utf-8").strip() == message):
         commit = parent
     else:
-        commit = git("commit-tree", tree, "-p", parent, "-m",
-                     f"release: publish source {source[:12]} without development docs").decode().strip()
+        commit = git("commit-tree", tree, "-p", parent, "-F", "-",
+                     input=message.encode("utf-8")).decode().strip()
     git("update-ref", RELEASE_REF, commit)
     print(f"Source: {source}\nRelease: {commit}\nExcluded: {len(removed)} files")
     for name in removed:
