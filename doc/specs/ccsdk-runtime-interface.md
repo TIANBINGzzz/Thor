@@ -123,7 +123,7 @@ GET /internal/v1/capabilities
 
 ### 3.4 业务 payload
 
-`payload` 支持嵌套对象、数组、字符串、有限数值、布尔值、null；序列化后的 UTF-8 JSON 最多 64 KiB，嵌套深度最多 16 层。除已登记的能力字段外，内容按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的 fileId，也不保证模型完成确定性字段校验。
+`payload` 顶层必须是对象，省略等同于`{}`，顶层null/数组/基本值均拒绝；对象内支持嵌套对象、数组、字符串、有限数值、布尔值、null。Python以`json.dumps(..., ensure_ascii=False, allow_nan=False)`重新序列化后的UTF-8 JSON最多64 KiB（含默认分隔符空格）；根记0层，每进入字段值或数组元素加1，任意值深度最多16。input对象始终必填，文本、附件和payload至少一项非空。除已登记的能力字段外，内容按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的fileId，也不保证确定性业务校验。完整接入示例见[HTML的payload章节](../python-api.html#business-payload)。
 
 `document-writing` 能力可使用已登记的预制模板：
 
@@ -131,7 +131,7 @@ GET /internal/v1/capabilities
 {"capabilityRef":"document-writing","input":{"text":"生成截至2025年底的双高中期自评报告"},"payload":{"templateKey":"szpt-midterm"}}
 ```
 
-`payload.templateKey` 必须是非空字符串，并且满足Python部署内的模板登记、启用状态、能力绑定和指南路径校验；运行时冻结实际DOCX与指南版本。位置地图及取数计划仅作维护参考，不参与启动校验。它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 `input.text`，外部材料仍使用 `input.attachmentRefs`。当前登记的 `szpt-midterm` 会按可信配置绑定 `schoolDoubleHigh` 数据源及 `hpm` 领域查询；Java 不传连接、SQL、数据源路径或密码。未知、停用、未授权或校验不通过的模板会在 Run 执行前失败。
+使用预制模板时，`payload.templateKey`须是非空字符串，满足Python部署内的模板登记、启用状态、能力绑定和指南路径校验；当前省略或null均不选模板，其他能力传非null值也会触发模板及能力校验。运行时冻结实际DOCX与指南版本，位置地图及取数计划不参与启动校验。它不是路径、数据库名、版本或权限参数。年份、截止日期及写作要求放在`input.text`，外部材料用`input.attachmentRefs`。当前`szpt-midterm`按可信配置绑定`schoolDoubleHigh`及`hpm`查询，Java不传连接、SQL、路径或密码。模板校验在异步执行准备阶段，未知、停用、未授权等可在创建返回202后使Run进入failed；接收请求不等于模板校验通过。
 
 `national-excellence-data-qa` 不需要专属 payload 字段；问题、年份和范围要求放在 `input.text`，数据源、查询规范和身份范围由 Runtime 的可信资产及工具策略装配。
 

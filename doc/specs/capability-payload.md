@@ -25,7 +25,7 @@
 - 选择预制模板时，`payload` 只需 `templateKey`；不要求 Java 传模板文件、模板版本、文件路径、数据源或 `reportYear`。报告年份、截止时间、主题及其他撰写要求由 `input.text` 表达，缺少必要期间时询问。
 - `capabilityRef`、`runId`、`messageId` 等通用请求字段仍按 Runtime 协议传递；“只传 templateKey”指模板相关的 `payload` 字段。
 - Java 维护用户可用模板及业务授权；Python 维护 `templateKey -> 本地模板 + 元数据 + 数据源引用 + 取数规则` 的可信映射。模板文件和配置版本由 Python 部署维护，执行时记录实际采用的版本，不增加客户端版本参数。
-- 接入时由 Python 代码在模型执行前校验并解析 `templateKey`；只允许选择已登记且获准的资源，不能覆盖 Workflow、MCP、路径或权限。未知、空值、停用或未授权的标识应拒绝，不让模型猜模板；其他能力不解释该字段为模板选择。
+- Python在异步执行准备阶段校验并解析`templateKey`，仅可选择已登记且获准的资源，不能覆盖Workflow、MCP、路径或权限。当前省略或null均不选模板；空字符串、错误类型、未知、停用或未授权的标识导致执行失败。其他能力传非null值也会触发模板及能力校验，不会忽略；创建返回202不代表模板校验已通过。
 - 同一撰写流程继续用 `writing-docx`，不同模板使用不同绑定配置；不因换模板复制工作流。一次 Run 固定已解析的模板及配置；后续模板撰写请求仍显式传 `templateKey`。
 - 外部上传的材料或待修改文档仍使用 `input.attachmentRefs`；Python 内置模板本身不走 File Broker 下载。
 
