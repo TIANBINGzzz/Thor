@@ -49,7 +49,7 @@ Content-Type: application/json
   "messageId": "message_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
-  "payload": {"reportTitle": "年度工作报告", "year": 2026},
+  "payload": {},
   "input": {
     "text": "请整理这个文档",
     "attachmentRefs": [
@@ -72,7 +72,7 @@ Content-Type: application/json
 | `businessSessionId` | 否 | 关联连续业务会话；不传则按无业务会话执行。 |
 | `capabilityRef` | 否 | 普通会话省略或null，内部归一为conversation；选择能力时传稳定业务标识，空字符串拒绝。 |
 | `input.text` | 条件必填 | 文本输入；与附件、payload 至少一个非空，最长 1,000,000 字符；input 对象仍必填。 |
-| `payload` | 否 | 业务 JSON 对象，默认空；作为本次用户业务数据追加到模型输入，参与 Run 幂等比较。 |
+| `payload` | 否 | 当前仅撰写能力选择预制模板时传templateKey；其他场景省略或{}，不得自行增加字段；参与Run幂等比较。 |
 | `input.attachmentRefs` | 条件必填 | 固定文件引用，最多 64 项；`purpose` 为 `input` 或 `reference`。 |
 | `credentials.platformBearer` | 否 | 仅按 Python 的 MCP 规则注入指定业务服务；不写入 Prompt、事件或 Run 存储。 |
 
@@ -123,7 +123,9 @@ GET /internal/v1/capabilities
 
 ### 3.4 业务 payload
 
-`payload` 顶层必须是对象，省略等同于`{}`，顶层null/数组/基本值均拒绝；对象内支持嵌套对象、数组、字符串、有限数值、布尔值、null。Python以`json.dumps(..., ensure_ascii=False, allow_nan=False)`重新序列化后的UTF-8 JSON最多64 KiB（含默认分隔符空格）；根记0层，每进入字段值或数组元素加1，任意值深度最多16。input对象始终必填，文本、附件和payload至少一项非空。除已登记的能力字段外，内容按业务数据传给模型理解，不作为运行配置合并，不自动下载其中的fileId，也不保证确定性业务校验。完整接入示例见[HTML的payload章节](../python-api.html#business-payload)。
+`payload`只传已约定的能力参数，当前唯一字段为document-writing的templateKey，当前登记值为szpt-midterm；其他场景省略或传`{}`。标题、年份及要求放input.text，文件走input.attachmentRefs；接入方不得自行新增字段或编造模板标识。顶层必须为对象，input对象始终必填。完整接入示例见[HTML的payload章节](../python-api.html#business-payload)。
+
+实现边界：当前通用JSON校验仍可能接受未约定字段并将其附加到模型输入，尚无逐能力字段白名单；这不构成对自定义参数的支持。现有通用上限为Python重新序列化后的UTF-8 JSON 64 KiB、根记0层后任意值深度最多16。本次仅修正文档约定，不改变运行时校验行为。
 
 `document-writing` 能力可使用已登记的预制模板：
 

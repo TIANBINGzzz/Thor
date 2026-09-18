@@ -65,7 +65,7 @@ Content-Type: application/json</pre></div>
   "messageId": "message_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
-  "payload": {"reportTitle": "年度工作报告", "year": 2026},
+  "payload": {},
   "input": {
     "text": "请整理这个文档",
     "attachmentRefs": [
@@ -83,7 +83,7 @@ Content-Type: application/json</pre></div>
 <tr><td>businessSessionId</td><td>string</td><td>否</td><td>关联连续业务会话；Python 用它选择内部 Session，但不把它当作 Provider ID。</td></tr>
 <tr><td>capabilityRef</td><td>string / null</td><td>否</td><td>普通会话省略或null，内部使用conversation，JWT仍须绑定conversation；选择能力只作用于当前消息，空字符串拒绝。</td></tr>
 <tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；文字、附件、payload 至少一个非空；input 对象仍必填，可以为 {}。</td></tr>
-<tr><td>payload</td><td>object</td><td>否</td><td>顶层必须是 JSON 对象，省略等同于 {}；嵌套值支持数组及基本值。最多 64 KiB、16 层，参与幂等比较。具体用途、字段和示例见<a href="#business-payload">业务 payload 规范</a>。</td></tr>
+<tr><td>payload</td><td>object</td><td>否</td><td>省略等同于 {}；当前仅 document-writing 选择预制模板时传 templateKey，不得自行添加字段。参与幂等比较，详见<a href="#business-payload">业务 payload 规范</a>。</td></tr>
 <tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
 <tr><td>credentials.platformBearer</td><td>string</td><td>否</td><td>仅供受信 MCP 使用；不写入 Prompt、事件、日志或 Run 存储。</td></tr>
 </tbody></table>
@@ -99,12 +99,11 @@ Content-Type: application/json</pre></div>
 <div class="note">创建、查询、控制和取消共用精简 Run 响应：<code>runId</code>、<code>status</code>、<code>lastSequence</code>，失败时可带 <code>error</code>。身份、业务关联和 SDK 执行信息仅在 Python 内部保存。</div></section>
 
 <section id="business-payload"><h2>业务 payload 规范</h2>
-<p><code>payload</code> 是创建 Run 请求中的<strong>结构化业务数据</strong>：Java 可以把表单内容、统计结果或文稿素材以 JSON 对象交给模型使用，无需先拼接成一大段文字。例如 <code>input.text</code> 写“根据以下数据生成总结”，<code>payload</code> 提供标题、年份和各项指标。</p>
-<p>Python 会将非空 payload 序列化为 JSON，附加到<strong>本次模型输入</strong>，并标注它是业务数据。它不是模型的结构化输出 Schema，也不会自动变成数据库查询条件、工具参数或权限。SSE 事件中同名的 <code>payload</code> 表示事件数据，含义见<a href="#events">SSE 事件</a>，与此请求字段不同。</p>
+<p><code>payload</code> 用于传递<strong>当前能力已明确约定的参数</strong>，不是任意业务数据的扩展容器。当前唯一约定字段是 <code>document-writing</code> 的 <code>templateKey</code>，用于选择 Python 已登记的预制模板；其他场景省略 payload 或传 <code>{}</code>。</p>
+<p>接入方不得自行新增键名或猜测字段用途。标题、年份、统计范围、写作要求等写入 <code>input.text</code>，文件使用 <code>input.attachmentRefs</code>。后续增加字段须先明确能力、类型、允许值、处理逻辑并更新接口约定。SSE 事件中同名的 <code>payload</code> 是另一套事件数据结构，见<a href="#events">SSE 事件</a>。</p>
 <h3>哪些内容放在哪里</h3>
 <table><thead><tr><th>内容</th><th>请求位置</th><th>示例与处理</th></tr></thead><tbody>
 <tr><td>本次要做什么</td><td>input.text</td><td>问题、写作要求、报告年份和截止时间等自然语言说明。</td></tr>
-<tr><td>模型可读取的业务数据</td><td>payload</td><td>标题、指标、业务表单等；除 templateKey 外，由模型理解，不是确定性程序参数。</td></tr>
 <tr><td>选择业务能力</td><td>capabilityRef</td><td>在请求顶层传 document-writing 等标识，不放入 payload。普通会话可省略。</td></tr>
 <tr><td>选择系统预制模板</td><td>payload.templateKey</td><td>例如 szpt-midterm，由 Python 校验并解析已登记模板。</td></tr>
 <tr><td>外部文件与上传模板</td><td>input.attachmentRefs</td><td>传 fileId 和 purpose，经 File Broker 授权获取。payload 中的 fileId 不触发下载。</td></tr>
@@ -113,8 +112,7 @@ Content-Type: application/json</pre></div>
 <h3>通用格式与限制</h3>
 <table><thead><tr><th>项目</th><th>现行约束</th></tr></thead><tbody>
 <tr><td>顶层类型</td><td>必须是 JSON 对象。允许省略或传 <code>{}</code>；直接传 <code>null</code>、数组、字符串、数字或布尔值会返回 400。</td></tr>
-<tr><td>对象内的值</td><td>支持嵌套对象、数组、字符串、有限数值、布尔值和 null。NaN、Infinity、非法 UTF-8 文本不允许。</td></tr>
-<tr><td>字段名</td><td>必须是字符串，且任意层级不得命中下方保留字段。普通业务字段未实施逐能力白名单或 JSON Schema 校验。</td></tr>
+<tr><td>字段与值</td><td>当前仅允许按下表使用 templateKey，值为已登记且启用的模板标识字符串。不要传自定义键名、嵌套对象、数组或其他类型作为能力参数。</td></tr>
 <tr><td>大小</td><td>Python 重新序列化后的 UTF-8 JSON 不超过 65,536 字节（64 KiB），包含键名、标点等开销；不是字符数，也不是只计算字段值。中文通常占多个字节，建议留出余量。</td></tr>
 <tr><td>层级</td><td>根 payload 记为第 0 层，每进入一个对象字段值或数组元素增加 1 层；检查到的任意值深度不得超过 16。</td></tr>
 <tr><td>非空请求</td><td>input 对象始终必填；去除首尾空白后的 input.text、非空 attachmentRefs、非空 payload 至少满足一项。仅传 payload 时也要提供 <code>"input": {}</code>。</td></tr>
@@ -123,38 +121,28 @@ Content-Type: application/json</pre></div>
 <p>现行大小计数使用 Python <code>json.dumps(payload, ensure_ascii=False, allow_nan=False)</code> 后的 UTF-8 字节数，含其默认分隔符空格；压缩 HTTP JSON 中的空白不能绕过此限制。</p>
 <h3>各能力应该传什么</h3>
 <table><thead><tr><th>能力 / 场景</th><th>payload 约定</th><th>说明</th></tr></thead><tbody>
-<tr><td>conversation</td><td>省略或 {}；需要时传业务素材</td><td>没有专属必填字段，问题放 input.text。</td></tr>
+<tr><td>conversation</td><td>省略或 {}</td><td>当前没有 payload 字段，问题放 input.text。</td></tr>
 <tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
-<tr><td>document-writing：普通撰写</td><td>省略或 {}；需要时传业务素材</td><td>没有专属必填字段。修改文档或上传模板使用附件引用。</td></tr>
+<tr><td>document-writing：普通撰写</td><td>省略或 {}</td><td>不选择预制模板时不传字段。修改文档或上传模板使用附件引用。</td></tr>
 <tr><td>document-writing：预制模板</td><td>{"templateKey":"szpt-midterm"}</td><td>templateKey 是当前明确登记并由服务端解析的专属字段。</td></tr>
 </tbody></table>
-<p>上表是接入约定，不代表服务端会拒绝所有未列出的业务字段。例如 <code>reportTitle</code>、<code>year</code>、<code>indicators</code> 可通过通用 JSON 校验并传给模型，但不是固定字段名，也没有必填、年份范围或指标真实性等确定性校验；Java 应按业务需要自行校验。传入项目编号或范围文字也不能扩大数据访问权限。</p>
-<h3>示例一：用结构化数据辅助撰写</h3>
-<p>下面是完整请求体；发送到 <code>POST /internal/v1/runs</code>，并按<a href="#create">创建 Run</a>要求携带 JWT。示例指标为演示数据，字段名由业务自行定义。</p>
-<div class="code-wrap"><div class="code-label">完整请求：普通撰写 + 业务素材</div><button class="copy" type="button">复制</button><pre>{
+<div class="note">实现边界：当前后端通用 JSON 校验仍可能接受未约定字段，并将非空 payload 附加到模型输入，但“未被拒绝”不代表接口支持。Java 必须按上表构造请求；本次仅收紧文档约定，未新增后端字段白名单校验。</div>
+<h3>示例一：普通撰写不传额外参数</h3>
+<p>下面是完整请求体；发送到 <code>POST /internal/v1/runs</code>，并按<a href="#create">创建 Run</a>要求携带 JWT。写作要求放在 input.text，payload 留空，也可以省略。</p>
+<div class="code-wrap"><div class="code-label">完整请求：普通撰写 + 空 payload</div><button class="copy" type="button">复制</button><pre>{
   "protocol": "agent-run/v1",
   "runId": "run_summary_01",
   "messageId": "message_summary_01",
   "businessSessionId": "session_01",
   "capabilityRef": "document-writing",
   "input": {
-    "text": "根据以下业务数据撰写年度工作总结，未提供的数据不要编造。"
+    "text": "撰写2025年度工作总结，标题为《年度工作总结》；未提供的数据不要编造。"
   },
-  "payload": {
-    "reportTitle": "年度工作总结",
-    "year": 2025,
-    "indicators": [
-      {"name": "完成项目数", "value": 12, "unit": "项"},
-      {"name": "培训人数", "value": 260, "unit": "人"}
-    ],
-    "reviewed": false,
-    "remarks": null
-  }
+  "payload": {}
 }</pre></div>
-<p>这些字段提供写作素材，不保证输出固定 JSON 结构，也不自动执行 SQL。数值的业务来源和可信性须由 Java 或后续授权取数核验，不能仅因写在 payload 中就当作数据库事实。</p>
 <h3>示例二：选择已登记的预制模板</h3>
 <table><thead><tr><th>字段</th><th>类型 / 条件</th><th>含义</th></tr></thead><tbody>
-<tr><td>payload.templateKey</td><td>string；使用预制模板时填写</td><td>大小写敏感，必须与 Python 的启用模板登记一致，且获当前能力允许。标识以英文字母开头，后续为字母、数字、下划线或连字符，总长不超过 96。</td></tr>
+<tr><td>payload.templateKey</td><td>string；使用预制模板时填写</td><td>当前登记值为 <code>szpt-midterm</code>，仅用于 document-writing。大小写敏感，不能自行编造模板标识；新增值须由 Python 完成模板登记、启用及能力绑定。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">完整请求：document-writing + 系统预制模板</div><button class="copy" type="button">复制</button><pre>{
   "protocol": "agent-run/v1",
@@ -166,7 +154,7 @@ Content-Type: application/json</pre></div>
   "payload": {"templateKey": "szpt-midterm"}
 }</pre></div>
 <p><code>templateKey</code> 只能选择 Python 已登记、启用且绑定当前能力的模板；它不是文件路径、数据库名、模板版本或权限参数。模板年份、截止日期和写作要求放在 <code>input.text</code>，外部材料仍使用 <code>input.attachmentRefs</code>。当前 <code>szpt-midterm</code> 由 Runtime 绑定 <code>schoolDoubleHigh</code> 数据源和 <code>hpm</code> 领域查询，Java 不提交连接、SQL、路径或密码。未知、停用、未授权或完整性校验失败的模板会在执行前失败。<code>national-excellence-data-qa</code> 不需要专属 payload 字段，问题、年份和范围要求放在 <code>input.text</code>。</p>
-<p>当前实现中，省略 templateKey 或设为 null 均不选择预制模板，推荐省略。空字符串、错误类型、非法标识、未登记或停用的模板会在执行准备阶段失败。字段名须精确写为 <code>templateKey</code>；<code>template_key</code> 等其他写法只是普通业务字段，不会选择模板。其他能力不要传此字段；非空 templateKey 会触发模板解析及能力绑定校验，不会被静默忽略。</p>
+<p>不选择预制模板时省略 templateKey，不传 null、空字符串或自定义值。当前代码将 null 当作未选择，但这不是推荐的接入写法。字段名必须精确为 <code>templateKey</code>；其他拼写不在约定内。其他能力不得传此字段。错误类型、非法标识、未登记、停用或能力不匹配的模板会在执行准备阶段失败。</p>
 <h3 id="writing-template-inputs">示例三：上传自定义模板</h3>
 <table><thead><tr><th>模板位置</th><th>Java 传值</th><th>Python 处理</th></tr></thead><tbody>
 <tr><td>Python 已登记的系统预置模板</td><td><code>payload.templateKey</code>；要求放 <code>input.text</code></td><td>校验并加载预制模板，使用绑定的报告流程；模板文件不经 File Broker。</td></tr>

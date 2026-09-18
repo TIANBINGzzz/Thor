@@ -14,7 +14,7 @@
 | `document-writing` | 用户上传自定义模板，保存在 Java | 省略或 `{}`，不传 `templateKey` | 模板用 `input.attachmentRefs` 引用；在 `input.text` 明确模板文件及要求，走普通撰写分支 |
 | `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 选择原40表DOCX及指南，按需取数、按当前结构编辑，全文检查后发布 |
 
-这里只登记能力约定字段；当前 Runtime 仍接受通过通用 JSON 检查的其他业务数据，尚未按此表限制字段。后续新增能力或专属字段时，在此补充类型、必填条件、用途和实现状态，不把未登记的模型输入当成已实现的服务端参数。
+接入方只能使用上表已约定字段；当前唯一字段为document-writing的templateKey，登记值为szpt-midterm。不得自行增加键名或编造值，标题、年份及其他要求放input.text。当前Runtime仍可能接受通过通用JSON检查的其他内容，尚未按能力实施字段白名单；未被拒绝不代表接口支持。新增字段必须先明确类型、允许值、用途并实现处理，再更新本约定。
 
 ## 预制模板字段
 
