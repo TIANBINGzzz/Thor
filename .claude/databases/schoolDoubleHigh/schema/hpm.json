@@ -214,7 +214,8 @@
     "TRIM",
     "LENGTH",
     "ABS",
-    "RANK"
+    "RANK",
+    "CONCAT"
   ],
   "internal_columns": []
 }
