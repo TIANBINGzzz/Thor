@@ -400,7 +400,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td><code>artifact.pending</code><br>最终文件已提交给 Python</td><td>文件 ID、名称、大小等，<code>status: "pending"</code>。Python 已保存这一版文件，等待上传。</td><td>按 artifactId 新建文件卡片，显示“等待上传”，暂不提供远端下载。</td></tr>
 <tr><td><code>artifact.uploading</code><br>Python 开始上传文件</td><td>同一个文件的描述，<code>status: "uploading"</code>。当前没有上传百分比。</td><td>把该卡片改为“正在上传”。不要根据回答里的“已完成”提前启用下载。</td></tr>
 <tr><td><code>artifact.ready</code><br>文件服务确认已保存</td><td><code>status: "ready"</code>；新增 <code>fileId</code>，它是文件服务分配的 ID，不是下载网址。</td><td>Java 将 fileId 关联到本条消息并提供有权限检查的下载入口后，卡片才启用“下载”。</td></tr>
-<tr><td><code>artifact.failed</code><br>文件没有成功完成上传</td><td><code>status: "failed"</code>；<code>error</code> 是原因代码，例如没有配置文件服务、无法连接或服务拒绝。</td><td>显示“上传失败”；其他文件仍分别显示自己的状态，回答正文可以保留。</td></tr>
+<tr><td><code>artifact.failed</code><br>文件没有成功完成上传</td><td><code>status: "failed"</code>；<code>error</code> 是原因代码，<code>retryable</code> 表示这种失败是否允许申请重传。</td><td>显示“上传失败”；retryable=true 时可提供重试按钮，由 Java 调用下方 POST 重传接口。其他文件和回答正文不受影响。</td></tr>
 <tr><td><code>artifact.unknown</code><br>无法确认文件是否上传成功</td><td><code>status: "unknown"</code>；<code>error</code> 是原因代码。例如请求超时，但文件服务可能已经收到了文件。</td><td>显示“上传结果待确认”。不启用远端下载，也不要自动重传，以免重复保存文件。</td></tr>
 <tr><td><code>run.completed</code><br>本次模型执行成功结束</td><td>displayName 默认“已完成”；可能有 <code>inputTokens</code>（输入用量）、<code>outputTokens</code>（输出用量）、<code>turns</code>（模型执行轮数）。</td><td>停止回答加载状态。已提交文件的上传也已收尾，但可能失败，文件卡片仍以各自状态为准。</td></tr>
 <tr><td><code>run.failed</code><br>本次执行失败并结束</td><td><code>code</code> 是失败原因代码，例如 timeout；也可能带用量统计。</td><td>停止回答加载状态并显示失败提示。可以保留已收到的文字和文件，不能当作一次完整成功的回答。</td></tr>
@@ -473,13 +473,14 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
     "size": 1646339,
     "suffix": "pdf",
     "status": "ready",
+    "retryable": false,
     "displayName": "文件已保存"
   }
 }</pre></div>
 <details class="wire-example"><summary>原始 SSE 帧 · artifact.ready</summary>
 <div class="code-wrap"><div class="code-label">text/event-stream</div><button class="copy" type="button">复制</button><pre>id: 12
 event: artifact.ready
-data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"eventId":"evt_12","occurredAt":1725400009500,"type":"artifact.ready","payload":{"artifactId":"artifact_0123456789abcdef0123456789abcdef","fileId":"570ad1a296de79ecb815981e50e83584","name":"实践总结报告.pdf","size":1646339,"suffix":"pdf","status":"ready","displayName":"文件已保存"}}
+data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"eventId":"evt_12","occurredAt":1725400009500,"type":"artifact.ready","payload":{"artifactId":"artifact_0123456789abcdef0123456789abcdef","fileId":"570ad1a296de79ecb815981e50e83584","name":"实践总结报告.pdf","size":1646339,"suffix":"pdf","status":"ready","retryable":false,"displayName":"文件已保存"}}
 
 </pre></div></details>
 <div class="code-wrap"><div class="code-label">事件 JSON · 上传结果不确定</div><button class="copy" type="button">复制</button><pre>{
@@ -496,15 +497,18 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
     "suffix": "xlsx",
     "status": "unknown",
     "error": "file_upload_uncertain",
+    "retryable": false,
     "displayName": "上传结果待确认"
   }
 }</pre></div>
 <p>通常顺序为 pending → uploading → ready / failed / unknown；配置缺失等可由 pending 直接 failed。多个文件的事件可能交错，按 artifactId 分别更新。SDK 结束后若仍有上传，发送 phase.name=saving_files，Run 保持 running；待全部文件进入终态，再发 run.completed / run.failed / run.cancelled。Run 的终态描述执行结果，<strong>run.completed 不保证每个文件都 ready</strong>，必须检查各文件状态。</p>
-<p>断开 SSE 不取消上传；事件按 sequence 持久化并分页回放。重启仅恢复尚未发送的 pending，原 uploading 转为 unknown，ready 保留；不会自动重试 failed / unknown。文件服务尚无幂等键或结果对账接口，本版没有重试 API。取消 Run 不撤销已提交的上传，控制接口可能先返回 running，再由文件事件和 Run 终态报告收尾。</p>
+<p>断开 SSE 不取消上传；事件按 sequence 持久化并分页回放。重启仅恢复尚未发送的 pending，原 uploading 转为 unknown，ready 保留；不会自动重试 failed / unknown。明确失败且 retryable=true 的文件可通过下方 POST 接口重传；unknown 不允许重传，因为文件服务尚无幂等键或结果对账接口。取消 Run 不撤销已提交的上传，控制接口可能先返回 running，再由文件事件和 Run 终态报告收尾。</p>
+<p>重试也会保存 artifact.pending / uploading / ready / failed / unknown 事件，但<strong>原 Run 终态不变，已经关闭的 SSE 不会重新打开</strong>。Java 在 POST 后通过单文件 GET 查询结果；不要等待新的 run.completed，也不要重新执行模型。</p>
 <p><strong>Java 与前端的对接约定：</strong>Java 通过创建时保存的 runId → messageId 关联找到业务消息，按 artifactId 幂等更新文件记录；收到 ready 后保存 fileId 并校验文件访问权限。前端把正文增量与文件卡片分开显示，只有业务下载入口就绪后启用下载。回答中提到的文件名、Markdown 链接或 URL 均不作为文件登记凭据。本次实现 Python 接口，Java 关联及前端卡片需接入方实现。</p>
 <div class="note">公共事件只暴露阶段、文件元数据、回复增量和工具生命周期。工具参数、工具结果正文、Prompt、内部文件路径、凭据和 Provider 原始消息不会进入此接口。模型主动写在回复正文中的内容仍需业务展示层处理。</div></section>
 
 <section id="artifacts"><h2>Artifact 交付物</h2>
+<p><strong>一个 artifactId 只标记一个文件版本，不是一整次请求的全部文件。</strong>一次 Run 可生成多个文件，每个文件各有 artifactId。Python 在上传前分配 artifactId，上传成功后才拿到文件服务生成的 fileId；重传原文件保留 artifactId，修改内容后再次发布会产生新 artifactId，即使文件名相同。</p>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts</code></div>
 <p>查询本次 Run 经发布工具登记的文件及上传状态，用于历史消息展示、SSE 断线补查和结果核对。只返回该 Run 的成果，不扫描共享会话目录；普通聊天未发布文件时返回 <code>{"files": []}</code>。使用绑定该 Run、身份、会话和能力的 <code>run.read</code> 或 <code>run.execute</code> JWT，不消耗 jti。没有请求正文和查询参数。</p>
 <div class="code-wrap"><div class="code-label">Response 200 · list</div><button class="copy" type="button">复制</button><pre>{
@@ -515,16 +519,18 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
       "name": "实践总结报告.pdf",
       "size": 1646339,
       "suffix": "pdf",
-      "status": "ready"
+      "status": "ready",
+      "retryable": false
     }
   ]
 }</pre></div>
 <table><thead><tr><th>文件字段</th><th>类型</th><th>含义</th></tr></thead><tbody>
-<tr><td>artifactId</td><td>string</td><td>Python 分配的不可变版本 ID，用于事件合并、详情和本地内容读取；同名重发得到新 ID。</td></tr>
+<tr><td>artifactId</td><td>string</td><td>Python 为一个文件版本分配的 ID，用于事件合并、查询、重传和本地内容读取。重传不变，再次发布产生新 ID。</td></tr>
 <tr><td>fileId</td><td>string，可选</td><td>仅 ready 存在，原样取上传响应 data.id；Java 用其关联业务消息和文件权限。</td></tr>
 <tr><td>name / size / suffix</td><td>string / integer / string</td><td>发布文件名、字节数、不含点的后缀；name 仅用于展示，不作为定位键。</td></tr>
 <tr><td>status</td><td>string</td><td>pending、uploading、ready、failed、unknown，语义见 SSE 文件事件。</td></tr>
 <tr><td>error</td><td>string，可选</td><td>失败或不确定时的稳定错误码；不返回下游原始报错、地址或凭据。</td></tr>
+<tr><td>retryable</td><td>boolean</td><td>仅 failed 且属于可重传错误时为 true。表示允许申请重传，不保证当前配置、磁盘和权限已就绪；POST 仍会检查。unknown、ready、pending、uploading 均为 false。</td></tr>
 </tbody></table>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts/{artifactId}</code></div>
 <p>按文件 ID 补查单个成果，同样需要 Run JWT。返回 <code>file</code> 对象，其字段与列表中的每项一致；artifact 事件的 payload 另外带有用于状态展示的 displayName。</p>
@@ -534,12 +540,49 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
     "name": "实践总结报告.pdf",
     "size": 1646339,
     "suffix": "pdf",
-    "status": "uploading"
+    "status": "uploading",
+    "retryable": false
   }
 }</pre></div>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts/{artifactId}/content</code></div>
 <p>按 ID 返回 Python 保存的本地快照字节，供 Java 鉴权代理下载、核验或人工恢复；无需再经模型。下载本地快照不代表远端上传成功，failed / unknown 也可在本地快照保留时读取。设置 Content-Disposition 文件名、Content-Type 和 Cache-Control: no-store；不能直接让浏览器持有 Run JWT 调此内部接口。旧 <code>?name=...</code> 定位已删除，列表收到查询参数返回 400。</p>
 <p>列表、详情和内容均禁止缓存。JWT 无效或身份不符返回 401；密钥未配置返回 503；Run 不存在、文件不属于该 Run 或内容已不可用返回 404。缺少本地内容时详情仍可保留远端 ready 记录，远端下载由 Java 文件服务处理。</p>
+<h3 id="artifact-retry">重传上传失败的文件</h3>
+<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/artifacts/{artifactId}/retry</code></div>
+<p>让 Python 用保存的原文件快照再次上传文件服务。无需重新生成文件，不调用模型，不改变原 Run 的执行结果。GET 列表和详情仍只查询，不能触发重传。适用于已修复配置、连接或文件大小限制等问题后的明确失败；本地文件缺失、损坏或上传结果 unknown 时拒绝。</p>
+<p>复用现有 Run JWT 鉴权，scope 使用 <code>run.execute</code>，不增加权限体系或文件专用 scope。Java 完成业务权限检查后，沿用现有签发逻辑，绑定原 Run、tenant、sub、capabilityRef、businessSessionId，其他 Claims 遵循鉴权章节。只读 run.read 和控制 run.control 不允许重传。每次 POST 都需要新 jti，不能复用创建 Run 时已消费的 JWT；通过鉴权后即消费，后续参数错误或重试被拒绝也不能复用。</p>
+<div class="code-wrap"><div class="code-label">Request · 无查询参数；正文可省略或传空对象</div><button class="copy" type="button">复制</button><pre>POST /internal/v1/runs/run_01/artifacts/artifact_0123456789abcdef0123456789abcdef/retry
+Authorization: Bearer &lt;scope 为 run.execute、使用新 jti 的 Run JWT&gt;
+Content-Type: application/json
+
+{}</pre></div>
+<p>不接收 fileId、文件内容、上传地址或其他参数；文件来自 Python 原快照，上传目标来自服务端当前配置。返回 202 表示已接受重传或该文件已经在等待/上传中，<strong>不代表上传成功</strong>；返回 200 表示该文件已经 ready，直接返回原结果，不再次上传。并发请求不会并行重传同一个文件。</p>
+<div class="code-wrap"><div class="code-label">Response 202 · 已接受重传</div><button class="copy" type="button">复制</button><pre>{
+  "file": {
+    "artifactId": "artifact_0123456789abcdef0123456789abcdef",
+    "name": "实践总结报告.pdf",
+    "size": 1646339,
+    "suffix": "pdf",
+    "status": "pending",
+    "retryable": false
+  }
+}</pre></div>
+<p>202 返回 pending 或 uploading；200 返回同样的 file 包装，status=ready 且包含 fileId。返回对象与单文件 GET 一致，都禁止缓存。错误响应是 text/plain，不是 file 对象。</p>
+<table><thead><tr><th>HTTP 状态</th><th>含义与处理</th></tr></thead><tbody>
+<tr><td>400</td><td>有查询参数、正文不是空对象或正文超过限制；修正请求。</td></tr>
+<tr><td>401</td><td>JWT 无效、身份/Run 绑定不匹配、缺少 run.execute 或 jti 已使用；由 Java 重新授权签发。</td></tr>
+<tr><td>404</td><td>Run 不存在，或 artifact_not_found：文件不存在/不属于该 Run。</td></tr>
+<tr><td>409</td><td>artifact_retry_not_allowed：当前状态不允许重传；artifact_snapshot_missing / artifact_snapshot_invalid：本地快照丢失或损坏。先 GET 核对状态，不自动循环重试。</td></tr>
+<tr><td>413</td><td>artifact_too_large：超过服务端配置的上传大小限制。</td></tr>
+<tr><td>503</td><td>Runtime JWT 未配置，或 file_service_not_configured / file_service_config_invalid；修复服务端配置后再请求。</td></tr>
+</tbody></table>
+<h3>Java 如何处理上传失败</h3>
+<ol>
+<li>收到 artifact.failed 或 GET 查到 failed，保留回答正文，并按 artifactId 更新对应文件卡片。仅 retryable=true 且用户有权限时提供重试入口。</li>
+<li>用户点击重试，Java 用现有 run.execute 权限、新 jti 签发 Run JWT 并发 POST。202 时显示等待/上传中；200 时直接关联已有 fileId。</li>
+<li>Java 用 run.read 或 run.execute JWT 轮询单文件 GET，建议每 1–2 秒一次并设置自身等待上限；Run SSE 已结束时也按此处理。POST 使用过的 JWT 在有效期内仍可 GET 查询，GET 不消费 jti。</li>
+<li>ready 时登记 fileId、消息归属及下载 ACL，再向前端提供下载入口；failed 时显示原因和是否允许再次尝试；unknown 时停止自动重试并人工核对远端结果。</li>
+</ol>
 <h3>部署侧文件服务配置</h3>
 <p>在 <code>config/databases.json</code> 顶层增加 <code>fileService</code>，与 version、sources 并列。仍由 CCSDK_DATABASES_FILE 指定配置文件，默认项目根目录下该文件；下面是新增字段片段，合并时保留现有数据源配置。修改后重启服务；镜像内配置需重建镜像。</p>
 <div class="code-wrap"><div class="code-label">配置片段 · fileService</div><button class="copy" type="button">复制</button><pre>{
@@ -608,15 +651,16 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <table><thead><tr><th>Claim</th><th>用途</th><th>校验规则</th></tr></thead><tbody>
 <tr><td>iss / aud</td><td>签发方和目标 Runtime</td><td>必须匹配部署配置。</td></tr>
 <tr><td>iat / exp</td><td>有效期</td><td>必须为数字，不能过期，<code>exp</code> 必须晚于 <code>iat</code>。</td></tr>
-<tr><td>jti</td><td>一次性请求标识</td><td>创建和控制请求防重放；查询、SSE、Artifact 不消费。</td></tr>
+<tr><td>jti</td><td>一次性请求标识</td><td>创建、控制和 Artifact 重传请求防重放；查询、SSE 和 Artifact GET 不消费。</td></tr>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
 <tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话，不再校验 <code>messageId</code>。</td></tr>
-<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>；会话执行索引使用独立 <code>session.read</code>。</td></tr>
+<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>；文件重传复用 <code>run.execute</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
 </tbody></table>
 <table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
 <tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
-<tr><td>查询、SSE、Artifact</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>查询、SSE、Artifact GET</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>Artifact POST 重传</td><td><code>run.execute</code></td><td>消费，每次请求用新 jti</td></tr>
 <tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
@@ -629,9 +673,9 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 发送消息 → Java 创建 Run（JSON 中传 attachmentRefs）→ Python 立即返回 202
 Python 后台：获取授权 → 分块下载 → 校验并落盘 → 文件全部就绪 → SDK 查询
 Python → SSE 准备进度和回复 → Java → 前端
-生成文件 → Java 调用 Artifact 下载 → 业务归档或用户下载</pre></div>
+生成文件 → Python 上传文件服务 → artifact.ready 带 fileId → Java 关联消息、校验权限并提供下载</pre></div>
 <p>“上传中”仅用于用户本机向文件服务器上传。Python 获取已存在的模板时显示“正在准备模板”，不是再次上传。Java 不等待下载完成再响应前端；文件字节经 HTTPS 二进制响应传输，进度经 SSE 传输，不把文件放入 payload。当前无附件的 Run 直接执行，有附件但能力不支持时创建返回 400。</p>
-<p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Java 通过 Artifact 接口取得并向用户提供下载。</p>
+<p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Python 自动上传，Java 关联返回的 fileId 并提供业务下载入口；Artifact content 接口保留本地快照读取能力。</p>
 <p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
 <h3>Python → Java 请求</h3>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;
@@ -694,7 +738,7 @@ X-File-Sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef<
 <tr><td>409</td><td>状态冲突</td><td>幂等请求归属/内容不一致，或 Run 状态不允许当前操作。</td></tr>
 <tr><td>422</td><td>查询参数校验失败</td><td>limit、cursor、afterSequence 的类型、范围或长度不合法，返回 JSON detail。</td></tr>
 <tr><td>504</td><td>控制超时</td><td>中断或取消命令在控制窗口内未完成。</td></tr>
-<tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失（Artifact 接口此时返回 401）；File Broker 配置或文件访问错误会在 Run 事件中返回稳定错误码。</td></tr>
+<tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失；Artifact 重传时文件服务配置缺失或无效。File Broker 配置或文件访问错误会在 Run 事件中返回稳定错误码。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">Error response · text/plain</div><button class="copy" type="button">复制</button><pre>capability_not_found</pre></div></section>
 <section id="flow-coverage"><h2>原型流程与接入边界</h2>

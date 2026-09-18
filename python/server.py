@@ -23,7 +23,7 @@ from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capabili
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
 from runtime.run_store import RunStore
-from runtime.artifact_delivery import ArtifactDelivery
+from runtime.artifact_delivery import ArtifactDelivery, DeliveryError
 from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
 
@@ -936,6 +936,30 @@ async def internal_artifact_content(run_id: str, artifact_id: str, request: Requ
         return _plain('文件不存在', 404)
     record = RUN_STORE.artifact(artifact_id)
     return FileResponse(path, filename=record['name'], headers={'x-content-type-options': 'nosniff', 'cache-control': 'no-store'})
+
+
+@app.post('/internal/v1/runs/{run_id}/artifacts/{artifact_id}/retry')
+async def internal_artifact_retry(run_id: str, artifact_id: str, request: Request):
+    """复用Run JWT执行权限重传原文件；防重放，不重跑模型、不改变Run终态。"""
+    run = RUN_STORE.get_run(run_id)
+    if run is None:
+        return _plain('Run 不存在', 404)
+    try:
+        _authorize_internal(request, run, allowed_scopes={'run.execute'}, consume_jti=True)
+    except _InternalAuthError as error:
+        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
+    try:
+        if request.query_params or await _small_json(request, 1024):
+            return _plain('重试接口不接受配置或文件参数', 400)
+    except ValueError as error:
+        return _plain(str(error), 400)
+    try:
+        file, status = await _artifact_delivery().retry(run_id, artifact_id)
+    except DeliveryError as error:
+        status = {'artifact_not_found': 404, 'file_service_not_configured': 503,
+                  'file_service_config_invalid': 503, 'artifact_too_large': 413}.get(error.code, 409)
+        return _plain(error.code, status)
+    return JSONResponse({'file': file}, status_code=status, headers={'cache-control': 'no-store'})
 
 
 async def _apply_internal_control(run_id: str, request: Request, option: str):

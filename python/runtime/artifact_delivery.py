@@ -20,6 +20,10 @@ from runtime.event_display import with_display_name
 ARTIFACT_ID = re.compile(r'artifact_[0-9a-f]{32}\Z')
 UPLOAD_PATH = '/fwk_manage_service/sys_attachment/ai/upload/'
 PUBLIC_FIELDS = ('artifactId', 'fileId', 'name', 'size', 'suffix', 'status', 'error')
+RETRYABLE_ERRORS = frozenset({
+    'file_service_not_configured', 'file_service_config_invalid', 'file_service_unreachable',
+    'artifact_too_large', 'file_upload_rejected', 'file_upload_interrupted', 'file_upload_error',
+})
 LOGGER = logging.getLogger('ccsdk.artifacts')
 
 
@@ -30,7 +34,8 @@ class DeliveryError(ValueError):
 
 
 def public_artifact(record):
-    return {key: record[key] for key in PUBLIC_FIELDS if key in record}
+    return {**{key: record[key] for key in PUBLIC_FIELDS if key in record},
+            'retryable': record.get('status') == 'failed' and record.get('error') in RETRYABLE_ERRORS}
 
 
 def file_service_config(env):
@@ -168,12 +173,59 @@ class ArtifactDelivery:
             await self._state(record, 'pending')
             self._start(record)
 
+    def _check_snapshot(self, record):
+        path = self.path(record['runId'], record['artifactId'])
+        if path is None:
+            raise DeliveryError('artifact_snapshot_missing')
+        try:
+            with path.open('rb') as reader:
+                digest = hashlib.file_digest(reader, 'sha256').hexdigest()
+            if path.stat().st_size != record['size'] or digest != record['sha256']:
+                raise DeliveryError('artifact_snapshot_invalid')
+        except OSError:
+            raise DeliveryError('artifact_snapshot_missing') from None
+
+    async def retry(self, run_id, artifact_id):
+        """只重传可确认失败的原快照；锁内检查与登记，重复请求不产生并行上传。"""
+        async with self.lock:
+            record = self.store.artifact(artifact_id)
+            if not record or record['runId'] != run_id:
+                raise DeliveryError('artifact_not_found')
+            if record['status'] == 'ready':
+                return public_artifact(record), 200
+            if record['status'] in {'pending', 'uploading'}:
+                return public_artifact(record), 202
+            if not public_artifact(record)['retryable']:
+                raise DeliveryError('artifact_retry_not_allowed')
+            # 上次任务可能刚落库failed但仍在通知订阅者，先等其收尾再创建新任务。
+            previous = self.tasks.get(artifact_id)
+            if previous is not None:
+                await asyncio.shield(asyncio.gather(previous, return_exceptions=True))
+            config = file_service_config(self.env)
+            if record['size'] > config['maxFileBytes']:
+                raise DeliveryError('artifact_too_large')
+            check = asyncio.create_task(asyncio.to_thread(self._check_snapshot, record))
+            try:
+                await asyncio.shield(check)
+            except asyncio.CancelledError:
+                await asyncio.gather(check, return_exceptions=True)
+                raise
+            except DeliveryError as error:
+                await self._state(record, 'failed', error=error.code)
+                raise
+            for field in ('error', 'fileId', 'storagePath', 'remoteName'):
+                record.pop(field, None)
+            await self._state(record, 'pending')
+            self._start(record)
+            return public_artifact(record), 202
+
     def _start(self, record):
         artifact_id = record['artifactId']
         task = asyncio.create_task(self._upload(record), name='upload:' + artifact_id)
         self.tasks[artifact_id] = task
         def completed(done):
-            self.tasks.pop(artifact_id, None)
+            if self.tasks.get(artifact_id) is done:
+                self.tasks.pop(artifact_id, None)
             if not done.cancelled() and done.exception() is not None:
                 LOGGER.error('文件上传任务异常：artifact=%s', artifact_id)
         task.add_done_callback(completed)
@@ -246,8 +298,8 @@ class ArtifactDelivery:
             await self._state(record, 'unknown' if sent else 'failed', error='file_upload_error')
 
     async def wait(self, run_id):
-        tasks = [self.tasks[r['artifactId']] for r in self.store.artifacts(run_id) if r['artifactId'] in self.tasks]
-        if tasks:
+        # 等待期间可能接受新的重试；Run终态前再次检查本Run的上传任务。
+        while tasks := [self.tasks[r['artifactId']] for r in self.store.artifacts(run_id) if r['artifactId'] in self.tasks]:
             await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))
 
     async def recover(self):
