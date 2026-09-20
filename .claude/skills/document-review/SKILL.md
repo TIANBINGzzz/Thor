@@ -24,7 +24,7 @@ description: 核验DOCX成稿的内容依据、模板符合性和真实分页，
 
 编辑使用OfficeCLI原生MCP。保存并执行OfficeCLI `close` 后，用 `mcp__documents__render` 将稿件渲染到新的输出目录；其结果包含更新字段的DOCX和分页PDF。
 
-用 `mcp__documents__read_pdf` 的 `start`、`limit` 按页读取；需要视觉检查时设置 `render=true`，再用Read查看返回的页面图片。检查实际目录页码、缺字、遮挡、截断、表格换行及异常空白。HTML预览或文字提取不能证明分页正确。
+用 `mcp__documents__read_pdf` 的 `start`、`limit` 按页读取；版式核验时设置 `render=true`，再用Read查看返回的页面图片。检查实际目录页码、缺字、遮挡、截断、表格换行及异常空白。HTML预览或文字提取不能证明分页正确。
 
 目录标题列表不等于目录字段。若任务需要目录而渲染返回 `tocStatus=not_present`，先核实文档中是否存在真实TOC字段，再决定修复；不要重复渲染静态目录来等待页码出现。
 
