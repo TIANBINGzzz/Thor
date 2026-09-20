@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from tools.artifacts import create_artifact_server
 from tools.documents import create_document_server
 from tools.images import create_image_server
+from tools.mermaid import CHART_INSTRUCTIONS, create_chart_server
 from tools.data import create_data_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
@@ -446,6 +447,10 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
     prompt_append = payload.get("system_prompt_append") or ""
+    # 图表能力复用通用执行入口；不为展示形式新增Workflow，不依赖data服务。
+    charts_enabled = not restricted_tools and capability_ref in {'conversation', 'chart-generation'}
+    if charts_enabled:
+        mcp_servers['charts'] = create_chart_server()
     if registered_template:
         from workflows.writing_docx.template_assets import load_template, stage_template
         if not artifact_enabled:
@@ -509,12 +514,18 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
                 model=os.environ.get("CCSDK_IMAGE_MODEL", "qwen-image-3.0"),
                 additional_dirs=payload.get("additional_directories"),
             )
+    if charts_enabled:
+        prompt_append += '\n' + CHART_INSTRUCTIONS
+        if capability_ref == 'chart-generation':
+            prompt_append += '\n本轮选择了图表生成能力：优先围绕用户数据制图；数据不足先询问具体缺口。'
     # Credentials are request-scoped. Rules decide which registered MCP may
     # receive the bearer; no process-global environment is changed.
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
     if "images" in mcp_servers:
         allowed_tools.append("mcp__images__*")
+    if charts_enabled:
+        allowed_tools.append('mcp__charts__build_mermaid')
     if database_enabled:
         allowed_tools.append("mcp__data__*")
     if artifact_enabled and not restricted_tools:

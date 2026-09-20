@@ -22,6 +22,8 @@
 
 Java 只提交业务字段。Workflow、Skill、MCP、模型、工作目录、工具参数和 Provider Session 都由 Python 内部决定。
 
+图表生成使用`capabilityRef: chart-generation`，复用通用执行；普通conversation也可调用。数据及要求放input.text，不增加业务payload字段。Mermaid围栏作为message.delta.textDelta原样发送，Java保存完整Markdown，前端按代码块语言渲染；图表不产生Artifact或文件下载地址。范围、限制及格式化示例见[图表接入](../python-api.html#mermaid-charts)。
+
 ## 2. 通用约定
 
 - Runtime Base URL 由部署配置提供；以下路径相对于该地址。
@@ -98,6 +100,7 @@ Content-Type: application/json
 | `capabilityRef` | Python 内部映射 | 附件 |
 | --- | --- | --- |
 | `conversation` | 无 Workflow，使用通用对话配置 | 支持 |
+| `chart-generation` | 无 Workflow，复用通用执行及图表工具 | 支持 |
 | `document-writing` | `writing-docx` | 支持 |
 | `national-excellence-data-qa` | `double-high-qa` | 不支持 |
 
@@ -114,6 +117,7 @@ GET /internal/v1/capabilities
 ```json
 {"capabilities":[
   {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
+  {"capabilityRef":"chart-generation","name":"图表生成","description":"根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图","supportsAttachments":true},
   {"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},
   {"capabilityRef":"national-excellence-data-qa","name":"双高问数","description":"查询国双高项目、任务、资金与绩效","supportsAttachments":false}
 ]}

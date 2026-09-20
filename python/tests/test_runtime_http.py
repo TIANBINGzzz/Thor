@@ -96,13 +96,31 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assert_public_run(self.client.post('/internal/v1/runs',json=body,
                 headers=self.headers('run.execute')),202)
 
+    def test_chart_capability_uses_existing_jwt_and_generic_execution(self):
+        items = self.client.get('/internal/v1/capabilities').json()['capabilities']
+        charts = [item for item in items if item['capabilityRef'] == 'chart-generation']
+        self.assertEqual(len(charts), 1)
+        self.assertEqual(charts[0]['name'], '图表生成')
+        body = {**self.body, 'capabilityRef': 'chart-generation',
+                'input': {'text': '甲10，乙20，请画柱状图。'}}
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
+            self.assertEqual(self.client.post('/internal/v1/runs', json=body,
+                headers=self.headers('run.execute')).status_code, 401)
+            self.assert_public_run(self.client.post('/internal/v1/runs', json=body,
+                headers=self.headers('run.execute', capabilityRef='chart-generation')), 202)
+        payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
+        self.assertIsNone(payload['workflow_name'])
+        from runtime.config import build_options, create_run_services
+        self.assertIsNone(create_run_services(payload))
+        self.assertIn('charts', build_options(payload).mcp_servers)
+
     def test_same_business_session_routes_capabilities_to_isolated_clients(self):
         claims={'tenant':'tenant-test','sub':'user-test'}
         keys=[]
-        for capability in (None,'document-writing','national-excellence-data-qa'):
+        for capability in (None,'document-writing','national-excellence-data-qa','chart-generation'):
             request=AgentRunRequest.from_dict({**self.body,'capabilityRef':capability})
             keys.append(server._client_session_key(request,claims))
-        self.assertEqual(len(set(keys)),3)
+        self.assertEqual(len(set(keys)),4)
 
     def test_trusted_data_identity_does_not_enter_model_prompt(self):
         with patch.object(server, 'MODELS', ['test-model']):

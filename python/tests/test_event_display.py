@@ -43,6 +43,15 @@ class EventDisplayTests(unittest.TestCase):
         event = server._public_internal_event('display-run-1', {'type': 'tool_result', 'id': 'call'})
         self.assertEqual(event['payload']['toolKey'], 'other')
 
+    def test_chart_tool_public_status_does_not_expose_input_values(self):
+        start = server._public_internal_event('display-run-1', {'type': 'tool_use', 'id': 'chart-call',
+            'name': 'mcp__charts__build_mermaid', 'input': {'labels': ['private-input-marker'], 'values': [1]}})
+        self.assertEqual(start['payload']['toolKey'], 'chart.generate')
+        self.assertEqual(start['payload']['displayName'], '生成图表')
+        self.assertNotIn('private-input-marker', json.dumps(start))
+        end = server._public_internal_event('display-run-1', {'type': 'tool_result', 'id': 'chart-call'})
+        self.assertEqual(end['payload']['toolKey'], 'chart.generate')
+
     def test_tool_name_is_mapped_and_reused_without_tool_parameters(self):
         start = server._public_internal_event('display-run-1', {'type': 'tool_use', 'id': 'call-1',
             'name': 'mcp__data__execute_query_spec', 'input': {'password': 'private'}})

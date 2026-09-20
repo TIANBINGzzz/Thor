@@ -126,6 +126,7 @@ Content-Type: application/json</pre></div>
 <h3>各能力应该传什么</h3>
 <table><thead><tr><th>能力 / 场景</th><th>payload 约定</th><th>说明</th></tr></thead><tbody>
 <tr><td>conversation</td><td>省略或 {}</td><td>当前没有 payload 字段，问题放 input.text。</td></tr>
+<tr><td>chart-generation</td><td>省略或 {}</td><td>图表生成：数据、单位、图表要求写入 input.text；输出为正文中的 Mermaid，见<a href="#mermaid-charts">图表接入</a>。</td></tr>
 <tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
 <tr><td>document-writing：普通撰写</td><td>省略或 {}</td><td>不选择预制模板时不传字段。修改文档或上传模板使用附件引用。</td></tr>
 <tr><td>document-writing：预制模板</td><td><code>{"templateKey": "szpt-midterm"}</code></td><td>templateKey 是当前明确登记并由服务端解析的专属字段。</td></tr>
@@ -215,6 +216,12 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
       "supportsAttachments": true
     },
     {
+      "capabilityRef": "chart-generation",
+      "name": "图表生成",
+      "description": "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图",
+      "supportsAttachments": true
+    },
+    {
       "capabilityRef": "document-writing",
       "name": "文档撰写",
       "description": "起草、修改与生成 Word 文档",
@@ -237,10 +244,87 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <h3>当前能力</h3>
 <table><thead><tr><th>capabilityRef</th><th>Python 内部映射</th><th>附件</th><th>业务含义</th></tr></thead><tbody>
 <tr><td>conversation</td><td>通用对话配置</td><td>支持</td><td>日常交流、总结和问答。</td></tr>
+<tr><td>chart-generation</td><td>复用通用执行配置</td><td>支持</td><td>使用明确提供的数据生成正文内 Mermaid 图表，不依赖问数或数据库。</td></tr>
 <tr><td>document-writing</td><td><code>writing-docx</code></td><td>支持</td><td>文档撰写、修改和 Word 交付物生成。</td></tr>
 <tr><td>national-excellence-data-qa</td><td><code>double-high-qa</code></td><td>不支持</td><td>国双高项目、任务、资金和绩效问数。</td></tr>
 </tbody></table>
 <div class="note">Java 不提交 Workflow 名称、Skill 列表、MCP 地址、模型、工具参数或工作目录。未知能力返回 <code>400 capability_not_found</code>。</div></section>
+
+<section id="mermaid-charts"><h2>图表生成 · Mermaid 正文</h2>
+<p>用于把用户明确提供的文字或表格数据转换为图表，并与解释文字穿插显示。选择 <code>chart-generation</code>；普通 <code>conversation</code> 也可请求这些图表。数据不足时模型会询问，不能将缺失数值补成 0。附件沿用 attachmentRefs 的文件准备链路；允许附件不代表所有文件格式都能提取数据。</p>
+<table><thead><tr><th>支持图形</th><th>适合展示什么</th><th>输入文字示例（演示数据）</th></tr></thead><tbody>
+<tr><td>柱状图</td><td>不同类别的非负数值对比。</td><td>画柱状图：项目A120项、项目B85项、项目C60项。</td></tr>
+<tr><td>横向柱状图</td><td>名称较长或类别较多的非负数值对比。</td><td>画横向柱状图：教学资源建设120万元、实践基地建设85万元。</td></tr>
+<tr><td>折线图</td><td>有明确先后顺序的变化，可以包含负值。</td><td>画折线图：1月净收入10万元、2月-2万元、3月12万元。</td></tr>
+<tr><td>饼图</td><td>非负数值占整体的比例。</td><td>画饼图：完成174项、未完成622项。</td></tr>
+<tr><td>雷达图</td><td>3–12个同量纲、同尺度的非负指标，不混合数量和金额，不自动归一化。</td><td>画雷达图：同尺度评分，教学80分、实践70分、科研60分、协作90分、服务75分。</td></tr>
+<tr><td>矩形树图</td><td>用面积展示正数构成，当前为一层分类，不自动汇总。</td><td>画矩形树图：教学资源120万元、实践基地85万元、师资建设60万元、科研服务30万元。</td></tr>
+</tbody></table>
+<p>沿用 <code>POST /internal/v1/runs</code>，不新增图表 HTTP 接口或业务 payload 字段。Java 为图表能力签发现有 Run JWT，<code>capabilityRef</code> 必须绑定 <code>chart-generation</code>，创建使用 <code>run.execute</code>。</p>
+<div class="code-wrap"><div class="code-label">Request · 根据明确数据生成图表</div><button class="copy" type="button">复制</button><pre>{
+  "protocol": "agent-run/v1",
+  "runId": "run_chart_01",
+  "messageId": "message_chart_01",
+  "businessSessionId": "session_01",
+  "capabilityRef": "chart-generation",
+  "input": {
+    "text": "请根据这些演示数据画柱状图并简短说明：项目A120项、项目B85项、项目C60项。"
+  }
+}</pre></div>
+<p>Python 的内部图表工具校验标签与数值后生成 Mermaid，由模型原样加入正文。工具参数不是 Java 请求字段，不能放进 payload。当前每张图一个数值系列，两类柱状图、折线图和矩形树图最多 50 项，饼图最多 12 项，雷达图 3–12 项；折线图至少 2 点。数值绝对值不超过 10<sup>15</sup>，不接受 null、布尔值、数字字符串或非有限数值；分类标签不能重复。饼图合计须大于 0，且每个正值占比至少 1%（当前渲染器会省略更小的扇区）；不符合时改用柱状图或表格，不能删除或擅自合并小项。雷达图上限取本组最大值（全零时为1），不代表满分；矩形树图不接受零值，极小分类应在正文补充原始数字。不得擅自改数或截断数据。</p>
+<p><strong>正文事件仍为 message.delta。</strong>textDelta 是本次新增的原始 Markdown，围栏与图表代码可能分散在多个事件中；以下把一块放在单个事件里只是便于阅读。工具状态仍是 tool.started / progress / finished，公开分类为 <code>chart.generate</code>，显示名称为“生成图表”。</p>
+<div class="code-wrap"><div class="code-label">事件 JSON · 图表作为正文发送</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_chart_01",
+  "sequence": 8,
+  "type": "message.delta",
+  "payload": {
+    "textDelta": "各项目任务数量如下：\n\n```mermaid\nxychart-beta\n    title \"各项目任务数量\"\n    x-axis [\"项目A\", \"项目B\", \"项目C\"]\n    y-axis \"项\" 0 --&gt; 120\n    bar [120, 85, 60]\n```\n\n项目A比项目B多35项。",
+    "displayName": ""
+  }
+}</pre></div>
+<div class="code-wrap"><div class="code-label">前端累计得到的 Markdown · 演示数据</div><button class="copy" type="button">复制</button><pre>各项目任务数量如下：
+
+```mermaid
+xychart-beta
+    title "各项目任务数量"
+    x-axis ["项目A", "项目B", "项目C"]
+    y-axis "项" 0 --&gt; 120
+    bar [120, 85, 60]
+```
+
+项目A比项目B多35项。</pre></div>
+<table><thead><tr><th>接入方</th><th>处理要求</th></tr></thead><tbody>
+<tr><td>Java</td><td>按既有消息归属透传并保存完整 Markdown，保留换行、反引号及图表数字。保持事件去重和续传，不拆图表、不转成附件；前端能力列表若为静态配置，需登记 chart-generation。</td></tr>
+<tr><td>前端</td><td>整条正文交给 Markdown 解析器，给语言为 mermaid 的代码块提供专用渲染组件；完整围栏结束后绘图，未结束先占位。不要逐个 textDelta 正则截取，不直接执行 HTML/JavaScript。历史消息复用同一渲染器。</td></tr>
+<tr><td>Mermaid 版本与安全配置</td><td>语法和渲染验证目标为 Mermaid 11.12.0，前端应固定兼容版本并随项目打包，使用 strict 安全级别和大小限制，不允许消息覆盖配置。单图失败只影响该图，其他正文继续显示。</td></tr>
+<tr><td>统一外观</td><td>前端统一主题、中文字体和图表宽度；Python只输出数据与图形结构，不让模型逐图指定颜色。长名称用横向柱状图，窄屏允许横向滚动或放大，避免把字压小；雷达图和矩形树图应保留正文数值说明。</td></tr>
+<tr><td>预览与下载</td><td>正文图表不生成 artifactId/fileId，也不发送 artifact.ready。放大及 SVG/PNG 导出由前端提供；Python 没有为 Mermaid 生成可下载图片。若同时生成 Word/Excel 等文件，那些文件仍使用原 Artifact 链路。</td></tr>
+</tbody></table>
+<div class="code-wrap"><div class="code-label">配置 JSON · 前端 Mermaid.initialize 的统一浅色主题示例（不是请求参数）</div><button class="copy" type="button">复制</button><pre id="mermaid-theme">{
+  "startOnLoad": false,
+  "securityLevel": "strict",
+  "theme": "base",
+  "fontFamily": "Microsoft YaHei, PingFang SC, sans-serif",
+  "xyChart": { "width": 600, "height": 360 },
+  "radar": { "width": 260, "height": 260, "marginTop": 50, "marginBottom": 50, "marginLeft": 60, "marginRight": 60 },
+  "themeVariables": {
+    "fontFamily": "Microsoft YaHei, PingFang SC, sans-serif",
+    "fontSize": "16px",
+    "primaryColor": "#dbeafe",
+    "primaryTextColor": "#172554",
+    "primaryBorderColor": "#2563eb",
+    "lineColor": "#64748b",
+    "pie1": "#2563eb",
+    "pie2": "#14b8a6",
+    "pie3": "#f59e0b",
+    "pie4": "#8b5cf6",
+    "xyChart": { "plotColorPalette": "#2563eb,#14b8a6,#f59e0b" },
+    "radar": { "axisLabelFontSize": 14, "legendFontSize": 14, "curveOpacity": 0.25 }
+  }
+}</pre></div>
+<p>工具能保证按传入数据生成代码，但模型提取或转述数据仍可能出错；应对照用户数据检查最终图表。工具失败不必然导致 Run 失败，模型可以说明缺口；run.completed 也不代表浏览器已经成功渲染。</p>
+</section>
 
 <section id="query"><h2>查询 Run</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}</code></div>

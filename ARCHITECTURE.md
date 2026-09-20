@@ -23,7 +23,7 @@ Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相�
 ```text
 python/       后端与 SDK 执行
   runtime/    协议、鉴权、配置、Run、Actor
-  tools/      data、文档渲染/PDF读取、生图、Artifact通用工具入口
+  tools/      data、Mermaid图表、文档渲染/PDF读取、生图、Artifact通用工具入口
   data_access/ 来源授权、连接、查询、结果及Run上下文
   workflows/writing_docx/ 可信模板及指南加载、参考副本
   tests/      后端测试
@@ -39,6 +39,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `python/server.py`：Java HTTP/SSE 与 Run 调度；`runtime/`：执行配置、状态、存储与生命周期。
 - `runtime/artifact_delivery.py`：接收发布快照、绑定可信Run、自动上传文件服务并持久化文件状态；Java按artifactId/fileId关联消息和下载ACL，不解析模型链接。
 - `python/agent_worker.py`：调用 SDK、消费消息并向父 Runtime 上送事件；`tools/`：具体工具实现。
+- `tools/mermaid.py`：校验显式标签和数值并生成Mermaid正文；chart-generation复用通用执行，与conversation共享工具，不依赖数据库或Artifact，渲染由业务前端负责。
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
 - `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收；OfficeCLI原生MCP读取和编辑Office文档，LibreOffice更新目录并另存DOCX与PDF，PDFium提供分页核验。Windows开发通过Docker复用Linux渲染引擎；渲染副本解除旧字体子集引用，完整开源字体由镜像提供，见[ADR-031](doc/ADR/031-unified-document-renderer.md)。指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图或取数流水线。发布工具校验文件边界，不代替业务与版式核验。

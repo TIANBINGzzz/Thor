@@ -27,6 +27,7 @@ class Capability:
 # details and may be reused by several capabilities.
 CAPABILITIES: dict[str, Capability] = {
     "conversation": Capability("conversation", None, True, "通用对话", "日常交流、内容总结与问题解答"),
+    "chart-generation": Capability("chart-generation", None, True, "图表生成", "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图"),
     "document-writing": Capability("document-writing", "writing-docx", True, "文档撰写", "起草、修改与生成 Word 文档"),
     "national-excellence-data-qa": Capability("national-excellence-data-qa", "double-high-qa", False, "双高问数", "查询国双高项目、任务、资金与绩效"),
 }

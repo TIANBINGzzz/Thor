@@ -25,6 +25,7 @@ MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
     "office": {"required": False, "transport": "stdio"},
     "documents": {"required": False, "transport": "sdk"},
     "images": {"required": False, "transport": "sdk"},
+    "charts": {"required": False, "transport": "sdk"},
     "artifacts": {"required": False, "transport": "stdio"},
 }
 

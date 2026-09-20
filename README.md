@@ -37,6 +37,7 @@ HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执�
 ## 当前能力
 
 - 普通对话：请求可省略capabilityRef，内部解析为conversation
+- `chart-generation`：根据提供的数据生成正文内 Mermaid 图表，前端渲染；普通对话也可使用，见[接入说明](doc/python-api.html#mermaid-charts)
 - `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
 - `national-excellence-data-qa`：通过内部 `double-high-qa` Workflow 进行双高只读问数
 

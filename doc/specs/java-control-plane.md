@@ -375,6 +375,8 @@ ScribePlayground 或已实现独立 Broker 的部署可显式设置 CCSDK_FILE_B
 
 ### 2.7 生成文件：Python自动上传，Java关联消息
 
+正文内Mermaid图表不属于本节文件交付：`chart-generation`能力与普通conversation均通过原message.delta输出完整Markdown，不生成artifactId/fileId。Java保留换行与围栏，前端按mermaid代码块渲染；能力目录、JWT绑定和示例见[图表接入](../python-api.html#mermaid-charts)。
+
 | 请求 | 输入与鉴权 | 输出与字段 |
 | --- | --- | --- |
 | GET /internal/v1/runs/{runId}/artifacts | run.read或run.execute；无正文/查询参数 | 本Run的files列表，按artifactId区分不可变版本。 |
