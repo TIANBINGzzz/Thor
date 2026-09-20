@@ -299,7 +299,7 @@ xychart-beta
 <tr><td>Java</td><td>按既有消息归属透传并保存完整 Markdown，保留换行、反引号及图表数字。保持事件去重和续传，不拆图表、不转成附件；前端能力列表若为静态配置，需登记 chart-generation。</td></tr>
 <tr><td>前端</td><td>整条正文交给 Markdown 解析器，给语言为 mermaid 的代码块提供专用渲染组件；完整围栏结束后绘图，未结束先占位。不要逐个 textDelta 正则截取，不直接执行 HTML/JavaScript。历史消息复用同一渲染器。</td></tr>
 <tr><td>Mermaid 版本与安全配置</td><td>语法和渲染验证目标为 Mermaid 11.12.0，前端应固定兼容版本并随项目打包，使用 strict 安全级别和大小限制，不允许消息覆盖配置。单图失败只影响该图，其他正文继续显示。</td></tr>
-<tr><td>统一外观</td><td>前端统一主题、中文字体和图表宽度；Python只输出数据与图形结构，不让模型逐图指定颜色。长名称用横向柱状图，窄屏允许横向滚动或放大，避免把字压小；雷达图和矩形树图应保留正文数值说明。</td></tr>
+<tr><td>统一外观与精度</td><td>前端统一主题、中文字体和图表宽度；Python只输出数据与图形结构，不让模型逐图指定颜色。长名称用横向柱状图，窄屏允许横向滚动或放大。刻度、百分比和矩形树图数值标签由渲染器简写，可能使用科学计数法或舍入，不作为精确数据来源；每张雷达图和矩形树图均要求正文或表格逐项附完整原始数值及单位，不能仅补充极小项。</td></tr>
 <tr><td>预览与下载</td><td>正文图表不生成 artifactId/fileId，也不发送 artifact.ready。放大及 SVG/PNG 导出由前端提供；Python 没有为 Mermaid 生成可下载图片。若同时生成 Word/Excel 等文件，那些文件仍使用原 Artifact 链路。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">配置 JSON · 前端 Mermaid.initialize 的统一浅色主题示例（不是请求参数）</div><button class="copy" type="button">复制</button><pre id="mermaid-theme">{
