@@ -73,6 +73,8 @@ def publish_artifact(
         raise ValueError("只能发布当前会话目录中的工作或交付文件")
     if not source.is_file():
         raise FileNotFoundError(f"文件不存在：{source.name}")
+    if '.docx' in Path(target_name.lower()).suffixes[:-1]:
+        raise ValueError('DOCX 文件名必须以 .docx 结尾，不能将 Markdown 命名为 .docx.md；请生成真正的 Word 文档。')
 
     deliverables.mkdir(parents=True, exist_ok=True)
     artifact_id = 'artifact_' + uuid.uuid4().hex
@@ -88,6 +90,13 @@ def publish_artifact(
                 size += len(chunk)
             writer.flush()
             os.fsync(writer.fileno())
+        if Path(target_name).suffix.lower() == '.docx':
+            # 检查实际交付快照，改扩展名不能把文本变成Word；不自动转换或重写正文。
+            from docx import Document
+            try:
+                Document(staging / 'content')
+            except Exception:
+                raise ValueError('文件内容不是有效的 DOCX；请使用 OfficeCLI 生成 Word 文档后重新提交。') from None
         record = {'artifactId': artifact_id, 'name': target_name, 'size': size,
                   'suffix': Path(target_name).suffix.lstrip('.'), 'sha256': digest.hexdigest()}
         (staging / 'manifest.json').write_text(json.dumps(record, ensure_ascii=False), encoding='utf-8')
@@ -117,7 +126,7 @@ def create_artifact_server(
 
     @sdk_tool(
         "publish_file",
-        "提交最终文件供后台上传，返回 artifactId 和 pending 状态，不代表上传完成。中间文件不要发布。",
+        "提交已生成的最终文件；不转换格式，DOCX必须是真实Word文件。返回文件回执，上传与下载状态由系统文件卡片展示，勿在回答中描述上传状态或编造下载链接。",
         {
             "type": "object",
             "properties": {
@@ -143,9 +152,12 @@ def create_artifact_server(
         except asyncio.CancelledError:
             await asyncio.gather(task, return_exceptions=True)
             raise
+        except (ValueError, FileNotFoundError) as error:
+            return {**_text_result({'error': str(error)}), 'isError': True}
         if on_published is not None:
             on_published({'type': 'artifact.published', 'artifactId': result['artifactId']})
-        return _text_result(result)
+        # 模型只看到交稿回执；异步上传状态继续通过Runtime的artifact事件对外提供。
+        return _text_result({key: result[key] for key in ('artifactId', 'name', 'size')})
 
     return create_sdk_mcp_server(
         "artifacts",

@@ -458,7 +458,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 </pre></div></details>
 <p>文件逐个获取；receivedBytes / totalBytes 是当前文件进度，不是整个 Run 的完成比例。下载开始报告 0 字节，中间最多每 500ms 更新一次，结束补发最终字节数。授权前没有总大小，显示不定进度；totalBytes 为 0 时不计算百分比。进度事件与回复共用 sequence，支持 SSE 断线回放。断开 SSE 不取消下载。</p>
 <h3>生成文件状态与结束顺序</h3>
-<p>模型通过发布工具提交最终文件，Runtime 创建独立 <code>artifactId</code>，自动上传并发送结构化事件。每次发布都是新版本，同名文件不会覆盖旧版本。工具返回 pending 不等于上传成功；只有 <code>artifact.ready</code> 携带确认后的远端 <code>fileId</code>。</p>
+<p>模型通过发布工具提交最终文件，Runtime 创建独立 <code>artifactId</code>，自动上传并发送结构化事件。每次发布都是新版本，同名文件不会覆盖旧版本。模型只收到 artifactId/name/size 交稿回执，上传状态由文件事件和查询接口提供，正文不描述上传进度或可下载性；只有 <code>artifact.ready</code> 携带确认后的远端 <code>fileId</code>。DOCX 会校验实际文件格式，不会把 Markdown 自动转换成 Word。</p>
 <div class="code-wrap"><div class="code-label">事件 JSON · artifact.ready</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
   "runId": "run_01",

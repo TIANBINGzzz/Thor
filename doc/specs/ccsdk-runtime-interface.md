@@ -259,7 +259,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 
 ## 6. Artifact 模块
 
-发布工具为一个文件版本生成artifactId，不代表整个Run的文件集合；父Runtime登记快照并自动向fileService上传，成功后才有远端fileId。模型不提供上传地址或业务身份，pending不代表成功。同名再次发布产生新ID，重传原快照保留ID，各Run列表互不混用。
+发布工具为一个文件版本生成artifactId，不代表整个Run的文件集合；父Runtime登记快照并自动向fileService上传，成功后才有远端fileId。模型只接收artifactId/name/size交稿回执，不接收上传状态；上传状态仍由artifact事件和查询接口提供，正文不描述上传进度或可下载性。DOCX发布前校验实际快照可作为Word打开，拒绝文本冒充及.docx.md双扩展名，不自动转换格式。同名再次发布产生新ID，重传原快照保留ID，各Run列表互不混用。
 
 | GET 路径 | 响应 |
 | --- | --- |

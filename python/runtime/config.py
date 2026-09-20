@@ -465,9 +465,12 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
             "\n当前执行的受控工作目录：" + str(work_directory)
             + "\n当前执行的交付目录：" + str(deliverables_directory)
             + "\n生成文件时使用工作目录下的绝对路径；不要写入项目根目录、猜测目录或扫描其他会话。"
-            "完成后必须调用 mcp__artifacts__publish_file 提交最终文件。pending 只表示已提交后台上传，不代表可下载。"
-            "文件是否可下载由系统文件卡片确认；不要自行生成下载链接或声称上传已完成。"
-            "回复仅提供文件名，不输出服务器本地路径；提交失败必须如实说明。"
+            "用户要求生成文档、报告而未指定格式时，默认交付真正的Word（.docx）；用户明确指定其他格式时遵从。"
+            "生成Word时使用 mcp__office__officecli 创建和编辑，不能用Write写Markdown冒充Word或交付.docx.md；此时Write只用于草稿和操作JSON。"
+            "核对最终文稿内容和所需字数后，调用 mcp__artifacts__publish_file 提交最终文件；该工具不转换格式。"
+            "工具回执仅确认文件已提交，上传与下载状态由系统文件卡片展示。回复不得复述pending、待上传、后台上传中，"
+            "也不得声称上传完成或可下载；不要自行生成下载链接。"
+            "最终回复用一两句话说明文稿名称和必要内容，不重复完整目录或内部操作过程，不输出服务器本地路径；提交失败必须如实说明。"
         )
     if artifact_enabled and not restricted_tools:
         mcp_servers["artifacts"] = create_artifact_server(
@@ -540,6 +543,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         max_turns=payload.get("max_turns") or (workflow_config or {}).get("runtime", {}).get(
             "max_turns", int(os.environ.get("SCRIBE_MAX_TURNS", "30"))),
         include_partial_messages=bool(payload.get("include_partial_messages")),
+        # 文档核验读取页面图片会产生较大的JSONL消息，默认1MiB会在发布前中断。
+        max_buffer_size=16 * 1024 * 1024,
         setting_sources=[] if restricted_tools else ["project", "local"],
         system_prompt=build_system_prompt(
             prompt_append,
