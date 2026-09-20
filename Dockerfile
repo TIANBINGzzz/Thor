@@ -33,7 +33,10 @@ FROM document-base AS runtime
 ARG PIP_INDEX_URL
 WORKDIR /app
 # 固定上游版本并核对发布哈希；/usr/local/bin 是容器内工具目录。
-RUN curl -fL --retry 3 "https://github.com/iOfficeAI/OfficeCLI/releases/download/v1.0.151/officecli-linux-x64" -o /usr/local/bin/officecli \
+# 强制HTTP/1.1避开构建网络的HTTP/2中断；部分下载错误(18)也重试，覆盖残缺文件。
+RUN curl -fL --http1.1 --retry 3 --retry-all-errors --retry-delay 5 \
+    --connect-timeout 30 --max-time 300 --retry-max-time 900 \
+    "https://github.com/iOfficeAI/OfficeCLI/releases/download/v1.0.151/officecli-linux-x64" -o /usr/local/bin/officecli \
     && echo "8e2512234ae1111e51ad3a9fadbdeca266adfa7f683773469aa45b83fe06dc7f  /usr/local/bin/officecli" | sha256sum -c - \
     && chmod +x /usr/local/bin/officecli
 ENV OFFICECLI_SKIP_UPDATE=1
