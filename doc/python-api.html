@@ -108,7 +108,7 @@ Content-Type: application/json</pre></div>
 <h3>哪些内容放在哪里</h3>
 <table><thead><tr><th>内容</th><th>请求位置</th><th>示例与处理</th></tr></thead><tbody>
 <tr><td>本次要做什么</td><td>input.text</td><td>问题、写作要求、报告年份和截止时间等自然语言说明。</td></tr>
-<tr><td>选择业务能力</td><td>capabilityRef</td><td>在请求顶层传 document-writing 等标识，不放入 payload。普通会话可省略。</td></tr>
+<tr><td>选择业务能力</td><td>capabilityRef</td><td>在请求顶层传 document-writing、image-generation 等标识，不放入 payload。普通会话可省略。</td></tr>
 <tr><td>选择系统预制模板</td><td>payload.templateKey</td><td>例如 szpt-midterm，由 Python 校验并解析已登记模板。</td></tr>
 <tr><td>外部文件与上传模板</td><td>input.attachmentRefs</td><td>传 fileId 和 purpose，经 File Broker 授权获取。payload 中的 fileId 不触发下载。</td></tr>
 <tr><td>身份与凭据</td><td>JWT / credentials</td><td>租户、用户来自签名 JWT；业务 Token 仅放 credentials.platformBearer，不能放 payload。</td></tr>
@@ -126,6 +126,7 @@ Content-Type: application/json</pre></div>
 <h3>各能力应该传什么</h3>
 <table><thead><tr><th>能力 / 场景</th><th>payload 约定</th><th>说明</th></tr></thead><tbody>
 <tr><td>conversation</td><td>省略或 {}</td><td>当前没有 payload 字段，问题放 input.text。</td></tr>
+<tr><td>image-generation</td><td>省略或 {}</td><td>图像生成：画面、数量和尺寸写入 input.text，参考图走 input.attachmentRefs；每张PNG独立发布，经artifact.ready返回fileId供授权预览/下载，不返回模型临时URL。Java签发JWT须绑定此能力；未配置生图服务时执行失败。</td></tr>
 <tr><td>chart-generation</td><td>省略或 {}</td><td>图表生成：数据、单位、图表要求写入 input.text；输出为正文中的 Mermaid，见<a href="#mermaid-charts">图表接入</a>。</td></tr>
 <tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
 <tr><td>document-writing：普通撰写</td><td>省略或 {}</td><td>不选择预制模板时不传字段。修改文档或上传模板使用附件引用。</td></tr>

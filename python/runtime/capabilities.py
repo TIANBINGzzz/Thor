@@ -26,6 +26,7 @@ class Capability:
 # These names are business entry points. Workflow names remain implementation
 # details and may be reused by several capabilities.
 CAPABILITIES: dict[str, Capability] = {
+    "image-generation": Capability("image-generation", None, True, "图像生成", "根据文字或参考图生成、修改图片并交付 PNG 文件"),
     "conversation": Capability("conversation", None, True, "通用对话", "日常交流、内容总结与问题解答"),
     "chart-generation": Capability("chart-generation", None, True, "图表生成", "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图"),
     "document-writing": Capability("document-writing", "writing-docx", True, "文档撰写", "起草、修改与生成 Word 文档"),

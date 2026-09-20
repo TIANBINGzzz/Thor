@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 from tools.artifacts import create_artifact_server
 from tools.documents import create_document_server
-from tools.images import create_image_server
+from tools.images import IMAGE_INSTRUCTIONS, create_image_server
 from tools.mermaid import CHART_INSTRUCTIONS, create_chart_server
 from tools.data import create_data_server
 from runtime.data_services import RunServices
@@ -520,6 +520,11 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
             prompt_append += '\n本轮选择了图表生成能力：优先围绕用户数据制图；数据不足先询问具体缺口。'
     # Credentials are request-scoped. Rules decide which registered MCP may
     # receive the bearer; no process-global environment is changed.
+    # 生图入口必须实际挂载服务；缺配置时禁止模型用其他工具伪造交付。
+    if capability_ref == 'image-generation':
+        if 'images' not in mcp_servers:
+            raise RuntimeError('图像生成服务未配置：请配置 CCSDK_IMAGE_BASE_URL 和 CCSDK_IMAGE_API_KEY')
+        prompt_append += '\n' + IMAGE_INSTRUCTIONS
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
     if "images" in mcp_servers:
