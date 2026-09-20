@@ -16,7 +16,7 @@ SOURCE = {
     "domain": {**REFERENCE, "description": "使用该数据源返回的 domains 中的业务域。"},
 }
 SCOPE_REFERENCE = {**REFERENCE, "description": (
-    "原样使用本轮 resolve_entities 返回的 scope_ref；学校范围用 entity_type=school、query='' 获取。"
+    "优先使用本轮database_context中的scope_ref；未提供时用resolve_entities获取，学校范围用entity_type=school、query=''。"
     "指定项目用 project 或 task_project 候选的 scope_ref，不得填名称、内部ID或自行构造。"
 )}
 
@@ -98,7 +98,13 @@ def create_data_server(services):
                 "对象查询所需的业务筛选参数（如 year）；字段和取值遵循已登记查询定义，不传租户或内部ID。"
             )}}, [*SOURCE, "entity_type", "query"], call("resolve_entities")),
         ("find_query_specs", "按业务意图或指标键检索已登记查询；缺定义查询不可执行。", {**SOURCE,
-            "intent": STRING, "metric_key": STRING}, list(SOURCE), call("find_query_specs")),
+            "intent": {**STRING, "description": (
+                "用完整业务问题检索，一次提供范围、指标、分组和期间；通常仅传intent即可。"
+            )},
+            "metric_key": {**STRING, "description": (
+                "仅在已知精确的 查询id.输出字段名 时使用；不知道时省略，改用intent。"
+                "不要猜project_count或task_count之类的键；已有适用查询时不要重复检索。"
+            )}}, list(SOURCE), call("find_query_specs")),
         ("execute_query_spec", "执行固定查询及其依赖诊断；身份与项目键由运行时注入。", {**SOURCE,
             "query_id": {**REFERENCE, "description": "原样使用 find_query_specs 返回的查询 id。"},
             "parameters": {**PARAMETERS, "description": (

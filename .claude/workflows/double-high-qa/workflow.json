@@ -9,5 +9,6 @@
       "instructions.md"
     ]
   },
-  "data_access": "required"
+  "data_access": "required",
+  "data_context_topics": ["schema", "relationships", "business"]
 }

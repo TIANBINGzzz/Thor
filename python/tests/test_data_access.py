@@ -431,6 +431,57 @@ class DataAccessTests(unittest.TestCase):
             with self.assertRaises(DataError): services.current()
         asyncio.run(scenario())
 
+    def test_prepared_context_contains_usable_scope_and_no_connection_details(self):
+        self.config['connections']['first']['password'] = 'private-db-password'
+        executor = self.make_executor()
+        context = executor.prepare_context(['schema'])
+        self.assertEqual(len(context['sources']), 2)
+        first = context['sources'][0]
+        domain = first['domains'][0]
+        self.assertEqual(domain['tables']['sales']['amount'], 'INTEGER')
+        self.assertIn('schema', domain['documents'])
+        result = executor.execute_query_spec('first', 'sales', 'total', {}, domain['scope_ref'])
+        self.assertEqual(result['rows'], [{'total': 10}])
+        serialized = json.dumps(context)
+        for private in ('private-db-password', 'jwt-a', 'business-a', str(self.root), 'username', 'password'):
+            self.assertNotIn(private, serialized)
+
+    def test_prepared_context_fails_when_database_is_unavailable(self):
+        executor = self.make_executor()
+        self.root.joinpath('first.db').unlink()
+        with self.assertRaisesRegex(DataError, 'CONNECTION_UNAVAILABLE'):
+            executor.prepare_context(['schema'])
+
+    def test_prepared_prompt_refreshes_per_run_and_clears_on_failure(self):
+        async def scenario():
+            self.save_connections()
+            services = RunServices(['first'], env=self.env, catalog=self.catalog, context_topics=['schema'])
+            payload = {'run_id': 'r1', '_data_identity': {'tenant_id': 'jwt-a', 'user_id': 'u1'},
+                       'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1')}
+            await services.bind(payload)
+            old_scope = next(iter(services.current().scopes))
+            self.assertIn(old_scope, services.prepare_prompt('question-one'))
+            self.assertIn('question-one', services.prepare_prompt('question-one'))
+            await services.bind({**payload, 'run_id': 'r2'})
+            self.assertNotIn(old_scope, services.prepare_prompt('question-two'))
+            with patch.object(Executor, 'prepare_context', side_effect=DataError('CONNECTION_UNAVAILABLE')):
+                with self.assertRaisesRegex(DataError, 'CONNECTION_UNAVAILABLE'):
+                    await services.bind({**payload, 'run_id': 'r3'})
+            with self.assertRaisesRegex(DataError, 'RUN_NOT_ACTIVE'):
+                services.prepare_prompt('question-three')
+        asyncio.run(scenario())
+
+    def test_unconfigured_preparation_does_not_connect_or_change_prompt(self):
+        async def scenario():
+            services = RunServices(['first'], env=self.env, catalog=self.catalog)
+            with patch.object(Executor, 'prepare_context') as prepare:
+                await services.bind({'run_id': 'r1', '_data_identity': {'tenant_id': 'jwt-a', 'user_id': 'u1'},
+                                     'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1')})
+                self.assertEqual(services.prepare_prompt('original question'), 'original question')
+                prepare.assert_not_called()
+            await services.close()
+        asyncio.run(scenario())
+
 
 class RegisteredAssetsTests(unittest.TestCase):
     def test_chinese_business_queries_rank_existing_definitions(self):

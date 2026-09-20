@@ -2,13 +2,87 @@ import asyncio
 from contextlib import nullcontext
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import agent_worker
 from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_one_shot_prepares_prompt_before_query_and_cleans_up_on_failure(self):
+        services = SimpleNamespace(bind=AsyncMock(), close=AsyncMock(),
+                                   prepare_prompt=lambda prompt: 'prepared:' + prompt)
+        seen = []
+
+        async def query(prompt, options, timeout_ms):
+            services.bind.assert_awaited_once()
+            seen.append(prompt)
+            yield SDKMessage(kind='result', data={'subtype': 'success'})
+
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: services,
+                            build_options=lambda _, **kwargs: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            stream_query=query, isolated_sdk_environment=nullcontext, emit=lambda _: None):
+            await agent_worker.run({'prompt': 'question'})
+            self.assertEqual(seen, ['prepared:question'])
+            services.close.assert_awaited_once()
+            services.close.reset_mock()
+            services.bind.side_effect = ValueError('preparation failed')
+            with self.assertRaisesRegex(ValueError, 'preparation failed'):
+                await agent_worker.run({'prompt': 'failed-question'})
+            self.assertEqual(seen, ['prepared:question'])
+            services.close.assert_awaited_once()
+
+    async def test_client_injects_fresh_prepared_context_into_each_query(self):
+        queries = []
+        completed = asyncio.Event()
+
+        class Services:
+            async def bind(self, command):
+                self.run_id = command['run_id']
+
+            def prepare_prompt(self, prompt):
+                return self.run_id + ':' + prompt
+
+            async def close(self):
+                self.run_id = None
+
+        class Client:
+            state = ClientState.NEW
+
+            async def connect(self):
+                self.state = ClientState.READY
+
+            async def query(self, prompt, session_id):
+                queries.append(prompt)
+
+            async def receive_response(self, **kwargs):
+                yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+
+            async def disconnect(self):
+                self.state = ClientState.CLOSED
+
+        async def commands(queue):
+            for run_id in ('r1', 'r2'):
+                completed.clear()
+                await queue.put({'type': 'client_query', 'run_id': run_id, 'prompt': 'question', 'timeout_ms': 2000})
+                await completed.wait()
+            await queue.put({'type': 'client_close'})
+
+        def emit(event):
+            if event['type'] == 'client_run_completed':
+                completed.set()
+
+        services = Services()
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: services,
+                            build_options=lambda _, **kwargs: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            ClaudeSDKClient=lambda *args, **kwargs: Client(),
+                            isolated_sdk_environment=nullcontext, _read_client_commands=commands, emit=emit):
+            await asyncio.wait_for(agent_worker.run_client({}), 3)
+        self.assertEqual(queries, ['r1:question', 'r2:question'])
+        self.assertIsNone(services.run_id)
+
     async def test_closing_at_result_keeps_client_ready_for_next_query(self):
         class Provider:
             disconnects = 0

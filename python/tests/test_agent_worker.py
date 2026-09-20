@@ -66,12 +66,17 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(options.allowed_tools, ["mcp__data__*"])
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
 
-    def test_database_prompt_contains_guards_and_explicit_semantic_loading(self):
+    def test_database_prompt_starts_from_prepared_context_and_query_definitions(self):
         config = load_workflow_config("double-high-qa")
         prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
         self.assertNotIn("t_hpm_project", prompt)
         self.assertNotIn("schoolDoubleHigh", prompt)
-        self.assertIn("describe_data_source", prompt)
+        self.assertIn("本轮database_context由程序", prompt)
+        self.assertIn("先find_query_specs", prompt)
+        self.assertNotIn("先调用 mcp__data__list_data_sources", prompt)
+        services = create_run_services({'workflow_name': 'double-high-qa',
+                                        'capability_ref': 'national-excellence-data-qa'})
+        self.assertEqual(services.context_topics, ['schema', 'relationships', 'business'])
         from data_access.catalog import Catalog
         topics = Catalog().domain("schoolDoubleHigh", "hpm")[1]["documents"]
         for topic in topics:

@@ -72,6 +72,26 @@ class Executor:
                 "topics": list(catalog.get("documents", {})),
                 "documents": self.catalog.documents(source_key, domain, topics)}
 
+    def prepare_context(self, topics):
+        """在模型启动前检查连接并准备字段、口径和本轮范围；不携带连接配置或保持事务。"""
+        sources = self.list_data_sources()['sources']
+        if not sources:
+            raise DataError('SOURCE_UNAVAILABLE')
+        prepared = []
+        for source in sources:
+            source_key = source['source_key']
+            _, policy, connection = self.access(source_key)
+            with self.connections.snapshot(connection) as db:
+                db.exec_driver_sql('SELECT 1').scalar()
+            domains = []
+            for domain in source['domains']:
+                description = self.describe_data_source(source_key, domain, topics)
+                if source['scope'] == 'all_school':
+                    description['scope_ref'] = self._scope_ref(source_key, domain, None, policy)
+                domains.append(description)
+            prepared.append({**source, 'domains': domains})
+        return {'sources': prepared}
+
     def find_query_specs(self, source_key, domain, intent=None, metric_key=None):
         _, policy, _ = self.access(source_key)
         allowed = domain_policy(policy, domain)
