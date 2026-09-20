@@ -8,6 +8,7 @@ deploy/*.env
 deploy/data-access.json
 /config/*
 !/config/databases.json
+!/config/README.md
 *.secret.b64
 /dist/
 *.log
