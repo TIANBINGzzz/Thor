@@ -335,10 +335,10 @@ Python 校验 JWT 格式、HS256 签名、`aud`、`iss`、`iat`/`exp`、`jti`、
 
 Java 接收上传并分配 fileId；本次 Run 的 `input.attachmentRefs` 是 Python 获取文件的唯一显式入口。Python 执行前预取这些引用，不解析文本或 payload 中的 fileId。再次使用历史文件需重新提交引用。生成的 Artifact 由 Python 上传后，Java 关联返回的 fileId 并登记业务权限，才能用该 fileId 再次提交。
 
-当 Run 含 `input.attachmentRefs` 时，Python 向 `CCSDK_FILE_BROKER_URL` 发起：
+当 Run 含 `input.attachmentRefs` 时，Python 从数据源部署配置（`CCSDK_DATABASES_FILE`，默认 `config/databases.json`）的顶层 `backendService` 读取 `baseUrl`（HTTPS 域名）和 `serviceName`，拼接 `/{serviceName}/api/internal/v1/runtime/file-broker`。显式设置 `CCSDK_FILE_BROKER_URL` 时优先使用该完整地址。本环境配置为 `https://newtest.stringedu.com` 和 `ai_center_service`。
 
 ```http
-POST <CCSDK_FILE_BROKER_URL>
+POST <baseUrl>/<serviceName>/api/internal/v1/runtime/file-broker
 Authorization: Bearer <Run JWT 或 File Broker 服务 Token>
 Accept: application/json, application/octet-stream
 Content-Type: application/json
@@ -367,7 +367,7 @@ Java 必须按 `runId`、当前调用身份、业务会话和 `fileId` 校验访
 
 ### 8.3 Java 返回代理流
 
-响应为原始文件字节，并包含：
+Java 按授权后的 fileId 从 `t_ai_center_attachment` 查找 FastDFS 路径并读取文件；Python 不直连附件表或 FastDFS。响应为原始文件字节，并包含：
 
 ```text
 X-File-Id: file_01

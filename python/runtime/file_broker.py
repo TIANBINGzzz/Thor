@@ -287,6 +287,35 @@ def _validate_expected_size(value: Any, max_bytes: int) -> int | None:
     return value
 
 
+def configured_broker_endpoint() -> str:
+    """从部署配置定位Java文件接口；显式URL覆盖用于独立部署或本地模拟服务。"""
+    from data_access.connections import config_path
+
+    override = os.environ.get('CCSDK_FILE_BROKER_URL', '').strip()
+    if override:
+        return override
+    path = config_path(os.environ)
+    if not path.exists():
+        return ''
+    try:
+        config = json.loads(path.read_text(encoding='utf-8')).get('backendService')
+        if config is None:
+            return ''
+        base, service = config['baseUrl'], config['serviceName']
+        if not isinstance(base, str) or any(char.isspace() for char in base):
+            raise ValueError()
+        parsed = urlsplit(base)
+        if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
+                or parsed.path not in ('', '/') or parsed.query or parsed.fragment
+                or parsed.port == 0):
+            raise ValueError()
+        if not isinstance(service, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', service):
+            raise ValueError()
+        return base.rstrip('/') + '/' + service + '/api/internal/v1/runtime/file-broker'
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        raise FileBrokerConfigurationError('backendService 配置无效') from None
+
+
 class FileBroker:
     """Fetch fixed Run attachments via an authenticated Java service call."""
 
@@ -305,7 +334,7 @@ class FileBroker:
         event_sink: EventSink | None = None,
         progress_sink: ProgressSink | None = None,
     ) -> None:
-        raw_endpoint = (endpoint if endpoint is not None else os.environ.get("CCSDK_FILE_BROKER_URL", "")).strip()
+        raw_endpoint = (endpoint if endpoint is not None else configured_broker_endpoint()).strip()
         if raw_endpoint:
             parsed = urlsplit(raw_endpoint)
             if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment:

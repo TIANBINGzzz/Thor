@@ -98,5 +98,9 @@
       }
     }
   },
-  "version": 1
+  "version": 1,
+  "backendService": {
+    "baseUrl": "https://newtest.stringedu.com",
+    "serviceName": "ai_center_service"
+  }
 }

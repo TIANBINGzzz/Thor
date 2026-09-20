@@ -664,6 +664,7 @@ Python → SSE 准备进度和回复 → Java → 前端
 <p>用户上传先由 Java 保存并分配 fileId，Java 在创建 Run 时通过 input.attachmentRefs 传递本次授权文件。Python 在执行前获取文件，模型读取准备好的本地文件；payload 中出现 fileId 不会触发下载。Java 可以直接返回代理文件流，无需另设下载 URL。生成文件由 Python 自动上传，Java 关联返回的 fileId 并提供业务下载入口；Artifact content 接口保留本地快照读取能力。</p>
 <p>这是 Java 必须提供给 Python 的文件授权端点。Python 只提交 <code>runId</code>、<code>fileId</code> 和用途；Java 负责业务会话、用户权限、文件 ACL 和授权有效期。</p>
 <h3>Python → Java 请求</h3>
+<p>默认读取数据源部署配置（CCSDK_DATABASES_FILE，默认 config/databases.json）顶层 backendService.baseUrl 和 serviceName，拼接 /{serviceName}/api/internal/v1/runtime/file-broker；CCSDK_FILE_BROKER_URL 可覆盖完整地址。当前配置为 https://newtest.stringedu.com 和 ai_center_service。Java 按授权后的 fileId 查询 t_ai_center_attachment 并读取 FastDFS 文件，Python 接收文件字节。</p>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>POST &lt;CCSDK_FILE_BROKER_URL&gt;
 Authorization: Bearer &lt;Run JWT 或 File Broker 服务 Token&gt;
 Accept: application/json, application/octet-stream

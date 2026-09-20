@@ -21,6 +21,68 @@ from runtime.protocol import AttachmentRef
 
 
 class FileBrokerTests(unittest.TestCase):
+    def test_resolves_java_backend_from_database_config_and_fetches_template(self):
+        import io
+        from docx import Document
+
+        document = Document()
+        document.add_heading('自定义模板', level=1)
+        stream = io.BytesIO()
+        document.save(stream)
+        content = stream.getvalue()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / 'databases.json'
+            config.write_text(json.dumps({'backendService': {
+                'baseUrl': 'https://backend.example.test/', 'serviceName': 'ai_center_service'}}))
+
+            def handler(request):
+                self.assertEqual(request.method, 'POST')
+                self.assertEqual(str(request.url),
+                    'https://backend.example.test/ai_center_service/api/internal/v1/runtime/file-broker')
+                self.assertEqual(request.headers['authorization'], 'Bearer run-jwt')
+                self.assertEqual(json.loads(request.content),
+                    {'runId': 'run-1', 'fileId': 'file-1', 'purpose': 'input'})
+                return httpx.Response(200, content=content, headers={
+                    'X-File-Id': 'file-1', 'X-File-Name': 'template.docx',
+                    'X-File-Mime-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'X-File-Size': str(len(content)), 'X-File-Sha256': hashlib.sha256(content).hexdigest()})
+
+            with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config)}, clear=True):
+                broker = FileBroker(transport=httpx.MockTransport(handler))
+                files = asyncio.run(broker.fetch_all((self.ref(),), run_id='run-1',
+                    tenant_id='tenant-1', user_id='user-1', workspace=root / 'input', bearer_token='run-jwt'))
+            self.assertEqual(files[0].path.read_bytes(), content)
+            self.assertEqual(Document(files[0].path).paragraphs[0].text, '自定义模板')
+
+    def test_backend_config_rejects_invalid_address_or_service_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / 'databases.json'
+            for base, name in [('http://backend.test', 'ai_center_service'),
+                               ('https://backend.test:invalid', 'ai_center_service'),
+                               ('https://backend.test:0', 'ai_center_service'),
+                               ('https://user:secret@backend.test', 'ai_center_service'),
+                               ('https://backend.test/extra', 'ai_center_service'),
+                               ('https://backend.test', '../files')]:
+                with self.subTest(base=base, name=name):
+                    config.write_text(json.dumps({'backendService': {'baseUrl': base, 'serviceName': name}}))
+                    with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config)}, clear=True):
+                        with self.assertRaises(FileBrokerConfigurationError):
+                            FileBroker()
+
+    def test_backend_address_can_be_explicitly_overridden(self):
+        with patch.dict('os.environ', {'CCSDK_FILE_BROKER_URL': 'https://override.test/broker'}):
+            self.assertEqual(FileBroker().endpoint, 'https://override.test/broker')
+            self.assertEqual(FileBroker('https://explicit.test/broker').endpoint, 'https://explicit.test/broker')
+
+    def test_missing_backend_config_keeps_broker_unconfigured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / 'databases.json'
+            with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config)}, clear=True):
+                self.assertEqual(FileBroker().endpoint, '')
+                config.write_text('{}')
+                self.assertEqual(FileBroker().endpoint, '')
+
     def ref(self, file_id="file-1", purpose="input"):
         return AttachmentRef(file_id=file_id, purpose=purpose)
 
@@ -392,6 +454,7 @@ class FileBrokerTests(unittest.TestCase):
 
         async def exercise(root):
             broker = FileBroker(
+                endpoint="",
                 service_token="broker-token",
                 auth_mode="service",
                 event_sink=lambda event_type, data: events.append((event_type, data)),
