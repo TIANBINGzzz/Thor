@@ -108,7 +108,10 @@ class RuntimeHTTPTests(unittest.TestCase):
                 headers=self.headers('run.execute')).status_code, 401)
             self.assert_public_run(self.client.post('/internal/v1/runs', json=body,
                 headers=self.headers('run.execute', capabilityRef='chart-generation')), 202)
-        payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
+        # 构建镜像不携带 .env；测试显式提供模型，避免依赖开发机配置。
+        with patch.object(server, 'MODELS', ['test-model']):
+            payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
+        self.assertEqual(payload['model'], 'test-model')
         self.assertIsNone(payload['workflow_name'])
         from runtime.config import build_options, create_run_services
         self.assertIsNone(create_run_services(payload))
