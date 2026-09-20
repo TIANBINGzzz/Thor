@@ -183,9 +183,16 @@ def main():
     parser.add_argument('--port', type=int, default=4321)
     parser.add_argument('--minutes', type=float, default=45)
     parser.add_argument('--prepare-only', action='store_true')
+    parser.add_argument('--run-prepared', action='store_true', help='运行已冻结快照，避免顺序测试期间的源码改动影响下一组')
     args = parser.parse_args()
     output = args.output.resolve()
-    repo = prepare(output, args.variant)
+    if args.run_prepared:
+        manifest = json.loads((output / 'manifest.json').read_text(encoding='utf-8'))
+        if manifest['variant'] != args.variant or (output / 'run-id.txt').exists():
+            raise RuntimeError('快照组别不匹配或已运行')
+        repo = output / 'repo'
+    else:
+        repo = prepare(output, args.variant)
     asyncio.run(evaluate(args, output, repo))
 
 
