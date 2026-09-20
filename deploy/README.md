@@ -19,7 +19,7 @@
 
 构建失败时先区分：申请构建环境失败是构建容器/网络问题，`docker build` 拉基础镜像或 pip/npm 超时是出网问题，部署阶段下载制品失败是 97 到云效制品服务的问题。完全离线客户使用本流水线生成的 `image.tar` 制品，现场 `docker load`。
 
-构建访问基础镜像仓库、PyPI、Debian源及云效代码/制品服务。Docker Hub不通时配置NODE_IMAGE/PYTHON_IMAGE为组织同步的官方Bookworm镜像。镜像已包含SDK、Node和Python数据库依赖，移除DBHub及npm依赖安装；本机构建成功不代表云效目标网络已验收。
+构建访问基础镜像仓库、PyPI、Debian源及云效代码/制品服务。OfficeCLI固定版本随`deploy/vendor/officecli/`交付并校验SHA-256，构建不再从GitHub下载。Docker Hub不通时配置NODE_IMAGE/PYTHON_IMAGE为组织同步的官方Bookworm镜像。镜像已包含SDK、Node和Python数据库依赖，移除DBHub及npm依赖安装；本机构建成功不代表云效目标网络已验收。
 
 ## 运行前置条件
 

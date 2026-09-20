@@ -12,6 +12,10 @@
 !deploy/*.sh
 !deploy/*.sources
 !deploy/*.conf
+!deploy/vendor/
+!deploy/vendor/officecli/
+!deploy/vendor/officecli/officecli-linux-x64
+!deploy/vendor/officecli/LICENSE
 !deploy/data-access.example.json
 !deploy/compose*.yaml
 !config/
