@@ -49,10 +49,9 @@ WINDOWS_RESERVED_NAMES = {
 class FileBrokerError(RuntimeError):
     """Stable, non-sensitive error from the File Broker exchange."""
 
-    def __init__(self, message: str, *, code: str = "file_broker_error", http_status: int | None = None) -> None:
+    def __init__(self, message: str, *, code: str = "file_broker_error") -> None:
         super().__init__(message)
         self.code = code
-        self.http_status = http_status
 
 
 class FileBrokerUnavailableError(FileBrokerError):
@@ -624,9 +623,9 @@ class FileBroker:
         client.cookies.clear()
         async with client.stream('GET', url, headers=headers) as response:
             if response.status_code in {401, 403, 404, 409, 410, 424}:
-                raise FileBrokerError('文件未授权或不可用', code='file_access_denied', http_status=response.status_code)
+                raise FileBrokerError('文件未授权或不可用', code='file_access_denied')
             if response.status_code != 200:
-                raise FileBrokerError('文件下载失败', code='file_download_failed', http_status=response.status_code)
+                raise FileBrokerError('文件下载失败', code='file_download_failed')
             disposition = response.headers.get('content-disposition')
             name = _filename_from_content_disposition(disposition)
             if name and not re.search(r'(?:^|;)\s*filename\*\s*=', disposition or '', re.I):

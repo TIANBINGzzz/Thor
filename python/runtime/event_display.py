@@ -48,8 +48,6 @@ TOOL_DISPLAY_NAMES = {
     'other': '',
 }
 PHASE_DISPLAY_NAMES = {
-    'attachments_received': '',
-    'file_failed': '附件获取失败',
     'queued': '等待处理',
     'preparing_files': '正在准备附件',
     'preparing_file': '正在准备文件',

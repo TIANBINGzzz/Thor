@@ -32,9 +32,6 @@ def _payload(value: Any) -> dict[str, Any]:
             raise ProtocolError("payload nesting exceeds 16 levels")
         if isinstance(item, dict):
             for key, child in item.items():
-                # 附件只能走授权引用；放入业务JSON不会触发下载，必须明确拒绝。
-                if isinstance(key, str) and key.lower().replace('_', '').replace('-', '') in {'attachmentids', 'attachmentrefs'}:
-                    raise ProtocolError('attachments must be supplied in input.attachmentRefs, not payload')
                 if not isinstance(key, str) or key.lower().replace("_", "").replace("-", "") in reserved:
                     raise ProtocolError("payload contains a reserved or invalid key")
                 check(child, depth + 1)

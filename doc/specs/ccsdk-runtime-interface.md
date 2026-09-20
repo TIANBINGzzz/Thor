@@ -247,8 +247,6 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"type":
 | `downloading_file` | `fileId`、`receivedBytes`、`totalBytes` | 当前文件已接收字节及授权总大小；开始时 receivedBytes 为 0，中间更新最多每 500ms 一次，结束时补发最终字节数。 |
 | `validating_file` | 同上 | 字节传输完毕，正在完成落盘和大小、SHA-256 校验；不等于模板内容解析成功。 |
 | `file_ready` | 同上 | 当前文件校验成功。 |
-| `attachments_received` | `fileCount` | 本轮实际收到的授权附件数，含0；可用于定位Java漏传。 |
-| `file_failed` | `errorCode`、可选`fileId/httpStatus` | 下载或配置失败；Run失败，不继续调用模型。不包含上游正文、地址和凭据。 |
 | `files_ready` | `fileCount` | 全部附件就绪。 |
 | `model_starting` | 无 | 已结束输入准备，进入 SDK 执行阶段；不是模型思考事件。 |
 | `saving_files` | 无 | SDK已结束，等待已提交文件上传收尾，Run仍为running。 |
@@ -421,5 +419,3 @@ File Broker 的文件不可用、无权或已过期会转换为 Run 的 `run.fai
 ## 10. 开发观测
 
 `GET /internal/v1/runs/{runId}/trace` 需部署显式启用 `CCSDK_ENABLE_RUN_TRACE=1`（默认关闭返回404）及独立 `run.observe` scope；身份、会话、能力绑定原Run，run.read/run.execute不能访问。afterSequence默认0，limit默认100且1–500；返回events、nextSequence、hasMore，序号独立于SSE，响应no-store。仅采集启用后SDK实际返回的思考和工具事件，遮盖已知凭据、省略二进制及过长内容，不补录历史、不承诺完整内部推理；具体字段见[API HTML](../python-api.html#run-trace)。
-
-附件联调约束：Java须将聊天attachmentIds解析、授权后映射为input.attachmentRefs；平台下载模式的fileId必须是下载服务认识的文件ID，不能默认等于聊天附件表主键。payload及其嵌套中的attachmentIds/attachmentRefs会被拒绝。附件副本仅供本轮使用，后续重读须重新提交授权引用。REQ-001保持（新增进度不传凭据），REQ-002部分满足（不扩大附件权限，Java文件ACL及ID映射仍需联调验收）。

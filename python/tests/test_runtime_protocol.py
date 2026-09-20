@@ -32,12 +32,6 @@ class RuntimeProtocolTests(unittest.TestCase):
     def test_attachment_only(self):
         payload=self.payload(); payload["input"]={"attachmentRefs":[{"fileId":"f-1"}]}
         self.assertEqual(len(AgentRunRequest.from_dict(payload).input.attachment_refs),1)
-    def test_misplaced_attachment_fields_are_not_silently_prompted(self):
-        for key in ('attachmentIds', 'attachmentRefs', 'attachment_ids'):
-            for value in ({key: ['file-1']}, {'nested': {key: ['file-1']}}):
-                with self.subTest(value=value), self.assertRaisesRegex(ProtocolError, 'input.attachmentRefs'):
-                    AgentRunRequest.from_dict({**self.payload(), 'payload': value})
-
     def test_payload_json_validation(self):
         body = self.payload()
         body["input"] = {}
