@@ -279,7 +279,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
     "text": "请根据这些演示数据画柱状图并简短说明：项目A120项、项目B85项、项目C60项。"
   }
 }</pre></div>
-<p>Python 的内部图表工具校验标签与数值后生成 Mermaid，由模型原样加入正文。工具参数不是 Java 请求字段，不能放进 payload。当前每张图一个数值系列，两类柱状图、折线图和矩形树图最多 50 项，饼图最多 12 项，雷达图 3–12 项；折线图至少 2 点。数值绝对值不超过 10<sup>15</sup>，不接受 null、布尔值、数字字符串或非有限数值；分类标签不能重复。饼图合计须大于 0，且每个正值占比至少 1%（当前渲染器会省略更小的扇区）；不符合时改用柱状图或表格，不能删除或擅自合并小项。雷达图上限取本组最大值（全零时为1），不代表满分；矩形树图不接受零值，极小分类应在正文补充原始数字。不得擅自改数或截断数据。</p>
+<p>Python 的内部图表工具校验标签与数值后生成 Mermaid，由模型安排正文位置；Runtime在终态前核对完整图块并补齐遗漏结果，已出现的同一图表不重复追加。工具参数不是 Java 请求字段，不能放进 payload。当前每张图一个数值系列，两类柱状图、折线图和矩形树图最多 50 项，饼图最多 12 项，雷达图 3–12 项；折线图至少 2 点。数值绝对值不超过 10<sup>15</sup>，不接受 null、布尔值、数字字符串或非有限数值；分类标签不能重复。饼图合计须大于 0，且每个正值占比至少 1%（当前渲染器会省略更小的扇区）；不符合时改用柱状图或表格，不能删除或擅自合并小项。雷达图上限取本组最大值（全零时为1），不代表满分；矩形树图不接受零值，极小分类应在正文补充原始数字。不得擅自改数或截断数据。</p>
 <p><strong>正文事件仍为 message.delta。</strong>textDelta 是本次新增的原始 Markdown，围栏与图表代码可能分散在多个事件中；以下把一块放在单个事件里只是便于阅读。工具状态仍是 tool.started / progress / finished，公开分类为 <code>chart.generate</code>，显示名称为“生成图表”。</p>
 <div class="code-wrap"><div class="code-label">事件 JSON · 图表作为正文发送</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
@@ -355,7 +355,7 @@ xychart-beta
 <tr><td>混合产出</td><td>同一Run可发布图片和文档，各自独立artifactId；不默认合并或打包。</td></tr>
 <tr><td>失败处理</td><td>生图失败不自动重复付费请求；发布后的上传重试遵循通用Artifact策略。已成功图片保留，不能用run.completed推断每张图ready。</td></tr>
 </tbody></table>
-<p>部署侧配置 CCSDK_IMAGE_BASE_URL、CCSDK_IMAGE_API_KEY，可选 CCSDK_IMAGE_MODEL（默认 qwen-image-3.0）。前端和Java不传这些配置；缺少服务地址或密钥时执行准备报错，不保证在创建Run时同步返回400。模型只提交画面要求和受控文件路径。</p>
+<p>阿里云工作空间默认复用 ANTHROPIC_AUTH_TOKEN，并将通用地址的 /apps/anthropic 解析为 /compatible-mode/v1，无需新增云效变量。可选 CCSDK_IMAGE_BASE_URL、CCSDK_IMAGE_API_KEY 覆盖默认值；CCSDK_IMAGE_MODEL 默认 qwen-image-3.0。其他供应商须显式配置生图地址。前端和Java不传这些配置；缺少服务地址或密钥时执行准备报错，不保证在创建Run时同步返回400。模型只提交画面要求和受控文件路径。</p>
 <p>生成PNG → 查看核验 → 发布快照 → artifact.pending → artifact.uploading → artifact.ready。ready携带文件服务fileId；不返回上游临时URL、Base64或公开下载URL。生图中的工具状态为 <code>toolKey: image.generate</code>、<code>displayName: 生成或编辑图片</code>。图片预览和下载复用Java授权文件接口。</p>
 </section>
 

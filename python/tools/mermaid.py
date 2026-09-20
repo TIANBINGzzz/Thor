@@ -143,7 +143,7 @@ def build_mermaid(arguments):
     return {'markdown': '```mermaid\n' + '\n'.join(lines) + '\n```'}
 
 
-def create_chart_server():
+def create_chart_server(on_generated=None):
     @sdk_tool('build_mermaid',
               '用明确数据生成正文内Mermaid图表：柱状图、横向柱状图、折线图、饼图、雷达图、矩形树图。返回markdown，须原样放入回答；'
               '不查询数据库、不生成文件、不提供下载链接。', CHART_SCHEMA)
@@ -154,6 +154,8 @@ def create_chart_server():
             return {'isError': True, 'content': [{'type': 'text', 'text': json.dumps({
                 'error': {'code': 'CHART_INPUT_INVALID', 'field': error.field, 'message': str(error)}},
                 ensure_ascii=False)}]}
+        if on_generated is not None:
+            on_generated(value['markdown'])
         return {'content': [{'type': 'text', 'text': json.dumps(value, ensure_ascii=False)}]}
 
     return create_sdk_mcp_server(name='charts', version='1.0.0', tools=[build])

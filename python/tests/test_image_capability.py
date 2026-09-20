@@ -22,6 +22,23 @@ from tools.artifacts import create_artifact_server
 
 
 class ImageCapabilityTests(unittest.TestCase):
+    def test_image_defaults_reuse_general_key_and_workspace_url(self):
+        with patch.dict('os.environ', {
+                'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
+                'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic'}, clear=True), \
+                patch('runtime.config.create_image_server', return_value={}) as create:
+            options = build_options({'capability_ref': 'image-generation'})
+        self.assertEqual(create.call_args.kwargs['api_key'], 'shared-private-key')
+        self.assertEqual(create.call_args.kwargs['base_url'],
+                         'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1')
+        self.assertNotIn('shared-private-key', options.system_prompt['append'])
+
+    def test_unknown_provider_is_not_guessed_as_image_endpoint(self):
+        with patch.dict('os.environ', {'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
+                'ANTHROPIC_BASE_URL': 'https://provider.test/apps/anthropic'}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, '图像生成服务未配置'):
+                build_options({'capability_ref': 'image-generation'})
+
     def test_catalog_and_reference_input(self):
         with TestClient(server.app) as client:
             items = client.get('/internal/v1/capabilities').json()['capabilities']

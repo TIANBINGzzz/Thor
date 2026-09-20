@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
@@ -424,7 +425,20 @@ def build_system_prompt(
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
 
 
-def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None) -> ClaudeAgentOptions:
+def image_configuration():
+    """同一阿里云工作空间默认复用通用Key及地址；其他供应商须显式指定生图地址。"""
+    base = os.environ.get('CCSDK_IMAGE_BASE_URL', '').strip()
+    key = os.environ.get('CCSDK_IMAGE_API_KEY', '').strip() or os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
+    if not base:
+        url = urlsplit(os.environ.get('ANTHROPIC_BASE_URL', ''))
+        if (url.scheme == 'https' and (url.hostname or '').endswith('.maas.aliyuncs.com')
+                and url.path.rstrip('/') == '/apps/anthropic'
+                and not url.username and not url.password and not url.query and not url.fragment):
+            base = urlunsplit((url.scheme, url.netloc, '/compatible-mode/v1', '', ''))
+    return base, key
+
+
+def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None) -> ClaudeAgentOptions:
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -450,7 +464,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     # 图表能力复用通用执行入口；不为展示形式新增Workflow，不依赖data服务。
     charts_enabled = not restricted_tools and capability_ref in {'conversation', 'chart-generation'}
     if charts_enabled:
-        mcp_servers['charts'] = create_chart_server()
+        mcp_servers['charts'] = create_chart_server(on_generated=chart_sink)
     if registered_template:
         from workflows.writing_docx.template_assets import load_template, stage_template
         if not artifact_enabled:
@@ -507,10 +521,11 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         )
         mcp_servers["office"] = {"command": os.environ.get("CCSDK_OFFICECLI_PATH", "officecli"),
                                  "args": ["mcp"], "env": {"OFFICECLI_SKIP_UPDATE": "1"}}
-        if os.environ.get("CCSDK_IMAGE_BASE_URL") and os.environ.get("CCSDK_IMAGE_API_KEY"):
+        image_base, image_key = image_configuration()
+        if image_base and image_key:
             mcp_servers["images"] = create_image_server(
                 work_directory or payload.get("cwd") or Path.cwd(),
-                base_url=os.environ["CCSDK_IMAGE_BASE_URL"], api_key=os.environ["CCSDK_IMAGE_API_KEY"],
+                base_url=image_base, api_key=image_key,
                 model=os.environ.get("CCSDK_IMAGE_MODEL", "qwen-image-3.0"),
                 additional_dirs=payload.get("additional_directories"),
             )
@@ -523,7 +538,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     # 生图入口必须实际挂载服务；缺配置时禁止模型用其他工具伪造交付。
     if capability_ref == 'image-generation':
         if 'images' not in mcp_servers:
-            raise RuntimeError('图像生成服务未配置：请配置 CCSDK_IMAGE_BASE_URL 和 CCSDK_IMAGE_API_KEY')
+            raise RuntimeError('图像生成服务未配置：请检查通用模型地址和Key；其他供应商须配置CCSDK_IMAGE_BASE_URL')
         prompt_append += '\n' + IMAGE_INSTRUCTIONS
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
