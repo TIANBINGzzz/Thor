@@ -20,9 +20,6 @@ def git(*args, env=None, input=None):
 
 def excluded(name):
     path = PurePosixPath(name)
-    # 数据库连接凭据由部署环境提供，不进入云效源码快照。
-    if name == "config/databases.json":
-        return True
     if path.parts[0].lower() in {"doc", "docs"}:
         return True
     if path.name.lower() in {"agent.md", "agents.md", "claude.md"}:

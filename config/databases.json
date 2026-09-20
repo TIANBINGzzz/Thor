@@ -83,9 +83,9 @@
       "connection": {
         "tenant_id": "rehearsal-school",
         "driver": "mysql+pymysql",
-        "host": "192.168.10.94",
-        "port": 3306,
-        "database": "test_hpm_dev",
+        "host": "192.168.10.88",
+        "port": 7088,
+        "database": "school_hpm",
         "tls": {
           "mode": "disabled"
         },
@@ -94,7 +94,7 @@
         "max_rows": 10000,
         "database_scope_enforced": true,
         "username": "root",
-        "password": "String@1307!",
+        "password": "forXAZP@OjBxWXseDKw$MR0j0765&xV3",
         "scope_source_key": "schoolDoubleHigh",
         "scope_policy_revision": 2
       }
