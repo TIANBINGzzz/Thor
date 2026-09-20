@@ -12,6 +12,7 @@ from docx import Document
 
 from data_access.context import DataError
 from runtime.config import build_options, prepare_workflow_assets, workflow_prompt_documents
+from runtime.data_services import RunServices
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
 from runtime.protocol import AgentRunRequest
 from workflows.writing_docx.template_assets import load_template, stage_template
@@ -174,7 +175,7 @@ class TemplateDocumentTests(unittest.TestCase):
             stage_template(template,self.root/'run')
 
     def test_registered_template_requires_run_workspace(self):
-        with patch('runtime.config.create_run_services',return_value=object()):
+        with patch('runtime.config.create_run_services',return_value=RunServices([])):
             with self.assertRaisesRegex(DataError,'TEMPLATE_WORKSPACE_REQUIRED'):
                 build_options(self.payload('alpha'))
 
@@ -211,6 +212,6 @@ class TemplateDocumentTests(unittest.TestCase):
         payload.update(session_directory=str(self.root/'session'),work_directory=str(self.root/'session/work'),
                        deliverables_directory=str(self.root/'session/output'))
         (self.directory/'templates/alpha/writing-guide.md').write_text('NEW_RULES')
-        with patch('runtime.config.create_run_services',return_value=object()):
+        with patch('runtime.config.create_run_services',return_value=RunServices([])):
             with self.assertRaisesRegex(DataError,'TEMPLATE_MISMATCH'):
                 build_options(payload)
