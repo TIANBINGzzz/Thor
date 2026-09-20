@@ -96,6 +96,29 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assert_public_run(self.client.post('/internal/v1/runs',json=body,
                 headers=self.headers('run.execute')),202)
 
+    def test_private_trace_requires_observe_scope_and_never_enters_public_events(self):
+        self.seed()
+        route = '/internal/v1/runs/run-test/trace'
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '0'}):
+            self.assertEqual(self.client.get(route, headers=self.headers('run.observe')).status_code, 404)
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1', 'TEST_API_KEY': 'private-test-key'}):
+            asyncio.run(server._handle_agent_event('run-test', {'type': 'thinking', 'text': '测试模型返回的思考'}))
+            asyncio.run(server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'call-1',
+                'name': 'Read', 'input': {'path': 'template.docx', 'authorization': 'private-test-key',
+                'note': 'Bearer private-test-key'}}))
+            self.assertEqual(self.client.get(route, headers=self.headers()).status_code, 401)
+            self.assertEqual(self.client.get(route, headers=self.headers('run.execute')).status_code, 401)
+            self.assertEqual(self.client.get(route, headers=self.headers('run.observe', sub='other')).status_code, 401)
+            response = self.client.get(route+'?limit=1', headers=self.headers('run.observe'))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers['cache-control'], 'no-store')
+            self.assertEqual(response.json()['events'][0]['event']['text'], '测试模型返回的思考')
+            second = self.client.get(route+'?afterSequence=1', headers=self.headers('run.observe')).json()
+            self.assertEqual(second['events'][0]['event']['name'], 'Read')
+            self.assertNotIn('private-test-key', json.dumps(second))
+            self.assertNotIn('测试模型返回的思考', json.dumps(self.store.events_after('run-test'), ensure_ascii=False))
+            self.assertNotIn('template.docx', json.dumps(self.store.events_after('run-test')))
+
     def test_chart_capability_uses_existing_jwt_and_generic_execution(self):
         items = self.client.get('/internal/v1/capabilities').json()['capabilities']
         charts = [item for item in items if item['capabilityRef'] == 'chart-generation']

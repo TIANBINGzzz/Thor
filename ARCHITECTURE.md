@@ -73,6 +73,8 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 业务文件 ↔ Runtime 工作目录：Java先授权文件服务fileId，Python按数据源配置fileService下载本轮副本；输入下载和成果上传共用runtime/file_service.py配置。显式Broker用于独立部署/自测；本地路径及平台下载成功不能替代业务文件ACL，见[ADR-032](doc/ADR/032-platform-file-download.md)。
 - Run 内先准备全部附件，再查询 SDK；无附件直接执行。Client 的准备和清理随会话串行，准备可取消；排队、文件准备、模型执行分别计时，文件进度复用公共 SSE。
 
+- 开发观测：显式启用CCSDK_ENABLE_RUN_TRACE后，Worker思考与工具事件写入RunStore私有trace表；仅绑定原Run的run.observe可分页读取，公共SSE不包含详情。
+
 ## 8. Cross-cutting concerns
 
 - 安全：当前 `bypassPermissions` 和路径约定不构成生产沙箱；多租户需文件、进程、网络及凭据隔离。

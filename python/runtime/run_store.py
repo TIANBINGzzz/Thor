@@ -107,6 +107,12 @@ class RunStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_run_events_after
                     ON run_events(run_id, sequence);
+                CREATE TABLE IF NOT EXISTS run_traces (
+                    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+                    sequence INTEGER NOT NULL,
+                    event_json TEXT NOT NULL,
+                    PRIMARY KEY (run_id, sequence)
+                );
                 CREATE TABLE IF NOT EXISTS artifacts (
                     artifact_id TEXT PRIMARY KEY,
                     run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
@@ -416,6 +422,23 @@ class RunStore:
 
     replay = events_after
     get_events = events_after
+
+    def append_trace(self, run_id, raw):
+        """私有调试事件独立编号，不进入公共事件回放或lastSequence。"""
+        with self._lock:
+            sequence = self._connection.execute(
+                'SELECT COALESCE(MAX(sequence),0)+1 FROM run_traces WHERE run_id=?', (run_id,)).fetchone()[0]
+            event = {'runId': run_id, 'sequence': sequence, 'occurredAt': _now_ms(), 'event': raw}
+            self._connection.execute('INSERT INTO run_traces VALUES (?,?,?)', (run_id, sequence, _json(event)))
+            self._connection.commit()
+            return event
+
+    def traces_after(self, run_id, after_sequence=0, limit=100):
+        with self._lock:
+            rows = self._connection.execute(
+                'SELECT event_json FROM run_traces WHERE run_id=? AND sequence>? ORDER BY sequence LIMIT ?',
+                (run_id, after_sequence, limit)).fetchall()
+            return [json.loads(row[0]) for row in rows]
 
     def last_sequence(self, run_id: str) -> int:
         """接收 Run 标识，返回已存事件的最大序号，无事件时返回 0。"""

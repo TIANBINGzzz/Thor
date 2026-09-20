@@ -2,6 +2,8 @@
 
 ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档使用 [模板](template.md)，实现任务另记 backlog；功能代码删除不等于删除决策记录。
 
+- [ADR-033：开发观测与公共事件分离](033-private-run-observation.md)
+
 ## 编写约定
 
 当前拆分边界见 [ADR-018：本地自测独立项目](018-extract-local-playground.md)，部分替代 ADR-011 的同仓本地应用边界；历史 ADR 中的 `web/` 和 `python/local/` 路径现位于外部 ScribePlayground。

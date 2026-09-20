@@ -359,6 +359,13 @@ xychart-beta
 <p>生成PNG → 查看核验 → 发布快照 → artifact.pending → artifact.uploading → artifact.ready。ready携带文件服务fileId；不返回上游临时URL、Base64或公开下载URL。生图中的工具状态为 <code>toolKey: image.generate</code>、<code>displayName: 生成或编辑图片</code>。图片预览和下载复用Java授权文件接口。</p>
 </section>
 
+<section id="run-trace"><h2>开发观测 · 私有执行日志</h2>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/trace</code></div>
+<p>仅开发排查使用。部署显式设置 <code>CCSDK_ENABLE_RUN_TRACE=1</code> 才采集并开放接口，默认关闭返回404；不会补录历史Run。JWT须单独授予 <code>run.observe</code>，run.read/run.execute不包含此权限，用户、租户、会话、能力仍绑定目标Run。Java不可向普通前端授予此scope。</p>
+<p>参数 afterSequence 默认0，limit 默认100、范围1–500。响应为 <code>{"events":[{"runId":"run_01","sequence":1,"occurredAt":1725400300000,"event":{"type":"tool_use","id":"call_01","name":"Read","input":{"path":"template.docx"}}}],"nextSequence":1,"hasMore":false}</code>。按nextSequence增量轮询，hasMore为true时继续取下一页；序号独立于公共SSE。响应不缓存。</p>
+<p>记录SDK实际返回的thinking、tool_use、tool_progress、tool_result和结果/错误；保留调用ID、工具名、输入与结果，遮盖结构化凭据、已知凭据和Bearer/JWT，省略二进制及过长文本。SDK自身也可能截断工具结果。日志可能含业务内容与运行路径，只供可信开发者；不承诺收集模型未输出的内部推理。公共SSE继续隐藏这些详情。</p>
+</section>
+
 <section id="query"><h2>查询 Run</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}</code></div>
 <p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。查询请求不消耗 JWT 的 <code>jti</code>。</p>

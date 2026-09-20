@@ -26,10 +26,12 @@ from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
+from runtime import private_trace
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOGGER = logging.getLogger("ccsdk.runtime")
+TRACE_SECRETS: dict[str, tuple[str, ...]] = {}
 
 
 load_runtime_environment()
@@ -338,6 +340,8 @@ def _artifact_delivery() -> ArtifactDelivery:
 
 
 async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
+    if private_trace.enabled() and raw.get('type') in private_trace.TRACE_TYPES:
+        RUN_STORE.append_trace(run_id, private_trace.sanitize(raw, TRACE_SECRETS.get(run_id, ())))
     if raw.get('type') == 'artifact.published':
         run = RUN_STORE.get_run(run_id)
         session_key = run.get('metadata', {}).get('sessionKey')
@@ -593,6 +597,7 @@ async def _execute_internal_run(
 ) -> None:
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
+    TRACE_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
     input_workspace: Path | None = None
     runtime_mode: str | None = None
     try:
@@ -713,6 +718,7 @@ async def _execute_internal_run(
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
         pending_terminals.pop(run_id, None)
+        TRACE_SECRETS.pop(run_id, None)
         TOOL_DISPLAYS.clear(run_id)
         # Query owns a private directory and can clean it here. Client's
         # current-input directory is shared by the Session and is cleaned by
@@ -817,6 +823,24 @@ async def internal_get_run(run_id: str, request: Request):
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
     return {"run": _public_run(run)}
+
+
+@app.get('/internal/v1/runs/{run_id}/trace')
+async def internal_run_trace(run_id: str, request: Request,
+                             afterSequence: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500)):
+    """开发观测需显式启用及run.observe授权；身份/会话/能力仍绑定原Run。"""
+    if not private_trace.enabled():
+        return _plain('运行观测未启用', 404)
+    run = RUN_STORE.get_run(run_id)
+    if run is None:
+        return _plain('Run 不存在', 404)
+    try:
+        _authorize_internal(request, run, allowed_scopes={'run.observe'}, consume_jti=False)
+    except _InternalAuthError as error:
+        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
+    events = RUN_STORE.traces_after(run_id, afterSequence, limit)
+    return JSONResponse({'events': events, 'nextSequence': events[-1]['sequence'] if events else afterSequence,
+                         'hasMore': len(events) == limit}, headers={'cache-control': 'no-store'})
 
 
 @app.get("/internal/v1/runs/{run_id}/events")

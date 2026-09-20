@@ -415,3 +415,7 @@ Runtime 错误为 `text/plain`，常见状态：
 | `503` | Runtime JWT 或 File Broker 配置不可用 |
 
 File Broker 的文件不可用、无权或已过期会转换为 Run 的 `run.failed`，使用稳定错误码，例如 `file_access_denied`、`file_access_expired`、`file_broker_unavailable`、`file_validation_failed`。
+
+## 10. 开发观测
+
+`GET /internal/v1/runs/{runId}/trace` 需部署显式启用 `CCSDK_ENABLE_RUN_TRACE=1`（默认关闭返回404）及独立 `run.observe` scope；身份、会话、能力绑定原Run，run.read/run.execute不能访问。afterSequence默认0，limit默认100且1–500；返回events、nextSequence、hasMore，序号独立于SSE，响应no-store。仅采集启用后SDK实际返回的思考和工具事件，遮盖已知凭据、省略二进制及过长内容，不补录历史、不承诺完整内部推理；具体字段见[API HTML](../python-api.html#run-trace)。
