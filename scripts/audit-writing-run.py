@@ -82,6 +82,14 @@ def audit(folder, trace_dir):
         'compactionSeconds': round(sum(x.get('durationMs') or 0 for x in compactions.values()) / 1000, 2),
         'modelWrittenScripts': scripts,
     }
+    # Bash也能写出脚本，补充磁盘清单，避免只统计Write调用漏记生成代码。
+    summary['workspaceScripts'] = []
+    for work in (folder / 'repo/.scribe-runs/client-sessions').glob('*/.work'):
+        for path in sorted(work.rglob('*')):
+            if path.is_file() and path.suffix in ('.py', '.js', '.ps1', '.sh') and 'references' not in path.relative_to(work).parts:
+                content = path.read_text(encoding='utf-8', errors='replace')
+                summary['workspaceScripts'].append({'file': path.relative_to(work).as_posix(),
+                                                    'characters': len(content), 'lines': len(content.splitlines())})
     (folder / 'metrics.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
     return summary
 
