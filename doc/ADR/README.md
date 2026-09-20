@@ -82,6 +82,8 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [029](029-native-office-document-tools.md) | 原生Office文档工具与模型自主撰写 | 已采纳 | 部分实现 | 原生编辑、分页渲染及可选生图已实测；整篇报告未通过验收 |
 | [031](031-unified-document-renderer.md) | 统一无桌面文档渲染引擎 | 已采纳 | 组件与局部平台链路已验证 | LibreOffice替代WPS，解除渲染副本字体子集，Windows与Docker部署共用引擎；整篇报告未验收 |
 
+| [032](032-platform-file-download.md) | 平台文件服务下载输入 | 已采纳 | 下载实测与代码接入 | Java提交前授权；显式Broker保留，完整模板管理及生产ACL待验收 |
+
 ## 本次核验
 
 - [ADR-024](024-grouped-metrics-evidence-writing.md)：主题指标YAML与证据驱动原位撰写，已采纳，已实现（本地样稿范围）；部分替代ADR-023文件组织，Skill装配被ADR-025部分替代。

@@ -11,7 +11,7 @@
 | `conversation` | 通用对话 | 不要求专属字段，省略或 `{}` | 问题放 `input.text`；能力路由已实现 |
 | `national-excellence-data-qa` | 双高问数 | 不要求专属字段，省略或 `{}` | 问题、年份等放 `input.text`；内部映射 `double-high-qa` 已实现 |
 | `document-writing` | 通用撰写、修改授权附件 | 省略或 `{}` | 要求放 `input.text`，外部文件用 `input.attachmentRefs`；内部映射 `writing-docx` 已实现 |
-| `document-writing` | 用户上传自定义模板，保存在 Java | 省略或 `{}`，不传 `templateKey` | 模板用 `input.attachmentRefs` 引用；在 `input.text` 明确模板文件及要求，走普通撰写分支 |
+| `document-writing` | 用户上传自定义模板，保存在 Java | 省略或 `{}`，不传 `templateKey` | 模板用 `input.attachmentRefs` 引用文件服务fileId，由fileService配置下载；在 `input.text` 明确模板文件及要求，走普通撰写分支 |
 | `document-writing` | 使用Python预制模板 | `{"templateKey":"szpt-midterm"}` | 选择原40表DOCX及指南，按需取数、按当前结构编辑，全文检查后发布 |
 
 接入方只能使用上表已约定字段；当前唯一字段为document-writing的templateKey，登记值为szpt-midterm。不得自行增加键名或编造值，标题、年份及其他要求放input.text。当前Runtime仍可能接受通过通用JSON检查的其他内容，尚未按能力实施字段白名单；未被拒绝不代表接口支持。新增字段必须先明确类型、允许值、用途并实现处理，再更新本约定。

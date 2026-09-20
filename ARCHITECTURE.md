@@ -69,7 +69,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - 父 Runtime ↔ Worker：JSONL 进程边界；独立执行使用 `query()`，持久执行由 SessionActor 独占 Client。
 - 问数 Workflow 通过 `data_context_topics` 声明预载规则；RunServices 在每轮模型请求前完成短连接检查、字段/口径和范围引用准备。模型从查询定义检索开始，缺信息才补查；Client 每轮刷新上下文，模型思考期间不持有数据库事务。
 - Python ↔ MCP：受控服务器配置和按 MCP 注入的凭据；规则不由浏览器或模型提供。
-- 业务文件 ↔ Runtime 工作目录：通过授权引用获取输入；本地路径不能替代文件 ACL。
+- 业务文件 ↔ Runtime 工作目录：Java先授权文件服务fileId，Python按数据源配置fileService下载本轮副本；输入下载和成果上传共用runtime/file_service.py配置。显式Broker用于独立部署/自测；本地路径及平台下载成功不能替代业务文件ACL，见[ADR-032](doc/ADR/032-platform-file-download.md)。
 - Run 内先准备全部附件，再查询 SDK；无附件直接执行。Client 的准备和清理随会话串行，准备可取消；排队、文件准备、模型执行分别计时，文件进度复用公共 SSE。
 
 ## 8. Cross-cutting concerns

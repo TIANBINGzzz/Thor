@@ -29,7 +29,7 @@ deploy/       云效 ECS 容器构建、配置示例与部署脚本
 doc/          接口规范、工程要求、ADR 和静态 API 文档
 ```
 
-HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执行检索。Java使用Run JWT创建、查询、订阅事件、控制执行和下载产物；固定附件经Java HTTPS File Broker获取。默认监听`127.0.0.1:4310`，`SCRIBE_PORT`可调整端口。
+HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执行检索。Java使用Run JWT创建、查询、订阅事件、控制执行和下载产物；固定附件按Java授权fileId经配置的fileService下载。默认监听`127.0.0.1:4310`，`SCRIBE_PORT`可调整端口。
 按业务会话检索执行记录使用`GET /internal/v1/sessions/{businessSessionId}/runs`，Java签发绑定会话及身份的`session.read` JWT，返回执行摘要和nextCursor；会话标题与消息仍由Java管理。详见[分页契约](doc/specs/ccsdk-runtime-interface.md#43-按业务会话查询执行记录)。
 
 测试UI、模拟Java服务、测试会话及上传位于独立项目 `../ScribePlayground`，不是Runtime运行依赖。Node用于SDK CLI及项目脚本，数据库查询已由进程内data MCP替代DBHub。

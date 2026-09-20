@@ -1,8 +1,6 @@
-"""Request-scoped attachment fetching through the Java File Broker.
+"""按本轮授权 fileId 获取平台文件，显式 Broker 用于独立部署和本地自测。
 
-Fixed attachments are runtime inputs, not model tools.  This module exchanges
-an attachment id for a one-time URL or a proxied response, validates the
-response, and atomically writes it below the current Run workspace.
+固定附件在模型执行前流式下载并原子写入本轮输入目录；下载目标来自部署配置。
 """
 
 from __future__ import annotations
@@ -22,10 +20,13 @@ import socket
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import unquote_plus, urlsplit, urlunsplit
 import uuid
 
 import httpx
+
+from runtime.file_service import FileServiceError, file_service_config
+from runtime.protocol import SAFE_ID
 
 
 LOGGER = logging.getLogger("ccsdk.file_broker")
@@ -95,7 +96,7 @@ class FetchedFile:
             "mimeType": self.mime_type,
             "bytes": self.size,
             "sha256": self.sha256,
-            "source": "java-file-broker",
+            "source": "file-service" if self.transfer_mode == "file_service" else "java-file-broker",
             "transferMode": self.transfer_mode,
         }
 
@@ -288,36 +289,12 @@ def _validate_expected_size(value: Any, max_bytes: int) -> int | None:
 
 
 def configured_broker_endpoint() -> str:
-    """从部署配置定位Java文件接口；显式URL覆盖用于独立部署或本地模拟服务。"""
-    from data_access.connections import config_path
-
-    override = os.environ.get('CCSDK_FILE_BROKER_URL', '').strip()
-    if override:
-        return override
-    path = config_path(os.environ)
-    if not path.exists():
-        return ''
-    try:
-        config = json.loads(path.read_text(encoding='utf-8')).get('backendService')
-        if config is None:
-            return ''
-        base, service = config['baseUrl'], config['serviceName']
-        if not isinstance(base, str) or any(char.isspace() for char in base):
-            raise ValueError()
-        parsed = urlsplit(base)
-        if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
-                or parsed.path not in ('', '/') or parsed.query or parsed.fragment
-                or parsed.port == 0):
-            raise ValueError()
-        if not isinstance(service, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', service):
-            raise ValueError()
-        return base.rstrip('/') + '/' + service + '/api/internal/v1/runtime/file-broker'
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
-        raise FileBrokerConfigurationError('backendService 配置无效') from None
+    """Broker 仅接受显式配置，不再从业务服务名称猜测尚未实现的接口。"""
+    return os.environ.get('CCSDK_FILE_BROKER_URL', '').strip()
 
 
 class FileBroker:
-    """Fetch fixed Run attachments via an authenticated Java service call."""
+    """下载可信 Java Run 提交的附件；业务 ACL 在 Java 提交前校验。"""
 
     def __init__(
         self,
@@ -342,6 +319,13 @@ class FileBroker:
             self.endpoint = raw_endpoint
         else:
             self.endpoint = ""
+        self.file_service = None
+        if endpoint is None and not raw_endpoint:
+            try:
+                self.file_service = file_service_config(os.environ, download=True)
+            except FileServiceError as error:
+                if error.code != 'file_service_not_configured':
+                    raise FileBrokerConfigurationError('fileService 下载配置无效') from None
         self.max_bytes = (
             _positive_int(max_bytes, "max_bytes")
             if max_bytes is not None
@@ -352,17 +336,21 @@ class FileBroker:
             if timeout_ms is not None
             else _env_int("CCSDK_FILE_BROKER_TIMEOUT_MS", DEFAULT_GRANT_TIMEOUT_MS)
         )
+        if self.file_service:
+            self.max_bytes = min(self.max_bytes, self.file_service['maxFileBytes'])
         self.allowed_hosts = {
             host.lower().rstrip(".")
             for host in (allowed_hosts if allowed_hosts is not None else _split_csv("CCSDK_FILE_BROKER_ALLOWED_HOSTS"))
         }
-        self.service_token = service_token if service_token is not None else os.environ.get("CCSDK_FILE_BROKER_SERVICE_TOKEN", "").strip()
-        self.auth_mode = (auth_mode if auth_mode is not None else os.environ.get("CCSDK_FILE_BROKER_AUTH_MODE", "run_jwt")).strip().lower()
+        # Broker 的服务身份和 mTLS 只用于显式 Broker，不能带到另一个下载服务。
+        broker_env = {} if self.file_service else os.environ
+        self.service_token = service_token if service_token is not None else broker_env.get("CCSDK_FILE_BROKER_SERVICE_TOKEN", "").strip()
+        self.auth_mode = (auth_mode if auth_mode is not None else broker_env.get("CCSDK_FILE_BROKER_AUTH_MODE", "run_jwt")).strip().lower()
         if self.auth_mode not in {"run_jwt", "service"}:
             raise ValueError("CCSDK_FILE_BROKER_AUTH_MODE 必须是 run_jwt 或 service")
-        self.verify = verify if verify is not None else os.environ.get("CCSDK_FILE_BROKER_CA", "").strip() or True
-        configured_cert = client_cert if client_cert is not None else os.environ.get("CCSDK_FILE_BROKER_CLIENT_CERT", "").strip()
-        configured_key = os.environ.get("CCSDK_FILE_BROKER_CLIENT_KEY", "").strip()
+        self.verify = verify if verify is not None else broker_env.get("CCSDK_FILE_BROKER_CA", "").strip() or True
+        configured_cert = client_cert if client_cert is not None else broker_env.get("CCSDK_FILE_BROKER_CLIENT_CERT", "").strip()
+        configured_key = broker_env.get("CCSDK_FILE_BROKER_CLIENT_KEY", "").strip()
         if configured_cert and configured_key:
             self.client_cert: str | tuple[str, str] | None = (configured_cert, configured_key)
         elif configured_cert or configured_key:
@@ -375,7 +363,7 @@ class FileBroker:
 
     @property
     def configured(self) -> bool:
-        return bool(self.endpoint)
+        return bool(self.endpoint or self.file_service)
 
     async def fetch_all(
         self,
@@ -390,7 +378,7 @@ class FileBroker:
     ) -> tuple[FetchedFile, ...]:
         """接收附件引用、Run 上下文、工作目录和访问凭据，顺序下载并返回已校验的 FetchedFile 元组。
 
-        访问授权交由 Java File Broker 校验；失败、超时或取消时清理本次已下载文件。
+        Java 负责授权引用；平台下载不转发 Run 凭据，失败、超时或取消时清理本次文件。
         """
         _ = tenant_id, user_id
         refs = tuple(attachment_refs or ())
@@ -401,8 +389,8 @@ class FileBroker:
                 self._emit("file.fetch.started", self._start_data(reference))
                 self._emit("file.fetch.failed", self._failure_data(reference, "file_broker_unavailable", 0))
             raise FileBrokerUnavailableError()
-        selected_token = self._selected_token(bearer_token)
-        if not selected_token:
+        selected_token = None if self.file_service else self._selected_token(bearer_token)
+        if not selected_token and not self.file_service:
             for reference in refs:
                 self._emit("file.fetch.started", self._start_data(reference))
                 self._emit("file.fetch.failed", self._failure_data(reference, "file_broker_unavailable", 0))
@@ -417,6 +405,8 @@ class FileBroker:
             if timeout_ms is not None
             else _env_int("CCSDK_FILE_PREPARE_TIMEOUT_MS", DEFAULT_PREPARE_TIMEOUT_MS)
         )
+        if self.file_service:
+            effective_timeout_ms = min(effective_timeout_ms, self.file_service['timeoutSeconds'] * 1000)
         deadline = time.monotonic() + effective_timeout_ms / 1000
         active_reference: Any | None = None
         active_started: float | None = None
@@ -535,6 +525,10 @@ class FileBroker:
         """按附件引用和 Run 标识向 Java 获取授权，处理代理流或一次性下载地址，返回校验后的文件。"""
         file_id = str(getattr(reference, "file_id", "") or "")
         purpose = str(getattr(reference, "purpose", "input") or "input")
+        if not SAFE_ID.fullmatch(file_id):
+            raise FileBrokerValidationError('文件标识无效')
+        if self.file_service:
+            return await self._fetch_platform_file(client, file_id, purpose, root, used_names)
         headers = {"accept": "application/json, application/octet-stream"}
         if auth_token:
             headers["authorization"] = f"Bearer {auth_token}"
@@ -618,6 +612,36 @@ class FileBroker:
             raise
         except httpx.TimeoutException as error:
             raise FileBrokerTimeoutError() from error
+
+    async def _fetch_platform_file(self, client, file_id, purpose, root, used_names):
+        """按部署配置下载文件；服务不返回权威摘要，本地摘要只用于记录实际输入。"""
+        config = self.file_service
+        url = config['baseUrl'] + config['downloadPath'].replace('{fileId}', file_id)
+        headers = {'domain-name': config['domainName'], 'remote-url': config['remoteUrl'],
+                   'accept': 'application/octet-stream', 'accept-encoding': 'identity'}
+        # 同批次响应可能设置平台 Cookie；下载只使用配置的路由头，不复用隐式身份。
+        client.cookies.clear()
+        async with client.stream('GET', url, headers=headers) as response:
+            if response.status_code in {401, 403, 404, 409, 410, 424}:
+                raise FileBrokerError('文件未授权或不可用', code='file_access_denied')
+            if response.status_code != 200:
+                raise FileBrokerError('文件下载失败', code='file_download_failed')
+            disposition = response.headers.get('content-disposition')
+            name = _filename_from_content_disposition(disposition)
+            if name and not re.search(r'(?:^|;)\s*filename\*\s*=', disposition or '', re.I):
+                # 平台普通 filename 使用 Java URL 编码；RFC 5987 由 email 库解码，不能重复处理。
+                try:
+                    name = unquote_plus(name, encoding='utf-8', errors='strict')
+                except UnicodeError:
+                    raise FileBrokerValidationError('文件名编码无效') from None
+            name = self._unique_name(_safe_filename(name), file_id, used_names)
+            mime = _content_type(response.headers) or 'application/octet-stream'
+            size = _validate_expected_size(_header_int(response.headers, 'content-length'), self.max_bytes)
+            self._emit('file.fetch.transport.selected', {
+                'fileId': file_id, 'purpose': purpose, 'transferMode': 'file_service'})
+            return await self._download_response(response, file_id=file_id, purpose=purpose,
+                name=name, mime_type=mime, expected_size=size, expected_sha256=None,
+                root=root, transfer_mode='file_service')
 
     async def _read_grant(self, response: httpx.Response) -> _Grant:
         """读取 Java 授权响应，校验文件元数据、下载地址及时效，返回内部授权对象。"""

@@ -34,7 +34,7 @@
 
 Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabilityRef`；Java 用当前用户权限与 Agent 允许能力取交集。Python 目录只说明“Runtime 支持什么”，不是用户授权结果。
 当前名称映射足够，不引入复杂 Capability revision/binding 或通用 Runner；预制模板由 Python 维护，Java 仅传 `payload.templateKey`，外部文档仍作为授权文件输入，不因换模板复制 Workflow。字段约定和待实现范围统一记录在[能力 payload 映射](capability-payload.md)。
-用户自定义模板由Java保存，使用`document-writing`，不传`templateKey`；以`input.attachmentRefs`提交`fileId`和`purpose: input`，通过`input.text`说明模板用途及需求。Python经File Broker获取后走普通撰写，不要求上传时同步注册Python模板；每次使用重新提交引用。现有附件用途不支持`template`，多个附件须明确模板与参考资料；同时携带`templateKey`仍选择预制模板。文件授权及普通撰写入口已接入，真实Java联调和复杂模板生成质量另行验收。
+用户自定义模板由Java保存，使用`document-writing`，不传`templateKey`；以`input.attachmentRefs`提交`fileId`和`purpose: input`，通过`input.text`说明模板用途及需求。Python按fileService配置下载后走普通撰写，不要求上传时同步注册Python模板；每次使用重新提交引用。现有附件用途不支持`template`，多个附件须明确模板与参考资料；同时携带`templateKey`仍选择预制模板。文件授权及普通撰写入口已接入，真实Java联调和复杂模板生成质量另行验收。
 模型策略继续由 Python 维护：可能包含图片的 Capability 从首轮起使用支持图片的默认模型，无需为此新增 Subagent。当前未实现按能力选择模型，见 2.8。
 
 ### 1.2 业务字段与关联
@@ -274,7 +274,7 @@ JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可�
 | input | object/是 | 只接收 text、attachmentRefs。 |
 | input.text | string/否，默认空 | 最多 100 万字符；与业务数据、附件清单合成 prompt，传给 query() 或 client.query()。 |
 | input.attachmentRefs | array/否，默认空 | 最多 64 项；全部预取、校验完成后再调用模型。 |
-| attachmentRefs[].fileId | string/是 | Java 文件 ID，交 File Broker；SDK 接收已授权本地文件清单及目录访问配置。 |
+| attachmentRefs[].fileId | string/是 | 文件服务 fileId，经配置下载；SDK 接收已授权本地文件清单及目录访问配置。 |
 | attachmentRefs[].purpose | string/否 | input 或 reference，默认 input；是用途说明，不是额外权限。 |
 | payload | object/否 | JSON 业务数据，最多 64 KiB、16 层；序列化进入 prompt，不参与模型/工具/权限配置。 |
 | credentials.platformBearer | string/条件 | 最多 16384 字符；业务 MCP 需要时必需，经 Worker 临时传值到指定 MCP header/env，不送模型。 |
@@ -363,61 +363,15 @@ data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","
 
 SSE断开不取消执行或上传，终态后关闭，空闲发送心跳；持久事件分页回放。生成文件由artifact.pending/uploading/ready/failed/unknown报告，详情见2.7。SDK结束后仍在上传时发送phase.name=saving_files，Run保持running；文件收尾后才发Run终态，run.completed不保证文件全部ready。来源：server.py、artifact_delivery.py、run_store.py。
 
-### 2.6 输入文件：Python -> Java File Broker
+### 2.6 输入文件：按 fileId 获取平台文件
 
-Java 先完成上传/模板选择与 ACL 登记，再将 fileId 随 Run 提交。Python 只预取 attachmentRefs，不从正文/payload 猜文件 ID，不列举 Java 文件库。后续再用原文件，Java 重新提交引用。
-Python 向部署配置 CCSDK_FILE_BROKER_URL 发出 HTTPS POST，Content-Type: application/json，Accept: application/json, application/octet-stream：
+Java 完成上传/模板选择后，先校验当前用户、租户、会话、能力和文件 ACL，再将文件服务 fileId 放入 input.attachmentRefs。fileId 与存文件接口返回的 data.id 相同，不是模板业务 ID、会话附件 ID、URL 或 FastDFS 路径；已有会话附件须由 Java 解析成该文件 ID。
 
-```json
-{
-  "runId": "run_01",
-  "fileId": "file_01",
-  "purpose": "input"
-}
-```
+Python 使用数据源配置顶层 fileService 的 baseUrl、domainName、remoteUrl 和 downloadPath，向 `/fwk_manage_service/sys_attachment/{fileId}/ai/download/` 发起 GET。仅发送两项配置请求头，不转发 Run JWT/业务 Token；当前下载端点不提供业务 ACL，Java 必须在提交 Run 前完成授权。配置、响应和显式 Broker 契约只维护在 [Runtime 文件规范](ccsdk-runtime-interface.md#8-file-broker-模块)。
 
-三个字段均为字符串，分别确定本次执行、文件和用途。默认 Authorization 使用原 Run JWT；CCSDK_FILE_BROKER_AUTH_MODE=service 时只用 CCSDK_FILE_BROKER_SERVICE_TOKEN。正文不传身份；Java 从 JWT 或服务鉴权后的 Run 记录校验租户/用户、会话、文件及本次授权引用。
-Java 返回以下两种结果之一。URL 模式 HTTP 200 application/json 示例（内容为 5 字节 hello；有效期须以实际返回时刻计算）：
+模板及参考资料均在 Agent 执行前下载，中文文件名解码并检查路径边界；全部就绪后执行。接口未返回权威摘要，Python 只记录实际 SHA-256，有 Content-Length 时校验长度，不能声称远端内容指纹已核验。下载失败/取消不启动模型，Run 结束清理输入目录；下一轮仍需读取的文件重新提交引用。
 
-```json
-{
-  "fileId": "file_01",
-  "name": "source.txt",
-  "mimeType": "text/plain",
-  "size": 5,
-  "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
-  "downloadUrl": "https://files.example.com/download/file_01",
-  "expiresAt": 1789012300000,
-  "oneTime": true
-}
-```
-
-代理流模式 HTTP 200 示例（正文为原始字节，不是 JSON）：
-
-```http
-Content-Type: application/octet-stream
-X-File-Id: file_01
-X-File-Name: source.txt
-X-File-Mime-Type: text/plain
-X-File-Size: 5
-X-File-Sha256: 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
-
-hello
-```
-
-| JSON 字段 / 代理流响应头 | 类型与要求 |
-| --- | --- |
-| fileId / X-File-Id | 必填 string，与请求一致。 |
-| name / X-File-Name | 必填安全文件名，无目录；流模式也支持 Content-Disposition 文件名。 |
-| mimeType / X-File-Mime-Type | 必填 string；下载 Content-Type 须匹配或为 application/octet-stream。 |
-| size / X-File-Size | 必填非负字节数；流头为十进制字符串，不能用 Content-Length 替代。 |
-| sha256 / X-File-Sha256 | 必填 64 位十六进制，核对实际字节；Java 须保证下载版本不变。 |
-| downloadUrl | URL 模式必填，HTTPS/443、允许域名、公共 IP、无重定向；Python 不向此 URL 转发 Run JWT。私网文件服务器建议用 Broker 代理流。 |
-| expiresAt / oneTime | URL 模式必填；推荐 Unix 毫秒（兼容秒），未来且最多 5 分钟；oneTime 必须 true，Java/存储服务负责兑现一次性消费。 |
-
-Java 返回 401/403/404/409/410/424 时 Python 转为 file_access_denied；其他失败、下载过期、完整性错误各有稳定 code。Python 分块落临时文件、校验后原子移动，全部就绪才查询模型；取消/失败清理下载，Run 结束清理临时输入。传输成功不保证文档/图片工具可解析内容。
-默认预算：单文件 256 MiB，文件准备 10 分钟，网络操作等待 15 秒，模型执行 5 分钟，Client 排队 5 分钟，分别计时。配置名与 TLS 选项见 [Runtime 规范](ccsdk-runtime-interface.md#84-大文件与超时)。Java 应流式代理并匹配超时；原 Run JWT 须覆盖后续文件授权，Python 不自动刷新；创建 jti 防重放不能阻止合法文件回调。
-来源：[file_broker.py](../../python/runtime/file_broker.py)、server.py。这是 Python 已实现的回调契约；本次未在 Java 应用控制器找到对应 Broker 实现。
+ScribePlayground 或已实现独立 Broker 的部署可显式设置 CCSDK_FILE_BROKER_URL；不再根据 backendService 猜测 Java 回调地址。原始模板仍由 Java 管理，Python 下载副本不是第二个模板库。
 
 ### 2.7 生成文件：Python自动上传，Java关联消息
 
@@ -448,7 +402,7 @@ Python发布工具提交快照，父Runtime自动上传；Java无需批准或再
 
 artifactId标记一个文件版本，不是整次Run；Python自动重试保留原artifactId，成功后获得fileId。HTTP500、2xx响应体state=500及连接建立失败最多共尝试3次，等待2秒/5秒且共用总预算；仅最终结果通过artifact.ready/failed报告，不确定结果保留artifact.unknown。Java订阅结果，GET仅断线补查；不提供外部重传API或retryable字段，不新增scope，不要求Java调度重试。本次改造只定义Python对Java的结果契约，不新增Java到前端的事件或展示规则。
 
-Java须用创建时保存的runId→messageId关联确定业务归属，按artifactId幂等更新卡片；ready后登记fileId和ACL，再向前端提供业务下载入口。正文增量照常展示，文件卡片由结构化事件驱动，不识别模型输出中的文件名或链接。fileId本身不是授权凭据，存储服务当前没有租户隔离，Java需校验会话及用户权限。再次引用仍走File Broker授权。本节Python接口已实现，Java/前端接入未在本仓库实施。
+Java须用创建时保存的runId→messageId关联确定业务归属，按artifactId幂等更新卡片；ready后登记fileId和ACL，再向前端提供业务下载入口。正文增量照常展示，文件卡片由结构化事件驱动，不识别模型输出中的文件名或链接。fileId本身不是授权凭据，存储服务当前没有租户隔离，Java需校验会话及用户权限。再次引用由Java重新授权后提交attachmentRefs。本节Python接口已实现，Java/前端接入未在本仓库实施。
 
 ### 2.8 差异与问题记录
 

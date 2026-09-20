@@ -10,11 +10,10 @@ import re
 import shutil
 import uuid
 from pathlib import Path
-from urllib.parse import urlsplit
 
 import httpx
 
-from data_access.connections import config_path
+from runtime.file_service import FileServiceError as DeliveryError, file_service_config
 from runtime.event_display import with_display_name
 
 ARTIFACT_ID = re.compile(r'artifact_[0-9a-f]{32}\Z')
@@ -24,48 +23,8 @@ RETRY_DELAYS = (2, 5)
 LOGGER = logging.getLogger('ccsdk.artifacts')
 
 
-class DeliveryError(ValueError):
-    def __init__(self, code, status='failed'):
-        self.code, self.status = code, status
-        super().__init__(code)
-
-
 def public_artifact(record):
     return {key: record[key] for key in PUBLIC_FIELDS if key in record}
-
-
-def file_service_config(env):
-    """与数据源共用配置文件，独立校验 fileService，禁止隐式默认上传主机。"""
-    try:
-        value = json.loads(config_path(env).read_text(encoding='utf-8'))
-        config = value.get('fileService')
-    except (OSError, ValueError, AttributeError):
-        raise DeliveryError('file_service_not_configured') from None
-    if not config:
-        raise DeliveryError('file_service_not_configured')
-    try:
-        config = dict(config)
-        for key in ('baseUrl', 'remoteUrl'):
-            url = config[key]
-            if not isinstance(url, str) or url != url.strip() or any(c.isspace() for c in url):
-                raise ValueError()
-            parsed = urlsplit(url)
-            if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
-                raise ValueError()
-            if parsed.path not in ('', '/'):
-                raise ValueError()
-            config[key] = url.rstrip('/')
-        domain = config['domainName']
-        if not isinstance(domain, str) or not domain or any(c.isspace() for c in domain) or '/' in domain:
-            raise ValueError()
-        domain.encode('ascii')
-        for key, default, maximum in (('timeoutSeconds', 600, 3600), ('maxFileBytes', 1073741824, 10737418240)):
-            config.setdefault(key, default)
-            if type(config[key]) is not int or not 1 <= config[key] <= maximum:
-                raise ValueError()
-    except (ValueError, KeyError, TypeError, UnicodeError):
-        raise DeliveryError('file_service_config_invalid') from None
-    return config
 
 
 class ArtifactDelivery:

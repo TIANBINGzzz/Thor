@@ -331,24 +331,28 @@ Python 校验 JWT 格式、HS256 签名、`aud`、`iss`、`iat`/`exp`、`jti`、
 
 ## 8. File Broker 模块
 
-### 8.1 Python 请求 Java
+### 8.1 Python 获取平台文件
 
-Java 接收上传并分配 fileId；本次 Run 的 `input.attachmentRefs` 是 Python 获取文件的唯一显式入口。Python 执行前预取这些引用，不解析文本或 payload 中的 fileId。再次使用历史文件需重新提交引用。生成的 Artifact 由 Python 上传后，Java 关联返回的 fileId 并登记业务权限，才能用该 fileId 再次提交。
+Java 在创建 Run 前校验用户、租户、会话和文件 ACL，将文件服务的 fileId（与上传响应 data.id 相同）放入 input.attachmentRefs。Python 只下载这些显式引用，不扫描文件库、不从正文/payload 猜 ID；后续再用原文件须重新提交引用。模板仍使用 document-writing，无需在 Python 登记自定义模板。
 
-当 Run 含 `input.attachmentRefs` 时，Python 从数据源部署配置（`CCSDK_DATABASES_FILE`，默认 `config/databases.json`）的顶层 `backendService` 读取 `baseUrl`（HTTPS 域名）和 `serviceName`，拼接 `/{serviceName}/api/internal/v1/runtime/file-broker`。显式设置 `CCSDK_FILE_BROKER_URL` 时优先使用该完整地址。本环境配置为 `https://newtest.stringedu.com` 和 `ai_center_service`。
+下载和成果上传共用 CCSDK_DATABASES_FILE（默认 config/databases.json）顶层 fileService：baseUrl、domainName、remoteUrl；downloadPath 显式配置为 `/fwk_manage_service/sys_attachment/{fileId}/ai/download/`。地址和头不进入 Prompt 或公共事件；不再根据 backendService 拼接未实现的 Broker 地址。
 
 ```http
-POST <baseUrl>/<serviceName>/api/internal/v1/runtime/file-broker
-Authorization: Bearer <Run JWT 或 File Broker 服务 Token>
-Accept: application/json, application/octet-stream
-Content-Type: application/json
+GET <fileService.baseUrl><downloadPath，替换 fileId>
+domain-name: <fileService.domainName>
+remote-url: <fileService.remoteUrl>
+Accept: application/octet-stream
 ```
 
-请求体：`{"runId":"run_01","fileId":"file_01","purpose":"input"}`。
+当前接口不接收 Run JWT、业务 Token 或 Cookie；Python 不转发这些凭据，不跟随重定向。文件服务本身不验证业务 Run ACL，因此 Java 的提交前授权是必要条件，不能将“下载成功”当成权限验证。部署地址可为受控内网，地址不能由浏览器或模型提供。
 
-Java 必须按 `runId`、当前调用身份、业务会话和 `fileId` 校验访问权限。Python 默认转发本次 Run JWT；当 `CCSDK_FILE_BROKER_AUTH_MODE=service` 时改用 `CCSDK_FILE_BROKER_SERVICE_TOKEN`。两种模式不混用。
+响应必须是 HTTP 200 原始文件流，Content-Disposition 提供文件名；支持平台 URL 编码的中文名及 RFC 5987。Content-Length 存在时验证实际字节数，chunked 响应按流计数并限制大小。接口没有返回权威 SHA-256，Python 计算的摘要仅记录实际输入，不声明完成远端摘要比对。
 
-### 8.2 Java 返回一次性 URL
+每轮将文件原子落盘后才交给 Agent。Client 放在 `.scribe-runs/client-sessions/<scopeHash>/.current-input/`，Query 放在 `.scribe-runs/work/<runId>/input/`；原件在文件服务，工作稿另存 `.work/`。失败、取消及 Run 终态清理输入，工作稿和发布快照按各自生命周期管理。
+
+独立部署及 ScribePlayground 可显式配置 CCSDK_FILE_BROKER_URL，启用 POST Broker 契约：请求体为 `{"runId":"run_01","fileId":"file_01","purpose":"input"}`，默认使用本次 Run JWT，auth_mode=service 时使用专用服务 Token。Broker 重验文件权限并返回下述两种响应之一；这是显式选择的接入方式，平台下载失败不会自动切换。
+
+### 8.2 显式 Broker 返回一次性 URL
 
 ```json
 {
@@ -365,7 +369,7 @@ Java 必须按 `runId`、当前调用身份、业务会话和 `fileId` 校验访
 
 `fileId` 必须与请求一致；`name`、`mimeType`、`size`、`sha256` 是完整性校验所需字段。`downloadUrl` 必须是 HTTPS、短时、一次性地址；Python 不跟随重定向，也不会向该下载地址转发 Run JWT。
 
-### 8.3 Java 返回代理流
+### 8.3 显式 Broker 返回代理流
 
 Java 按授权后的 fileId 从 `t_ai_center_attachment` 查找 FastDFS 路径并读取文件；Python 不直连附件表或 FastDFS。响应为原始文件字节，并包含：
 
@@ -388,6 +392,8 @@ Python 按最多 256 KiB 的块写入临时文件并计算 SHA-256；校验大�
 | `CCSDK_FILE_BROKER_TIMEOUT_MS` | 15000（15 秒） | HTTP 连接、等待数据等单次网络操作超时，不是整个下载耗时。 |
 | `CCSDK_RUN_EXECUTION_TIMEOUT_MS` | 300000（5 分钟） | 输入准备完成后单独计算的 SDK 执行预算。 |
 | `CCSDK_CLIENT_QUEUE_TIMEOUT_MS` | 300000（5 分钟） | 持久 Client 等待执行的排队预算，不占文件准备及执行预算。 |
+
+平台下载还受 fileService.maxFileBytes、timeoutSeconds 约束，分别与 Runtime 单文件上限、全部附件准备预算取较小值。
 
 文件准备超时返回 `run.failed` / `file_broker_timeout`；排队超时为 `run_queue_timeout`；模型执行超时 Query 为 `timeout`，Client 为 `sdk_timeout`。均为异步 SSE 错误，并可查询 Run.error；不是创建 HTTP 请求等待这些阶段完成。
 
