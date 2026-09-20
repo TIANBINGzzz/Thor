@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 
 from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for, prepare_workflow_assets
 from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
-from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
+from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FileBrokerError, FetchedFile
 from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
@@ -472,7 +472,7 @@ def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
 
 async def _run_phase(run_id: str, payload: dict[str, Any]) -> None:
     # File preparation events expose business identifiers and progress only.
-    public = {key: payload[key] for key in ("name", "fileId", "receivedBytes", "totalBytes", "fileCount") if key in payload}
+    public = {key: payload[key] for key in ("name", "fileId", "receivedBytes", "totalBytes", "fileCount", "errorCode", "httpStatus") if key in payload}
     await _publish_internal_event(run_id, {"runId": run_id, "type": "phase", "payload": public})
 
 
@@ -481,13 +481,27 @@ async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any],
     """按请求附件引用和已验证身份获取文件到工作目录，发布准备进度并返回 FetchedFile 元组。"""
     if not run_request.input.attachment_refs:
         return ()
+    active_file_id = None
     async def progress(payload: dict[str, Any]) -> None:
+        nonlocal active_file_id
+        if payload.get('fileId'):
+            active_file_id = payload['fileId']
         await _run_phase(run_request.run_id, payload)
 
     await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
-    files = await FileBroker(progress_sink=progress).fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
-        tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
-        bearer_token=runtime_bearer, timeout_ms=FILE_PREPARE_TIMEOUT_MS)
+    try:
+        files = await FileBroker(progress_sink=progress).fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
+            tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
+            bearer_token=runtime_bearer, timeout_ms=FILE_PREPARE_TIMEOUT_MS)
+    except FileBrokerError as error:
+        # 只公开稳定错误码和HTTP状态，不回传下载URL、凭据或上游响应正文。
+        failure = {"name": "file_failed", "errorCode": error.code}
+        if active_file_id:
+            failure['fileId'] = active_file_id
+        if error.http_status is not None:
+            failure['httpStatus'] = error.http_status
+        await progress(failure)
+        raise
     await progress({"name": "files_ready", "fileCount": len(files)})
     return files
 
@@ -610,6 +624,7 @@ async def _execute_internal_run(
         input_workspace = _runtime_input_directory(runtime_mode, run_directory, session_directory)
         RUN_STORE.update_status(run_id, "running")
         await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
+        await _run_phase(run_id, {"name": "attachments_received", "fileCount": len(run_request.input.attachment_refs)})
         attachment_files: tuple[FetchedFile, ...] = ()
         if runtime_mode == "client":
             # A persistent Client cannot change its SDK add_dirs after connect.

@@ -226,6 +226,36 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                         self.assertNotIn(secret, json.dumps(events))
                     await manager.close_all()
 
+    async def test_failed_download_reports_file_and_http_status_without_starting_model(self):
+        import server
+        from runtime.protocol import AgentRunRequest
+        from runtime.run_store import RunStore
+        store = RunStore(':memory:')
+        self.addCleanup(store.close)
+        request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run-failed',
+            'messageId': 'msg-failed', 'input': {'text': '这个文件内容是什么',
+            'attachmentRefs': [{'fileId': 'file_1'}]}})
+        store.create_run(request.run_id, request=request, tenant_id='t', user_id='u')
+        def broker(**kwargs):
+            return FileBroker(transport=httpx.MockTransport(lambda _: httpx.Response(500)), **kwargs)
+        with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=self.root, MODELS=['test'],
+                            internal_tasks={}, internal_subscribers={}), \
+             patch.object(server, '_runtime_mode_for_request', return_value='query'), \
+             patch.object(server, 'FileBroker', side_effect=broker), \
+             patch.object(server, 'stream_agent') as model:
+            await server._execute_internal_run(request, {'tenant': 't', 'sub': 'u'})
+        model.assert_not_called()
+        events = store.events_after(request.run_id, 0)
+        phases = [e['payload'] for e in events if e['type'] == 'phase']
+        received = next(e for e in phases if e['name'] == 'attachments_received')
+        self.assertEqual(received['fileCount'], 1)
+        failure = next(e for e in phases if e['name'] == 'file_failed')
+        self.assertEqual(failure['fileId'], 'file_1')
+        self.assertEqual(failure['httpStatus'], 500)
+        self.assertEqual(failure['errorCode'], 'file_download_failed')
+        self.assertEqual(store.get_run(request.run_id)['status'], 'failed')
+        self.assertNotIn('files.example.test', json.dumps(events))
+
     def test_invalid_download_configuration_is_rejected(self):
         for field, value in (
             ('downloadPath', 'https://other.test/{fileId}'),
