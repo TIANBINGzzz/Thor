@@ -27,7 +27,7 @@ python/       后端与 SDK 执行
   data_access/ 来源授权、连接、查询、结果及Run上下文
   workflows/writing_docx/ 可信模板及指南加载、参考副本
   tests/      后端测试
-.claude/      workflows/执行配置与规则；databases/按库共享语义和查询
+.claude/      workflows/执行配置与规则；databases/按库共享语义和查询；skills/由可信规则按需引用的可复用方法
 deploy/       单实例容器构建、部署脚本及配置示例
 config/       databases.json集中连接/授权，随本版私有源码和镜像交付；其他文件默认忽略
 doc/         specs/ 规范、ADR/ 决策、静态 API HTML
