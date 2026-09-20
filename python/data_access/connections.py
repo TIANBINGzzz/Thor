@@ -39,8 +39,9 @@ def load_config(env, *, optional=False):
 
 def resolve_connection(context, source, config):
     connection = dict(config['connection'])
+    # 连接必须单独显式允许所有租户，不能仅凭来源策略放开其他连接。
     if (not connection.get("revision") or connection.get("source_key") != source["source_key"]
-            or connection.get("tenant_id") != context.tenant_id):
+            or connection.get("tenant_id") not in ("*", context.tenant_id)):
         raise DataError("CONNECTION_FORBIDDEN")
     return connection
 

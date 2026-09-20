@@ -40,6 +40,8 @@ source.json不登记连接路径。databases.json结构为`{version:1,sources:{s
 
 TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配既有连接，不会自动降级。本次实库沿用既有连接，不算生产TLS验收。
 
+2026-09-20按用户要求，校双高暂时向所有已通过Runtime鉴权的租户和用户开放：该来源的policy与connection均显式设置`tenant_id: "*"`，policy.users设为`all_authenticated`。具体租户值仍按身份精确匹配；business_tenant_id继续限定原业务数据范围，Capability、模板、查询白名单及Run结果归属仍校验。恢复租户限制时收紧这三处配置并重新部署。
+
 ## 工具传值
 
 统一`mcp__data__<name>`，内部参数snake_case，HTTP仍camelCase；schoolDoubleHigh保持大小写。工具拒绝未知顶层字段，失败返回isError及安全错误码。

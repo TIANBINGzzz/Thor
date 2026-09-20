@@ -144,6 +144,54 @@ class DataAccessTests(unittest.TestCase):
         self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
         with self.assertRaises(DataError): self.school(self.make_executor())
 
+    def test_shared_source_accepts_other_tenants_and_users_with_fixed_business_scope(self):
+        self.config['policies']['first'].update(tenant_id='*', users='all_authenticated')
+        self.config['connections']['first']['tenant_id'] = '*'
+        previous = None
+        for tenant, user in [('jwt-b', 'u3'), ('jwt-c', 'u4')]:
+            with self.subTest(tenant=tenant):
+                executor = self.make_executor(replace(self.context, tenant_id=tenant, user_id=user))
+                self.assertEqual([s['source_key'] for s in executor.list_data_sources()['sources']], ['first'])
+                scope = self.school(executor)
+                result = executor.execute_query_spec('first', 'sales', 'total', {}, scope)
+                # 共享来源仍使用部署配置的业务范围，不读取另一业务租户的数据。
+                self.assertEqual(result['rows'], [{'total': 10}])
+                if previous:
+                    with self.assertRaisesRegex(DataError, 'SCOPE_FORBIDDEN'):
+                        executor.execute_query_spec('first', 'sales', 'total', {}, previous['scope'])
+                    with self.assertRaisesRegex(DataError, 'RESULT_FORBIDDEN'):
+                        executor.results.page(previous['result_ref'])
+                previous = {'scope': scope, 'result_ref': result['result_ref']}
+
+    def test_shared_tenant_requires_both_policy_and_connection_opt_in(self):
+        context = replace(self.context, tenant_id='jwt-b', user_id='u3')
+        for side, code in [('policies', 'CONNECTION_FORBIDDEN'), ('connections', 'SOURCE_FORBIDDEN')]:
+            with self.subTest(side=side):
+                self.config['policies']['first'].update(tenant_id='jwt-a', users='all_authenticated')
+                self.config['connections']['first']['tenant_id'] = 'jwt-a'
+                self.config[side]['first']['tenant_id'] = '*'
+                executor = self.make_executor(context)
+                with self.assertRaisesRegex(DataError, code):
+                    executor.access('first')
+
+    def test_shared_tenant_keeps_user_capability_template_and_query_restrictions(self):
+        self.config['policies']['first']['tenant_id'] = '*'
+        self.config['connections']['first']['tenant_id'] = '*'
+        context = replace(self.context, tenant_id='jwt-b')
+        self.assertEqual(len(self.make_executor(context).list_data_sources()['sources']), 1)
+        denied = self.make_executor(replace(context, user_id='u3'))
+        self.assertEqual(denied.list_data_sources()['sources'], [])
+        self.config['policies']['first']['users'] = 'all_authenticated'
+        denied = self.make_executor(replace(context, capability_ref='writing'))
+        self.assertEqual(denied.list_data_sources()['sources'], [])
+        denied = self.make_executor(replace(context, template_key='unregistered'))
+        with self.assertRaisesRegex(DataError, 'TEMPLATE_FORBIDDEN'):
+            denied.access('first')
+        self.config['policies']['first']['domains']['sales']['queries'] = []
+        executor = self.make_executor(context)
+        with self.assertRaisesRegex(DataError, 'QUERY_FORBIDDEN'):
+            executor.execute_query_spec('first', 'sales', 'total', {}, self.school(executor))
+
     def test_grouped_yaml_rejects_duplicate_keys_and_duplicate_metric_ids(self):
         path=self.root/'databases/first/metrics/sales/sales.yaml'
         content=path.read_text()

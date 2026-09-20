@@ -1,4 +1,4 @@
-"""Static single-tenant policies, resolved independently for each source."""
+"""Static deployment policies, resolved independently for each source."""
 
 from copy import deepcopy
 
@@ -7,9 +7,10 @@ from .context import DataError, fingerprint
 
 def resolve_data_access(context, source, config, catalog):
     policy = deepcopy(config['policy'])
+    # 部署侧显式配置 * 才共享来源；真实身份仍用于 Run 和结果归属。
     if (policy.get("source_key") != source["source_key"]
             or context.capability_ref not in source.get('capabilities', [])
-            or policy.get("tenant_id") != context.tenant_id
+            or policy.get("tenant_id") not in ("*", context.tenant_id)
             or context.capability_ref not in policy.get("capabilities", [])
             or not policy.get("revision") or not policy.get("business_tenant_id")):
         raise DataError("SOURCE_FORBIDDEN")
