@@ -130,11 +130,18 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assertEqual(response.status_code, 409, response.text)
 
     def test_writing_budget_comes_from_trusted_workflow_for_both_modes(self):
-        request = AgentRunRequest.from_dict({**self.body, 'capabilityRef': 'document-writing'})
+        # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
+        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx/workflow.json'
+        expected_timeout = json.loads(workflow_path.read_text(encoding='utf-8'))['runtime']['timeout_ms']
+        self.assertIs(type(expected_timeout), int)
+        self.assertGreater(expected_timeout, 0)
+        self.assertNotEqual(expected_timeout, 500)
+        request = AgentRunRequest.from_dict({**self.body, 'capabilityRef': 'document-writing',
+                                            'payload': {'timeout_ms': 1}})
         with patch.object(server, 'MODELS', ['test-model']), patch.object(server, 'RUN_EXECUTION_TIMEOUT_MS', 500):
             for mode in ('query', 'client'):
                 payload = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
-                self.assertEqual(payload['timeout_ms'], 1800000)
+                self.assertEqual(payload['timeout_ms'], expected_timeout)
             conversation = server._internal_worker_payload(AgentRunRequest.from_dict(self.body), Path(self.temp.name))
             self.assertEqual(conversation['timeout_ms'], 500)
 
