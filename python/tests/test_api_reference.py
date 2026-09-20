@@ -58,6 +58,12 @@ class APIReferenceTests(unittest.TestCase):
                 count += 1
         self.assertGreater(count, 0)
 
+    def test_capability_response_matches_registered_catalog(self):
+        examples = [json.loads(example) for example in self.page.examples
+                    if example.lstrip().startswith('{')]
+        catalogs = [item['capabilities'] for item in examples if 'capabilities' in item]
+        self.assertEqual(catalogs, [[item.to_public_dict() for item in server.CAPABILITIES.values()]])
+
     def test_event_examples_use_the_python_display_dictionary(self):
         events = [json.loads(example) for example in self.page.examples
                   if example.lstrip().startswith('{')]
