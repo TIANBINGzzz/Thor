@@ -390,7 +390,7 @@ class SessionActorTests(unittest.TestCase):
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
-    def test_manager_replaces_idle_actor_when_credential_fingerprint_changes(self):
+    def test_manager_reconfigures_worker_and_resumes_history_when_binding_changes(self):
         async def exercise():
             workers = []
 
@@ -419,6 +419,57 @@ class SessionActorTests(unittest.TestCase):
             self.assertEqual(second["status"], "succeeded")
             self.assertEqual(len(workers), 2)
             self.assertTrue(workers[0].closed)
+            self.assertEqual(workers[1].start_payload['resume'], 'session-1')
+            self.assertEqual(workers[1].start_payload['_credential_binding'], 'b')
+            self.assertEqual(len(manager.snapshots()), 1)
+            await manager.close_all()
+
+        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
+
+    def test_queued_capability_changes_apply_current_config_after_previous_run(self):
+        async def exercise():
+            workers = []
+
+            def factory(**_kwargs):
+                script = (lambda message: []) if not workers else complete_script()
+                worker = FakeClientWorker([script], worker_id=len(workers))
+                workers.append(worker)
+                return worker
+
+            manager = SessionManager(worker_factory=factory)
+            first = asyncio.create_task(manager.submit('s', {'_credential_binding': 'a'}, 'one', {'prompt': 'one'}))
+            await _wait_until(lambda: workers and workers[0].sent)
+            second = asyncio.create_task(manager.submit('s', {
+                '_credential_binding': 'b', 'capability_ref': 'image-generation',
+                'credentials': {'platformBearer': 'new-token'},
+            }, 'two', {'prompt': 'two'}))
+            await _wait_until(lambda: manager.snapshots()[0]['pendingRuns'] == 1)
+            self.assertFalse(workers[0].closed)
+            await workers[0].events.put({'type': 'client_run_completed', 'session_id': 'session-1'})
+            await asyncio.gather(first, second)
+            await manager.submit('s', {'_credential_binding': 'a', 'capability_ref': 'conversation'},
+                                 'three', {'prompt': 'three'})
+            self.assertEqual([w.start_payload.get('resume') for w in workers], [None, 'session-1', 'session-1'])
+            self.assertEqual(workers[1].start_payload['credentials'], {'platformBearer': 'new-token'})
+            self.assertNotIn('credentials', workers[2].start_payload)
+            await manager.close_all()
+
+        asyncio.run(asyncio.wait_for(exercise(), timeout=3))
+
+    def test_idle_actor_recreation_keeps_last_provider_session(self):
+        async def exercise():
+            workers = []
+
+            def factory(**_kwargs):
+                worker = FakeClientWorker([complete_script()], worker_id=len(workers))
+                workers.append(worker)
+                return worker
+
+            manager = SessionManager(idle_ttl_ms=10, worker_factory=factory)
+            await manager.submit('s', {}, 'one', {'prompt': 'one'})
+            await _wait_until(lambda: manager.snapshots()[0]['state'] == 'closed')
+            await manager.submit('s', {'resume': 'outdated'}, 'two', {'prompt': 'two'})
+            self.assertEqual(workers[1].start_payload['resume'], 'session-1')
             await manager.close_all()
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))

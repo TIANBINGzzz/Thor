@@ -169,6 +169,18 @@ class RunStore:
                 self._connection.rollback()
                 raise
 
+    def latest_runtime_session(self, tenant_id: str, user_id: str, business_session_id: str) -> str | None:
+        """恢复同一身份和业务会话最近的 SDK 历史；能力变化不另开历史，旧 Run 状态更新不改顺序。"""
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT runtime_session_ref FROM runs "
+                "WHERE tenant_id = ? AND user_id = ? AND business_session_id = ? "
+                "AND runtime_session_ref IS NOT NULL "
+                "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+                (tenant_id, user_id, business_session_id),
+            ).fetchone()
+        return row['runtime_session_ref'] if row else None
+
     def list_runs_by_session(
         self, tenant_id: str, user_id: str, business_session_id: str, *,
         limit: int = 50, cursor: str | None = None,

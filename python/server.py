@@ -391,12 +391,12 @@ async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
 
 
 def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) -> str:
-    """根据已验证身份、业务会话和能力生成 Client 路由键，返回用于会话隔离的字符串。"""
+    """能力共用业务会话历史；身份和业务会话仍隔离，无会话的请求按 Run 隔离。"""
     tenant = claims["tenant"]
     user = claims["sub"]
-    business = str(run_request.business_session_id or claims.get("businessSessionId") or run_request.run_id)
-    capability = str(run_request.capability_ref or "conversation")
-    return f"{tenant}:{user}:{business}:{capability}"
+    business = run_request.business_session_id or claims.get("businessSessionId")
+    return json.dumps([tenant, user, 'session' if business else 'run', business or run_request.run_id],
+                      separators=(',', ':'))
 
 
 def _client_session_directory(session_key: str) -> Path:
@@ -466,6 +466,8 @@ def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
     """解析请求能力对应的可信 Workflow 配置，返回 query 或 client 执行模式。"""
     capability = resolve_capability(run_request.capability_ref)
     workflow_config = load_workflow_config(capability.workflow_ref)
+    if run_request.business_session_id:
+        return "client"
     mode = runtime_mode_for(run_request.capability_ref, workflow_config)
     return mode
 
@@ -658,6 +660,9 @@ async def _execute_internal_run(
             )
         if runtime_mode == "client":
             worker_payload["_credential_binding"] = _client_config_fingerprint(run_request, worker_payload)
+            business = run_request.business_session_id or claims.get("businessSessionId")
+            if business:
+                worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)
         async def consume_agent() -> None:
             async for raw in stream_agent(worker_payload):
                 provider_session = raw.get("sessionId")

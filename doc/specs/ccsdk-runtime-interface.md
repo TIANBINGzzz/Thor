@@ -95,7 +95,7 @@ Content-Type: application/json
 
 ### 3.2 Capability 字段
 
-创建Run可省略capabilityRef进行普通会话；选择能力仅作用于当前消息。同一businessSessionId保留业务连续性，各能力使用隔离Client，跨能力摘要须由Java作为已授权输入提供。目录返回全部登记能力，不代表用户授权或模型/MCP健康检查。当前值为：
+创建Run可省略capabilityRef进行普通会话；能力授权仍按当前消息执行，Python不改写前端选择。前端如需记住选择，应按业务会话保存并在新请求中传入，重试使用原请求快照；本次未修改前端或Java。同一tenant、sub、businessSessionId共用Python管理的SDK历史，跨能力切换不要求Java生成摘要；配置或凭据变化时串行重建Client并resume历史。无businessSessionId不保证跨Run连续；重启恢复需要保留RunStore和SDK transcript。目录返回全部登记能力，不代表用户授权或模型/MCP健康检查。当前值为：
 
 | `capabilityRef` | Python 内部映射 | 附件 |
 | --- | --- | --- |

@@ -140,13 +140,27 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertIsNone(create_run_services(payload))
         self.assertIn('charts', build_options(payload).mcp_servers)
 
-    def test_same_business_session_routes_capabilities_to_isolated_clients(self):
+    def test_business_session_shares_history_across_capabilities_but_not_identities(self):
         claims={'tenant':'tenant-test','sub':'user-test'}
         keys=[]
         for capability in (None,'document-writing','national-excellence-data-qa','chart-generation'):
             request=AgentRunRequest.from_dict({**self.body,'capabilityRef':capability})
             keys.append(server._client_session_key(request,claims))
-        self.assertEqual(len(set(keys)),4)
+        self.assertEqual(len(set(keys)), 1)
+        for identity in ({'tenant': 'other', 'sub': 'user-test'},
+                         {'tenant': 'tenant-test', 'sub': 'other'}):
+            self.assertNotEqual(keys[0], server._client_session_key(request, identity))
+        other = AgentRunRequest.from_dict({**self.body, 'businessSessionId': 'other'})
+        self.assertNotEqual(keys[0], server._client_session_key(other, claims))
+
+    def test_business_session_always_uses_client_and_stateless_keeps_configured_mode(self):
+        for capability in ('conversation', 'image-generation', 'document-writing', 'chart-generation'):
+            request = AgentRunRequest.from_dict({**self.body, 'capabilityRef': capability})
+            with patch.object(server, 'runtime_mode_for', return_value='query'):
+                self.assertEqual(server._runtime_mode_for_request(request), 'client')
+                stateless = AgentRunRequest.from_dict({**self.body, 'businessSessionId': None,
+                                                      'capabilityRef': capability})
+                self.assertEqual(server._runtime_mode_for_request(stateless), 'query')
 
     def test_trusted_data_identity_does_not_enter_model_prompt(self):
         with patch.object(server, 'MODELS', ['test-model']):

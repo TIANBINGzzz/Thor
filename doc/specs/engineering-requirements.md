@@ -63,7 +63,7 @@
 
 ### 当前状态与待明确项
 
-- **部分实现，2026-09-14源码核对**：Capability已通过capabilities.py映射内部Workflow，协议拒绝外部执行配置；普通会话省略capabilityRef，JWT仍绑定conversation。同业务会话按能力隔离Client，外部Java的旧请求工厂与前端选择器尚未闭环。
+- **部分实现，2026-09-21核对**：Capability映射内部Workflow，协议拒绝外部执行配置；普通会话省略capabilityRef仍绑定conversation。同身份、同业务会话跨能力续接SDK历史，配置变更串行重建Client；本次按用户要求仅改Python，前端选择持久化及Java生产授权尚未联调。见[ADR-033](../ADR/033-business-session-continuity.md)。
 - 本地自测已迁至独立 ScribePlayground，仅提交 `capabilityRef`；Workflow 名称只存在于 Python 内部执行配置，Runtime 不再暴露本地 `/api/*` 接口或识别测试身份直读附件（2026-09-09，ADR-018）。
 - [Runtime 规范](ccsdk-runtime-interface.md) 与 [Java 接入方案](java-control-plane.md) 中现有 Workflow/Capability 映射、注册职责和审计约定需在后续方案修改时与本条对齐；Java 端到端授权未在本次验证。
 - 2026-09-14预制模板仅需payload.templateKey，年份/要求在input.text；Python解析模板、核验能力/来源并记录配置版本，见[能力payload映射](capability-payload.md)。原40表恢复为唯一启用模板，按章节保存正文及原位回填，结构样式与全文审阅均为发布前置；缺历史实值仍须明确披露。

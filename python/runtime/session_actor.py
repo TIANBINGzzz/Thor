@@ -57,6 +57,7 @@ class _Command:
     future: asyncio.Future[Any]
     prepare: RunPreparation | None = None
     cleanup: RunCleanup | None = None
+    initial_payload: dict[str, Any] | None = None
     started: asyncio.Event = field(default_factory=asyncio.Event)
 
 
@@ -166,10 +167,12 @@ class SessionActor:
         *,
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
+        initial_payload: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """接收 Run 标识、执行参数及准备/清理回调，排队并等待串行执行，返回 Run 结果字典。"""
         self._cancel_idle_timer()
-        command = await self._enqueue("run", run_id, dict(payload), prepare=prepare, cleanup=cleanup)
+        command = await self._enqueue("run", run_id, dict(payload), prepare=prepare, cleanup=cleanup,
+                                      initial_payload=initial_payload)
         try:
             queue_timeout_ms = payload.get("queue_timeout_ms")
             if isinstance(queue_timeout_ms, int) and queue_timeout_ms > 0:
@@ -247,11 +250,13 @@ class SessionActor:
         *,
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
+        initial_payload: Mapping[str, Any] | None = None,
     ) -> _Command:
         if self._state in {ActorState.CLOSING, ActorState.CLOSED} and kind != "close":
             raise SessionActorError("SessionActor 已关闭", code="session_actor_closed")
         loop = asyncio.get_running_loop()
-        command = _Command(kind, run_id, payload, loop.create_future(), prepare, cleanup)
+        command = _Command(kind, run_id, payload, loop.create_future(), prepare, cleanup,
+                           dict(initial_payload) if initial_payload is not None else None)
         if kind == "run" and run_id is not None:
             if run_id in self._run_commands:
                 raise SessionActorError("Run 已提交", code="run_already_submitted")
@@ -306,6 +311,7 @@ class SessionActor:
         self._last_error_code = None
         try:
             payload = dict(command.payload or {})
+            prepared: Mapping[str, Any] = {}
             if command.prepare is not None:
                 self._preparation_task = asyncio.create_task(command.prepare(), name=f"ccsdk-prepare:{command.run_id}")
                 try:
@@ -320,6 +326,13 @@ class SessionActor:
             execution_ms = payload.get("timeout_ms")
             try:
                 async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
+                    if command.initial_payload is not None:
+                        # 能力/凭据切换随 Run 串行生效；重建工具和规则时保留 SDK 历史。
+                        initial = {**command.initial_payload, **prepared}
+                        fingerprint = initial.get('_credential_binding')
+                        if self.config_fingerprint != (str(fingerprint) if fingerprint is not None else None):
+                            await self._discard_worker()
+                        self._initial_payload = initial
                     await self._ensure_worker()
                     self._state = ActorState.RUNNING
                     await self._notify_state()
@@ -672,18 +685,15 @@ class SessionManager:
         """根据会话键和初始配置选择或创建 Actor，提交 Run 及其回调并返回执行结果字典。"""
         async with self._lock:
             actor = self._actors.get(session_key)
-            incoming_fingerprint = initial_payload.get("_credential_binding")
-            if actor is not None and actor.config_fingerprint != (
-                str(incoming_fingerprint) if incoming_fingerprint is not None else None
-            ):
-                if actor.active_run_id is not None:
-                    raise SessionActorError("Client 凭据正在使用，不能在活动 Run 中切换", code="credential_binding_busy")
+            if actor is not None and actor.state == ActorState.CLOSING:
                 await actor.close()
-                actor = None
             if actor is None or actor.state == ActorState.CLOSED:
+                restored = dict(initial_payload)
+                if actor is not None and actor.snapshot()['runtimeSessionRef']:
+                    restored['resume'] = actor.snapshot()['runtimeSessionRef']
                 actor = SessionActor(
                     session_key,
-                    initial_payload,
+                    restored,
                     on_public_event=self._on_public_event,
                     on_state=self._on_state,
                     idle_ttl_ms=self._idle_ttl_ms,
@@ -692,7 +702,8 @@ class SessionManager:
                 self._actors[session_key] = actor
             self._run_actors[run_id] = actor
         try:
-            return await actor.submit(run_id, payload, prepare=prepare, cleanup=cleanup)
+            return await actor.submit(run_id, payload, prepare=prepare, cleanup=cleanup,
+                                      initial_payload=initial_payload)
         finally:
             async with self._lock:
                 self._run_actors.pop(run_id, None)

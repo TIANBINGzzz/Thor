@@ -85,6 +85,7 @@ ADR 记录重要架构取舍及其历史，不是实现任务清单。新文档�
 | [031](031-unified-document-renderer.md) | 统一无桌面文档渲染引擎 | 已采纳 | 组件与局部平台链路已验证 | LibreOffice替代WPS，解除渲染副本字体子集，Windows与Docker部署共用引擎；整篇报告未验收 |
 
 | [032](032-platform-file-download.md) | 平台文件服务下载输入 | 已采纳 | 下载实测与代码接入 | Java提交前授权；显式Broker保留，完整模板管理及生产ACL待验收 |
+| [033](033-business-session-continuity.md) | 业务会话跨能力连续性 | 已采纳 | Python已验证 | SDK历史跨能力续接与重启恢复；前端及Java本次未改 |
 
 ## 本次核验
 

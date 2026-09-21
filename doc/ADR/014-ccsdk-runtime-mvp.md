@@ -7,7 +7,7 @@
 | 实现状态 | 部分实现 |
 | 最近核对 | 2026-09-07 |
 | 替代的旧 ADR | [ADR-012](012-provider-neutral-agent-runtime.md) 的 MVP 落地范围 |
-| 被哪份 ADR 替代 | 无 |
+| 被哪份 ADR 替代 | [ADR-033](033-business-session-continuity.md)部分替代执行模式选择及历史恢复约定 |
 
 ## 背景
 

@@ -124,3 +124,25 @@ class SessionRunTests(unittest.TestCase):
                 rest, cursor = store.list_runs_by_session('t', 'u', 's', cursor=cursor)
                 self.assertEqual([r['runId'] for r in rest], ['b', 'a'])
                 self.assertIsNone(cursor)
+
+    def test_latest_provider_session_survives_restart_and_respects_identity(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'runs.sqlite3'
+            with RunStore(path) as store:
+                for run, tenant, user, session, ref in (
+                    ('first', 't', 'u', 's', 'sdk-first'),
+                    ('second', 't', 'u', 's', 'sdk-second'),
+                    ('foreign-tenant', 'other', 'u', 's', 'wrong'),
+                    ('foreign-user', 't', 'other', 's', 'wrong'),
+                    ('foreign-session', 't', 'u', 'other', 'wrong'),
+                    ('queued', 't', 'u', 's', None),
+                ):
+                    with patch('runtime.run_store._now_ms', return_value=100):
+                        store.create_run(run, tenant_id=tenant, user_id=user,
+                                         business_session_id=session, runtime_session_ref=ref)
+                store.update_status('first', 'succeeded')
+            with RunStore(path) as store:
+                self.assertEqual(store.latest_runtime_session('t', 'u', 's'), 'sdk-second')
+                self.assertIsNone(store.latest_runtime_session('t', 'u', 'unknown'))

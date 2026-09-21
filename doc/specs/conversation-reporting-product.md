@@ -20,9 +20,9 @@
 | 同项目 `src/views/ai/composables/useAiPage.js` / `src/modules/ai-embed/composables/useAiEmbedSession.js` | 主页面和嵌入页转交capabilityRef；共用发送、SSE、停止与会话状态 | 两种入口须使用相同选择与禁用规则 |
 | string-ai-center-service `ChatServiceImpl.java` | runtimeEnabled且capabilityRef非空才路由Python，否则Dify | 普通会话省略能力时，后端选择须由可信Agent/部署配置决定，不能以字段是否存在决定后端 |
 | 同项目 `RuntimeRequestFactory.java` | 仍构造execution、context、runtime等旧字段 | 与当前Python严格协议不匹配，需按接口规范更新；本次未修改外部Java仓库 |
-| ScribePlayground `web/app/components/Chat.tsx` | 默认conversation，发送时总带能力；菜单选能力调用newChat并清空当前消息视图 | 目前是每会话固定能力的测试UI；不能作为同会话切换已验收的证据 |
-| ScribePlayground `server/app.mjs` | 校验会话能力必须等于请求能力 | 改为每条消息验能力，并保留业务会话；本次未修改该独立项目 |
-| ccagentsdk协议与SDK | 本次接受省略capabilityRef；内部解析conversation；同业务会话各能力使用独立Client键 | 不会自动把另一能力的SDK历史、工具结果和权限复制到本轮 |
+| ScribePlayground `web/app/components/Chat.tsx` | 返回会话时从最后请求恢复能力，无历史则回到conversation | 未发送的选择尚未持久保存；本次按用户要求不改前端 |
+| ScribePlayground `server/app.mjs` | 每条消息独立校验能力，会话PATCH只修改标题 | 本次不修改模拟Java服务 |
+| ccagentsdk协议与SDK | 省略能力归一为conversation；同身份/业务会话使用同一SDK历史 | Python管理续接，当前Run重建所需工具和凭据；见ADR-033 |
 
 ## 用户流程
 
@@ -60,7 +60,7 @@
 | 会话 | conversationId/businessSessionId只表示业务连续性；不等于数据库权限、能力或SDK session |
 | 下一轮编辑状态 | selectedCapabilityRef、selectedTemplateKey、草稿和待发附件在前端维护，不修改已开始Run |
 | 每条消息 | Java保存实际能力、模板、附件引用和Run；Python保存已解析包/查询/连接/策略版本 |
-| 跨能力上下文 | Java可提供已授权对话摘要/引用材料；Python重新解析权限，禁止搬运旧数据库scope_ref/result_ref或连接凭据 |
+| 跨能力上下文 | Python续接同业务会话的SDK历史，Java不生成摘要；工具按本轮能力和凭据重新装配，旧数据库引用仍须通过当前Run校验 |
 | 配置变更 | 下一轮重新解析DataContext、策略和秘密文件；工具集合或模板变化重建Client，不在活动Run中原位换工具 |
 
 普通Run示例：`{"protocol":"agent-run/v1","runId":"run_example","messageId":"msg_example","businessSessionId":"session_example","input":{"text":"请概括上述讨论"}}`。

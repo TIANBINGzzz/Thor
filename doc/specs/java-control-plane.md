@@ -62,7 +62,7 @@ Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabili
 | Java runId | 一次执行；网络重提交复用，新执行/重新生成使用新值；无需 turnId。 |
 
 建议 Java 保存 `runId/messageId/conversationId/capabilityRef/backend/status/lastConsumedSequence` 和必要的内部后端引用。持久化已处理序号后再转发，支持断线回放；Python 的 lastSequence 是服务端最大序号，不能当作 Java 已消费序号。SDK Session 仍由 Python 私有维护。
-同会话同能力的后续执行推荐自动恢复上下文并串行运行；失败后的重新执行需考虑工具已发生的副作用，resume 不是任务恢复或事务回滚。
+同身份、同业务会话的后续执行由Python串行续接SDK历史，切换能力也保持连续；Java只传稳定businessSessionId及本轮能力，不生成摘要。失败后的重新执行需考虑工具已发生的副作用，resume不是任务恢复或事务回滚。
 
 ### 1.3 前端事件与展示
 
@@ -269,7 +269,7 @@ JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可�
 | protocol | string/是 | 仅 agent-run/v1，不传 SDK。 |
 | runId | string/是 | 幂等、执行、事件和取消键；SDK 没有对应业务 Run ID。 |
 | messageId | string/是 | 私有消息关联，不作为 SDK session，也不在 Run 响应回传。 |
-| businessSessionId | string/否 | Client 的 tenant:sub:businessSessionId:capabilityRef 会话键；缺失取 runId，不保证跨 Run 连续。 |
+| businessSessionId | string/否 | Python按tenant、sub、businessSessionId隔离历史，能力不参与会话键；缺失按runId隔离，不保证跨Run连续。 |
 | capabilityRef | string/是 | 映射 Workflow，配置装配为 ClaudeAgentOptions；字符串本身不是 SDK 参数。 |
 | input | object/是 | 只接收 text、attachmentRefs。 |
 | input.text | string/否，默认空 | 最多 100 万字符；与业务数据、附件清单合成 prompt，传给 query() 或 client.query()。 |
