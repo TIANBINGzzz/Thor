@@ -94,10 +94,13 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | Java 接口与职责 | [Java 业务层设计规范](doc/specs/java-control-plane.md)、[Runtime 规范](doc/specs/ccsdk-runtime-interface.md)、[Python API HTML](doc/python-api.html) |
 | 独立本地自测 | `../ScribePlayground/README.md`、[拆分决策](doc/ADR/018-extract-local-playground.md) |
 | SDK 适配边界与 Client 生命周期 | `python/runtime/claude_sdk.py`、`python/runtime/session_actor.py` |
-| 工程要求与决策 | [工程问题与约束清单](doc/specs/engineering-requirements.md)、`doc/ADR/` |
+| 工程要求与决策 | [工程问题与约束清单](doc/specs/engineering-requirements.md)、[ADR](doc/ADR/README.md) |
 | MCP 凭据与配置 | `python/runtime/mcp_auth.py`、`python/runtime/config.py` |
 | Client 与存储 | `python/runtime/session_actor.py`、`run_store.py` |
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与规则 | `.claude/workflows/double-high-qa/`、`.claude/workflows/writing-docx/` |
 | 数据源与共享查询资产 | [.claude/databases/README.md](.claude/databases/README.md) |
 | 数据管理与文稿撰写 | [数据库管理](doc/specs/data-source-connections.md)、[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[模板契约](doc/specs/capability-payload.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |
+| 部署与文档发布 | [部署说明](deploy/README.md)、[HTML 发布与回滚](deploy/README.md#html-文档发布) |
+| 报告业务来源核验 | [原 SQL 核验](doc/verification/report-source-audit.md)、[逐页来源](doc/verification/szpt-midterm-page-sources.md) |
+| 有日期的实测记录 | [容量压测](doc/reports/loadtest-2026-09-18.md)、[撰写性能](doc/reports/writing-performance-2026-09-18.md)、[图表压力测试](doc/chart-stress-report-20260921.md)；仅证明注明版本与场景 |

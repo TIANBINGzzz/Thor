@@ -70,6 +70,20 @@ Python 示例的 `gitSample` 指向示例仓库，`DockerBuildPushACR.with.servi
 
 发布会重建单 worker/单实例容器，先由调用方停止新 Run、等待活动任务结束；当前没有自动排空和无损滚动更新。模型失败会让任务失败，但不会自动回滚。保留历史制品及数据备份，通过上一版本制品重新部署回滚，配置/数据兼容性另核对。云效公共制品有保留期限，长期客户交付需另行归档。
 
+## HTML 文档发布
+
+公网：[Python API 文档](https://cp.stringedu.com/ccsdkscribe/python-api.html)。按服务器配置设置 `CCSDK_DOCS_RELEASE_SCRIPT`（远端脚本）和 `CCSDK_DOCS_INCOMING_DIRECTORY`（上传目录），或传参数 `-RemoteReleaseScript`、`-RemoteIncomingDirectory`。两者须为规范 POSIX 路径，仅允许字母、数字、下划线、点、连字符和路径分隔符。
+
+在项目根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\publish-docs.ps1
+```
+
+脚本只提交 HTML 的本地修改，上传确定的 Git 版本，原子切换并校验公网 SHA-256；不执行 git push，也不提交其他已暂存文件。回滚加 `-RollbackRelease <发布输出中的 Previous>`，普通更新不需要重载 Nginx。
+
+运维配置由相邻 SSHCloudServer 项目的 `deploy/ccsdkscribe-docs/` 维护；脚本只依赖 Windows Git、OpenSSH 和 curl。
+
 ## 本次工程要求检查
 
 | 要求编号 | 状态 | 依据 | 差距与后续处理 |

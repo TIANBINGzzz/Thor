@@ -46,7 +46,7 @@ HTTP 提供 `/health` 及 `/internal/v1/` 下的能力目录、Run、会话执�
 
 ## 文档与验证
 
-[文档索引](doc/README.md)统一列出接口、Java 职责、工程约束和核验记录；[API HTML](doc/python-api.html)用于浏览接口示例，发布与回滚见[发布说明](doc/README.md#html-发布)。
+[文档地图](ARCHITECTURE.md#9-where-to-look-for-x)统一定位接口、业务规则和核验记录；[API HTML](doc/python-api.html)用于浏览接口示例，发布与回滚见[部署说明](deploy/README.md#html-文档发布)。
 
 ```powershell
 npm test
