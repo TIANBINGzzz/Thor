@@ -15,7 +15,7 @@
 | 编号 | 取舍 | 决策状态 | 实现范围与差距 |
 | --- | --- | --- | --- |
 | [016](016-file-broker-for-runtime-inputs.md) | 显式 File Broker | 已采纳 | 显式 Broker 校验保留；032 替代默认输入通道 |
-| [018](018-extract-local-playground.md) | 本地自测独立项目 | 已采纳 | 已拆分；测试控制面不代表 Java 生产授权 |
+| [018](018-extract-local-playground.md) | 本地自测独立项目 | 已采纳 | Runtime 边界保留；独立测试项目已移除，历史测试不代表 Java 生产授权 |
 | [023](023-database-scoped-asset-packages.md) | 按库组织知识与查询 | 已采纳 | 数据库包、主题指标已接入；业务口径缺口保留 |
 | [028](028-bundled-database-config.md) | 本版配置随镜像交付 | 已采纳 | 打包与离线检查已实现；仅限明确接受的交付范围 |
 | [029](029-native-office-document-tools.md) | 原生 Office 工具、自主撰写 | 已采纳 | 编辑及工具装配已验证；031 替代渲染选择 |

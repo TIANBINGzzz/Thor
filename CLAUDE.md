@@ -58,7 +58,7 @@
 ## 技术约定
 
 - Runtime HTTP/SSE、Run、SDK 会话、文件获取和 Agent 子进程使用 Python；HTTP 层采用 FastAPI，Agent 执行使用 `claude-agent-sdk`
-- Runtime代码放python/，执行资产放.claude/；测试UI及模拟Java位于独立ScribePlayground，仅经HTTP连接。Node.js用于SDK CLI及脚本；数据库由Python data MCP执行。
+- Runtime代码放python/，执行资产放.claude/；测试UI及模拟Java服务已移除，Java通过HTTP连接Runtime。Node.js用于SDK CLI及脚本；数据库由Python data MCP执行。
 - Workflow通过 `.claude/workflows/<name>/workflow.json` 显式配置；`execution.mode=direct`启动受限SDK Run，`agent`模式由Agent自主执行。当前没有JS工作流运行器，不以遗留脚本或文本命令声明已有编排能力。
 - `python/` 放应用后端、Agent SDK worker 和可复用运行时方法；workflow 专属表范围、数据库名和 provider 模板不得放入 Python 目录
 - 数据资产按.claude/databases/<source_key>/集中：source.json绑定能力；部署侧databases.json按source_key集中连接/授权；schema为核验过的表列类型及说明，metrics为定义/SQL及pending，semantics为关联/业务口径；索引由Python生成，测试放python/tests/databases；模板引用source_key+domain+query_id。定义不明不得编造SQL，blocked/needs_definition不得自动升级。

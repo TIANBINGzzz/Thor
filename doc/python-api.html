@@ -805,7 +805,7 @@ Accept: application/octet-stream</pre></div>
 <p>仅发送配置头，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。当前文件端点不检查业务 Run ACL，Java 必须在创建 Run 前校验文件权限；取得文件不等于授权完成。</p>
 <p>响应须为 200 文件流，Content-Disposition 提供安全文件名（支持平台 URL 编码及 RFC 5987）；有 Content-Length 时校验长度，无长度时流式计数并限制大小。服务没有返回权威 SHA-256，本地摘要仅记录实际内容，不作为远端指纹比对结果。</p>
 <p>Client 输入位于 .scribe-runs/client-sessions/&lt;scopeHash&gt;/.current-input/，Query 输入位于 .scribe-runs/work/&lt;runId&gt;/input/。文件全部准备完成后才查询 SDK；失败、取消及终态清理输入，不删除远端原件。工作稿另存 .work/，交付快照按发布生命周期保留。</p>
-<p>独立部署及 ScribePlayground 可显式配置 CCSDK_FILE_BROKER_URL 使用 POST Broker，保留代理流/一次性 URL 校验；平台下载失败不自动切换。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-file-broker-模块">Runtime 文件规范</a>。</p>
+<p>独立部署可显式配置 CCSDK_FILE_BROKER_URL 使用 POST Broker，保留代理流/一次性 URL 校验；平台下载失败不自动切换。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-file-broker-模块">Runtime 文件规范</a>。</p>
 <h3>大小和独立超时</h3>
 <table><thead><tr><th>配置</th><th>默认值</th><th>含义</th></tr></thead><tbody>
 <tr><td>CCSDK_FILE_MAX_BYTES</td><td>268435456</td><td>单文件 256 MiB。</td></tr>

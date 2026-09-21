@@ -9,12 +9,11 @@ ccagentsdk 是供 Java 调用的 Python Claude Agent SDK Runtime，支持对话�
 ## 2. System context
 
 ```text
-本地：独立 ScribePlayground -> Python Runtime -> SDK -> 模型 / MCP
 生产目标：业务前端 -> Java 控制面 -> Python Runtime -> SDK -> 模型 / MCP
                                 └-> Dify 适配器（外部执行后端）
 ```
 
-Java、ScribePlayground 及其业务存储均不在本仓库；两者通过相同 Runtime HTTP 契约接入。
+Java 及业务存储不在本仓库，通过 Runtime HTTP 契约接入；独立测试前端及模拟 Java 服务已移除。
 
 当前唯一数据库为校双高数据库schoolDoubleHigh，hpm为业务域。资产已按库集中，首期单租户多来源；旧qa_db/report_db登记仅见Git历史，命名不改变查询筛选口径。
 
@@ -43,7 +42,6 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - `.claude/workflows/<name>/`：流程 profile、专属约束和模板；目标按来源标识引用数据库资产。
 - `.claude/databases/<source_key>/source.json`登记来源和能力绑定；schema/维护表列类型及说明，metrics/<domain>/按主题YAML内嵌定义和SQL并自动生成索引，semantics/维护关联及业务规则。测试在python/tests/databases/；databases.json按source_key集中连接/授权，本版进入私有源码和镜像，不主动注入模型资产快照，见[ADR-028](doc/ADR/028-bundled-database-config.md)。
 - `data_access/`管理来源授权、连接、查询及结果；`runtime/data_services.py`装配Run数据服务。可信Workflow直接注入instructions.md共同规则及所选指南，冻结实际DOCX指纹并提供工作目录副本；Agent自主规划、取证、编辑和验收；OfficeCLI原生MCP读取和编辑Office文档，LibreOffice更新目录并另存DOCX与PDF，PDFium提供分页核验。Windows开发通过Docker复用Linux渲染引擎；渲染副本解除旧字体子集引用，完整开源字体由镜像提供，见[ADR-031](doc/ADR/031-unified-document-renderer.md)。指标含义和SQL只放数据库包；上传模板作结构/样式参考，不登记地图或取数流水线。发布工具校验文件边界，不代替业务与版式核验。
-- 外部 `ScribePlayground`：测试页面、模拟 Java 的会话/上传/File Broker 与测试 JWT 签发，不包含 SDK 执行。
 
 ## 5. Dependency directions
 
@@ -92,7 +90,6 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | --- | --- |
 | 启动与依赖 | `README.md`、`package.json`、`requirements.txt` |
 | Java 接口与职责 | [Java 业务层设计规范](doc/specs/java-control-plane.md)、[Runtime 规范](doc/specs/ccsdk-runtime-interface.md)、[Python API HTML](doc/python-api.html) |
-| 独立本地自测 | `../ScribePlayground/README.md`、[拆分决策](doc/ADR/018-extract-local-playground.md) |
 | SDK 适配边界与 Client 生命周期 | `python/runtime/claude_sdk.py`、`python/runtime/session_actor.py` |
 | 工程要求与决策 | [工程问题与约束清单](doc/specs/engineering-requirements.md)、[ADR](doc/ADR/README.md) |
 | MCP 凭据与配置 | `python/runtime/mcp_auth.py`、`python/runtime/config.py` |

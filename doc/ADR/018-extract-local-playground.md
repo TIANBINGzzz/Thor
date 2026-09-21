@@ -4,8 +4,8 @@
 | --- | --- |
 | 决策日期 | 2026-09-09 |
 | 决策状态 | 已采纳 |
-| 实现状态 | 已实现 |
-| 最近核对 | 2026-09-09 |
+| 实现状态 | Runtime 边界保留；独立测试项目已于 2026-09-21 移除 |
+| 最近核对 | 2026-09-21 |
 | 替代的旧 ADR | ADR-011 的本地 UI/会话/上传同仓边界；旧正文见[历史索引](README.md#已移除的正文)，Python Runtime 决策保留 |
 | 被哪份 ADR 替代 | 无 |
 
@@ -13,9 +13,9 @@
 Java 接入只需要 Runtime；测试页面、会话存储和本地身份附件分支混入了执行服务。
 ## 决策
 - Scribe 只提供执行服务；现行接口见[Runtime 契约](../specs/ccsdk-runtime-interface.md)，保留 SDK、执行资产和运行数据。
-- 独立 `../ScribePlayground` 接收 Next UI、测试会话、上传、引用和启动编排，禁止跨项目导入。
+- 拆分时由独立 `../ScribePlayground` 接收 Next UI、测试会话、上传、引用和启动编排；该测试项目现已移除，记录保留用于历史追溯。
 - 删除 Runtime 对本地测试身份的文件直读分支；输入按授权引用下载，当前平台下载及显式 Broker 边界见[ADR-032](032-platform-file-download.md)。
-## 实现证据与差距
+## 拆分时的历史证据与差距（2026-09-09）
 - 代码：`python/server.py`、`python/runtime/file_broker.py`；外部 `ScribePlayground/run.py` 与 `python/server.py`。
 - 验证：75 项 Runtime 测试、18 项 Playground 测试、Next 构建与 HTML 测试通过；真实 SDK 附件读取、产物下载、SSE 回放和取消通过。
 - 差距：测试控制面不代表真实 Java 授权或生产隔离验收；复测出现模型少抄校验码末位，核对工具内容完整、SDK 最终消息与 SSE 相同，属于模型输出准确性问题。
@@ -32,3 +32,4 @@ Java 接入只需要 Runtime；测试页面、会话存储和本地身份附件�
 | 日期 | 决策状态 | 实现状态 | 说明 |
 | --- | --- | --- | --- |
 | 2026-09-09 | 已采纳 | 已实现 | 用户要求仅保留 Runtime；通过单元测试、独立构建及真实 SDK 跨项目联调，未覆盖生产 Java |
+| 2026-09-21 | 已采纳 | 测试项目已移除 | 按用户要求删除 ScribePlayground 的代码、依赖和测试数据，仅保留 Git 回滚历史；Runtime 独立边界不变 |

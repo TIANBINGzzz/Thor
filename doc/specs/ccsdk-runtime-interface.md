@@ -5,7 +5,7 @@
 1. 本文件是 Java 与 Python Runtime 的接口契约；字段名、路径、状态和事件语义以此为准。
 2. 字段、路径、鉴权、文件或事件变化须同步 API HTML 和协议测试；只有职责/映射变化才更新 Java 接入文档，不再复制整套接口。SDK 内部边界见 ARCHITECTURE.md 和源码。
 3. 请求和响应示例必须能按当前代码解析。接口文档只描述已实现内容，不写规划、兼容层或未实现接口。
-4. 本地自测由独立 ScribePlayground 模拟 Java，包含测试 JWT 和 HTTPS File Broker，不得为了自测修改本协议或在 Runtime 加入测试身份分支。
+4. 测试前端及模拟 Java 服务已移除；接口测试仍遵循本协议，不在 Runtime 加入测试身份分支。
 
 ## 1. 模块地图
 
@@ -356,7 +356,7 @@ Accept: application/octet-stream
 
 每轮将文件原子落盘后才交给 Agent。Client 放在 `.scribe-runs/client-sessions/<scopeHash>/.current-input/`，Query 放在 `.scribe-runs/work/<runId>/input/`；原件在文件服务，工作稿另存 `.work/`。失败、取消及 Run 终态清理输入，工作稿和发布快照按各自生命周期管理。
 
-独立部署及 ScribePlayground 可显式配置 CCSDK_FILE_BROKER_URL，启用 POST Broker 契约：请求体为 `{"runId":"run_01","fileId":"file_01","purpose":"input"}`，默认使用本次 Run JWT，auth_mode=service 时使用专用服务 Token。Broker 重验文件权限并返回下述两种响应之一；这是显式选择的接入方式，平台下载失败不会自动切换。
+独立部署可显式配置 CCSDK_FILE_BROKER_URL，启用 POST Broker 契约：请求体为 `{"runId":"run_01","fileId":"file_01","purpose":"input"}`，默认使用本次 Run JWT，auth_mode=service 时使用专用服务 Token。Broker 重验文件权限并返回下述两种响应之一；这是显式选择的接入方式，平台下载失败不会自动切换。
 
 ### 8.2 显式 Broker 返回一次性 URL
 

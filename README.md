@@ -25,7 +25,7 @@ doc/          接口契约、工程要求、现行决策和核验记录
 
 HTTP 提供 `/health` 及 `/internal/v1/` 下的能力目录、Run、会话执行检索、事件、观测和成果接口。业务调用经过 Java 授权与 Run JWT；完整约定见[Runtime 契约](doc/specs/ccsdk-runtime-interface.md)。
 
-测试 UI、模拟 Java 服务、测试会话和上传属于独立的 `../ScribePlayground`，不是 Runtime 部署依赖。
+测试前端及模拟 Java 服务已移除；业务调用直接对接 Runtime HTTP/SSE 契约。
 
 ## 能力与上下文
 
