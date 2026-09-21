@@ -65,7 +65,7 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 - Java ↔ Python：内部 Run 协议、Run JWT、状态/事件及取消；完整字段见 Runtime 规范。
 - Java持有业务会话与消息；Python按tenant、user和businessSessionId分页查询现有Run执行摘要，使用独立session.read授权，不引入业务SessionStore或暴露SDK会话信息。
 - 同身份和businessSessionId的全部能力共用SDK历史，Python串行执行并在配置变化时重建Client、resume原历史；Java不承担摘要生成。恢复依赖RunStore和SDK transcript持久化，见[ADR-033](doc/ADR/033-business-session-continuity.md)。
-- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板沿用授权附件作撰写参考；共同规则及按模板加载说明的[实现](doc/ADR/025-unified-template-writing.md)不新增请求字段。
+- 能力目录是无需鉴权的只读接口，返回已登记业务标识；Java负责用户可用列表。Run payload承载业务数据；已登记的templateKey由服务端解析为可信模板资源，不允许覆盖执行配置或权限。上传模板沿用授权附件作撰写参考；共同规则及按模板加载约定见[能力 payload](doc/specs/capability-payload.md#统一模板撰写)。
 - RunStore 内部记录与 HTTP 响应分离；身份用于 Python 归属校验，SDK Session 与执行元数据不返回 Java。
 - Run 身份仅取自已验证 Run JWT 的 `tenant`、`sub`；请求正文不重复声明身份，业务 MCP Token 不作为身份来源。
 - 父 Runtime ↔ Worker：JSONL 进程边界；独立执行使用 `query()`，持久执行由 SessionActor 独占 Client。
@@ -100,4 +100,4 @@ doc/         specs/ 规范、ADR/ 决策、静态 API HTML
 | SDK 会话与文件 | `python/runtime/session_actor.py`、`python/runtime/file_broker.py` |
 | 流程与规则 | `.claude/workflows/double-high-qa/`、`.claude/workflows/writing-docx/` |
 | 数据源与共享查询资产 | [.claude/databases/README.md](.claude/databases/README.md) |
-| 数据管理、报告与产品流程 | [数据库管理](doc/specs/data-source-connections.md)、[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[产品流程](doc/specs/conversation-reporting-product.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |
+| 数据管理与文稿撰写 | [数据库管理](doc/specs/data-source-connections.md)、[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[模板契约](doc/specs/capability-payload.md)、[ADR-023](doc/ADR/023-database-scoped-asset-packages.md) |

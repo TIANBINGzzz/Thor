@@ -1,4 +1,4 @@
-# ADR-016: Runtime 输入文件通过 File Broker 获取
+# ADR-016: 显式 File Broker 的文件获取与校验
 
 | 字段 | 内容 |
 | --- | --- |
@@ -10,6 +10,8 @@
 | 被哪份 ADR 替代 | [ADR-032](032-platform-file-download.md)替代默认输入通道及服务端摘要要求；显式Broker契约保留 |
 
 ## 背景
+
+本文只适用于显式配置 CCSDK_FILE_BROKER_URL 的部署；默认平台下载及其不同的授权/摘要边界以[ADR-032](032-platform-file-download.md)为准。
 
 浏览器 attachmentIds 由 Java 映射为 input.attachmentRefs[].fileId；Python 无权访问业务数据库或接收永久 URL、对象存储 key、本地路径。
 

@@ -1,7 +1,0 @@
-{
-  "capabilityRef": "template-review",
-  "workflowRef": "writing-docx",
-  "name": "模板整理",
-  "supportsAttachments": true,
-  "mayContainImages": false
-}

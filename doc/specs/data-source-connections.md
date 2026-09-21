@@ -1,12 +1,12 @@
 # 数据库管理与查询工具
 
-唯一来源为校双高数据库，标识为 `schoolDoubleHigh`，业务域为 `hpm`。已实现数据库优先的资产布局、SQLAlchemy执行器和SDK MCP装配；单租户起步，多来源使用同一套工具。撰写见[通用文档工具](../ADR/029-native-office-document-tools.md)，产品流程见[对话与报告](conversation-reporting-product.md)。
+唯一来源为校双高数据库，标识为 `schoolDoubleHigh`，业务域为 `hpm`。已实现按库组织资产、SQLAlchemy执行器和SDK MCP装配；多来源使用同一套工具，当前共享租户范围见下文。撰写见[通用文档工具](../ADR/029-native-office-document-tools.md)，输入见[能力 payload](capability-payload.md)。
 
 ## 目录与职责
 
 ```text
 .claude/databases/schoolDoubleHigh/
-  source.json               来源、能力绑定、连接入口和域知识登记
+  source.json               来源、能力绑定和域知识登记
   schema/hpm.json           13表158列的真实类型、说明、函数及内部列
   metrics/hpm/*.yaml         项目/任务/绩效/资金四个主题，27项契约及内嵌SQL
                             共享参数类型及6项pending原因随主题保存
@@ -14,7 +14,7 @@
   semantics/relationships.md 关联、归属和去重
 python/data_access/         通用连接、授权、查询和结果
 python/runtime/data_services.py  每Run装配及私有配置快照
-python/workflows/writing_docx/   可信模板上下文、参考副本和可选地图维护
+python/workflows/writing_docx/   可信模板上下文和参考副本
 python/tests/databases/      按数据库验证结构、指标SQL及覆盖
 config/databases.json        部署配置；本版进入私有Git和镜像，集中保存各来源连接/策略
 config/certificates/         部署侧CA证书，路径相对databases.json
@@ -35,7 +35,7 @@ source.json不登记连接路径。databases.json结构为`{version:1,sources:{s
 | Policy | tenant_id, business_tenant_id, revision, users, capabilities, templates, project_scope, domains, dynamic_sql_enabled | 与connection同属一个来源键；JWT租户与业务租户独立，来源/能力/模板取交集 |
 | Policy.domains.hpm | queries, tables | 允许的查询和表名列表；表列类型、函数及内部列由schema单独维护，不重复复制 |
 | project_scope | mode=selected/all_school, project_ids | selected必须有非空项目集合；全校只由可信管理员授权 |
-| QuerySpec | name, description, aliases, version, grain, parameters, output, semantics, requires_queries?, checks? | 文件名为query_id；SQL同名；未定义原因只在pending中登记 |
+| QuerySpec | id, name, description, aliases, version, grain, parameters, output, semantics, sql, requires_queries?, checks? | 主题 YAML 中的 id 为 query_id，SQL 内嵌；未定义原因在 pending 中登记 |
 | DataContext | run_id, tenant_id, user_id, capability_ref, run_directory, template_key? | 身份来自已验JWT，模型参数不能覆盖 |
 
 TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配既有连接，不会自动降级。本次实库沿用既有连接，不算生产TLS验收。
@@ -61,19 +61,18 @@ TLS默认要求CA及身份校验；私有配置可显式tls.mode=disabled适配�
 
 ## 执行与管理
 
-调用链：server可信payload → agent_worker → RunServices.bind → Executor。每轮重绑身份、配置和已登记运行资产快照（不含测试/私有文件），关闭时先取消计划/查询再清除上下文；结果记录包、查询、连接、策略版本。原始结果保存在受限Run目录，不跨Run缓存。
-固定SQL经SQLGlot全AST检查和SQLAlchemy绑定，在只读一致性事务中执行；字段顺序必须匹配输出声明。保留Decimal、NULL、无记录和零的区别；行数/字节超限不得填完整报告。一个来源的计划同快照取数，写作不占事务。
+调用链：server可信payload → agent_worker → RunServices.bind → Executor。每轮重绑身份、配置和已登记运行资产快照（不含测试/私有文件），关闭时取消活动查询并清除上下文；结果记录包、查询、连接、策略版本。原始结果保存在受限Run目录，不跨Run缓存。
+固定SQL经SQLGlot全AST检查和SQLAlchemy绑定，在只读一致性事务中执行；字段顺序必须匹配输出声明。保留Decimal、NULL、无记录和零的区别；行数/字节超限不得将截断结果视为完整数据，写作不占数据库事务。
 动态SQL还要求database_scope_enforced=true且scope_source_key匹配当前来源且scope_policy_revision匹配策略版本；数据库账号/视图必须限制于整个授权范围，不能靠模型补WHERE。拒绝跨库、写语句、锁、星号、系统对象、未知列/函数及内部键输出；动态结果不能直接覆盖固定模板。Agent依据所选模板指南自主规划取证和撰写，通用文档工具边界见[ADR-029](../ADR/029-native-office-document-tools.md)；数据库工具不承担文档重建或报告编排职责。
-取消会关闭活动MySQL socket或中断SQLite；query/socket/计划均有超时。Run内串行，NullPool无共享池；跨进程额度及账号最大连接数仍需部署约束，不宣称已有全实例限流或跨库一致事务。
+取消会关闭活动MySQL socket或中断SQLite；查询及网络操作有超时。Run内串行，NullPool无共享池；跨进程额度及账号最大连接数仍需部署约束，不宣称已有全实例限流或跨库一致事务。
 管理员在python目录用`python -m data_access list/validate/probe`，参数见--help。启停及授权通过受保护配置和包发布，变更后重建服务；没有管理网页、热更新或自动改写指标库。
 未来多租户主要替换access.py及connections.py的可信策略/连接查找，工具/模板仍传source_key/domain/query_id；共库行权限、文件/进程/网络隔离和双租户并发需独立实施。
 
 ## 验证与要求
 
-26项可执行定义的SQL和输出契约保持一致；2025报告20数据集已与原结果对照。补充一级建设指标、全周期预算及任务绩效关系；历史快照、评分和成果规则仍不得猜测。详见[来源核验](../verification/report-source-audit.md)。
-2026-09-15集中连接回归：Windows/Linux各147项Python测试通过，Linux部署8项通过；问数、普通撰写、固定模板经实际MCP查询成功。2025年20数据集重取一致，复用105段已核验正文回填后DOCX与原85页文件字节一致（3503位置、40表）；本次未重新调用模型写正文或重复逐页审阅。云效实际环境未部署。
+真实来源核验见[来源记录](../verification/report-source-audit.md)，资产覆盖由 python/tests/databases 维护。历史快照、评分和成果口径仍有缺口，不能因工具成功或目录迁移宣称业务数据完备；文稿质量须独立验收。
 
 | 要求 | 状态 | 依据与差距 |
 | --- | --- | --- |
 | REQ-001 | 部分满足 | data不接业务Token，business沿原规则注入，Run重绑有测试；真实Java撤销及日志全链路待验收 |
-| REQ-002 | 部分满足 | 来源/能力/模板受控；固定报告只挂数据和报告工具；外部Java旧协议及前端选择器仍须对齐 |
+| REQ-002 | 部分满足 | 来源/能力/模板由可信配置装配；阶段性共享来源、Java授权及生产隔离差距保留 |

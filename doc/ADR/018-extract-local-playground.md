@@ -6,15 +6,15 @@
 | 决策状态 | 已采纳 |
 | 实现状态 | 已实现 |
 | 最近核对 | 2026-09-09 |
-| 替代的旧 ADR | [ADR-011](011-python-application-backend.md) 的本地 UI/会话/上传同仓边界；Python Runtime 决策保留 |
+| 替代的旧 ADR | ADR-011 的本地 UI/会话/上传同仓边界；旧正文见[历史索引](README.md#已移除的正文)，Python Runtime 决策保留 |
 | 被哪份 ADR 替代 | 无 |
 
 ## 背景
 Java 接入只需要 Runtime；测试页面、会话存储和本地身份附件分支混入了执行服务。
 ## 决策
-- Scribe 仅提供 health、Run、JWT、SSE、控制与产物接口；保留 SDK、执行资产和运行数据。
+- Scribe 只提供执行服务；现行接口见[Runtime 契约](../specs/ccsdk-runtime-interface.md)，保留 SDK、执行资产和运行数据。
 - 独立 `../ScribePlayground` 接收 Next UI、测试会话、上传、引用和启动编排，禁止跨项目导入。
-- 附件统一经过 HTTPS File Broker；删除 Runtime 对本地测试身份的文件直读分支。
+- 删除 Runtime 对本地测试身份的文件直读分支；输入按授权引用下载，当前平台下载及显式 Broker 边界见[ADR-032](032-platform-file-download.md)。
 ## 实现证据与差距
 - 代码：`python/server.py`、`python/runtime/file_broker.py`；外部 `ScribePlayground/run.py` 与 `python/server.py`。
 - 验证：75 项 Runtime 测试、18 项 Playground 测试、Next 构建与 HTML 测试通过；真实 SDK 附件读取、产物下载、SSE 回放和取消通过。

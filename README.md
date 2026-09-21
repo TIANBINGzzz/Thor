@@ -1,81 +1,54 @@
 # ccagentsdk
 
-供 Java 开发接入的 Python Claude Agent SDK Runtime。通过 Anthropic 兼容接口连接模型，按受信 Capability 调用 Workflow、Skill、MCP 和文件工具。Java 负责业务身份、租户、授权、会话和文件，Python 负责执行及 Run 生命周期。
-
-当前唯一数据库为校双高数据库，标识为schoolDoubleHigh。已按库集中管理登记、语义、指标和查询，业务域为hpm；先支持单租户多来源，保留可信身份、来源策略和连接选择边界。
+供 Java 接入的 Python Claude Agent SDK Runtime，通过 Anthropic 兼容接口连接模型。Java 管理业务身份、会话、授权和文件；Python 执行能力、维护 SDK 上下文及 Run 生命周期。
 
 ## 快速开始
 
-```bash
-copy .env.example .env
+```powershell
+Copy-Item .env.example .env
 # 编辑 .env，填写模型配置和 CCSDK_RUNTIME_JWT_SECRET
 python -m pip install -r requirements.txt
 python python/server.py
 ```
 
-常用命令：
+也可用 `npm start` 启动，`npm test` 运行测试。默认监听 `127.0.0.1:4310`，端口由 `SCRIBE_PORT` 配置。Node 用于 SDK CLI 和项目脚本。
 
-```bash
-npm start
-npm test
-```
-
-## 目录
+## 目录与入口
 
 ```text
-python/       FastAPI Runtime、SDK Worker、文件 Broker 和执行工具
-.claude/      Workflow配置、执行规则、模板和databases数据库资产
-deploy/       云效 ECS 容器构建、配置示例与部署脚本
-doc/          接口规范、工程要求、ADR 和静态 API 文档
+python/       FastAPI Runtime、SDK Worker、文件获取和执行工具
+.claude/      Workflow、执行规则、模板和数据库知识资产
+config/       部署配置，约束见 config/README.md
+deploy/       云效 ECS 容器构建、配置示例与检查
+doc/          接口契约、工程要求、现行决策和核验记录
 ```
 
-HTTP入口包括`/health`及`/internal/v1/`下的能力目录、Run和会话执行检索。Java使用Run JWT创建、查询、订阅事件、控制执行和下载产物；固定附件按Java授权fileId经配置的fileService下载。默认监听`127.0.0.1:4310`，`SCRIBE_PORT`可调整端口。
-按业务会话检索执行记录使用`GET /internal/v1/sessions/{businessSessionId}/runs`，Java签发绑定会话及身份的`session.read` JWT，返回执行摘要和nextCursor；会话标题与消息仍由Java管理。详见[分页契约](doc/specs/ccsdk-runtime-interface.md#43-按业务会话查询执行记录)。
+HTTP 提供 `/health` 及 `/internal/v1/` 下的能力目录、Run、会话执行检索、事件、观测和成果接口。业务调用经过 Java 授权与 Run JWT；完整约定见[Runtime 契约](doc/specs/ccsdk-runtime-interface.md)。
 
-测试UI、模拟Java服务、测试会话及上传位于独立项目 `../ScribePlayground`，不是Runtime运行依赖。Node用于SDK CLI及项目脚本，数据库查询已由进程内data MCP替代DBHub。
+测试 UI、模拟 Java 服务、测试会话和上传属于独立的 `../ScribePlayground`，不是 Runtime 部署依赖。
 
-## 当前能力
+## 能力与上下文
 
-- 普通对话：请求可省略capabilityRef，内部解析为conversation
-- `chart-generation`：根据提供的数据生成正文内 Mermaid 图表，前端渲染；普通对话也可使用，见[接入说明](doc/python-api.html#mermaid-charts)
-- `document-writing`：通过内部 `writing-docx` Workflow 撰写 DOCX
-- `national-excellence-data-qa`：通过内部 `double-high-qa` Workflow 进行双高只读问数
+公开能力由 `GET /internal/v1/capabilities` 返回，包括普通对话、图表生成、图像生成、文档撰写和双高问数；Java 按用户权限筛选。输入及模板字段见[能力 payload](doc/specs/capability-payload.md)。
 
-共同写作规则在 [instructions.md](.claude/workflows/writing-docx/instructions.md)，由writing-docx配置直接注入。预制模板按templateKey加载所选writing-guide.md及DOCX参考副本，Agent自主规划、取证和撰写；与上传模板、无模板共用OfficeCLI原生MCP、Office渲染/PDF读取、data及Artifact工具，不维护地图或专用报告流水线。原逐页来源与指标YAML保留，不确定内容用黄色说明；目录、事实和全文版式须实际检查，发布成功不代表内容审核通过，详见[文档工具决策](doc/ADR/029-native-office-document-tools.md)。
+同一 tenant、user 和 businessSessionId 下，Python 跨能力续接 SDK 历史；工具、规则和凭据按本轮能力重新装配。省略 capabilityRef 仍表示普通对话，不恢复前端的选择值。重启恢复需持久化 RunStore 和 SDK transcript，详见[会话决策](doc/ADR/033-business-session-continuity.md)。
 
-业务字段见[能力payload映射](doc/specs/capability-payload.md)；预制模板只传payload.templateKey，年份和要求放input.text。
+文稿由 Agent 依据[共同规则](.claude/workflows/writing-docx/instructions.md)、所选模板指南及授权资料自主完成，使用 OfficeCLI 编辑、LibreOffice 渲染和 PDFium 核验。撰写轮数与时限以[Workflow 配置](.claude/workflows/writing-docx/workflow.json)为准。
 
-[共享数据库资产](.claude/databases/README.md)包含18问及报告来源的参数化查询、口径、输出字段和核验。按主题YAML内嵌指标定义与SQL为唯一维护源，检索索引由Python生成；data工具保留模型写只读SQL能力，须可信策略及数据库账号范围同时允许。
+当前数据库为校双高 `schoolDoubleHigh`；知识和指标 SQL 维护在[数据库资产](.claude/databases/README.md)，通过进程内 data MCP 查询。
 
-[通用文档工具](doc/ADR/029-native-office-document-tools.md)、[数据库管理与工具](doc/specs/data-source-connections.md)、[前端及SDK产品流程](doc/specs/conversation-reporting-product.md)区分已实现功能和接入差距。
+## 配置与依赖
 
-前端和Java按消息提交可选capabilityRef；不能提交Workflow、Skill、模型、MCP地址或工作目录。同一业务会话切换能力时，Python隔离各能力Client和工具上下文。
+- 模型及 JWT 配置见 [.env.example](.env.example)；数据库、文件服务配置见[配置说明](config/README.md)与[数据库管理](doc/specs/data-source-connections.md)。本版数据库 JSON 经授权进入私有仓库及镜像，修改须重建；模型/JWT 密钥不入库。
+- OfficeCLI 默认从 PATH 启动，可用 `CCSDK_OFFICECLI_PATH` 指定。Linux 镜像内置渲染依赖；Windows 运行 `docker build --target document-renderer -t ccsdkscribe-renderer:local .`，自定义镜像使用 `CCSDK_RENDER_IMAGE`。复测入口为 `scripts/benchmark-document.py`。
+- 可选生图使用 `CCSDK_IMAGE_BASE_URL`、`CCSDK_IMAGE_API_KEY`、`CCSDK_IMAGE_MODEL`，配置变更后重启 Runtime。
+- 普通 Agent 启用 bypassPermissions，不构成生产多租户沙箱；direct 问数关闭内置文件/命令工具。授权与部署边界见[架构](ARCHITECTURE.md)及[部署说明](deploy/README.md)。
 
-## 配置与安全
+## 文档与验证
 
-模型配置写在根.env；数据库包的source.json登记可用能力；databases.json的sources按source_key集中连接/授权和用户名密码，默认项目根config/databases.json，可由CCSDK_DATABASES_FILE指定，参见deploy/data-access.example.json。本版经用户确认将该JSON提交私有Codeup并打入镜像，修改后需重新构建部署；其他凭据及结果明细不提交。direct问数关闭内置文件/命令工具；普通Agent仍启用bypassPermissions，不构成生产多租户沙箱。
+[文档索引](doc/README.md)统一列出接口、Java 职责、工程约束和核验记录；[API HTML](doc/python-api.html)用于浏览接口示例，发布与回滚见[发布说明](doc/README.md#html-发布)。
 
-文档编辑使用[OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)，默认从PATH启动，可用CCSDK_OFFICECLI_PATH指定位置。渲染统一使用LibreOffice与完整中文字体；Linux运行镜像内置引擎，Windows通过Docker复用同一引擎，不依赖桌面WPS。Windows先运行 `docker build --target document-renderer -t ccsdkscribe-renderer:local .`；自定义镜像名用CCSDK_RENDER_IMAGE配置。documents.render/read_pdf更新目录、另存DOCX与PDF并提供分页核验；渲染副本解除旧字体子集引用，原模板不变。字体替代可能改变分页，最终版式仍须核验。可用 `python scripts/benchmark-document.py 输入.docx scratch/render-check --pages 3,4,5` 复测。
-
-撰写预算由可信`writing-docx/workflow.json`配置为100轮、30分钟上限，普通会话沿用部署默认值；上限不是目标耗时。可选生图配置`CCSDK_IMAGE_BASE_URL`、`CCSDK_IMAGE_API_KEY`、`CCSDK_IMAGE_MODEL`（默认`qwen-image-3.0`），通过百炼OpenAI Images接口供Agent按需调用；支持1至3张本轮参考图，不额外安装生图SDK。配置或密钥变更后重启Runtime，问数能力不挂载生图工具。
-
-## 文档入口
-
-- [云效 ECS 部署](deploy/README.md)：镜像构建、运行时密钥注入、数据卷和发布限制；尚需目标环境验收。
-
-- [文档索引](doc/README.md)
-- [架构总览](ARCHITECTURE.md)
-- [Runtime 接口](doc/specs/ccsdk-runtime-interface.md)
-- [Java 控制面](doc/specs/java-control-plane.md)
-- [工程要求](doc/specs/engineering-requirements.md)
-- [ADR 索引](doc/ADR/README.md)
-- [Python API 静态文档](doc/python-api.html)
-
-文档公网发布：运行 `powershell -ExecutionPolicy Bypass -File .\scripts\publish-docs.ps1`，自动提交 HTML 更新并同步至 [在线文档](https://cp.stringedu.com/ccsdkscribe/python-api.html)。发布与回滚说明见 [文档索引](doc/README.md#html-发布)。
-
-## 验证
-
-```bash
+```powershell
 npm test
 python -m compileall -q python
 ```

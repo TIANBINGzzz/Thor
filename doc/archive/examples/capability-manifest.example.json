@@ -1,7 +1,0 @@
-{
-  "capabilityRef": "writing-docx",
-  "workflowRef": "writing-docx",
-  "name": "文档撰写",
-  "supportsAttachments": true,
-  "mayContainImages": true
-}

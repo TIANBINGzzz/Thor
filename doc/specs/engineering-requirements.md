@@ -42,8 +42,6 @@
 
 **要求**：前端触发对象是可授权、可审计、可配置的业务能力 `Capability`。Workflow、Skill、Agent、模板和数据源是其内部组成，不是前端可自由选择的执行入口。
 
-2026-09-17会话执行检索检查：REQ-001不适用，本次不改业务Token和MCP注入；REQ-002部分满足，新增接口只返回Java授权会话的公开Run摘要，不暴露SDK及执行资产，不授予执行能力。HTTP测试覆盖身份隔离及session.read/Run权限分离；真实Java签发与业务会话ACL仍待联调。
-
 ### 必须满足
 
 1. 前端只提交服务端公布的可选capabilityRef和获准业务输入/会话/文件引用。2026-09-14用户确认普通会话省略能力，内部归一为conversation并照常授权；选择能力按当前消息生效。显示名不能把底层执行名称当任意指令。
@@ -63,16 +61,9 @@
 
 ### 当前状态与待明确项
 
-- **部分实现，2026-09-21核对**：Capability映射内部Workflow，协议拒绝外部执行配置；普通会话省略capabilityRef仍绑定conversation。同身份、同业务会话跨能力续接SDK历史，配置变更串行重建Client；本次按用户要求仅改Python，前端选择持久化及Java生产授权尚未联调。见[ADR-033](../ADR/033-business-session-continuity.md)。
-- 本地自测已迁至独立 ScribePlayground，仅提交 `capabilityRef`；Workflow 名称只存在于 Python 内部执行配置，Runtime 不再暴露本地 `/api/*` 接口或识别测试身份直读附件（2026-09-09，ADR-018）。
-- [Runtime 规范](ccsdk-runtime-interface.md) 与 [Java 接入方案](java-control-plane.md) 中现有 Workflow/Capability 映射、注册职责和审计约定需在后续方案修改时与本条对齐；Java 端到端授权未在本次验证。
-- 2026-09-14预制模板仅需payload.templateKey，年份/要求在input.text；Python解析模板、核验能力/来源并记录配置版本，见[能力payload映射](capability-payload.md)。原40表恢复为唯一启用模板，按章节保存正文及原位回填，结构样式与全文审阅均为发布前置；缺历史实值仍须明确披露。
-- 2026-09-14已接入[数据库包](../../.claude/databases/README.md)、固定/动态查询、静态来源策略及逐Run上下文。合成测试覆盖多来源同名查询、用户/租户/范围隔离及取消；真实Java授权、撤销和生产多租户仍未验收。
-- 当前唯一来源为校双高数据库schoolDoubleHigh，[ADR-022](../ADR/022-school-database-single-tenant.md)保留单租户边界，[ADR-023](../ADR/023-database-scoped-asset-packages.md)的按库目录已实施。单租户不删tenant过滤，来源发现不授权，selected项目范围不能扩大为全校。
-- 2026-09-20用户授权阶段性共享校双高来源，显式通配租户并开放已认证用户，配置及恢复条件见[数据库管理](data-source-connections.md#字段与配置)。REQ-001不适用：不改Token/MCP注入；REQ-002部分满足：可信配置、Capability及Run身份/结果边界保留，当前来源不按调用租户隔离数据访问；Java授权及生产多租户仍待验收。
-- 2026-09-17：预制模板与上传模板统一使用通用SDK/DOCX/data/Artifact工具，专用reports流水线已删除。模板选择、数据来源及Run结果引用边界保留；Agent仍有bypassPermissions，不能声称生产文件/进程/网络隔离已完成，见[ADR-027](../ADR/027-agent-led-document-writing.md)。
-
-- 2026-09-16：撰写共同规则已统一注入，所选预制模板加载专属MD并限定数据源；请求字段不变，规则哈希参与Client隔离。2026-09-17共同规则并入writing-docx/instructions.md，由documents.constraints直接加载，移除原Skill包装及重复模板规则。上传模板保留附件参考路径和目录重建要求，复杂DOCX/目录及真实Java验收尚未完成，见[ADR-025](../ADR/025-unified-template-writing.md)。
-- 2026-09-18：预制地图、取数计划及维护生成器已移除，OfficeCLI原生MCP编辑文档，LibreOffice统一渲染、PDFium分页核验；可选Qwen Image工具按需生图。模型自主规划、查询、撰写和检查，Capability及外部字段不变。REQ-001部分满足（新工具不接业务Token，生图密钥仅留Worker）；REQ-002部分满足（可信装配保留，问数不加载文档及生图工具）。Java授权及生产沙箱仍待验收；工具与成稿验证见[ADR-029](../ADR/029-native-office-document-tools.md)，替代WPS及Docker渲染实测见[ADR-031](../ADR/031-unified-document-renderer.md)。
-
-- 2026-09-20平台文件下载接入：REQ-001不适用（不改业务Token/MCP，下载不转发任何Run或业务凭据）；REQ-002部分满足（仅消费已鉴权Run的attachmentRefs、配置目标和安全ID，文件准备/终态清理复用原链路）。Java仍须在创建Run前校验文件ACL，平台GET接口本身不验证业务归属；未把真实文件下载视为Java授权验收，见[ADR-032](../ADR/032-platform-file-download.md)。
+- **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
+- 本地测试已拆至 ScribePlayground，Runtime 不提供本地会话/上传接口或测试身份文件直读；会话检索使用独立 session.read，仅返回公开 Run 摘要。
+- 模板参数与装配边界见[能力 payload](capability-payload.md)，查询口径维护在[数据库包](../../.claude/databases/README.md)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
+- 校双高来源已按用户授权阶段性向已认证租户/用户共享；具体策略、business_tenant_id 和恢复限制见[数据库管理](data-source-connections.md#字段与配置)。来源发现不授权，selected 项目范围不能扩大为全校。
+- 文件引用须由 Java 提交前授权，Python 只下载本轮引用并按 Run 隔离结果；下载成功不代表文件 ACL 已验证，见[ADR-032](../ADR/032-platform-file-download.md)。
+- 普通 Agent 的 bypassPermissions 不构成文件、进程或网络沙箱。Java 真实授权、运行中撤销和生产多租户隔离继续保留为验收差距。

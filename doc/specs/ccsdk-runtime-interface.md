@@ -3,7 +3,7 @@
 ## 变更规则
 
 1. 本文件是 Java 与 Python Runtime 的接口契约；字段名、路径、状态和事件语义以此为准。
-2. 修改前先确认所属模块和影响范围。任何字段、路径、鉴权规则、File Broker 头或事件变化，都必须同步更新 `doc/specs/java-control-plane.md`、`doc/python-api.html` 和协议测试；SDK 内部边界以 `ARCHITECTURE.md` 和源码为准。
+2. 字段、路径、鉴权、文件或事件变化须同步 API HTML 和协议测试；只有职责/映射变化才更新 Java 接入文档，不再复制整套接口。SDK 内部边界见 ARCHITECTURE.md 和源码。
 3. 请求和响应示例必须能按当前代码解析。接口文档只描述已实现内容，不写规划、兼容层或未实现接口。
 4. 本地自测由独立 ScribePlayground 模拟 Java，包含测试 JWT 和 HTTPS File Broker，不得为了自测修改本协议或在 Runtime 加入测试身份分支。
 
@@ -17,7 +17,7 @@
 | Capability | `python/runtime/capabilities.py`、`python/server.py` | 查询已登记能力；将业务标识映射到内部执行配置 | `GET /internal/v1/capabilities`、Run 字段 `capabilityRef` |
 | 执行与事件 | `python/runtime/claude_sdk.py`、`agent_worker.py`、`session_actor.py` | 调用 Claude Agent SDK、维护 Provider Session、转换公共事件 | SSE 事件 |
 | Run 存储 | `python/runtime/run_store.py` | 保存 Run 摘要和有序事件，支持幂等与续传 | Run 查询、SSE |
-| 输入文件 | `python/runtime/file_broker.py` | 从 Java File Broker 获取附件并校验后写入 workspace | File Broker 请求/响应 |
+| 输入文件 | `python/runtime/file_broker.py`、`file_service.py` | 按可信配置从平台文件服务或显式 Broker 获取附件 | 授权文件引用、文件服务契约 |
 | 交付物 | `python/server.py`、`python/tools/artifacts.py` | 列出和下载 Run 生成的文件 | Artifact 接口 |
 
 Java 只提交业务字段。Workflow、Skill、MCP、模型、工作目录、工具参数和 Provider Session 都由 Python 内部决定。
@@ -99,6 +99,7 @@ Content-Type: application/json
 
 | `capabilityRef` | Python 内部映射 | 附件 |
 | --- | --- | --- |
+| `image-generation` | 无 Workflow，装配图像生成及发布工具 | 支持 |
 | `conversation` | 无 Workflow，使用通用对话配置 | 支持 |
 | `chart-generation` | 无 Workflow，复用通用执行及图表工具 | 支持 |
 | `document-writing` | `writing-docx` | 支持 |
@@ -116,6 +117,7 @@ GET /internal/v1/capabilities
 
 ```json
 {"capabilities":[
+  {"capabilityRef":"image-generation","name":"图像生成","description":"根据文字或参考图生成、修改图片并交付 PNG 文件","supportsAttachments":true},
   {"capabilityRef":"conversation","name":"通用对话","description":"日常交流、内容总结与问题解答","supportsAttachments":true},
   {"capabilityRef":"chart-generation","name":"图表生成","description":"根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图","supportsAttachments":true},
   {"capabilityRef":"document-writing","name":"文档撰写","description":"起草、修改与生成 Word 文档","supportsAttachments":true},
@@ -141,7 +143,7 @@ GET /internal/v1/capabilities
 
 `national-excellence-data-qa` 不需要专属 payload 字段；问题、年份和范围要求放在 `input.text`，数据源、查询规范和身份范围由 Runtime 的可信资产及工具策略装配。
 
-自定义模板保存在Java时，使用`document-writing`且不传`templateKey`；通过`input.attachmentRefs`提交模板文件引用，在`input.text`明确哪份文件是模板及写作要求。Python经File Broker获取文件后走普通撰写分支：读取结构、按需收集事实、撰写并生成新DOCX，不自动注册预制模板。当前`purpose`仅支持`input`和`reference`，没有`template`值；再次使用文件仍须提交引用。数据库工具须已配置且获准，上传文件不改变数据权限。若同时传入`templateKey`和附件，仍绑定该预制模板，附件不会覆盖模板选择。
+自定义模板保存在Java时，使用`document-writing`且不传`templateKey`；通过`input.attachmentRefs`提交模板文件引用，在`input.text`明确哪份文件是模板及写作要求。Python按第8节下载文件后走普通撰写分支：读取结构、按需收集事实、撰写并生成新DOCX，不自动注册预制模板。当前`purpose`仅支持`input`和`reference`，没有`template`值；再次使用文件仍须提交引用。数据库工具须已配置且获准，上传文件不改变数据权限。若同时传入`templateKey`和附件，仍绑定该预制模板，附件不会覆盖模板选择。
 
 ```json
 {"protocol":"agent-run/v1","runId":"run_custom_01","messageId":"message_custom_01","capabilityRef":"document-writing","input":{"text":"以附件《自评报告模板.docx》为模板，保留章节和表格，结合可用数据撰写2025年度报告；证据不足时写有限结论和具体缺口，无证据时按原主题写分析框架、数据需求及后续动作，不确定内容用黄色字体，不留空。","attachmentRefs":[{"fileId":"file_template_01","purpose":"input"}]}}

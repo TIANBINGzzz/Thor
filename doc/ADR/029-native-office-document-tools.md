@@ -6,7 +6,7 @@
 | 决策状态 | 已采纳 |
 | 实现状态 | 部分实现 |
 | 最近核对 | 2026-09-18 |
-| 替代的旧 ADR | 部分替代[ADR-026](026-hybrid-template-editing.md)的地图维护及[ADR-027](027-agent-led-document-writing.md)的自有DOCX工具；自主撰写和可信上下文保留 |
+| 替代的旧 ADR | 替代 ADR-026 的地图维护及 ADR-027 的自有 DOCX 工具；旧正文见[历史索引](README.md#已移除的正文)，自主撰写和可信上下文保留 |
 | 被哪份 ADR 替代 | [ADR-031](031-unified-document-renderer.md)替代WPS回退及渲染部署选择；原生编辑和模型自主撰写保留 |
 
 ## 背景
@@ -18,7 +18,7 @@
 - 直接挂载[iOfficeAI/OfficeCLI](https://github.com/iOfficeAI/OfficeCLI)原生MCP（Apache-2.0，固定1.0.151），使用通用命令读取和编辑，不自研编辑器或再包装专用报告操作。版本活跃但项目年轻，升级须重新做原模板回写验收。
 - [MarkItDown](https://github.com/microsoft/markitdown)、[Docling](https://github.com/docling-project/docling)、[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)偏材料解析/OCR，不能替代原DOCX编辑；本轮与已有读取重叠，不引入。Mammoth/HTML往返存在样式损失；Open XML SDK/docx4j仍需自建操作层；ONLYOFFICE独立Builder的后续实测见ADR-031。
 - OfficeCLI读取Office材料；最初采用LibreOffice或Windows WPS刷新字段，后由ADR-031统一为LibreOffice；PDFium提供分页文字及图像核验。
-- 模型依据共同规则、所选指南及授权证据自主规划、查询、撰写和检查；不引入报告状态机、固定段落流水线或强制草稿字段。
+- 预制、上传及无模板共用 document-writing 和 writing-docx；共同规则由 instructions.md 显式注入，预制模板仅额外加载所选指南与参考 DOCX。模型自主规划、取证、撰写和检查，不引入报告状态机、固定段落流水线或强制草稿字段；传值见[模板契约](../specs/capability-payload.md)。
 - 删除位置地图、固定取数计划和维护生成器；保留原DOCX、逐页来源知识、指标SQL、可信模板装配、来源授权及Artifact文件边界。
 - 可选生图用[Qwen Image 3.0](https://help.aliyun.com/zh/model-studio/qwen-image-generation-and-editing-api-reference)的OpenAI Images接口和现有httpx；单个images工具支持生成及参考图编辑，共同规则按需引导，不新增单工具Skill。密钥仅留Worker闭包，生成图不能充当真实成果证据。
 

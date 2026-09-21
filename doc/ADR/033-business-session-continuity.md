@@ -6,13 +6,14 @@
 | 决策状态 | 已采纳 |
 | 实现状态 | Python已验证；本次不修改前端及Java |
 | 最近核对 | 2026-09-21 |
-| 替代的旧 ADR | 部分替代[ADR-014](014-ccsdk-runtime-mvp.md)、[ADR-015](015-query-client-runtime-lifecycle.md)的执行模式选择及跨能力历史交接 |
+| 替代的旧 ADR | 替代 ADR-014、ADR-015 的执行模式选择及跨能力历史交接；旧正文见[历史索引](README.md#已移除的正文) |
 | 被哪份 ADR 替代 | 无 |
 
 ## 背景与决策
 - Python保持本轮capabilityRef和JWT契约，省略能力仍为conversation；前端选择的保存与恢复不在本次修改范围。
 - 有businessSessionId的Run统一使用Client，按tenant、sub和业务会话隔离SDK历史；无业务会话的请求保留配置指定的执行模式。
 - 同会话的配置/凭据变更进入同一串行队列，重建Worker加载本轮工具与规则并resume原SDK历史，不继承旧工具授权。
+- 每个 SessionActor 由唯一长期 Task 驱动 Client；HTTP/SSE 只投递执行和控制，断开订阅不取消 Run。空闲回收后 resume 仅恢复历史，不恢复旧 Task、工具进程或内存。
 - Python管理SDK历史和续接；Java只保存业务元数据、鉴权和转发，不承担AI摘要生成。
 
 ## 证据与后果

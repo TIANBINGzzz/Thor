@@ -1,437 +1,54 @@
-# Java 控制面：推荐设计与当前实现
+# Java 控制面接入职责
 
-更新时间：2026-09-17。本次仅核验Python执行契约；以下Java源码差异保留为历史参考，不代表当前业务层验收。预制模板已按payload.templateKey加载指南与来源，上传模板沿用附件引用；具体契约与原型流程覆盖见[API HTML](../python-api.html#flow-coverage)。
-结论：Python 已提供 Run、鉴权、SSE 和文件接口；本地 Java 有接入骨架，但请求仍是旧协议，不能视为已经联通。
+本文只维护跨系统职责和业务映射；HTTP 字段、鉴权、SSE 和文件格式以[Runtime 契约](ccsdk-runtime-interface.md)为准，[API HTML](../python-api.html)提供完整示例。外部 Java/前端未在此次整理中重新验收，旧分支快照不作为当前实现结论。
 
-## 0. 维护约定与核对范围
+## 职责边界
 
-更新条件与同步范围见[文档职责表](../README.md)。第 1 部分是推荐设计；第 2 部分的实现结论须有源码依据，未做真实联调不得标为联通。
-接口按方向/路径、鉴权、输入、输出、字段、限制描述，共用字段只解释一次；保留必要表格和代表性报文。
-修改时更新顶部日期；源码核对基线与验证范围按实际检查记录，不因文字调整宣称重新完成全量核对。
-
-2026-09-10 补充核对：目录免鉴权变更已检查 server.py、auth.py 和 HTTP 测试；其余实现沿用以下基线。
-
-本次核对基线如下；含未提交修改的快照不等于该提交本身。
-
-| 范围 | 基线与阅读入口 |
+| 层级 | 职责 |
 | --- | --- |
-| Python | 本仓库 `51a8e67`；[server.py](../../python/server.py)、[protocol.py](../../python/runtime/protocol.py)、[auth.py](../../python/runtime/auth.py)、[file_broker.py](../../python/runtime/file_broker.py)、[capabilities.py](../../python/runtime/capabilities.py)；并核对 config、SDK Facade、Worker、Actor、RunStore 和测试。 |
-| Java | 外部项目 `string-ai-center-service` 的 `src/main/java/com/string/ai`；HEAD `3761748` 加本地未提交改动。核对 controller/chat、service/chat、service/runtime、service/dify、service/agent、support、DTO 和配置。 |
-| 前端 | 外部项目 `string-ai-center-web` 的 `src`；HEAD `96fc1de` 加本地未提交改动。核对 api/chat、shared/ai、views/ai 的调用、SSE、消息、附件、模板组件及框架 getHeaders。 |
+| Java | 业务身份、租户、会话/消息、能力及文件 ACL；选择执行后端、签发 Run JWT、关联运行结果 |
+| Python | 解析已授权能力、装配执行资产和本轮凭据、准备附件、执行 SDK、维护模型上下文和 Run |
+| 前端 | 提交业务输入和获准引用；显示消息、阶段、工具状态和文件卡片 |
 
-## 1. 推荐设计（非强制接口）
+Python/Dify 等后端由 Java 的可信配置选择；不能因为省略 capabilityRef 就改变后端。Python 能力目录仅说明可执行能力，Java 须按当前用户和业务 Agent 权限筛选，不将目录等同于授权。
 
-### 1.1 分层与适配
+Workflow、Skill、模型、MCP 地址和工作目录由 Python 管理，不接收浏览器覆盖。业务 Token、Run JWT、模型密钥各有用途，不能互换；需要下游业务凭据时使用 credentials.platformBearer，按可信 MCP 规则选择性注入。
 
-建议链路：`前端 -> Java 会话/消息/ACL -> 执行适配器 -> Python 或 Dify -> Java 公共事件 -> 前端`。
+## 消息映射与会话
 
-| 层级 | 职责与建议 | 理由 |
-| --- | --- | --- |
-| Java 业务层 | 管理 Agent、业务会话/消息、文件 ACL、可用 Capability 和执行记录；按服务端配置选择执行后端。 | 前端选择业务能力，不能决定模型、Workflow 或 MCP。 |
-| Java 适配层 | 沿用 AgentRuntimeAdapter，收敛启动、查询、订阅、取消；Python/Dify 各自翻译报文和文件引用，向上提供同一业务事件。 | 现有 Dify 仍直接耦合 ChatService；建议归入相同边界，接口名不强制。 |
-| Python | 将 capabilityRef 映射到 Workflow，装配 Skill/MCP，维护模型、SDK Session 和 Query/Client 生命周期。 | Java 不承担 Agent 调度策略；Capability 不重复配置 Workflow 已声明的 Skill。 |
-| 前端 | 保留会话列表、消息气泡、附件/模板选择、停止、重新生成和文件预览；增加独立阶段与工具状态。 | 文件准备、思考、工具执行和回答是不同状态。 |
-
-Agent 推荐只维护展示信息、`allowedCapabilityRefs` 和 `defaultCapabilityRef`；Java 用当前用户权限与 Agent 允许能力取交集。Python 目录只说明“Runtime 支持什么”，不是用户授权结果。
-当前名称映射足够，不引入复杂 Capability revision/binding 或通用 Runner；预制模板由 Python 维护，Java 仅传 `payload.templateKey`，外部文档仍作为授权文件输入，不因换模板复制 Workflow。字段约定和待实现范围统一记录在[能力 payload 映射](capability-payload.md)。
-用户自定义模板由Java保存，使用`document-writing`，不传`templateKey`；以`input.attachmentRefs`提交`fileId`和`purpose: input`，通过`input.text`说明模板用途及需求。Python按fileService配置下载后走普通撰写，不要求上传时同步注册Python模板；每次使用重新提交引用。现有附件用途不支持`template`，多个附件须明确模板与参考资料；同时携带`templateKey`仍选择预制模板。文件授权及普通撰写入口已接入，真实Java联调和复杂模板生成质量另行验收。
-模型策略继续由 Python 维护：可能包含图片的 Capability 从首轮起使用支持图片的默认模型，无需为此新增 Subagent。当前未实现按能力选择模型，见 2.8。
-
-### 1.2 业务字段与关联
-
-建议继续使用现有发送路径 `POST /api/v1/chat/conversations/{conversationId}/messages`；请求可整理为：
-
-```json
-{
-  "content": "生成截至2025年底的双高中期自评报告",
-  "capabilityRef": "document-writing",
-  "payload": {
-    "templateKey": "szpt-midterm"
-  }
-}
-```
-
-| 建议字段 | 作用与传递 |
+| Java 业务值 | Runtime 字段与约束 |
 | --- | --- |
-| 路径 conversationId | Java 校验归属后转为 businessSessionId，已有业务会话不需再造会话 ID。 |
-| content | 转为 Python input.text，也对应 Dify query；query() 本身是 SDK 调用，不是业务 ID。 |
-| attachmentIds[] | Java 校验文件归属后转为 input.attachmentRefs[]，缺省 purpose 使用 input。 |
-| capabilityRef | 普通会话可省略，Python内部归一为conversation，JWT仍绑定conversation；用户选择能力只作用于当前消息。Python后端路由由可信配置决定，不能以该字段是否非空决定。 |
-| payload | Java 按[能力映射记录](capability-payload.md)校验后传递；预制模板只需 templateKey，年份和撰写要求用 content。现有 Java 的 Dify inputs 不等同于此字段，Python 模板解析待实现。 |
-| Java messageId | 沿用当前 Bridge 的助手消息 ID，关联输出；用户消息通过现有回复关系关联。 |
-| Java runId | 一次执行；网络重提交复用，新执行/重新生成使用新值；无需 turnId。 |
-
-建议 Java 保存 `runId/messageId/conversationId/capabilityRef/backend/status/lastConsumedSequence` 和必要的内部后端引用。持久化已处理序号后再转发，支持断线回放；Python 的 lastSequence 是服务端最大序号，不能当作 Java 已消费序号。SDK Session 仍由 Python 私有维护。
-同身份、同业务会话的后续执行由Python串行续接SDK历史，切换能力也保持连续；Java只传稳定businessSessionId及本轮能力，不生成摘要。失败后的重新执行需考虑工具已发生的副作用，resume不是任务恢复或事务回滚。
-
-### 1.3 前端事件与展示
-
-推荐在 Java 现有 SSE 形状上扩展；以下是建议，当前 Bridge 尚未提供 status/file 事件：
-
-```json
-{
-  "event": "status",
-  "run_id": "run_01",
-  "local_message_id": "message_01",
-  "sequence": 4,
-  "phase": "downloading_file",
-  "fileId": "file_01",
-  "receivedBytes": 512,
-  "totalBytes": 1024
-}
-```
-
-| 建议事件/字段 | 展示与转换 |
-| --- | --- |
-| stream_meta：run_id/task_id/local_message_id | 关联助手消息和停止操作；Python 路径的 task_id 可继续取 runId，Dify task_id 由 Java 内部记录。 |
-| message：answer、content_type=answer | 仅追加正文。Python textDelta 是增量，按序号去重，不使用前后缀猜测去重，以免丢失合法重复文字。 |
-| status：phase | queued 排队；文件准备显示“正在准备附件/模板”；校验显示“正在校验文件”；model_starting 处理；只有 thinking 显示思考。 |
-| status：fileId/receivedBytes/totalBytes | 映射已知附件显示字节进度；未知总量用不定进度，下载 100% 不表示回答完成。 |
-| status：toolCallId/toolKey/displayName/status/isError | 工具运行/完成/失败；显示Python提供的displayName，空字符串不新增提示但仍更新状态。按Run、scope、调用ID关联，工具失败不自动等同于Run失败。 |
-| file：fileId/fileName/fileSize/url | Java 归档后提供受 ACL 保护的预览/下载，对接现有附件组件。不要把 Runtime 下载 URL 直接交给浏览器。 |
-| message_end：status；error：code/message | 区分 completed、stopped、failed；取消保留已有正文，连接结束不能直接算成功。 |
-| sequence/run_id | 同 Run 内排序去重；Java 合并多来源或增加文件事件时应生成统一的 Java 序号，另存 Python 游标。 |
-
-Java 仅转发正文、业务阶段、泛化工具状态和授权文件；原始工具参数/结果、SQL、地址、凭据、SDK Session 与思考正文不进入业务页面。
-
-## 2. 当前实现与接入约定（按源码核对）
-
-### 2.1 Java 和前端已有什么
-
-Java 的 `service/chat/impl/ChatServiceImpl.java` 先保存用户/助手消息；仅当 runtimeEnabled=true 且传了 capabilityRef 时走 ClaudeRuntimeChatBridge，否则走 Dify。开关默认 false。
-Bridge 经 `RuntimeRequestFactory -> ClaudeRuntimeAdapter -> RuntimeJwtSigner/PythonRuntimeClient` 创建 Run、读取 SSE、保存回答；运行映射目前只在内存。停止经现有 `/conversations/{id}/stop` 或消息级 `/stop?taskId=...` 调用 Runtime `/cancel`。
-前端 `src/api/chat/index.js -> src/shared/ai/composables/useAiApp.js` 已可发送 content、attachmentIds、可选 capabilityRef，消费 message/agent_thought/message_end；未实现推荐的独立工具/文件进度事件。
-
-| 当前 Java/前端报文 | 示例与字段 |
-| --- | --- |
-| 前端发送 POST /api/v1/chat/conversations/session_01/messages | 前端发送请求；content 上限 4000 字符，attachmentIds 是业务附件引用；这里保留 Java 当前旧能力名用于说明差异。 |
-| Bridge 启动后的 SSE data | Bridge 启动事件；task_id/run_id 均取此次生成的 Run ID。 |
-| Bridge 正文 SSE data | Bridge 正文事件；两个消息字段均是 Java 助手消息 ID，answer 来自 Python textDelta。 |
-| Bridge 阶段/终态 | 阶段变为 event=agent_thought、content_type=thinking，无阶段详情；成功变 message_end；取消和失败均变 error，附 message；没有 sequence。 |
-
-**前端发送请求**
-
-```json
-{
-  "content": "整理附件",
-  "attachmentIds": [
-    "file_01"
-  ],
-  "capabilityRef": "writing-docx"
-}
-```
-
-**Bridge 启动事件**
-
-```json
-{
-  "event": "stream_meta",
-  "task_id": "run_01",
-  "run_id": "run_01"
-}
-```
-
-**Bridge 正文事件**
-
-```json
-{
-  "event": "message",
-  "message_id": "message_01",
-  "local_message_id": "message_01",
-  "content_type": "answer",
-  "answer": "回复片段"
-}
-```
-
-以上是源码中的构造行为，当前旧请求尚无法通过 Python 校验，不能当作联调成功报文。
-以下 2.2 至 2.7 是 Python 已实现、Java 对接必须匹配的字段，不代表当前 Java DTO 已匹配；现状差异见 2.8。
-
-### 2.2 鉴权：Java -> Python
-
-Run 接口统一使用 `Authorization: Bearer <Run JWT>`，JWT 绑定本次执行；能力目录接口无需鉴权，见 2.3。签名算法 HS256，Java/Python 共享密钥；Python 配置为 `CCSDK_RUNTIME_JWT_SECRET`、`CCSDK_RUNTIME_JWT_ISSUER`、`CCSDK_RUNTIME_JWT_AUDIENCE`。业务 Token 不能替代 JWT。Java 转发时不携带浏览器 Origin 头，Runtime 收到非空 Origin 会返回 403；浏览器只访问 Java。
-JWT 解码示例（时间为演示值，实际按签发时刻生成；不是可直接使用的 Token）：
-密钥配置在 Python 项目根目录 `.env` 或进程环境的 `CCSDK_RUNTIME_JWT_SECRET`，根目录 `.env` 同名值优先，启动时读取；旧别名 `SCRIBE_RUNTIME_JWT_SECRET` 已移除。Java 对应 `ai-center.runtime-jwt-secret`（环境变量 `AI_CENTER_RUNTIME_JWT_SECRET`），双方须配置相同值，真实密钥不写入文档。
-
-```json
-{
-  "iss": "string-ai-center-service",
-  "aud": "ccsdk-runtime",
-  "iat": 1789012000,
-  "exp": 1789012600,
-  "jti": "jti_01",
-  "sub": "user_01",
-  "tenant": "tenant_01",
-  "runId": "run_01",
-  "capabilityRef": "document-writing",
-  "businessSessionId": "session_01",
-  "messageId": "message_01",
-  "scope": "run.execute"
-}
-```
-
-| JWT 字段 | 必需性与校验 |
-| --- | --- |
-| iss/aud | 匹配部署配置，默认上例值；aud 可为字符串或包含目标值的数组。 |
-| iat/exp | 数值，Unix 秒；exp 大于 iat，默认允许 5 秒时钟偏差。 |
-| jti | 非空唯一字符串；创建与控制消费防重放，查询/订阅不消费；每次写请求须新签 jti。 |
-| sub/tenant | Run 接口必须有用户/租户；Python 仅从已验证 JWT 取身份，不接受正文 context。 |
-| runId/capabilityRef | Run 接口必须有，与请求或已保存 Run 一致。 |
-| businessSessionId | 请求/记录存在时必须匹配；无会话请求建议正文和 JWT 一起省略。 |
-| messageId | 创建时必须匹配正文；后续查询/控制不再检查。 |
-| scope | 一个字符串或字符串数组，按接口校验；不能把多个 scope 拼成空格字符串。 |
-
-鉴权成功继续执行，没有独立登录返回接口；缺失/失效/绑定不符返回 HTTP 401 纯文本，JWT 密钥未配置时创建等 Run 接口返回 503。已存在 Run 另校验保存的 tenant/sub。来源：[auth.py](../../python/runtime/auth.py)、server.py 的 `_authorize_new_request/_authorize_internal`。
-`credentials.platformBearer` 是另一路业务凭据：只按 MCP_AUTH_RULES 注入本次获准的 business MCP；db/docx/artifacts 不接收，不写 Prompt、事件和持久记录。仅持有 Token 不会增加 MCP 权限。
-
-### 2.3 能力目录：Java -> Python
-
-`GET /internal/v1/capabilities`，无请求正文，无需 Authorization 请求头，不依赖 Runtime JWT 密钥配置。仅免除目录查询鉴权，Run 执行权限不变。HTTP 200 返回完整登记目录，由 Java 再做用户权限筛选，不能直接视为当前用户可用列表：
-
-```json
-{
-  "capabilities": [
-    {
-      "capabilityRef": "conversation",
-      "name": "通用对话",
-      "description": "日常交流、内容总结与问题解答",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "document-writing",
-      "name": "文档撰写",
-      "description": "起草、修改与生成 Word 文档",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "national-excellence-data-qa",
-      "name": "双高问数",
-      "description": "查询国双高项目、任务、资金与绩效",
-      "supportsAttachments": false
-    }
-  ]
-}
-```
-
-| 字段 | 作用 |
-| --- | --- |
-| capabilities[].capabilityRef | 业务标识；内部依次映射无 Workflow、writing-docx、double-high-qa。 |
-| name/description | 展示名称与说明，Java 可加业务展示配置。 |
-| supportsAttachments | 布尔，是否允许 attachmentRefs；不是图片识别能力声明。 |
-
-来源：[capabilities.py](../../python/runtime/capabilities.py)。内部 Workflow、Skill、MCP 和模型配置不在目录中返回。
-
-### 2.4 创建 Run：Java -> Python -> SDK
-
-`POST /internal/v1/runs`，Content-Type: application/json，JWT scope=run.execute。最小正文及带文件/业务参数/凭据的正文分别为：
-
-```json
-{
-  "protocol": "agent-run/v1",
-  "runId": "run_01",
-  "messageId": "message_01",
-  "capabilityRef": "conversation",
-  "input": {
-    "text": "你好"
-  }
-}
-```
-
-```json
-{
-  "protocol": "agent-run/v1",
-  "runId": "run_01",
-  "messageId": "message_01",
-  "businessSessionId": "session_01",
-  "capabilityRef": "document-writing",
-  "input": {
-    "text": "请整理附件成报告",
-    "attachmentRefs": [
-      {
-        "fileId": "file_01",
-        "purpose": "input"
-      }
-    ]
-  },
-  "payload": {
-    "reportTitle": "年度报告",
-    "year": 2026
-  },
-  "credentials": {
-    "platformBearer": "<仅业务 MCP 需要时传入>"
-  }
-}
-```
-
-两个示例是互斥的创建场景，不能按顺序以同一 runId 提交不同内容。
-
-| 请求字段 | 类型/必填 | Python 处理与 SDK 去向 |
-| --- | --- | --- |
-| protocol | string/是 | 仅 agent-run/v1，不传 SDK。 |
-| runId | string/是 | 幂等、执行、事件和取消键；SDK 没有对应业务 Run ID。 |
-| messageId | string/是 | 私有消息关联，不作为 SDK session，也不在 Run 响应回传。 |
-| businessSessionId | string/否 | Python按tenant、sub、businessSessionId隔离历史，能力不参与会话键；缺失按runId隔离，不保证跨Run连续。 |
-| capabilityRef | string/是 | 映射 Workflow，配置装配为 ClaudeAgentOptions；字符串本身不是 SDK 参数。 |
-| input | object/是 | 只接收 text、attachmentRefs。 |
-| input.text | string/否，默认空 | 最多 100 万字符；与业务数据、附件清单合成 prompt，传给 query() 或 client.query()。 |
-| input.attachmentRefs | array/否，默认空 | 最多 64 项；全部预取、校验完成后再调用模型。 |
-| attachmentRefs[].fileId | string/是 | 文件服务 fileId，经配置下载；SDK 接收已授权本地文件清单及目录访问配置。 |
-| attachmentRefs[].purpose | string/否 | input 或 reference，默认 input；是用途说明，不是额外权限。 |
-| payload | object/否 | JSON 业务数据，最多 64 KiB、16 层；序列化进入 prompt，不参与模型/工具/权限配置。 |
-| credentials.platformBearer | string/条件 | 最多 16384 字符；业务 MCP 需要时必需，经 Worker 临时传值到指定 MCP header/env，不送模型。 |
-
-ID 字段须匹配 `[A-Za-z0-9][A-Za-z0-9_-]{0,255}`，HTTP 创建正文另有 2 MiB 总限制。text、附件、payload 至少一个非空；未知顶层字段返回 400，包括旧的 turnId、execution、runtime、context。payload 保留字段与递归过滤见 [Runtime 规范](ccsdk-runtime-interface.md#34-业务-payload)；过滤不能替代 Java 对模型可见数据的业务校验。
-内部链为 `AgentRunRequest -> Capability/Workflow -> 文件准备 -> Worker JSONL -> config.build_options -> claude_sdk Facade -> SDK`。默认模型取 SCRIBE_MODELS 首项，未配置则取 ANTHROPIC_MODEL；Workflow 的 skills 进入 SDK skills，MCP 来自 Python 受控配置，cwd/add_dirs 来自 Runtime。
-
-新建 HTTP 202；相同身份与非秘密请求重提交返回 HTTP 200，凭据刷新不影响幂等摘要；请求不同返回 HTTP 409 纯文本 `Run request mismatch: run_01`。创建响应：
-
-```json
-{
-  "run": {
-    "runId": "run_01",
-    "status": "queued",
-    "lastSequence": 0
-  },
-  "eventsUrl": "/internal/v1/runs/run_01/events"
-}
-```
-
-来源：[protocol.py](../../python/runtime/protocol.py)、[config.py](../../python/runtime/config.py)、[run_store.py](../../python/runtime/run_store.py)、server.py。进程重启后的重提交可能重执行，不能宣称 exactly-once，见 2.8。
-
-### 2.5 查询、控制与 SSE：Java -> Python -> Java
-
-| 请求 | 输入与鉴权 | 输出 |
-| --- | --- | --- |
-| GET /internal/v1/runs/{runId} | 路径 runId；run.read 或 run.execute；无正文 | HTTP 200：Run 查询响应 |
-| POST /internal/v1/runs/{runId}/control | run.control 或 run.cancel；正文仅 取消请求 或 中断请求 | HTTP 200 同一 run 结构，例如 status=cancelled；控制可能仍在收尾。 |
-| POST /internal/v1/runs/{runId}/cancel | run.control 或 run.cancel；无正文 | 等同 option=cancel。 |
-| GET /internal/v1/runs/{runId}/events?afterSequence=3 | run.read 或 run.execute；Accept: text/event-stream；非负整数游标，未传取 Last-Event-ID，再默认 0 | HTTP 200 SSE，返回大于游标的事件；参数优先。 |
-
-**Run 查询响应**
-
-```json
-{
-  "run": {
-    "runId": "run_01",
-    "status": "running",
-    "lastSequence": 3
-  }
-}
-```
-
-**取消请求**
-
-```json
-{
-  "option": "cancel"
-}
-```
-
-**中断请求**
-
-```json
-{
-  "option": "interrupt"
-}
-```
-
-`run.status` 为 queued/running/succeeded/failed/cancelled；lastSequence 为服务端已保存的最大整数序号，失败可有 error: string。响应不包含 messageId、身份、Provider Session、内部目录。
-停止按钮用 cancel。interrupt 请求中断当前 SDK 响应，不是暂停：准备文件期间及独立 Query 会取消，Client 模型阶段的终态由 SDK 结果决定；两者都不撤销已执行的工具操作。终态 Run 再控制不会改变状态。
-应用错误是纯文本：正文/未知能力/不允许附件 400，鉴权 401，Origin 拒绝 403，缺 Run/文件 404，幂等或控制冲突 409，配置不可用 503，控制超时 504；FastAPI 的非法 afterSequence 参数返回 422 JSON detail。创建后执行失败通过 run.failed 通知，不改写先前 202。
-
-SSE 完整示例（帧末有空行）：
-
-```text
-id: 4
-event: phase
-data: {"protocolVersion":"agent-events/v1","eventId":"evt_04","runId":"run_01","sequence":4,"occurredAt":1789012000000,"type":"phase","payload":{"name":"downloading_file","fileId":"file_01","receivedBytes":512,"totalBytes":1024,"displayName":"正在获取文件"}}
-
-```
-
-| 字段/事件 | 实际字段与含义 |
-| --- | --- |
-| 公共信封 | protocolVersion 固定 agent-events/v1；eventId 为事件标识；runId 关联执行；sequence 从 1 递增；occurredAt 为 Unix 毫秒；type 决定 payload。 |
-| run.started | payload.status=running；此时可能仍在准备文件或等待 Client，不表示模型已启动。 |
-| phase | name：queued、preparing_files、preparing_file、downloading_file、validating_file、file_ready、files_ready、model_starting、started、thinking、response、working、saving_files。 |
-| 文件 phase | 按阶段可带 fileId、fileCount、receivedBytes、totalBytes；数值分别为数量/字节，不是百分比。 |
-| message.delta | payload.textDelta: string，正文增量。 |
-| tool.started/progress/finished | status=started/running/finished，scope默认main；可带toolCallId，固定包含toolKey及displayName；finished有isError布尔。Python不再返回内部toolName。 |
-| run.completed | displayName默认“已完成”，可带inputTokens/outputTokens/turns整数统计。 |
-| run.failed | code，如 timeout、sdk_execution_error、file_access_denied、file_validation_failed；可能带统计。 |
-| run.cancelled | displayName默认“已停止”，当前执行已取消。 |
-
-每条事件payload都含displayName，由Python的`runtime/event_display.py`集中维护，允许空字符串。Java转发名称即可，不再维护内部工具名字典；空名称仅隐藏状态提示，不能停止正文追加、忽略文件登记或跳过Run结束处理。回放使用当前显示字典并移除旧toolName；toolKey只用于展示分类，不是可授权的工具调用入口。新增字段和空字符串不可被Bridge丢弃；Java/前端实际接入仍需单独修改和验证。
-
-SSE断开不取消执行或上传，终态后关闭，空闲发送心跳；持久事件分页回放。生成文件由artifact.pending/uploading/ready/failed/unknown报告，详情见2.7。SDK结束后仍在上传时发送phase.name=saving_files，Run保持running；文件收尾后才发Run终态，run.completed不保证文件全部ready。来源：server.py、artifact_delivery.py、run_store.py。
-
-### 2.6 输入文件：按 fileId 获取平台文件
-
-Java 完成上传/模板选择后，先校验当前用户、租户、会话、能力和文件 ACL，再将文件服务 fileId 放入 input.attachmentRefs。fileId 与存文件接口返回的 data.id 相同，不是模板业务 ID、会话附件 ID、URL 或 FastDFS 路径；已有会话附件须由 Java 解析成该文件 ID。
-
-Python 使用数据源配置顶层 fileService 的 baseUrl、domainName、remoteUrl 和 downloadPath，向 `/fwk_manage_service/sys_attachment/{fileId}/ai/download/` 发起 GET。仅发送两项配置请求头，不转发 Run JWT/业务 Token；当前下载端点不提供业务 ACL，Java 必须在提交 Run 前完成授权。配置、响应和显式 Broker 契约只维护在 [Runtime 文件规范](ccsdk-runtime-interface.md#8-file-broker-模块)。
-
-模板及参考资料均在 Agent 执行前下载，中文文件名解码并检查路径边界；全部就绪后执行。接口未返回权威摘要，Python 只记录实际 SHA-256，有 Content-Length 时校验长度，不能声称远端内容指纹已核验。下载失败/取消不启动模型，Run 结束清理输入目录；下一轮仍需读取的文件重新提交引用。
-
-ScribePlayground 或已实现独立 Broker 的部署可显式设置 CCSDK_FILE_BROKER_URL；不再根据 backendService 猜测 Java 回调地址。原始模板仍由 Java 管理，Python 下载副本不是第二个模板库。
-
-### 2.7 生成文件：Python自动上传，Java关联消息
-
-正文内Mermaid图表不属于本节文件交付：`chart-generation`能力与普通conversation均通过原message.delta输出完整Markdown，不生成artifactId/fileId。Java保留换行与围栏，前端按mermaid代码块渲染；能力目录、JWT绑定和示例见[图表接入](../python-api.html#mermaid-charts)。
-
-| 请求 | 输入与鉴权 | 输出与字段 |
-| --- | --- | --- |
-| GET /internal/v1/runs/{runId}/artifacts | run.read或run.execute；无正文/查询参数 | 本Run的files列表，按artifactId区分不可变版本。 |
-| GET /internal/v1/runs/{runId}/artifacts/{artifactId} | 相同JWT | file对象，用于状态补查。 |
-| GET /internal/v1/runs/{runId}/artifacts/{artifactId}/content | 相同JWT | 本地快照字节，供Java鉴权代理或恢复；不证明远端上传成功。 |
-
-**生成文件列表响应**
-
-```json
-{
-  "files": [
-    {
-      "artifactId": "artifact_0123456789abcdef0123456789abcdef",
-      "fileId": "570ad1a296de79ecb815981e50e83584",
-      "name": "result.docx",
-      "size": 2048,
-      "suffix": "docx",
-      "status": "ready"
-    }
-  ]
-}
-```
-
-Python发布工具提交快照，父Runtime自动上传；Java无需批准或再次上传。上传目标由部署fileService配置，响应data.id作为fileId；data.url是内部路径，不当作下载URL。文件状态及错误码以[Runtime契约](ccsdk-runtime-interface.md#6-artifact-模块)和[格式化示例](../python-api.html#artifacts)为准，旧?name接口已删除。
-
-artifactId标记一个文件版本，不是整次Run；Python自动重试保留原artifactId，成功后获得fileId。HTTP500、2xx响应体state=500及连接建立失败最多共尝试3次，等待2秒/5秒且共用总预算；仅最终结果通过artifact.ready/failed报告，不确定结果保留artifact.unknown。Java订阅结果，GET仅断线补查；不提供外部重传API或retryable字段，不新增scope，不要求Java调度重试。本次改造只定义Python对Java的结果契约，不新增Java到前端的事件或展示规则。
-
-Java须用创建时保存的runId→messageId关联确定业务归属，按artifactId幂等更新卡片；ready后登记fileId和ACL，再向前端提供业务下载入口。正文增量照常展示，文件卡片由结构化事件驱动，不识别模型输出中的文件名或链接。fileId本身不是授权凭据，存储服务当前没有租户隔离，Java需校验会话及用户权限。再次引用由Java重新授权后提交attachmentRefs。本节Python接口已实现，Java/前端接入未在本仓库实施。
-
-### 2.8 差异与问题记录
-
-以下为 2026-09-10 源码核对结果；建议处理尚未实施，也不静默改变当前契约。
-
-| 优先级 / 问题 | 当前证据与影响 | 建议处理 |
-| --- | --- | --- |
-| 阻断：Java 报文/能力不匹配 | Java 的 RuntimeRunRequest/Factory 仍发送 turnId、agentRef、execution、runtime、limits、context，Python 拒绝；Java 用 writing-docx/database-qa，Python 用 document-writing/national-excellence-data-qa；Java 也没传 payload。 | Java DTO/Factory 按 2.4 收敛，并读取 2.3 的业务名称。 |
-| 阻断：凭据来源与业务 ACL | 前端的 getHeaders 发 token 头；Java 的 BusinessTokenResolver 只读 Authorization Bearer。UserContextHelper 反射取 tenant 或 org；Registry 只验证全局名称，未见用户/Agent 能力 ACL 与文件 ACL 闭环。 | 明确已认证上下文如何提供原业务 Token 与真实 tenant；先校验业务权限再签 JWT，不能默认 org 就是租户。 |
-| 缺口：文件接入/前后端版本 | 前端调用附件登记、模板等接口，当前 Java 的 ChatController 无附件登记，未找到 Broker；RuntimeClient 无 Artifact API。重命名/删除方法也与前端不一致。 | 先确定对应 Java 分支及文件服务，再接 2.6/2.7；不能以本地前端 API 清单证明 Java 已支持。 |
-| 缺口：状态与结束判定 | 旧Bridge将phase和工具开始/完成映射agent_thought，忽略tool.progress与sequence；SSE无终态就EOF时仍可能保存completed。Python已提供安全toolKey/displayName。 | Java接入显示字段及空名称语义，单独处理准备/工具状态、序号和终态；异常断线查询/续订阅。 |
-| 缺口：默认 resume 与图片模型 | server 的 Query payload 固定 resume=None；Client 仅 Actor 内持有会话，重建未从 RunStore 恢复。模型固定 MODELS[0]，无按 Capability 的图片模型配置。 | Python 实现持久会话查找与串行约束；图片能力首轮选视觉模型并验证图片读取；Java 不增加调度字段。 |
-| 风险：同 Run 重执行 | server 在记录非终态但没有本进程 Task 时会重新启动同一 runId；Java Bridge 运行记录也只有内存。 | worker 丢失先核实状态/副作用，避免同 Run 自动再执行；实际重执行用新 runId，补 Java Run/Event 持久化。 |
-| 已修正（2026-09-18）：回放截断 | Python已循环分页回放，覆盖超过500条后文件事件及终态的回归。 | Java仍需按sequence去重、断线续读。 |
-| 已修正（2026-09-18）：产物Run归属 | Python每次发布分配artifactId并保存独立快照，按Run记录归属；同名不会覆盖。 | Java接入新事件和ID接口，不能继续按文件名定位。 |
-| 部署限制 | SDK 非 direct 模式仍用 bypassPermissions 和完整工具预设；JWT replay cache 在进程内存。 | Capability 白名单不能代替进程/目录隔离；生产多实例前补共享防重放、租约及安全验收。 |
-
-### 2.9 验证与工程要求
-
-2026-09-10 目录免鉴权变更：runtime_http、runtime_boundary、runtime_protocol 共 17 项测试通过；覆盖无 Token、未配置密钥的目录读取、公开字段范围和 Run 接口继续拒绝匿名访问。以下为此前全量核对记录。
-
-本次运行 `python -X utf8 -m unittest tests.test_runtime_protocol tests.test_runtime_http tests.test_runtime_boundary tests.test_file_broker tests.test_file_preparation tests.test_session_actor tests.test_claude_sdk`（目录 python）。共 56 项，首轮 55 项通过，1 项 Client 文件准备测试触发 sdk_timeout；该例仅给模型阶段 50 ms，单独复跑通过，保留时序稳定性待核实记录。测试使用本地模拟传输/SDK，不是 Java、真实模型或浏览器联调。
-文档 JSON、相对文件链接、两个 Run 示例的解析、JWT 绑定及完整能力目录均已校验；另用内存 RunStore + TestClient 复现“终态 Run 保存 501 条、SSE 只返回 500 条”，未修改运行时代码。
-
-| 要求 | 状态 | 依据与差距 |
-| --- | --- | --- |
-| REQ-001：业务 Token 按 MCP 注入 | 部分满足 | Python 按配置副本注入且不持久化凭据；Java/前端 Token 头不匹配、运行中凭据到期/撤销及真实透传仍待验收。 |
-| REQ-002：前端只触发 Capability | 部分满足 | Python 已有独立业务标识与受控 Workflow 映射，拒绝执行配置；Java 新旧标识、用户/Agent/附件 ACL 与前端事件尚未闭环。 |
-
-持续要求见 [工程要求清单](engineering-requirements.md)；其中旧日期的实现快照不能替代本次代码核对。
+| conversationId | businessSessionId；先验证会话归属，同一会话保持稳定 |
+| content | input.text；包含年份、范围、写作或生成要求 |
+| attachmentIds | 授权并解析为文件服务 ID 后填 input.attachmentRefs；不能直接混用附件表 ID |
+| capabilityRef | 本轮能力；省略时为 conversation，JWT 同样绑定 conversation |
+| 模板选择 | payload.templateKey；只使用已登记值，见[能力 payload](capability-payload.md) |
+| 助手消息 ID | messageId；Java 保存 runId 与消息的关联 |
+| 一次执行 ID | runId；相同请求重试复用，重新执行/重新生成使用新值 |
+
+- Java 保存会话/消息以及每次执行的能力、输入快照、状态和已消费序号；Python 的 lastSequence 是服务端最大值，不能代替 Java 已消费游标。
+- Python 按 tenant、sub、businessSessionId 串行续接 SDK 历史，跨能力也连续；配置或凭据变化重建 Client 并恢复历史，Java 不生成 AI 摘要。
+- 能力选择的界面恢复属于业务会话元数据，可采用最后一次请求值；Python 始终执行本轮授权值，不将省略能力解释成沿用上一轮能力。
+- SDK resume 恢复上下文，不恢复旧进程或回滚工具副作用；重试须使用原请求快照，不能读取输入框的新选择。
+
+## 附件与模板
+
+1. Java 在创建 Run 前校验用户、租户、会话、文件及用途权限，把文件服务 fileId 放入附件引用。
+2. Python 按可信 fileService 配置下载本轮文件；显式 File Broker 是另一种部署选择，不因平台下载失败自动回退。两种契约见[文件获取](ccsdk-runtime-interface.md#8-file-broker-模块)。
+3. 自定义模板使用 document-writing、附件引用和文字要求，不传 templateKey；Python 读取结构后生成新稿，不自动登记预制模板。每次再次使用文件仍须提交引用。
+4. 预制模板以 templateKey 选择；同时提交附件不覆盖预制模板。附件文字和模板内容均不授予新的数据或工具权限。
+
+## 公共事件与成果
+
+- Java 按 Run 和 sequence 去重、保存消费游标并转发；断线按游标续读，SSE EOF 不能当成成功，必要时查询 Run 状态。断开订阅不取消执行，停止使用 cancel。
+- message.delta 仅追加正文；phase 和工具生命周期更新状态。工具显示使用 Python 的 displayName，空名称隐藏提示，工具失败不自动等同于 Run 失败。
+- 原始思考、工具参数/结果、SQL、路径、凭据及 SDK 会话标识不进入业务页面。开发观测使用独立 run.observe 权限及部署开关，见[观测契约](ccsdk-runtime-interface.md#10-开发观测)。
+- 一个回答可有多个文件和图片。按 artifactId 幂等更新卡片，按首次文件事件的 sequence 定位；正文与文件事件可交错，不按文件名覆盖，也不能只保存最后一个 ready。
+- artifact.ready 才关联远端 fileId，再提供经过业务 ACL 的下载/预览。模型回答中的文件名、链接或“待上传”文字不能作为上传状态；状态以结构化文件事件为准。
+- data.url 是内部存储路径，不推测公开下载地址。failed/unknown 与 Run 失败分别表达；本地快照可供授权恢复，但不证明远端已保存。
+
+## 验收边界
+
+接口示例和 Python 测试不能证明 Java 已完成业务授权、文件关联或前端展示。联调应覆盖同身份会话连续性与跨身份隔离、Token 更新/撤销、附件 ACL、断线回放、多文件/图片交错事件及异常终态。
+
+[REQ-001/REQ-002](engineering-requirements.md)的生产授权、运行中撤销和隔离差距继续保留；本次文档整理不改变协议或外部实现。
