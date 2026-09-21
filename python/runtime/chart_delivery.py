@@ -2,6 +2,8 @@
 
 import re
 
+_MERMAID_ENTITY = re.compile(r'#(34|35|37|38|60|62|92|96);')
+
 
 def _blocks(text):
     """只计入顶层完整围栏；外层代码块里的Mermaid不能当作已展示。"""
@@ -25,6 +27,16 @@ def _blocks(text):
     return charts, opened
 
 
+def _chart_key(block):
+    """Compare Mermaid blocks after decoding the entities emitted by the tool.
+
+    The model may copy ``#37;`` as ``%`` (and the other Mermaid numeric
+    entities as their visible characters).  Delivery matching must compare
+    those equivalent forms without changing either public response.
+    """
+    return _MERMAID_ENTITY.sub(lambda match: chr(int(match.group(1))), block)
+
+
 class ChartDelivery:
     def __init__(self, sink):
         self.sink = sink
@@ -40,20 +52,23 @@ class ChartDelivery:
         blocks, _ = _blocks(markdown)
         if len(blocks) != 1:
             raise ValueError('图表工具必须返回一个完整Mermaid块')
-        self.generated[next(iter(blocks))] = markdown
+        block = next(iter(blocks))
+        self.generated[_chart_key(block)] = markdown
 
     def emit(self, event):
         if event.get('type') == 'text':
             self.text.append(event.get('text', ''))
         if event.get('type') == 'result':
             shown, unclosed = _blocks(''.join(self.text))
-            missing = [markdown for key, markdown in self.generated.items() if key not in shown]
+            shown_keys = {_chart_key(block) for block in shown}
+            missing = [markdown for key, markdown in self.generated.items() if key not in shown_keys]
             if missing:
                 # 模型可能截断在普通代码块内，先闭合再输出可渲染的独立图表。
                 addition = '\n' + (unclosed + '\n' if unclosed else '') + '\n' + '\n\n'.join(missing) + '\n'
                 self.text.append(addition)
                 self.sink({'type': 'text', 'scope': 'main', 'text': addition})
             delivered, _ = _blocks(''.join(self.text))
-            if not self.generated.keys() <= delivered:
+            delivered_keys = {_chart_key(block) for block in delivered}
+            if not self.generated.keys() <= delivered_keys:
                 raise RuntimeError('图表正文交付校验失败')
         self.sink(event)

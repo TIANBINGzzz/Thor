@@ -38,6 +38,24 @@ class ChartDeliveryTests(unittest.IsolatedAsyncioTestCase):
         delivery.emit({'type': 'result', 'ok': True})
         self.assertEqual(''.join(e.get('text', '') for e in events), chart)
 
+    def test_equivalent_mermaid_numeric_entities_are_not_duplicated(self):
+        events = []
+        delivery = ChartDelivery(events.append)
+        chart = build_mermaid({
+            'chart_type': 'pie', 'title': '产业占比',
+            'labels': ['第一产业', '第二产业', '第三产业'],
+            'values': [7.7, 37.8, 54.5], 'unit': '%',
+        })['markdown']
+        # The model commonly renders the tool's Mermaid numeric entity #37;
+        # back to the visible percent sign while copying the chart into text.
+        model_answer = chart.replace('#37;', '%')
+        delivery.record(chart)
+        delivery.emit({'type': 'text', 'text': model_answer})
+        delivery.emit({'type': 'result', 'ok': True})
+        self.assertEqual(model_answer, ''.join(e.get('text', '') for e in events
+                                               if e.get('type') == 'text'))
+        self.assertEqual(1, model_answer.count('```mermaid'))
+
     def test_nested_or_incomplete_fence_is_not_counted_as_delivered(self):
         for answer in ('```text\n' + self.chart(), '````text\n' + self.chart() + '\n````'):
             events = []
