@@ -489,7 +489,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         template_path = stage_template(template, work_directory)
         prompt_append += (
             '\n本轮预制模板参考副本：' + str(template_path)
-            + '\n先读取该DOCX全文及结构，另存工作稿；不要修改参考副本。'
+            + '\n另存工作稿，不要修改参考副本；读取范围与撰写顺序遵循本轮已加载的共同写作规则。'
             + '\n模板建议成果名称：' + template['file_name']
             + '\n报告对象、期间及截止日按本轮用户要求确定。自行组织取证、撰写与文档处理步骤。'
         )
