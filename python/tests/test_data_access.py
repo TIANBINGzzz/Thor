@@ -309,6 +309,24 @@ class DataAccessTests(unittest.TestCase):
         self.assertNotIn('owner', provenance)
         self.assertEqual(self.executor.results.page(result['result_ref'])['provenance'], provenance)
 
+    def test_result_keeps_query_semantics_with_paged_evidence(self):
+        # 写作时常直接复用结果；限定条件须随证据返回，不依赖较早的检索上下文。
+        metric_path = self.root/'databases/first/metrics/sales/sales.yaml'
+        asset = yaml.safe_load(metric_path.read_text(encoding='utf-8'))
+        rules = ['当前登记值，不是历史截止日快照', '仅包含有效业务记录']
+        asset['metrics'][0]['validation']['rules'] = rules
+        metric_path.write_text(yaml.safe_dump(asset, allow_unicode=True), encoding='utf-8')
+        executor = self.make_executor()
+        scope = executor.resolve_entities('first', 'sales', 'school', '')['candidates'][0]['scope_ref']
+        result = executor.execute_query_spec('first', 'sales', 'total', {}, scope)
+        self.assertEqual(result['semantics'], rules)
+        ref = executor.results.save([{'total': i} for i in range(101)],
+            executor.results.get(result['result_ref'])['metadata'], [{'name': 'total'}])
+        first = executor.results.page(ref)
+        second = executor.results.page(ref, first['cursor'])
+        self.assertEqual(second['semantics'], rules)
+        self.assertNotIn('sql', json.dumps(second))
+
     def test_mysql_uses_literal_json_credentials_and_rejects_missing_values(self):
         from data_access.connections import Connections
         config={'_base_directory':self.root,'driver':'mysql+pymysql','host':'example.invalid',

@@ -258,7 +258,8 @@ class Executor:
                     "query_version": spec["version"], "asset_revision": self._versions[source_key],
                     "scope_ref": scope_ref, "parameters": parameters, "access": policy["fingerprint"],
                     "connection_revision": connection["revision"], "source_version": source["version"],
-                    "collected_at": datetime.now(timezone.utc).isoformat(), "complete": complete, "dynamic": False}
+                    "collected_at": datetime.now(timezone.utc).isoformat(), "complete": complete, "dynamic": False,
+                    "semantics": spec.get("semantics", [])}
         reference = self.results.save(rows, metadata, spec["output"])
         return self.results.page(reference)
 

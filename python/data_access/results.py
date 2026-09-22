@@ -63,6 +63,8 @@ class Results:
         return {"result_ref": reference, "rows": rows, "row_count": len(record["rows"]),
                 "complete": record["metadata"]["complete"], "cursor": next_cursor,
                 "status": "no_data" if not record["rows"] else "available",
+                # 从本轮冻结的指标定义继承口径；分页也携带，避免数值脱离适用范围。
+                "semantics": list(record["metadata"].get("semantics", [])),
                 "provenance": {k: v for k, v in record["metadata"].items() if k in {
                     "source_key", "domain", "query_id", "query_version", "asset_revision",
                     "source_version", "scope_ref", "parameters", "collected_at", "dynamic",

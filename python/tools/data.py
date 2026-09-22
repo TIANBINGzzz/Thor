@@ -79,7 +79,8 @@ def create_data_server(services):
     return tool_server("data", [
         ("list_data_sources", "列出本次执行获准的数据源。", {}, [], call("list_data_sources")),
         ("describe_data_source", "按库和业务域读取字段、函数白名单及显式登记的语义主题。", {**SOURCE,
-            "topics": {"type": "array", "items": REFERENCE, "maxItems": 20}}, list(SOURCE), call("describe_data_source")),
+            "topics": {"type": "array", "items": REFERENCE, "maxItems": 20,
+                "description": "省略时返回可用topics；读取正文时原样选用已返回的topic键，不填业务问题或自拟中文标题。"}}, list(SOURCE), call("describe_data_source")),
         ("resolve_entities", "取得本轮授权范围或查找业务对象，返回 scope_ref/entity_ref；多候选须消歧。", {**SOURCE,
             "entity_type": {**REFERENCE, "enum": sorted(entity_types), "description": (
                 "school=当前已授权学校范围（仅 all_school 可用），不是按校名搜索；"
@@ -115,7 +116,7 @@ def create_data_server(services):
                 "需要指定对象时，使用参数名到本轮 entity_ref 的映射；不要传真实内部ID。"
             )}},
             [*SOURCE, "query_id", "parameters", "scope_ref"], call("execute_query_spec")),
-        ("execute_readonly_sql", "执行授权只读SQL；仅在数据库侧已隔离数据范围时开放。", {**SOURCE,
+        ("execute_readonly_sql", "执行授权只读SQL；仅在数据库侧已隔离数据范围时开放。all_school授权须使用school范围引用，SQL业务条件可进一步筛选项目；项目范围引用仅适用于部署已隔离到唯一项目。不得为通过校验扩大授权。", {**SOURCE,
             "sql": {"type": "string", "minLength": 1, "maxLength": 60000}, "parameters": PARAMETERS,
             "purpose": STRING, "scope_ref": SCOPE_REFERENCE}, [*SOURCE, "sql", "parameters", "purpose", "scope_ref"], call("execute_readonly_sql")),
         ("read_query_result", "读取当前Run内同一物化结果的下一页，不重复查询。",
