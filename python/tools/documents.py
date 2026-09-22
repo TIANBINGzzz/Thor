@@ -11,7 +11,7 @@ def create_document_server(base_dir, additional_dirs=None):
     string = {'type': 'string'}
     integer = {'type': 'integer'}
     definitions = [
-        ('render', 'Office引擎更新DOCX目录和字段，另存DOCX与PDF；output_dir为新目录。OfficeCLI编辑后先close，再调用此工具；版式通过PDF核验。',
+        ('render', 'Office引擎更新DOCX已有目录字段，另存DOCX与PDF；不会从静态目录文字创建TOC。output_dir为新目录。OfficeCLI编辑后先close；需要目录时tocStatus=not_present表示未通过，须修复字段再渲染。版式通过PDF核验。',
          {'path': string, 'output_dir': string}, ['path', 'output_dir'], render_document),
         ('read_pdf', '按页读取PDF文字，可render=true生成页面图片。页码从1开始；用Read查看返回图片。',
          {'path': string, 'start': integer, 'limit': integer, 'render': {'type': 'boolean'}, 'output_dir': string}, ['path'], read_pdf),
