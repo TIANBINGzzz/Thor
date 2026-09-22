@@ -15,14 +15,14 @@ TABLES = {
     'stage': 'id_ TEXT, project_id_ TEXT, name_ TEXT, start_time_ TEXT, end_time_ TEXT, current_flag_ TEXT',
     'module': 'project_id_ TEXT, performance_stage_flag_ TEXT',
     'task': 'id_ TEXT, project_id_ TEXT, stage_id_ TEXT, parent_id_ TEXT, name_ TEXT, code_ TEXT, level_ INTEGER, high_flag_ TEXT, progress_ REAL, target_value_ TEXT, complete_value_ TEXT, state_ TEXT',
-    'task_feedback': 'id_ TEXT, project_id_ TEXT, task_id_ TEXT, state_ TEXT, attachment_ TEXT, date_ TEXT, create_time_ TEXT, content_ TEXT, progress_ REAL, complete_progress_ REAL',
+    'task_feedback': 'id_ TEXT, project_id_ TEXT, task_id_ TEXT, state_ TEXT, attachment_ TEXT, date_ TEXT, create_time_ TEXT, content_ TEXT, progress_ REAL, complete_progress_ REAL, complete_value_ TEXT, unit_name_ TEXT',
     'task_org': 'project_id_ TEXT, task_id_ TEXT, main_org_id_ TEXT, main_org_name_ TEXT',
     'task_member': 'project_id_ TEXT, task_id_ TEXT, user_id_ TEXT, user_name_ TEXT, type_ TEXT',
     'member': 'project_id_ TEXT, user_id_ TEXT, user_name_ TEXT, type_ TEXT',
     'fund': 'id_ TEXT, project_id_ TEXT, stage_id_ TEXT, task_id_ TEXT, level_ INTEGER, ' + ', '.join(
         f'{kind}_{source}_money_ REAL' for kind in ('budget', 'investment', 'execute', 'arrival')
         for source in ('total', 'centre', 'province', 'place', 'organizer', 'enterprise', 'alone')),
-    'performance': 'id_ TEXT, project_id_ TEXT, stage_id_ TEXT, parent_id_ TEXT, first_item_id_ TEXT, second_item_id_ TEXT, name_ TEXT, code_ TEXT, level_ INTEGER, high_flag_ TEXT, progress_ REAL, target_value_ TEXT, finish_value_ TEXT',
+    'performance': 'id_ TEXT, project_id_ TEXT, stage_id_ TEXT, parent_id_ TEXT, first_item_id_ TEXT, second_item_id_ TEXT, name_ TEXT, code_ TEXT, level_ INTEGER, high_flag_ TEXT, progress_ REAL, target_value_ TEXT, finish_value_ TEXT, unit_name_ TEXT',
     'task_performance_relation': 'project_id_ TEXT, task_id_ TEXT, performance_id_ TEXT',
     'performance_feedback': 'id_ TEXT, project_id_ TEXT, performance_id_ TEXT, create_time_ TEXT, year_target_value_ TEXT, total_target_value_ TEXT, year_complete_value_ TEXT, total_complete_value_ TEXT, progress_ REAL, total_progress_ REAL, state_ TEXT, content_ TEXT, attachment_ TEXT',
     'performance_org': 'project_id_ TEXT, performance_id_ TEXT, main_org_id_ TEXT, main_org_name_ TEXT',
@@ -52,7 +52,7 @@ class QuerySemanticsTests(unittest.TestCase):
     def query(self, id, **params):
         spec = self.specs[id]
         values = {p: None for p in spec['parameters']}
-        values.update({p:v for p,v in {'tenant_id':'tenant-a', 'threshold':50}.items() if p in values})
+        values.update({p:v for p,v in {'tenant_id':'tenant-a', 'threshold':50, 'scope_mode':'national'}.items() if p in values})
         values.update(params)
         result = self.db.execute(spec['sql'], values)
         self.assertEqual([d[0] for d in result.description], [f['name'] for f in spec['output']])
@@ -94,6 +94,22 @@ class QuerySemanticsTests(unittest.TestCase):
         self.assertEqual((city['national_flag'], city['level_name']), ('0', '市级'))
         self.assertEqual(len(self.query('stage_catalog', project_id='city', year='2026')), 1)
 
+    def test_explicit_project_mode_includes_city_without_changing_national_default(self):
+        self.add('project',id_='city',name_='市级项目',high_flag_='0')
+        self.add('stage',id_='s1',project_id_='city',name_='2026年')
+        self.add('module',project_id_='city',performance_stage_flag_='0')
+        self.task('city-task',project_id_='city',high_flag_='0',progress_=50)
+        self.fund('city-fund',project_id_='city',budget_total_money_=100,execute_total_money_=25)
+        self.perf('city-perf',project_id_='city',stage_id_=None,progress_=50)
+        for query_id in ('task_progress_summary','fund_totals','performance_current_summary'):
+            self.assertIn('scope_mode',self.specs[query_id]['parameters'])
+        self.assertEqual(self.query('task_progress_summary',project_id='city',year='2026年',level=3)[0]['task_count'],0)
+        self.assertEqual(self.query('task_progress_summary',project_id='city',year='2026年',level=3,scope_mode='project')[0]['task_count'],1)
+        self.assertEqual(self.query('fund_totals',project_id='city',year='2026年',scope_mode='project')[0]['budget_execution_rate'],25)
+        self.assertEqual(self.query('performance_current_summary',project_id='city',scope_mode='project')[0]['performance_count'],1)
+        # SQL 自身也封闭无项目的显式项目模式，执行器会更早拒绝这种调用。
+        self.assertEqual(self.query('fund_totals',scope_mode='project')[0]['fund_count'],0)
+
     def test_report_relation_accepts_unstaged_performance_and_deduplicates(self):
         self.project()
         self.add('stage',id_='s1',project_id_='p1',name_='2025')
@@ -125,6 +141,39 @@ class QuerySemanticsTests(unittest.TestCase):
         self.assertEqual(value['cycle_budget_amount'],10)
         self.assertEqual(value['fund_count'],1)
         self.assertIsNone(self.query('project_cycle_budget',project_id='missing')[0]['cycle_budget_amount'])
+
+    def test_section_feedback_coverage_deduplicates_tasks_and_discloses_missing_progress(self):
+        self.project()
+        self.add('stage',id_='s1',project_id_='p1',name_='2026')
+        self.task('root',level_=1)
+        self.task('middle',level_=2,parent_id_='root')
+        self.task('a',parent_id_='middle',progress_=100)
+        self.task('b',parent_id_='middle',progress_=None)
+        for id in ('first','second'):
+            self.add('task_feedback',id_=id,project_id_='p1',task_id_='a',state_='1',date_='2026-06-01')
+        self.add('task_feedback',id_='late',project_id_='p1',task_id_='b',state_='1',date_='2026-09-23')
+        row=self.query('first_task_progress_feedback',year='2026',start_date='2026-01-01',end_date='2026-09-23')[0]
+        self.assertEqual(row.get('feedback_task_count'),1)
+        self.assertEqual(row.get('missing_progress_count'),1)
+        self.assertEqual((row['task_count'],row['period_feedback_count'],row['current_average_progress']),(2,2,50))
+
+    def test_evidence_keeps_values_and_units_without_converting_qualitative_targets(self):
+        self.project()
+        self.add('stage',id_='s1',project_id_='p1',name_='2026')
+        self.add('module',project_id_='p1',performance_stage_flag_='0')
+        self.task('t')
+        self.perf('p',stage_id_=None,target_value_='基本形成',finish_value_='已形成',unit_name_='项')
+        self.add('task_performance_relation',project_id_='p1',task_id_='t',performance_id_='p')
+        self.add('performance_feedback',id_='f',project_id_='p1',performance_id_='p',state_='1',create_time_='2026-06-01',year_complete_value_='完成')
+        self.add('task_feedback',id_='tf',project_id_='p1',task_id_='t',state_='1',date_='2026-06-01',complete_value_='12',unit_name_='人次')
+        self.assertEqual(self.query('performance_tree')[0].get('unit_name'),'项')
+        linked=self.query('task_performance_links',year='2026')[0]
+        self.assertEqual((linked.get('unit_name'),linked['current_target_value']),('项','基本形成'))
+        feedback=self.query('performance_feedback_candidates')[0]
+        self.assertEqual(feedback.get('current_unit_name'),'项')
+        task=self.query('task_feedback_candidates')[0]
+        self.assertEqual((task.get('complete_value'),task.get('unit_name')),('12','人次'))
+        self.assertEqual(feedback['year_complete_value'],'完成')
 
     def test_task_scope_years_project_flags_and_all_level_exceptions(self):
         self.project()
@@ -186,6 +235,9 @@ class QuerySemanticsTests(unittest.TestCase):
         sources={r['source_kind']:r for r in self.query('fund_source_amounts',year='2025')}
         self.assertEqual(len(sources),7)
         self.assertEqual(sources['centre']['budget_amount'],60)
+        self.assertEqual(sources['centre'].get('source_name'),'中央财政资金')
+        self.assertEqual(sources['alone'].get('source_name'),'自筹资金')
+        self.assertEqual(sources['total'].get('source_name'),'小计')
         self.assertIsNone(sources['alone']['budget_amount'])
         self.fund('unfilled',budget_total_money_=None,execute_total_money_=5)
         partial=self.query('fund_totals')[0]
@@ -241,16 +293,24 @@ class QuerySemanticsTests(unittest.TestCase):
         self.assertEqual(result['avg_progress'],60)
         self.assertEqual(self.query('performance_stage_summary',project_id='p1',year='2025')[0]['performance_count'],1)
 
-    def test_feedback_returns_versions_without_guessing_latest_snapshot(self):
+    def test_latest_approved_feedback_respects_window_without_claiming_annual_snapshot(self):
         self.project()
         self.add('module',project_id_='p1',performance_stage_flag_='0')
         self.perf('a',stage_id_=None)
         for id, date, text in [('f1','2025-01-01','定性目标'),('f2','2025-12-31','新版目标'),('f3','2026-01-01','下一期间提交')]:
             self.add('performance_feedback',id_=id,project_id_='p1',performance_id_='a',state_='1',create_time_=date,year_target_value_=text,total_complete_value_='累计原文')
-        result=self.query('performance_feedback_candidates',start_date='2025-01-01',end_date='2026-01-01')
-        self.assertEqual(len(result),2)
-        self.assertEqual(result[0]['year_target_value'],'定性目标')
-        self.assertEqual(result[1]['total_complete_value'],'累计原文')
+        self.assertIn('performance_latest_feedback',self.specs)
+        result=self.query('performance_latest_feedback',start_date='2025-01-01',end_date='2026-01-01')
+        self.assertEqual(len(result),1)
+        self.assertEqual(result[0]['reported_target_value'],'新版目标')
+        self.assertEqual(result[0]['period_type'],'unstaged')
+        self.assertEqual(result[0]['latest_version_count'],1)
+        self.assertEqual(result[0]['total_complete_value'],'累计原文')
+        self.add('performance_feedback',id_='tie',project_id_='p1',performance_id_='a',state_='1',create_time_='2026-01-01',year_complete_value_='同一时间的另一版本')
+        self.add('performance_feedback',id_='rejected',project_id_='p1',performance_id_='a',state_='2',create_time_='2026-02-01')
+        ties=self.query('performance_latest_feedback')
+        self.assertEqual(len(ties),2)
+        self.assertTrue(all(r['latest_version_count']==2 for r in ties))
         self.task('t')
         self.add('task_feedback',id_='t-f1',project_id_='p1',task_id_='t',state_='1',date_='2025-12-31',create_time_='2026-01-02',content_='当期材料',attachment_='["private"]')
         material=self.query('task_feedback_candidates',start_date='2025-01-01',end_date='2026-01-01')

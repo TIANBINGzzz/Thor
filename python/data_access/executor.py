@@ -16,11 +16,14 @@ from .results import Results, json_value
 from .sql_policy import validate_sql
 
 
-def validate_parameters(parameters, definitions):
+def validate_parameters(parameters, definitions, constraints=None):
     schema = {"type": "object", "additionalProperties": False,
               "properties": {k: {a: b for a, b in v.items() if a != "required"}
                              for k, v in definitions.items()},
               "required": [k for k, v in definitions.items() if v.get("required")]}
+    if constraints:
+        # 跨参数业务约束由指标声明，仅在可信身份和对象注入后校验。
+        schema['allOf'] = [constraints]
     if next(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(parameters), None):
         raise DataError("PARAMETERS_INVALID")
     if parameters.get("start_date") and parameters.get("end_date") and parameters["start_date"] >= parameters["end_date"]:
@@ -203,7 +206,7 @@ class Executor:
                             or entity["access"] != policy["fingerprint"]):
                         raise DataError("ENTITY_FORBIDDEN")
                     values[name] = entity["value"]
-        validate_parameters(values, definitions)
+        validate_parameters(values, definitions, spec.get('validation', {}).get('parameter_schema'))
         for dependency in spec.get("requires_queries", []):
             child = self.catalog.spec(source_key, domain, dependency)
             params = {k: v for k, v in parameters.items() if k in child["parameters"]}

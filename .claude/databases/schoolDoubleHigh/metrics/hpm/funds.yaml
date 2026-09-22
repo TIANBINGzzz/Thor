@@ -12,22 +12,31 @@ parameters:
     - 'null'
     required: true
     origin: user_intent
-    description: 年度阶段名称；仅允许全年度查询的指标可传null，见validation.required_values
+    description: 项目年度阶段原名，先查stage_catalog，2026与2026年不互换；允许null的范围见指标校验。
+  scope_mode:
+    type: string
+    required: true
+    enum:
+    - national
+    - project
+    origin: user_intent
+    description: national按国双高标记统计；project统计唯一授权项目的全部有效记录，可用于市级项目，不允许学校范围。
 metrics:
 - id: fund_department_coverage
   name: 资金部门归属覆盖与零执行诊断
-  description: Q16 保留所有有效资金节点做关系覆盖诊断；不是一级资金预算汇总查询。
+  description: 沿资金、有效任务和主部门关系核对归属覆盖及零执行情况；包含所有资金层级，只用于关系诊断，不用于金额合计。
   parameters:
   - project_id
   - year
-  grain: fund relationship coverage + department diagnostic
+  - scope_mode
+  grain: fund_relationship_coverage_department_diagnostic
   sql: |
     WITH fund_base AS (
       SELECT f.tenant_id_, f.project_id_, f.id_ AS fund_id, f.task_id_, f.execute_total_money_
       FROM t_hpm_project_fund f
       JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
       WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
-      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND ((:scope_mode='national' AND p.high_flag_='1') OR (:scope_mode='project' AND p.id_=:project_id))
       AND (:project_id IS NULL OR f.project_id_ = :project_id) AND (:year IS NULL OR EXISTS (
         SELECT 1 FROM t_hpm_project_stage s
         WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
@@ -93,7 +102,7 @@ metrics:
     nullable: false
     unit: 条
   - name: zero_execute_department_count
-    description: 按 Q16 NULL 视0规则的零执行部门数
+    description: 按缺失金额计0规则得到的零执行候选部门数，须结合缺失诊断
     type: integer
     nullable: false
     unit: 条
@@ -113,6 +122,7 @@ metrics:
     - 零执行部门
     - 资金关联覆盖
     rules:
+    - scope_mode=national沿用国双高口径；project仅统计已授权单项目，不按国双高标记排除其记录，不扩大授权或合并不同项目。
     - 只沿 Fund->有效Task->TaskOrg；不继承父任务、项目或人员部门，不按 Task.high_flag_ 改变资金范围
     - 部门覆盖诊断统计所有资金层级，不能用于金额全校合计
     - 同一资金多部门可以各归属一次；覆盖分子按项目+资金去重
@@ -120,13 +130,28 @@ metrics:
     - 0<=matched_department_fund_count<=matched_task_count<=fund_with_task_count<=total_fund_count
     - coverage_rate<95 或为null时只能给局部诊断，不能输出全量零执行结论
     - incomplete_department_count>0 时必须说明未填报影响
+    parameter_schema: &id001
+      if:
+        properties:
+          scope_mode:
+            const: project
+        required:
+        - scope_mode
+      then:
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+        required:
+        - project_id
 - id: fund_source_amounts
-  name: 资金七类来源与四类金额
-  description: 沉淀 28 个资金字段，返回总额及六类来源；来源中文标签由具体数据源字典决定。
+  name: 分来源预算、投入、到位与执行
+  description: 按一级资金节点分别返回小计及中央财政、省级财政、地方财政、举办方、企业、自筹六类来源的金额、完整性和比率；各来源不与小计相加。
   parameters:
   - project_id
   - year
-  grain: funding source kind
+  - scope_mode
+  grain: funding_source_kind
   sql: |
     WITH fund_base AS (
       SELECT f.budget_total_money_,
@@ -160,7 +185,7 @@ metrics:
       FROM t_hpm_project_fund f
     JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
     WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
-      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND ((:scope_mode='national' AND p.high_flag_='1') OR (:scope_mode='project' AND p.id_=:project_id))
       AND (:project_id IS NULL OR f.project_id_ = :project_id) AND f.level_ = 1 AND f.stage_id_ IS NOT NULL AND (:year IS NULL OR EXISTS (
         SELECT 1 FROM t_hpm_project_stage s
         WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
@@ -228,7 +253,11 @@ metrics:
            COUNT(arrival_money) AS arrival_observed_count
       FROM source_rows GROUP BY source_kind
     )
-    SELECT source_kind, fund_count,
+    SELECT source_kind, CASE source_kind
+             WHEN 'total' THEN '小计' WHEN 'centre' THEN '中央财政资金'
+             WHEN 'province' THEN '省级财政资金' WHEN 'place' THEN '地方财政资金'
+             WHEN 'organizer' THEN '举办方资金' WHEN 'enterprise' THEN '企业资金'
+             WHEN 'alone' THEN '自筹资金' END AS source_name, fund_count,
            budget_amount,
            budget_observed_count,
            investment_amount,
@@ -247,6 +276,10 @@ metrics:
   output:
   - name: source_kind
     description: 来源代码；total 为总额，不与分项相加
+    type: string
+    nullable: false
+  - name: source_name
+    description: 按校双高字段注释映射的来源名称；小计不与分项相加
     type: string
     nullable: false
   - name: fund_count
@@ -316,19 +349,22 @@ metrics:
     - 省级财政
     - 资金构成
     rules:
+    - scope_mode=national沿用国双高口径；project仅统计已授权单项目，不按国双高标记排除其记录，不扩大授权或合并不同项目。
     - 单位万元；一级资金节点且 stage_id_ 非空，排除父子层级和无阶段汇总重复
     - year=null 汇总所有年度；年度记录的当前值不等于过去截止日快照
     - SUM 保留 NULL：全无值为 null，部分有值是已填部分；observed_count<fund_count 不得宣称完整金额
     - 不将 NULL 金额补成 0；不将比例强制封顶；负金额只标记需核实，不臆造不允许冲销的业务规则
-    - alone曾标作其他来源，原模板称学校自筹；中文标签须按校双高业务字典确认，不能因统一数据源直接视为同义
+    - source_name按当前字段注释映射，alone为自筹资金；是否专指学校自筹须另核实出资主体，不并入其他来源。
     - 无资金行时结果为空；来源分项与总额可核对差额，但不自行凑平，标签差异另行核验
     - source_kind 唯一；分项与总额分开；来源字典必须匹配 source_key
+    parameter_schema: *id001
 - id: fund_totals
   name: 项目年度预算到位与执行
   description: 汇总所选年度有效一级资金节点的预算、投入、到位、执行和比例；year为空时汇总有阶段记录，不代表截至某日历史累计，不包含无阶段全周期预算。单位万元。
   parameters:
   - project_id
   - year
+  - scope_mode
   grain: authorized_projects_selected_stages
   sql: |
     WITH amounts AS (
@@ -345,7 +381,7 @@ metrics:
       FROM t_hpm_project_fund f
     JOIN t_hpm_project p ON p.tenant_id_ = f.tenant_id_ AND p.id_ = f.project_id_
     WHERE f.tenant_id_ = :tenant_id AND f.delete_flag_ = '0'
-      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+      AND p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND ((:scope_mode='national' AND p.high_flag_='1') OR (:scope_mode='project' AND p.id_=:project_id))
       AND (:project_id IS NULL OR f.project_id_ = :project_id) AND f.level_ = 1 AND f.stage_id_ IS NOT NULL AND (:year IS NULL OR EXISTS (
         SELECT 1 FROM t_hpm_project_stage s
         WHERE s.tenant_id_ = :tenant_id AND s.tenant_id_ = f.tenant_id_
@@ -440,6 +476,7 @@ metrics:
     - 资金到位率
     - 项目年度预算到位与执行
     rules:
+    - scope_mode=national沿用国双高口径；project仅统计已授权单项目，不按国双高标记排除其记录，不扩大授权或合并不同项目。
     - 单位万元；一级资金节点且 stage_id_ 非空，排除父子层级和无阶段汇总重复
     - year=null 汇总所有年度；年度记录的当前值不等于过去截止日快照
     - SUM 保留 NULL：全无值为 null，部分有值是已填部分；observed_count<fund_count 不得宣称完整金额
@@ -451,11 +488,13 @@ metrics:
     - 各已填报数量介于0和fund_count之间；未全填报的金额仅能作为已填报部分
     - 分子分母对应金额均全填报且分母非0时计算，否则为null；保留两位小数，不强行封顶为100
     - 到位为0但执行大于0时标记矛盾，先核实后解释；万元换算亿元除以10000
+    parameter_schema: *id001
 - id: project_cycle_budget
   name: 项目全建设期预算
   description: 汇总项目无年度阶段的一级资金预算记录，反映当前登记的全建设期预算及填报完整性；不与年度预算重复相加。
   parameters:
   - project_id
+  - scope_mode
   grain: project
   sql: |
     SELECT COUNT(*) AS fund_count, COUNT(f.budget_total_money_) AS budget_observed_count,
@@ -463,7 +502,7 @@ metrics:
     FROM t_hpm_project_fund f
     JOIN t_hpm_project p ON p.tenant_id_=f.tenant_id_ AND p.id_=f.project_id_
     WHERE f.tenant_id_=:tenant_id AND f.delete_flag_='0' AND f.level_=1
-      AND p.delete_flag_='0' AND p.high_flag_='1'
+      AND p.delete_flag_='0' AND ((:scope_mode='national' AND p.high_flag_='1') OR (:scope_mode='project' AND p.id_=:project_id))
       AND (:project_id IS NULL OR f.project_id_=:project_id)
       AND (f.stage_id_ IS NULL OR TRIM(f.stage_id_)='')
   output:
@@ -487,11 +526,13 @@ metrics:
     - 总建设预算
     - 项目全建设期预算
     rules:
+    - scope_mode=national沿用国双高口径；project仅统计已授权单项目，不按国双高标记排除其记录，不扩大授权或合并不同项目。
     - 原报告明确无阶段一级资金行为全建设期预算；不与年度行相加。
     - 当前主表数值不能作为历史截止日实绩；无记录、NULL、0分别保留。
     - 详见 semantics/business.md及relationships.md；同项目及租户关联，内部ID不进入报告。
     - budget_observed_count介于0和fund_count之间；不等于fund_count时金额仅是已填报部分
     - 无记录或预算全部未填时为null；记录非空且预算全填报后才能作为完整预算；登记为0不证明业务预算确为0
+    parameter_schema: *id001
 pending:
   income_budget_execution_rate:
     name: 收入预算执行率

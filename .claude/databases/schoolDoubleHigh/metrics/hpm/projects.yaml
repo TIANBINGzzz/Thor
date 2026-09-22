@@ -19,7 +19,15 @@ parameters:
     - 'null'
     required: true
     origin: user_intent
-    description: 年度阶段名称；仅允许全年度查询的指标可传null，见validation.required_values
+    description: 项目年度阶段原名，先查stage_catalog，2026与2026年不互换；允许null的范围见指标校验。
+  scope_mode:
+    type: string
+    required: true
+    enum:
+    - national
+    - project
+    origin: user_intent
+    description: national按国双高标记统计；project统计唯一授权项目的全部有效记录，可用于市级项目，不允许学校范围。
 metrics:
 - id: project_catalog
   name: 授权项目目录
@@ -82,14 +90,15 @@ metrics:
   description: 按项目+人员去重取得角色0负责人，仅明确询问且获准时用于报告。
   parameters:
   - project_id
-  grain: project + user
+  - scope_mode
+  grain: project_user
   sql: |
     SELECT p.id_ AS project_id, p.name_ AS project_name, pm.user_id_ AS user_id,
            MAX(pm.user_name_) AS user_name, COUNT(DISTINCT pm.user_name_) AS name_variants
     FROM t_hpm_project p
     JOIN t_hpm_project_member pm ON pm.tenant_id_ = :tenant_id
       AND pm.tenant_id_ = p.tenant_id_ AND pm.project_id_ = p.id_
-    WHERE p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND p.high_flag_ = '1'
+    WHERE p.tenant_id_ = :tenant_id AND p.delete_flag_ = '0' AND ((:scope_mode='national' AND p.high_flag_='1') OR (:scope_mode='project' AND p.id_=:project_id))
       AND (:project_id IS NULL OR p.id_ = :project_id) AND pm.delete_flag_ = '0' AND pm.type_ = '0'
     GROUP BY p.id_, p.name_, pm.user_id_ ORDER BY p.id_, pm.user_id_
   output:
@@ -121,14 +130,29 @@ metrics:
     - 项目负责人
     - 专业群负责人
     rules:
+    - scope_mode=national沿用国双高口径；project仅统计已授权单项目，不按国双高标记排除其记录，不扩大授权或合并不同项目。
     - 姓名版本不唯一时先确认；不输出人员编号或联系方式
+    parameter_schema:
+      if:
+        properties:
+          scope_mode:
+            const: project
+        required:
+        - scope_mode
+      then:
+        properties:
+          project_id:
+            type: string
+            minLength: 1
+        required:
+        - project_id
 - id: stage_catalog
   name: 项目年度阶段
   description: 在已授权项目内按阶段名称定位年度，保留跨项目同名阶段。
   parameters:
   - project_id
   - year
-  grain: project + stage
+  grain: project_stage
   sql: |
     SELECT s.project_id_ AS project_id, s.id_ AS stage_id, s.name_ AS stage_name,
            s.start_time_ AS start_time, s.end_time_ AS end_time, s.current_flag_ AS current_flag

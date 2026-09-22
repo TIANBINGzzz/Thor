@@ -1,20 +1,29 @@
 {
+  "source_key": "schoolDoubleHigh",
+  "scope_modes": [
+    "national",
+    "project"
+  ],
   "template_key": "szpt-midterm",
   "year": "2026",
   "cutoff": "2026-09-18",
   "source": ".claude/workflows/writing-docx/templates/szpt-midterm/writing-guide.md",
   "cases": [
-    {"id":"Q01","section":"G02","question":"目前授权范围有哪些国双高项目和专业群？分别列出建设起止时间，并核实是否存在2026年度阶段。","checks":["有效项目与授权范围","精确匹配年度","不沿用模板对象"]},
-    {"id":"Q02","section":"G02","question":"2026年度各国双高专业群三级任务总数、已完成数、完成率和平均进度分别是多少？同时说明进度缺失数量。","checks":["进度至少100才完成","空进度计0并披露","完成率和平均进度区分"]},
-    {"id":"Q03","section":"G02/G06","question":"2026年度各专业群有哪些一级建设任务？各章下三级任务如何分布？任务国双高标记与项目标记有无不一致？","checks":["建设任务树不是绩效分类树","阶段与项目同时匹配","披露标记差异"]},
-    {"id":"Q04","section":"G05","question":"2026年度各国双高专业群预算、到位和执行资金各是多少万元？请分别计算到位/预算、执行/预算和执行/到位，披露缺失金额及零分母。","checks":["只汇总适用层级","万元","三个分母正确","缺失不等于0"]},
-    {"id":"Q05","section":"G05","question":"各国双高专业群全建设期预算是多少？与2026年度预算有什么区别？请按财政、学校自筹等来源列出2026年度资金。","checks":["全周期无阶段一级预算","年度资金独立","不混加父子节点"]},
-    {"id":"Q06","section":"G07-G09","question":"请查询2026年度人才培养相关任务所关联的绩效指标，列出名称、目标值、完成值和单位，说明是否启用分阶段绩效，并按指标去重。","checks":["任务与绩效关联","保留定性值","模块开关","不冒充历史快照"]},
-    {"id":"Q07","section":"G04/G06","question":"2026年1月1日至9月18日，各国双高专业群已审核任务反馈中有哪些可作为标志性成果的材料？请区分有效成果、测试文字及只有附件标记尚未核验的材料。","checks":["业务年度与日期双限定","审核状态","附件标记不等于证据","反馈条数不是成果数"]},
-    {"id":"Q08","section":"G02/学校章节","question":"请给出2026年度学校层面的三级任务完成情况和资金执行情况；学校范围是否获准？不能把两个专业群的合计直接当作学校整体。","checks":["独立学校授权","学校和专业群范围区分"]},
-    {"id":"Q09","section":"G03","question":"依据当前数据，2026年度双高中期自评能得多少分、属于什么等级？能否直接把平均任务进度当作自评分？","checks":["缺评分办法应明确拒绝推算","进度不等于评分"]},
-    {"id":"Q10","section":"G02/G05","question":"对比2025和2026年度各专业群的三级任务完成情况与资金执行率。无对应年度数据时说明缺口，不把当前进度当作历史值。","checks":["同口径年度比较","历史快照边界","缺失不等于零"]},
-    {"id":"Q11","section":"G07/贡献度","question":"2026年度就业率、满意度、服务企业数及技术服务到账收入有哪些可靠数据？请给出期间、单位、分母及来源；不能用双高建设经费代替技术服务收入。","checks":["指标含义正确","分母与样本","不以分类目录代替实绩"]},
-    {"id":"Q12","section":"六/附件","question":"要完成2026年度双高中期自评报告，目前数据库能支撑哪些章节，哪些缺年度数据、评分依据或成果佐证？按任务、资金、绩效、成果分别列出缺口和需要补充的材料。","checks":["查询失败与无数据区分","缺口可操作","不夸大可撰写程度"]}
+    {"id":"Q01","section":"G02","question":"列出授权项目的名称、级别和建设起止时间，区分国家级、市级及其他项目，并核实各项目2026年度阶段原名。","checks":["有效项目与授权范围","精确匹配年度","不沿用模板对象"],"query_ids":["project_catalog","stage_catalog"]},
+    {"id":"Q02","section":"G02","question":"2026年度各国双高专业群三级任务总数、已完成数、完成率和平均进度分别是多少？同时说明进度缺失数量。","checks":["进度至少100才完成","空进度计0并披露","完成率和平均进度区分"],"query_ids":["task_progress_summary"]},
+    {"id":"Q03","section":"G02/G06","question":"2026年度各专业群有哪些一级建设任务？各章下三级任务如何分布？任务国双高标记与项目标记有无不一致？","checks":["建设任务树不是绩效分类树","阶段与项目同时匹配","披露标记差异"],"query_ids":["task_tree","task_level_counts","task_project_flag_diagnostics"]},
+    {"id":"Q04","section":"G05","question":"2026年度各国双高专业群预算、到位和执行资金各是多少万元？请分别计算到位/预算、执行/预算和执行/到位，披露缺失金额及零分母。","checks":["只汇总适用层级","万元","三个分母正确","缺失不等于0"],"query_ids":["fund_totals","fund_source_amounts"]},
+    {"id":"Q05","section":"G05","question":"各国双高专业群全建设期预算是多少？与2026年度预算有什么区别？请按财政、自筹等来源列出2026年度资金。","checks":["全周期无阶段一级预算","年度资金独立","不混加父子节点","按source_name标注来源，自筹不直接改称学校自筹"],"query_ids":["project_cycle_budget","fund_source_amounts"]},
+    {"id":"Q06","section":"G07-G09","question":"请查询2026年度人才培养相关任务所关联的绩效指标，列出名称、目标值、完成值和单位，说明是否启用分阶段绩效，并按指标去重。","checks":["任务与绩效关联","保留定性值","模块开关","不冒充历史快照","单位随原值返回","未启用阶段时不存在年度绩效目标"],"query_ids":["task_performance_links","performance_module_status"]},
+    {"id":"Q07","section":"G04/G06","question":"2026年1月1日至9月18日，各国双高专业群已审核任务反馈中有哪些可作为标志性成果的材料？请区分有效成果、测试文字及只有附件标记尚未核验的材料。","checks":["业务年度与日期双限定","审核状态","附件标记不等于证据","反馈条数不是成果数"],"query_ids":["task_feedback_candidates"]},
+    {"id":"Q08","section":"G02/学校章节","question":"请给出2026年度学校层面的三级任务完成情况和资金执行情况；学校范围是否获准？不能把两个专业群的合计直接当作学校整体。","checks":["独立学校授权","学校和专业群范围区分"],"query_ids":["task_progress_summary","fund_totals"]},
+    {"id":"Q09","section":"G03","question":"依据当前数据，2026年度双高中期自评能得多少分、属于什么等级？能否直接把平均任务进度当作自评分？","checks":["缺评分办法应明确拒绝推算","进度不等于评分"],"query_ids":["project_performance_categories","performance_current_summary"]},
+    {"id":"Q10","section":"G02/G05","question":"对比2025和2026年度各专业群的三级任务完成情况与资金执行率。无对应年度数据时说明缺口，不把当前进度当作历史值。","checks":["同口径年度比较","历史快照边界","缺失不等于零"],"query_ids":["task_progress_summary","fund_totals"]},
+    {"id":"Q11","section":"G07/贡献度","question":"2026年度就业率、满意度、服务企业数及技术服务到账收入有哪些可靠数据？请给出期间、单位、分母及来源；不能用双高建设经费代替技术服务收入。绩效值优先取最新已审核反馈，需追溯版本时再展开候选记录。","checks":["指标含义正确","分母与样本","不以分类目录代替实绩","最新反馈与历史候选分开"],"query_ids":["performance_tree","task_feedback_candidates","performance_latest_feedback","performance_feedback_candidates"]},
+    {"id":"Q12","section":"六/附件","question":"要完成2026年度双高中期自评报告，目前数据库能支撑哪些章节，哪些缺年度数据、评分依据或成果佐证？按任务、资金、绩效、成果分别列出缺口和需要补充的材料。绩效当前值与最新反馈应和历史截止日快照分开。","checks":["查询失败与无数据区分","缺口可操作","不夸大可撰写程度","当前值不冒充历史快照"],"query_ids":["task_progress_summary","fund_totals","task_performance_links","task_feedback_candidates","performance_latest_feedback","performance_feedback_candidates"]},
+    {"id":"Q13","section":"专业群章节","query_ids":["project_catalog","stage_catalog","task_progress_summary","fund_totals","performance_current_summary"],"question":"请分别查询国家级和市级专业群2026年度任务、资金以及当前绩效，不合并两个项目，不把市级项目在国双高筛选下为空解释为无数据。","checks":["national与project显式选择","project必须唯一授权项目","年度原名逐项目解析","院级演示项目不混入报告"]},
+    {"id":"Q14","section":"G06-G17","query_ids":["first_task_progress_feedback","task_feedback_candidates"],"question":"各一级建设任务的三级任务数、平均进度、缺失进度数和期内反馈覆盖任务数是多少？同一任务提交多次反馈如何计数？","checks":["反馈条数与去重覆盖任务数区分","均值带缺失数","覆盖不等于成果认定"]},
+    {"id":"Q15","section":"专业群绩效","query_ids":["performance_module_status","performance_latest_feedback","performance_feedback_candidates"],"question":"未启用阶段绩效的项目，如何解释反馈中的年度字段？同一指标多次已审核反馈应采用哪条？","checks":["不生成不存在的年度目标","取最新已审核反馈","缺规则字段不猜测","当前结果不等于历史审核快照"]},
+    {"id":"Q16","section":"G05/问题改进","query_ids":["fund_department_coverage","fund_source_amounts"],"question":"资金归属到主部门的覆盖率是多少？哪些零执行候选包含金额未填报？资金小计与分来源能否直接相加？","checks":["覆盖不足仅作局部诊断","未填报不等于实际零支出","小计不与六来源重复相加"]}
   ]
 }

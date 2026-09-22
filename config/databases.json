@@ -10,7 +10,7 @@
       "policy": {
         "tenant_id": "*",
         "business_tenant_id": "14183",
-        "revision": 3,
+        "revision": 4,
         "users": "all_authenticated",
         "capabilities": [
           "national-excellence-data-qa",
@@ -35,6 +35,7 @@
               "performance_current_summary",
               "performance_department_metrics",
               "performance_feedback_candidates",
+              "performance_latest_feedback",
               "performance_historical_snapshot",
               "performance_module_status",
               "performance_stage_summary",
@@ -95,7 +96,7 @@
         "username": "root",
         "password": "forXAZP@OjBxWXseDKw$MR0j0765&xV3",
         "scope_source_key": "schoolDoubleHigh",
-        "scope_policy_revision": 3
+        "scope_policy_revision": 4
       }
     }
   },

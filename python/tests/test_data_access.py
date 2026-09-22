@@ -217,6 +217,31 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'PARAMETERS_INVALID'):
             e.execute_query_spec('first','sales','total',{'year':None},self.school(e))
 
+    def test_conditional_scope_constraint_checks_injected_project_before_query(self):
+        path=self.root/'databases/first/metrics/sales/sales.yaml'
+        bundle=yaml.safe_load(path.read_text())
+        bundle['parameters']={
+            'project_id':{'type':['string','null'],'required':True,'origin':'authorized_resolution'},
+            'scope_mode':{'type':'string','required':True,'enum':['national','project']},
+        }
+        metric=bundle['metrics'][0]
+        metric['parameters']=['project_id','scope_mode']
+        metric['sql']+=' AND (:scope_mode = :scope_mode) AND (:project_id IS NULL OR :project_id IS NOT NULL)'
+        metric['validation']['parameter_schema']={
+            'if':{'properties':{'scope_mode':{'const':'project'}}},
+            'then':{'properties':{'project_id':{'type':'string','minLength':1}}},
+        }
+        path.write_text(yaml.safe_dump(bundle),encoding='utf-8')
+        executor=self.make_executor()
+        school=self.school(executor)
+        with patch.object(executor,'_rows',side_effect=AssertionError('SQL must not run')):
+            with self.assertRaisesRegex(DataError,'PARAMETERS_INVALID'):
+                executor.execute_query_spec('first','sales','total',{'scope_mode':'project'},school)
+        _,policy,_=executor.access('first')
+        project=executor._scope_ref('first','sales','authorized-project',policy)
+        result=executor.execute_query_spec('first','sales','total',{'scope_mode':'project'},project)
+        self.assertEqual(result['rows'],[{'total':10}])
+
     def test_private_config_is_not_frozen_or_exposed_and_next_run_refreshes_it(self):
         self.config['connections']['first'].update(host='private-host-marker', password='PRIVATE_SECRET_MARKER')
         executor=self.make_executor()

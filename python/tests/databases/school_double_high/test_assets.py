@@ -17,6 +17,7 @@ class AssetContractTests(unittest.TestCase):
         self.specs = {q['id']: self.catalog.spec('schoolDoubleHigh','hpm',q['id'])
                       for q in self.catalog.domain('schoolDoubleHigh','hpm')[1]['queries']}
         self.source = json.loads((BASE.parents[1]/'source.json').read_text(encoding='utf-8'))
+        self.database_config = json.loads((ROOT/'config/databases.json').read_text(encoding='utf-8'))
         self.tables = self.catalog.schema('schoolDoubleHigh','hpm')['tables']
 
     def test_sql_parameters_outputs_tables_and_source_registration(self):
@@ -44,8 +45,9 @@ class AssetContractTests(unittest.TestCase):
                     self.assertTrue(spec['blockers'])
                 for dependency in spec.get('requires_queries',[]) + spec.get('candidate_queries',[]):
                     self.assertIn(dependency,self.specs)
-        self.assertEqual(len(files),27)
+        self.assertEqual(len(files),28)
         self.assertEqual({p.name for p in BASE.iterdir()}, {'projects.yaml','tasks.yaml','performance.yaml','funds.yaml'})
+        self.assertIn('performance_latest_feedback', self.database_config['sources']['schoolDoubleHigh']['policy']['domains']['hpm']['queries'])
 
     def test_catalog_and_18_question_coverage(self):
         catalog=self.catalog.domain('schoolDoubleHigh','hpm')[1]
@@ -65,7 +67,7 @@ class AssetContractTests(unittest.TestCase):
 
     def test_schema_has_verified_types_and_no_duplicate_workflow_binding(self):
         self.assertEqual(len(self.tables),13)
-        self.assertEqual(sum(map(len,self.tables.values())),157)
+        self.assertEqual(sum(map(len,self.tables.values())),160)
         self.assertNotIn('province_high_flag_', self.tables['t_hpm_project'])
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
         for workflow in ('double-high-qa','writing-docx'):
@@ -84,6 +86,26 @@ class AssetContractTests(unittest.TestCase):
         template=load_template('szpt-midterm','document-writing')
         self.assertEqual(set(template['assets']),{'docx','writing_guide'})
         self.assertEqual(len(Document(template['_docx']).tables),40)
+
+    def test_project_mode_requires_authorized_project_and_metric_context_is_business_only(self):
+        from data_access.executor import validate_parameters
+        from data_access.context import DataError
+        spec=self.specs['fund_totals']
+        self.assertIn('scope_mode',spec['parameters'])
+        with self.assertRaisesRegex(DataError,'PARAMETERS_INVALID'):
+            validate_parameters({'tenant_id':'test','project_id':None,'year':'2026','scope_mode':'project'},spec['parameters'],spec['validation']['parameter_schema'])
+        validate_parameters({'tenant_id':'test','project_id':'authorized','year':'2026','scope_mode':'project'},spec['parameters'],spec['validation']['parameter_schema'])
+        for spec in self.specs.values():
+            self.assertNotRegex(spec['description'],r'\bQ\d+\b')
+
+    def test_report_questions_reference_metrics_and_boundary_cases(self):
+        data=json.loads((ROOT/'python/tests/databases/midterm-qa-cases.json').read_text(encoding='utf-8'))
+        self.assertEqual(data['source_key'],'schoolDoubleHigh')
+        self.assertEqual(len(data['cases']),len({c['id'] for c in data['cases']}))
+        for case in data['cases']:
+            self.assertTrue(case['query_ids'])
+            self.assertTrue(set(case['query_ids']) <= set(self.specs))
+            self.assertTrue(case['checks'])
 
 
 if __name__ == '__main__':
