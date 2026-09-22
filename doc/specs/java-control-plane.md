@@ -1,6 +1,6 @@
 # Java 控制面接入职责
 
-本文只维护跨系统职责和业务映射；HTTP 字段、鉴权、SSE 和文件格式以[Runtime 契约](ccsdk-runtime-interface.md)为准，[API HTML](../python-api.html)提供完整示例。外部 Java/前端未在此次整理中重新验收，旧分支快照不作为当前实现结论。
+本文只维护业务层职责与映射；字段和示例以 [API 参考](../python-api.html) 为准，执行语义见 [Runtime 契约](ccsdk-runtime-interface.md)。Java/前端不在本仓库，其生产接入须独立验收。
 
 ## 职责边界
 
@@ -22,7 +22,7 @@ Workflow、Skill、模型、MCP 地址和工作目录由 Python 管理，不接�
 | content | input.text；包含年份、范围、写作或生成要求 |
 | attachmentIds | 授权并解析为文件服务 ID 后填 input.attachmentRefs；不能直接混用附件表 ID |
 | capabilityRef | 本轮能力；省略时为 conversation，JWT 同样绑定 conversation |
-| 模板选择 | payload.templateKey；只使用已登记值，见[能力 payload](capability-payload.md) |
+| 模板选择 | payload.templateKey；只使用已登记值，见[模板契约](ccsdk-runtime-interface.md#34-业务-payload) |
 | 助手消息 ID | messageId；Java 保存 runId 与消息的关联 |
 | 一次执行 ID | runId；相同请求重试复用，重新执行/重新生成使用新值 |
 

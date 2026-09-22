@@ -4,34 +4,27 @@
 | --- | --- |
 | 决策日期 | 2026-09-18 |
 | 决策状态 | 已采纳 |
-| 实现状态 | 完整测试稿经多轮修订和视觉核验；正式报送及一次成稿效率未验收 |
-| 替代的旧 ADR | [ADR-029](029-native-office-document-tools.md)的WPS回退与渲染部署选择 |
+| 实现状态 | 渲染与修订稿已验证；自主整稿业务质量未验收 |
+| 最近核对 | 2026-09-22（合并历史验证边界） |
+| 替代的旧 ADR | [029](029-native-office-document-tools.md) 的 WPS 回退及渲染部署选择 |
 | 被哪份 ADR 替代 | 无 |
 
 ## 背景
+Windows WPS 曾连续超时；旧 LibreOffice 的字体子集使新增中文缺字，单加字体别名未解决。
 
-Windows WPS对平台稿件连续两次超时180秒。Linux旧LibreOffice可转换，但新增中文缺字：模板嵌入字体子集，新增用字不在子集中，系统字体别名不能覆盖这些内嵌字体。
+## 决策
+- OfficeCLI 原生 MCP 编辑，统一 LibreOffice 无桌面渲染及 PDFium 分页核验；Linux 直接运行，Windows 使用同一 Docker document-renderer 目标，不接桌面 Office 或多引擎回退。
+- 临时渲染副本解除明确标记 subsetted 的字体引用，保留原模板/正文/样式；镜像提供完整字体，每次独立 Office 进程与用户配置，失败不发布半成品。
+- 渲染更新已有 TOC，不从静态目录推断字段；需要目录而返回 not_present 时必须修复。实际工具与镜像版本以依赖和 Dockerfile 为准。
+- ONLYOFFICE Builder 独立包实测有试用水印，Aspose 免费版有水印/长文限制，因此未采用；Gotenberg/unoserver 仍依赖 LibreOffice，不为本地转换另加服务。
 
-## 决策与实测
-
-- 保留OfficeCLI原生MCP编辑，统一LibreOffice无桌面渲染及PDFium阅读。用Debian维护的25.2包替换7.4；Linux运行时直接使用，Windows使用同一Docker构建的document-renderer目标。PDFium Python包升级5.13，避免4.30在PDF阅读工作线程中急切加载非必要NumPy；真实Run定位到该原生导入卡住，新增线程回归覆盖。
-- 在临时渲染副本中解除明确标记subsetted的字体引用，保留原模板、正文和样式；镜像提供完整Noto CJK和Liberation字体。每次独立Office进程及用户配置，失败不发布半成品。
-- 同一平台稿件：旧7.4加字体别名13.79秒、78页，仍缺字；25.2解除字体子集后13.53秒、74页，正文文字、40表、4分节及媒体内容保留，抽查新增正文与合并表格无缺字。耗时仅为单次组件测试，不是整篇撰写耗时。
-- 正式Windows到Docker链路15.20秒完成同稿；故意缓存为999的中文目录样例8.41秒刷新为实际第2、4页。原模板不变；原稿没有真实目录字段时返回not_present，不伪称已生成目录。
-- 实际平台局部撰写358.81秒、51次工具调用，写入769字并发布DOCX/PDF；渲染13.085秒，两次PDF读取0.105/0.192秒，7次固定查询无参数错误或重复查询，1次学校范围查询被拒绝。正文旧校名与百分比跨行仍有遗留，不代表整篇内容/版式验收通过。199项测试通过；Docker内199项通过（跳过3项），另16项部署检查通过。
-- [ONLYOFFICE Builder 9.4](https://api.onlyoffice.com/docs/document-builder/get-started/installing/)独立Windows包实跑8.86秒、68页，但PDF有明显试用水印，日志license is invalid；不采用。无需完整DocumentServer即可独立运行，纠正先前调研结论。
-- [Aspose.Words](https://docs.aspose.com/words/python-net/licensing/)免费版有水印与长文限制，用户明确排除后停止，未运行对比。Gotenberg/unoserver仍依赖LibreOffice，不为本地转换另加HTTP服务。HTML/Markdown解析不能替代原DOCX分页。
-- 删除WPS/pywin32及候选SDK，不保留多引擎回退或厂商插件。仅保留通用渲染复测脚本，不引入模板专用生成程序。
-
-## 后果
-
-完整平台七轮累计5942.73秒、717次工具调用，最终发布86页、40表、三个附件；原模板哈希不变，封面按用户要求豁免。目录页码、已发现的表格穿线及年度/当前台账混用已修正。学校范围和第二专业群受本次测试授权范围限制，另缺正式认定材料与历史快照，不能视为可报送报告或一次成稿效率验证。
-
-Windows开发需要Docker；Linux部署不需要Docker-in-Docker或桌面Office。字体替代可能改变分页，必须检查最终PDF；渲染成功不代表报告事实、目录存在性或全文撰写验收通过。
+## 后果与验证
+- 2026-09-18 Linux 与 Windows/Docker 的正文、40 表、4 分节及中文目录刷新测试通过；组件渲染耗时不能当作整篇撰写耗时。
+- 历史完整平台稿经七轮修订发布 86 页，已修正所发现目录、表格及期间问题；不代表一次自主生成或正式报送通过。后续真实整稿仍有问题，见 [验收记录](../verification/acceptance.md)。
+- Windows 开发需要 Docker，Linux 无需桌面或 Docker-in-Docker；字体替代会影响分页，必须核验实际 PDF，渲染成功不证明事实与目录完整。
 
 ## 工程要求检查
-
 | 要求 | 状态 | 依据与差距 |
 | --- | --- | --- |
-| REQ-001 | 部分满足 | 渲染容器禁网且不注入业务Token/模型密钥；原有真实Java链路差距保留 |
-| REQ-002 | 部分满足 | 复用原Capability、模板授权和Artifact边界；本次不解决Agent生产沙箱及Java授权差距 |
+| REQ-001 | 部分满足 | 渲染容器禁网且不注入业务/模型密钥；真实 Java 链路差距保留 |
+| REQ-002 | 部分满足 | 复用 Capability/模板/成果边界；生产沙箱、Java ACL 和整稿质量另验收 |

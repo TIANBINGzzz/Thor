@@ -63,7 +63,7 @@
 
 - **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
 - 本地测试前端及模拟 Java 服务已移除；Runtime 不提供本地会话/上传接口或测试身份文件直读。会话检索使用独立 session.read，仅返回公开 Run 摘要。
-- 模板参数与装配边界见[能力 payload](capability-payload.md)，查询口径维护在[数据库包](../../.claude/databases/README.md)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
+- 模板参数与装配边界见[模板契约](ccsdk-runtime-interface.md#34-业务-payload)，查询口径维护在[数据库包](../../.claude/databases/schoolDoubleHigh/)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
 - 校双高来源已按用户授权阶段性向已认证租户/用户共享；具体策略、business_tenant_id 和恢复限制见[数据库管理](data-source-connections.md#字段与配置)。来源发现不授权，selected 项目范围不能扩大为全校。
 - 文件引用须由 Java 提交前授权，Python 只下载本轮引用并按 Run 隔离结果；下载成功不代表文件 ACL 已验证，见[ADR-032](../ADR/032-platform-file-download.md)。
 - 普通 Agent 的 bypassPermissions 不构成文件、进程或网络沙箱。Java 真实授权、运行中撤销和生产多租户隔离继续保留为验收差距。

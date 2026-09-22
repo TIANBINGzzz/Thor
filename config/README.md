@@ -4,7 +4,7 @@
 
 默认读取本目录配置；可用 `CCSDK_DATABASES_FILE` 指定其他文件，相对路径以项目根目录为基准。修改配置后排空任务并重启服务；使用镜像内配置时须重建部署。
 
-本文只说明字段，不复制实际地址、账号、密码或业务租户值。查询定义与业务口径见 [数据库资产](../.claude/databases/README.md)。
+本文集中维护 databases.json 字段，不复制实际地址、账号、密码或业务租户值。资产职责与查询边界见 [数据契约](../doc/specs/data-source-connections.md)。
 
 ## 顶层结构
 
@@ -13,6 +13,7 @@
 | `version` | 配置文件格式版本，当前读取器要求为整数1；不是数据库或模板的版本。 |
 | `sources` | 业务数据源登记表；每个键必须对应.claude/databases下的数据源目录，不能在此表中插入注释条目。 |
 | `sources.schoolDoubleHigh` | 校双高业务数据源，hpm为其内部业务域；名称不代表另一套独立数据库。 |
+| `fileService` | 平台输入下载与成果上传配置，与 sources 并列，不属于某个数据库。 |
 
 ## 文件服务：fileService
 
@@ -24,6 +25,8 @@
 | `domainName` | 请求头domain-name的值，供平台选择业务域；它不是登录Token。 |
 | `remoteUrl` | 请求头remote-url的值，供平台路由识别来源；只填HTTP(S)来源地址，不带业务路径。 |
 | `downloadPath` | 文件下载GET路径；{fileId}由本轮授权附件引用替换，使用存文件接口返回的data.id，不是模板业务ID或会话附件ID。 |
+| `timeoutSeconds` | 默认600，范围1–3600秒；上传的全部尝试和等待共用预算，下载还受Runtime全部附件准备预算约束。 |
+| `maxFileBytes` | 默认1 GiB，范围1字节–10 GiB；单文件上传限制，下载与CCSDK_FILE_MAX_BYTES取较小值，不代表磁盘总配额。 |
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

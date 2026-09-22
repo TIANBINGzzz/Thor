@@ -28,10 +28,10 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <details class="mobile-toc"><summary>目录</summary><nav class="toc"></nav></details>
 
 <section id="change-rules"><h2>变更规则</h2><ol>
-<li>字段、路径、状态、事件、JWT Claim 或文件服务请求头发生变化时，同步更新 Runtime 规范、Java 设计、本文档和协议测试。</li>
+<li>本文统一维护 HTTP 字段、状态、错误码及示例；执行语义见 Runtime 契约，业务映射见 Java 职责。接口变化更新本文和协议测试，职责变化才更新业务映射，不重复维护整套字段。</li>
 <li>请求与响应示例必须能按当前 Python Runtime 代码解析；页面只保留当前代码已经接入的接口。</li>
 <li>Capability 目录只读；执行通过 Run 的 <code>capabilityRef</code> 选择，内部执行配置由 Python 维护。</li>
-<li>本地自测通过中间层模拟 Java，不改变本页面记录的 Java 接口契约。</li>
+<li>Java 和业务前端不在本仓库；接口测试不代表真实业务授权或生产隔离已验收。</li>
 </ol></section>
 
 <section id="base"><h2>基础约定</h2><table><tbody>
@@ -829,25 +829,22 @@ Accept: application/octet-stream</pre></div>
 <tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失。File Broker 配置或文件访问错误通过 Run 事件报告；输出文件服务配置错误通过 artifact.failed 报告。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">Error response · text/plain</div><button class="copy" type="button">复制</button><pre>capability_not_found</pre></div></section>
-<section id="flow-coverage"><h2>原型流程与接入边界</h2>
-<p>核对基线：2026-09-17，code 项目中的对话、能力管理及模板管理原型。原型的内存演示不代表后端已接入；本次范围为 Python 执行接口，旧 Java 实现不作为验收目标。</p>
+<section id="flow-coverage"><h2>业务接入边界</h2>
+<p>以下区分 Python 执行接口与业务层责任，不声明外部 Java、前端或生产环境已通过验收。</p>
 <table><thead><tr><th>用户操作</th><th>Python 契约</th><th>业务层责任与限制</th></tr></thead><tbody>
-<tr><td>普通对话、切换能力</td><td>创建 Run；省略能力即 conversation。</td><td>业务层授权并映射目录中的能力。原型的 template-writing、project-data 等演示 ID 不能直接发送；SDK 能力以实时目录为准（当前五种），Dify 独立路由。</td></tr>
+<tr><td>普通对话、切换能力</td><td>创建 Run；省略能力即 conversation。</td><td>业务层授权并使用实时目录中的能力，不能发送演示或未登记 ID；Dify 等后端另由可信配置路由。</td></tr>
 <tr><td>系统预制模板</td><td>document-writing + payload.templateKey；当前 szpt-midterm。</td><td>按模板加载指南及数据来源。Python 无模板 CRUD 或模板目录 API；业务模板库应维护可信 templateKey 映射，不能把任意上传文件视为已登记模板。</td></tr>
 <tr><td>老师上传模板、附件</td><td>attachmentRefs + input.text，按fileService配置下载后撰写。</td><td>保存原件、分配 fileId、校验 ACL；后续需要的附件再次提交。上传不自动生成指南或数据绑定，不改变数据权限。</td></tr>
 <tr><td>模板管理、学校可见范围、启停、重命名、删除</td><td>不属于执行 API。</td><td>由业务层维护模板记录、版本及学校授权；预制模板执行资产通过部署更新。修改数据库记录不等于 Python 模板已更新。</td></tr>
 <tr><td>停止生成</td><td>control option: cancel 或 /cancel。</td><td>断开 SSE 不停止执行；等待终态后更新消息。interrupt 不是暂停与恢复。</td></tr>
 <tr><td>重试、重新回答、编辑后发送</td><td>传输重试复用 runId 和原请求、新 jti；重新执行使用新 runId。</td><td>保存消息与各次 Run 的关联。没有 SDK 历史回滚/分叉接口；新 Run 不会撤销旧工具副作用或自动删除历史上下文。</td></tr>
-<tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、最后已消费序号并去重。Client 仅在相同身份、会话、能力及有效配置下复用；切换能力不自动转交全文历史，Query 模式不保证连续上下文。</td></tr>
+<tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、已消费序号并去重；同 tenant、sub、businessSessionId 串行共享 SDK 历史，跨能力也连续，配置或凭据改变时重建 Client 并 resume。重启恢复须保留 RunStore 和 SDK transcript；无业务会话不保证连续上下文。</td></tr>
 <tr><td>文档卡片、预览、下载、引用回对话</td><td>artifact 状态事件、按 ID 查询及本地快照下载；Python 自动上传。</td><td>Java 需消费 artifact.ready 并绑定消息与 fileId，提供鉴权下载；前端需实现文件卡片。无专用预览端点，再次引用时Java授权并重新提交attachmentRefs。复杂排版与报告质量仍须成稿验收。</td></tr>
 <tr><td>点赞、反馈、分享、语音、业务知识库管理</td><td>当前无对应执行管理 API。</td><td>业务层负责反馈/分享 ACL 和语音转写；不能从原型展示推断 Python 已具备相应接口。</td></tr>
 </tbody></table>
-<h3>2026-09-17 验证结果</h3>
-<p>157 项 Python 自动化测试通过，覆盖所有 HTTP 路由的文档登记、请求示例、身份隔离、取消、附件失败、数据授权与分页。真实本地 HTTP + SDK + 模型测试通过普通对话、幂等/冲突、SSE 续传、上传模板生成 DOCX 并下载、同会话追问、预制模板上下文加载、实际数据库指标查询、取消后新执行及会话分页。File Broker 使用校验 Run JWT/文件授权的本地 HTTPS 测试服务，未连接真实 Java。</p>
-<p>预制模板仅验收上下文加载，未生成整份深职大报告；上传样例只核对 DOCX 可解析、章节和表格保留，未替代复杂版式与目录逐页验收。当前无跨进程重启恢复完整 SDK 对话的验收保证。部署冒烟脚本已修复鉴权探测及成功事件判定：成功状态是 succeeded，成功事件是 run.completed。</p>
-<p>REQ-001：部分满足，按 MCP 注入及隔离自动化测试通过，真实 Java Token 生命周期未验收。REQ-002：部分满足，Capability 受控入口及模板/数据授权检查通过，业务层 ACL 与生产隔离仍需接入方验证。</p>
+<p>接口接收、SDK 成功、文件 ready 和业务质量分别验收。真实 Java Token 生命周期、文件 ACL、生产隔离，以及复杂报告事实、目录和逐页版式仍须独立验证；历史测试次数不作为当前部署状态。</p>
 </section>
-<footer>本文档描述当前 Python Runtime 契约及明确标注的业务接入责任。接口字段、事件、鉴权或文件服务约束发生变化时，同步更新规范和协议测试。</footer>
+<footer>本文维护 Python Runtime 接口字段及示例；变更同步协议测试。执行契约和业务职责按各自边界维护，测试与部署结果不混入接口定义。</footer>
 </main><aside><p class="toc-title">目录</p><nav class="toc"></nav></aside></div>
 <script>
 const sections=[...document.querySelectorAll("main section[id]")],links=[...document.querySelectorAll(".toc")].map(nav=>sections.map(section=>{const link=document.createElement("a");link.href="#"+section.id;link.textContent=section.querySelector("h2")?.textContent||section.id;nav.append(link);return link})).flat();
