@@ -29,6 +29,7 @@ from data_access.connections import load_config
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
+from runtime.capabilities import CAPABILITIES
 from runtime.prompt_documents import read_documents, MAX_DOCUMENT_TOTAL_BYTES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -457,11 +458,12 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     registered_template = assets['template_revision'] is not None
     restricted_tools = direct_workflow
     mcp_servers: dict[str, Any] = {}
-    # 只为通用问答挂载百炼原生搜索，模型/地址/密钥均来自可信配置，不接受工具参数覆盖。
+    # 搜索授权来自服务端Capability；模型/地址/密钥不接受工具参数覆盖。
+    capability = CAPABILITIES.get(capability_ref)
     search_base = os.environ.get('ANTHROPIC_BASE_URL', '').strip()
     search_key = os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
     endpoint = urlsplit(search_base)
-    if (capability_ref == 'conversation' and not restricted_tools and search_key and model
+    if (capability and capability.web_search and not restricted_tools and search_key and model
             and endpoint.scheme == 'https' and (endpoint.hostname or '').endswith('.maas.aliyuncs.com')
             and endpoint.path.rstrip('/') == '/apps/anthropic'
             and not endpoint.username and not endpoint.password and not endpoint.query and not endpoint.fragment):
@@ -544,7 +546,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     if charts_enabled:
         prompt_append += '\n' + CHART_INSTRUCTIONS
         if capability_ref == 'chart-generation':
-            prompt_append += '\n本轮选择了图表生成能力：优先围绕用户数据制图；数据不足先询问具体缺口。'
+            prompt_append += ('\n本轮选择了图表生成能力：优先围绕用户数据制图；用户要求检索公开数据时，'
+                              '先使用本轮已开通的搜索工具取证，仍不足时询问具体缺口。')
     # Credentials are request-scoped. Rules decide which registered MCP may
     # receive the bearer; no process-global environment is changed.
     # 生图入口必须实际挂载服务；缺配置时禁止模型用其他工具伪造交付。

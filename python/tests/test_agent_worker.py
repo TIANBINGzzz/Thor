@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -66,11 +67,16 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(options.allowed_tools, ["mcp__data__*"])
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
 
-    def test_conversation_enables_provider_web_search(self):
+    def test_enabled_capabilities_and_fixed_template_mount_web_search(self):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
-        with patch.dict('os.environ', values, clear=True):
-            for payload in ({}, {'capability_ref': 'conversation'}):
+        with patch.dict('os.environ', values, clear=True), tempfile.TemporaryDirectory() as folder:
+            for payload in ({}, {'capability_ref': 'conversation'}, {'capability_ref': 'chart-generation'},
+                            {'capability_ref': 'document-writing', 'workflow_name': 'writing-docx'},
+                            {'capability_ref': 'document-writing', 'workflow_name': 'writing-docx',
+                             '_template_key': 'szpt-midterm', 'session_directory': folder,
+                             'work_directory': str(Path(folder) / 'work'),
+                             'deliverables_directory': str(Path(folder) / 'output')}):
                 with self.subTest(payload=payload):
                     options = build_options(payload)
                     self.assertIn('web', options.mcp_servers)
@@ -79,14 +85,15 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertIn('mcp__web__search', options.system_prompt['append'])
                     self.assertNotIn('没有可用的联网搜索能力', options.system_prompt['append'])
                     self.assertNotIn('model-secret', options.system_prompt['append'])
+                    self.assertNotIn('当前通用问答', options.system_prompt['append'])
 
-    def test_non_conversation_capabilities_do_not_enable_provider_web_search(self):
+    def test_unconfigured_capabilities_do_not_enable_provider_web_search(self):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         from runtime.capabilities import CAPABILITIES
         with patch.dict('os.environ', values, clear=True):
             for capability in CAPABILITIES.values():
-                if capability.ref == 'conversation':
+                if capability.ref in {'conversation', 'chart-generation', 'document-writing'}:
                     continue
                 with self.subTest(capability=capability.ref):
                     options = build_options({'capability_ref': capability.ref,
@@ -95,6 +102,18 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertNotIn('mcp__web__search', options.allowed_tools)
                     self.assertIn('WebSearch', options.disallowed_tools)
                     self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
+
+    def test_web_search_follows_trusted_capability_configuration_not_payload(self):
+        from runtime.capabilities import CAPABILITIES
+        values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
+                  'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
+        configured = replace(CAPABILITIES['chart-generation'], web_search=False)
+        with patch.dict('os.environ', values, clear=True), patch.dict(CAPABILITIES, {'chart-generation': configured}):
+            options = build_options({'capability_ref': 'chart-generation', 'web_search': True,
+                                     'tools': ['mcp__web__search']})
+        self.assertNotIn('web', options.mcp_servers)
+        self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
+        self.assertNotIn('web_search', configured.to_public_dict())
 
     def test_missing_or_non_bailian_provider_does_not_advertise_web_search(self):
         for base in ('', 'https://other.test/apps/anthropic'):
