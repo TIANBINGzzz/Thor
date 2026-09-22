@@ -31,6 +31,8 @@ HTTP 提供 `/health` 及 `/internal/v1/` 下的能力目录、Run、会话执�
 
 公开能力由 `GET /internal/v1/capabilities` 返回，包括普通对话、图表生成、图像生成、文档撰写和双高问数；Java 按用户权限筛选。输入及模板字段见[能力 payload](doc/specs/capability-payload.md)。
 
+普通对话在配置百炼工作空间Anthropic地址和模型密钥后可按需联网搜索，复用本轮模型；搜索期间显示“正在联网搜索”，回答附实际来源。其他能力不挂载搜索工具。
+
 同一 tenant、user 和 businessSessionId 下，Python 跨能力续接 SDK 历史；工具、规则和凭据按本轮能力重新装配。省略 capabilityRef 仍表示普通对话，不恢复前端的选择值。重启恢复需持久化 RunStore 和 SDK transcript，详见[会话决策](doc/ADR/033-business-session-continuity.md)。
 
 文稿由 Agent 依据[共同规则](.claude/workflows/writing-docx/instructions.md)、所选模板指南及授权资料自主完成，使用 OfficeCLI 编辑、LibreOffice 渲染和 PDFium 核验。撰写轮数与时限以[Workflow 配置](.claude/workflows/writing-docx/workflow.json)为准。

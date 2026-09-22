@@ -33,11 +33,19 @@ class EventDisplayTests(unittest.TestCase):
 
     def test_web_search_uses_public_search_status(self):
         event = server._public_internal_event('display-run-1', {
-            'type': 'tool_use', 'id': 'search-call', 'name': 'WebSearch',
+            'type': 'tool_use', 'id': 'search-call', 'name': 'mcp__web__search',
+            'input': {'query': 'private-query'},
         })
         self.assertEqual(event['payload']['toolKey'], 'web.search')
         self.assertEqual(event['payload']['displayName'], '正在联网搜索')
-        self.assertNotIn('WebSearch', json.dumps(event))
+        self.assertNotIn('mcp__web__search', json.dumps(event))
+        self.assertNotIn('private-query', json.dumps(event))
+        for kind in ('tool_progress', 'tool_result'):
+            result = server._public_internal_event('display-run-1', {
+                'type': kind, 'id': 'search-call', 'isError': True, 'text': 'private-results'})
+            self.assertEqual(result['payload']['toolKey'], 'web.search')
+            self.assertEqual(with_display_name(result)['payload']['displayName'], '正在联网搜索')
+            self.assertNotIn('private-results', json.dumps(result))
 
     def test_replayed_old_tool_names_are_removed(self):
         event = with_display_name({'sequence': 8, 'type': 'tool.started', 'payload': {

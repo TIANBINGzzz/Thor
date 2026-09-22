@@ -23,7 +23,7 @@ TOOL_KEYS = {
     'Bash': 'task.execute',
     'TodoWrite': 'task.plan',
     'Skill': 'task.skill',
-    'WebSearch': 'web.search',
+    'mcp__web__search': 'web.search',
 }
 TOOL_DISPLAY_NAMES = {
     'data.sources': '',

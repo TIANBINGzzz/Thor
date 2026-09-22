@@ -67,15 +67,55 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
 
     def test_conversation_enables_provider_web_search(self):
-        with patch.dict("os.environ", {}, clear=True):
-            options = build_options({"capability_ref": "conversation"})
-        self.assertIn("WebSearch", options.allowed_tools)
-        self.assertIn("联网搜索", options.system_prompt["append"])
+        values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
+                  'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
+        with patch.dict('os.environ', values, clear=True):
+            for payload in ({}, {'capability_ref': 'conversation'}):
+                with self.subTest(payload=payload):
+                    options = build_options(payload)
+                    self.assertIn('web', options.mcp_servers)
+                    self.assertIn('mcp__web__search', options.allowed_tools)
+                    self.assertIn('WebSearch', options.disallowed_tools)
+                    self.assertIn('mcp__web__search', options.system_prompt['append'])
+                    self.assertNotIn('没有可用的联网搜索能力', options.system_prompt['append'])
+                    self.assertNotIn('model-secret', options.system_prompt['append'])
 
     def test_non_conversation_capabilities_do_not_enable_provider_web_search(self):
-        with patch.dict("os.environ", {}, clear=True):
-            options = build_options({"capability_ref": "chart-generation"})
-        self.assertNotIn("WebSearch", options.allowed_tools)
+        values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
+                  'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
+        from runtime.capabilities import CAPABILITIES
+        with patch.dict('os.environ', values, clear=True):
+            for capability in CAPABILITIES.values():
+                if capability.ref == 'conversation':
+                    continue
+                with self.subTest(capability=capability.ref):
+                    options = build_options({'capability_ref': capability.ref,
+                                             'workflow_name': capability.workflow_ref})
+                    self.assertNotIn('web', options.mcp_servers)
+                    self.assertNotIn('mcp__web__search', options.allowed_tools)
+                    self.assertIn('WebSearch', options.disallowed_tools)
+                    self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
+
+    def test_missing_or_non_bailian_provider_does_not_advertise_web_search(self):
+        for base in ('', 'https://other.test/apps/anthropic'):
+            with self.subTest(base=base), patch.dict('os.environ', {
+                'ANTHROPIC_BASE_URL': base, 'ANTHROPIC_AUTH_TOKEN': 'secret', 'ANTHROPIC_MODEL': 'qwen'}, clear=True):
+                options = build_options({'capability_ref': 'conversation'})
+                self.assertNotIn('web', options.mcp_servers)
+                self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
+
+    def test_web_search_reuses_selected_model_key_without_business_token(self):
+        from runtime.config import create_web_server
+        values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
+                  'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'default-model'}
+        with patch.dict('os.environ', values, clear=True), patch(
+                'runtime.config.create_web_server', wraps=create_web_server) as create:
+            options = build_options({'capability_ref': 'conversation', 'model': 'selected-model',
+                                     'credentials': {'platformBearer': 'business-secret'}})
+        self.assertEqual(create.call_args.kwargs, {
+            'base_url': values['ANTHROPIC_BASE_URL'], 'api_key': 'model-secret', 'model': 'selected-model'})
+        self.assertNotIn('headers', options.mcp_servers['web'])
+        self.assertNotIn('business-secret', str(options.mcp_servers['web']))
 
     def test_database_prompt_starts_from_prepared_context_and_query_definitions(self):
         config = load_workflow_config("double-high-qa")
@@ -105,7 +145,7 @@ class AgentWorkerTests(unittest.TestCase):
             self.assertIn(str(copies[0]),options.system_prompt['append'])
         self.assertEqual(set(options.mcp_servers), {"data", "office", "documents", "artifacts"})
         self.assertIsNone(options.max_turns)
-        self.assertEqual(options.disallowed_tools, [])
+        self.assertEqual(options.disallowed_tools, ['WebSearch'])
         self.assertEqual(options.tools, {'type':'preset','preset':'claude_code'})
         self.assertEqual(options.setting_sources, ['project','local'])
         self.assertFalse(options.strict_mcp_config)

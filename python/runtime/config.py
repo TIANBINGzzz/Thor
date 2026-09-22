@@ -21,6 +21,7 @@ from tools.artifacts import create_artifact_server
 from tools.documents import create_document_server
 from tools.images import IMAGE_INSTRUCTIONS, create_image_server
 from tools.mermaid import CHART_INSTRUCTIONS, create_chart_server
+from tools.web_search import WEB_INSTRUCTIONS, create_web_server
 from tools.data import create_data_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
@@ -124,10 +125,6 @@ NO_WEB_APPEND = (
     "当前运行环境没有可用的联网搜索能力：WebSearch 不可用，不要调用，也不要把它的返回当作搜索结果。"
     "WebFetch 只能抓取用户提供的确切 URL，不能用来搜索或发现网页。"
     "禁止猜测 URL、编造搜索结果、链接、引用或访问日期。"
-)
-CONVERSATION_WEB_APPEND = (
-    "当前为通用问答能力；涉及实时信息时可以使用已开通的 WebSearch 联网搜索。"
-    "如果实际调用了搜索，回答应以搜索结果为依据，并在适用时说明来源；不需要实时信息时无需搜索。"
 )
 DIRECT_WORKFLOW_APPEND = (
     "当前请求已经由应用后端确定性路由到本 workflow。直接使用已挂载的 MCP 工具完成用户问题，"
@@ -408,6 +405,7 @@ def build_system_prompt(
     workflow_config: dict[str, Any] | None = None,
     template=None,
     prompt_documents: str | None = None,
+    web_search_enabled: bool = False,
 ) -> dict[str, str]:
     """接收附加提示词、数据库开关和流程配置，返回 SDK 系统提示词预设及追加内容。"""
     parts = [
@@ -423,7 +421,7 @@ def build_system_prompt(
         parts.append(documents)
     if is_direct_workflow(workflow_config):
         parts.append(DIRECT_WORKFLOW_APPEND)
-    parts.extend([LANGUAGE_APPEND, CONVERSATION_WEB_APPEND if not workflow_config and not database_enabled else NO_WEB_APPEND])
+    parts.extend([LANGUAGE_APPEND, WEB_INSTRUCTIONS if web_search_enabled else NO_WEB_APPEND])
     if extra.strip():
         parts.append(extra.strip())
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
@@ -453,11 +451,21 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     capability_ref = str(
         payload.get("capability_ref") or payload.get("workflow_name") or "conversation"
     ).strip()
+    model = payload.get('model') or os.environ.get('ANTHROPIC_MODEL')
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
     registered_template = assets['template_revision'] is not None
     restricted_tools = direct_workflow
     mcp_servers: dict[str, Any] = {}
+    # 只为通用问答挂载百炼原生搜索，模型/地址/密钥均来自可信配置，不接受工具参数覆盖。
+    search_base = os.environ.get('ANTHROPIC_BASE_URL', '').strip()
+    search_key = os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
+    endpoint = urlsplit(search_base)
+    if (capability_ref == 'conversation' and not restricted_tools and search_key and model
+            and endpoint.scheme == 'https' and (endpoint.hostname or '').endswith('.maas.aliyuncs.com')
+            and endpoint.path.rstrip('/') == '/apps/anthropic'
+            and not endpoint.username and not endpoint.password and not endpoint.query and not endpoint.fragment):
+        mcp_servers['web'] = create_web_server(base_url=search_base, api_key=search_key, model=model)
     if data_services:
         mcp_servers["data"] = create_data_server(data_services)
     session_directory = payload.get("session_directory")
@@ -546,8 +554,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         prompt_append += '\n' + IMAGE_INSTRUCTIONS
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
-    if capability_ref == "conversation":
-        allowed_tools.append("WebSearch")
+    if 'web' in mcp_servers:
+        allowed_tools.append('mcp__web__search')
     if "images" in mcp_servers:
         allowed_tools.append("mcp__images__*")
     if charts_enabled:
@@ -574,7 +582,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         # Workflow规则已显式注入；移除Skill包装后仍关闭SDK的默认技能发现。
         skills = [] if restricted_tools or workflow_config else None
     return build_agent_options(
-        model=payload.get("model") or os.environ.get("ANTHROPIC_MODEL"),
+        model=model,
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
         max_turns=payload.get("max_turns") or (workflow_config or {}).get("runtime", {}).get(
@@ -588,9 +596,10 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
             database_enabled,
             workflow_config,
             prompt_documents=assets['prompt'],
+            web_search_enabled='web' in mcp_servers,
         ),
         tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
-        disallowed_tools=[],
+        disallowed_tools=['WebSearch'],
         allowed_tools=allowed_tools,
         skills=skills,
         permission_mode="bypassPermissions",
