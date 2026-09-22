@@ -66,6 +66,17 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(options.allowed_tools, ["mcp__data__*"])
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
 
+    def test_conversation_enables_provider_web_search(self):
+        with patch.dict("os.environ", {}, clear=True):
+            options = build_options({"capability_ref": "conversation"})
+        self.assertIn("WebSearch", options.allowed_tools)
+        self.assertIn("联网搜索", options.system_prompt["append"])
+
+    def test_non_conversation_capabilities_do_not_enable_provider_web_search(self):
+        with patch.dict("os.environ", {}, clear=True):
+            options = build_options({"capability_ref": "chart-generation"})
+        self.assertNotIn("WebSearch", options.allowed_tools)
+
     def test_database_prompt_starts_from_prepared_context_and_query_definitions(self):
         config = load_workflow_config("double-high-qa")
         prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]

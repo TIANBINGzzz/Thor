@@ -23,6 +23,7 @@ TOOL_KEYS = {
     'Bash': 'task.execute',
     'TodoWrite': 'task.plan',
     'Skill': 'task.skill',
+    'WebSearch': 'web.search',
 }
 TOOL_DISPLAY_NAMES = {
     'data.sources': '',
@@ -45,6 +46,7 @@ TOOL_DISPLAY_NAMES = {
     'task.execute': '',
     'task.plan': '',
     'task.skill': '',
+    'web.search': '正在联网搜索',
     'other': '',
 }
 PHASE_DISPLAY_NAMES = {

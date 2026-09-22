@@ -31,6 +31,14 @@ class EventDisplayTests(unittest.TestCase):
         self.assertTrue(event['payload']['isError'])
         self.assertEqual(event['payload']['toolCallId'], 'call')
 
+    def test_web_search_uses_public_search_status(self):
+        event = server._public_internal_event('display-run-1', {
+            'type': 'tool_use', 'id': 'search-call', 'name': 'WebSearch',
+        })
+        self.assertEqual(event['payload']['toolKey'], 'web.search')
+        self.assertEqual(event['payload']['displayName'], '正在联网搜索')
+        self.assertNotIn('WebSearch', json.dumps(event))
+
     def test_replayed_old_tool_names_are_removed(self):
         event = with_display_name({'sequence': 8, 'type': 'tool.started', 'payload': {
             'toolName': 'private-host-token-tool', 'displayName': 'forged'}})

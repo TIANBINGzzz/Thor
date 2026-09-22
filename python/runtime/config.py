@@ -125,6 +125,10 @@ NO_WEB_APPEND = (
     "WebFetch 只能抓取用户提供的确切 URL，不能用来搜索或发现网页。"
     "禁止猜测 URL、编造搜索结果、链接、引用或访问日期。"
 )
+CONVERSATION_WEB_APPEND = (
+    "当前为通用问答能力；涉及实时信息时可以使用已开通的 WebSearch 联网搜索。"
+    "如果实际调用了搜索，回答应以搜索结果为依据，并在适用时说明来源；不需要实时信息时无需搜索。"
+)
 DIRECT_WORKFLOW_APPEND = (
     "当前请求已经由应用后端确定性路由到本 workflow。直接使用已挂载的 MCP 工具完成用户问题，"
     "不要再次调用 Skill、Workflow、Task，不要启动子代理，也不要重复判断或转发 workflow。"
@@ -419,7 +423,7 @@ def build_system_prompt(
         parts.append(documents)
     if is_direct_workflow(workflow_config):
         parts.append(DIRECT_WORKFLOW_APPEND)
-    parts.extend([LANGUAGE_APPEND, NO_WEB_APPEND])
+    parts.extend([LANGUAGE_APPEND, CONVERSATION_WEB_APPEND if not workflow_config and not database_enabled else NO_WEB_APPEND])
     if extra.strip():
         parts.append(extra.strip())
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
@@ -542,6 +546,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         prompt_append += '\n' + IMAGE_INSTRUCTIONS
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
+    if capability_ref == "conversation":
+        allowed_tools.append("WebSearch")
     if "images" in mcp_servers:
         allowed_tools.append("mcp__images__*")
     if charts_enabled:
