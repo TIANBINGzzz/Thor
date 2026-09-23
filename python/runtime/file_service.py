@@ -2,10 +2,13 @@
 
 import re
 import time
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
 import yaml
+
+APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'application.yml'
 
 
 class FileServiceError(ValueError):
@@ -30,9 +33,30 @@ def _response(client, method, url, deadline, **kwargs):
         return httpx.Response(response.status_code, content=bytes(body), request=response.request)
 
 
+def _nacos_settings(env):
+    """读取仓库根目录配置，部署环境可显式覆盖；密钥只从调用方环境获取。"""
+    fields = {'server-addr': 'CCSDK_NACOS_URL', 'namespace': 'CCSDK_NACOS_NAMESPACE',
+              'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID'}
+    try:
+        document = yaml.safe_load(APPLICATION_CONFIG_FILE.read_text(encoding='utf-8'))
+        config = document['nacos']
+        if (not isinstance(config, dict) or set(config) != set(fields)
+                or any(not isinstance(value, str) for value in config.values())):
+            raise ValueError()
+        settings = {variable: env.get(variable, config[field]) for field, variable in fields.items()}
+        address = settings['CCSDK_NACOS_URL'].strip()
+        if address and '://' not in address:
+            address = 'http://' + address
+        settings['CCSDK_NACOS_URL'] = address
+        return settings
+    except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
+        raise FileServiceError('file_service_nacos_config_invalid') from None
+
+
 def _fetch_config(env, *, transport=None):
     """只读 Nacos 2.x 配置 API；凭据仅发给 Nacos，不记录响应或回退本地文件。"""
-    address = env.get('CCSDK_NACOS_URL', '').strip().rstrip('/')
+    settings = _nacos_settings(env)
+    address = settings['CCSDK_NACOS_URL'].strip().rstrip('/')
     if not address:
         raise FileServiceError('file_service_not_configured')
     try:
@@ -48,14 +72,14 @@ def _fetch_config(env, *, transport=None):
         password = env.get('CCSDK_NACOS_PASSWORD', '')
         if bool(username) != bool(password):
             raise ValueError()
-        group = env.get('CCSDK_NACOS_GROUP', 'DEFAULT_GROUP').strip()
-        data_id = env.get('CCSDK_NACOS_DATA_ID', 'ai-center-agent-service').strip()
+        group = settings['CCSDK_NACOS_GROUP'].strip()
+        data_id = settings['CCSDK_NACOS_DATA_ID'].strip()
         if not group or not data_id:
             raise ValueError()
     except ValueError:
         raise FileServiceError('file_service_nacos_config_invalid') from None
     params = {'group': group, 'dataId': data_id}
-    namespace = env.get('CCSDK_NACOS_NAMESPACE', '').strip()
+    namespace = settings['CCSDK_NACOS_NAMESPACE'].strip()
     if namespace and namespace != 'public':
         params['tenant'] = namespace
     try:

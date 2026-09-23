@@ -19,8 +19,8 @@
 平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
 
 每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，内容以 `fileService:` 为根；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
-启动侧 `.env` 或部署环境设置 `CCSDK_NACOS_URL`（如 `http://127.0.0.1:8848/nacos`）、`CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD`；凭据不放在 Nacos 配置正文中。
-`CCSDK_NACOS_NAMESPACE` 填 Namespace ID（public 留空）；`CCSDK_NACOS_GROUP` 默认 `DEFAULT_GROUP`，`CCSDK_NACOS_DATA_ID` 默认 `ai-center-agent-service`。容器须使用容器可达的地址。
+启动连接统一放在仓库根目录 [application.yml](../application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。文件路径以仓库根目录为基准，不依赖启动工作目录，随镜像交付。
+`.env` 或部署环境只需配置 `CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD`；YAML 不接收凭据。部署需要时可用 `CCSDK_NACOS_URL`、`CCSDK_NACOS_NAMESPACE`、`CCSDK_NACOS_GROUP`、`CCSDK_NACOS_DATA_ID` 显式覆盖对应字段，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
 每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用10秒预算，每个响应分块检查，单次网络阻塞最多5秒，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
 没有本地文件回退或磁盘缓存；未配置、认证失败、不可达或内容无效时文件操作失败，不影响无文件的对话。更改 Nacos 启动参数须重启 Runtime。使用已有 httpx/PyYAML，无需额外 SDK 或 gRPC 端口。
 

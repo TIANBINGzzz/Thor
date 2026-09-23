@@ -2,6 +2,8 @@
 
 import json
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs
 
@@ -73,7 +75,7 @@ class NacosFileServiceTests(unittest.TestCase):
             self.read(timeout)
 
     def test_bootstrap_validation_before_network(self):
-        for env in ({}, {'CCSDK_NACOS_URL': 'http://user:password@nacos.test'},
+        for env in ({'CCSDK_NACOS_URL': ''}, {'CCSDK_NACOS_URL': 'http://user:password@nacos.test'},
                     {'CCSDK_NACOS_URL': 'http://nacos.test/?token=secret'},
                     {'CCSDK_NACOS_URL': 'http://nacos.test', 'CCSDK_NACOS_USERNAME': 'reader'}):
             self.env = env
@@ -126,3 +128,39 @@ class NacosFileServiceTests(unittest.TestCase):
         self.assertLessEqual(ticks[0], 10)
         with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_unavailable$'):
             self.read(lambda _: httpx.Response(200, content=b' ' * (128 * 1024 + 1)))
+
+    def test_application_yaml_supplies_bootstrap_and_environment_can_override(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'yaml-nacos.test:8848',
+                'namespace': 'yaml-namespace', 'group': 'yaml-group', 'data-id': 'yaml-service'}}))
+            self.env = {}
+            def handle(request):
+                self.assertEqual(request.url.host, 'yaml-nacos.test')
+                self.assertEqual(request.url.path, '/nacos/v1/cs/configs')
+                self.assertEqual(dict(request.url.params), {'tenant': 'yaml-namespace',
+                    'group': 'yaml-group', 'dataId': 'yaml-service'})
+                return httpx.Response(200, json=self.config)
+            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+                self.read(handle)
+                self.env = {'CCSDK_NACOS_URL': 'https://override.test/nacos',
+                    'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'override',
+                    'CCSDK_NACOS_DATA_ID': 'override-service'}
+                def overridden(request):
+                    self.assertEqual(str(request.url).split('?')[0], 'https://override.test/nacos/v1/cs/configs')
+                    self.assertEqual(dict(request.url.params), {'group': 'override', 'dataId': 'override-service'})
+                    return httpx.Response(200, json=self.config)
+                self.read(overridden)
+
+    def test_invalid_application_yaml_fails_before_network(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+                for content in (None, '[]', 'nacos: [bad]', 'nacos: {server-addr: 123}',
+                                'nacos: {server-addr: localhost:8848, namespace: null}',
+                                'nacos: {server-addr: localhost:8848, password: secret}'):
+                    if content is not None:
+                        path.write_text(content)
+                    with self.subTest(content=content):
+                        with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_config_invalid$'):
+                            self.read(lambda _: self.fail('invalid YAML must not access Nacos'))

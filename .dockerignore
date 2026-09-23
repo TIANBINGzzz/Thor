@@ -1,5 +1,6 @@
 **
 !requirements.txt
+!application.yml
 !package.json
 !package-lock.json
 !python/

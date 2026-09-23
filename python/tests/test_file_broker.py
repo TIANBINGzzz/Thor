@@ -29,7 +29,7 @@ class FileBrokerTests(unittest.TestCase):
     def test_missing_file_service_config_keeps_broker_unconfigured(self):
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / 'databases.json'
-            with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config)}, clear=True):
+            with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config), 'CCSDK_NACOS_URL': ''}, clear=True):
                 self.assertFalse(FileBroker().configured)
                 config.write_text('{}')
                 self.assertFalse(FileBroker().configured)
