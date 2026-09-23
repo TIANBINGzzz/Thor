@@ -18,6 +18,10 @@ from tools.artifacts import publish_artifact
 
 
 class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.file_service._fetch_config', side_effect=lambda env, **kw:
+            json.loads(Path(env['CCSDK_DATABASES_FILE']).read_text(encoding='utf-8'))))
+
     async def test_run_waits_for_automatic_retries_before_final_file_result(self):
         for succeeds in (True, False):
             with self.subTest(succeeds=succeeds), tempfile.TemporaryDirectory() as directory:

@@ -34,6 +34,18 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         self.assertNotIn("UNRELATED_SECRET", parsed)
         self.assertEqual(parsed['CCSDK_IMAGE_API_KEY'], 'image-secret')
 
+    def test_nacos_bootstrap_round_trip(self):
+        environment = {key: value for key, value in self.environment().items()
+                       if key in writer.RUNTIME_KEYS}
+        nacos = {'CCSDK_NACOS_URL': 'http://nacos.test:8848/nacos',
+                 'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'DEFAULT_GROUP',
+                 'CCSDK_NACOS_DATA_ID': 'ai-center-agent-service',
+                 'CCSDK_NACOS_USERNAME': 'reader', 'CCSDK_NACOS_PASSWORD': 'private $ = # secret'}
+        environment.update(nacos)
+        decoded = writer.parse_bundle(json.dumps(environment))
+        rendered = dict(line.split('=', 1) for line in writer.render(decoded).splitlines())
+        self.assertEqual({key: rendered[key] for key in nacos}, nacos)
+
     def test_custom_jwt_secret_survives_bundle_and_container_check(self):
         entrypoint = Path(__file__).with_name("entrypoint.py")
         for secret in ("short", "your_custom_key", "replace-with-is-allowed", "test-jwt-" * 8):

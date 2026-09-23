@@ -1,10 +1,10 @@
 # 配置说明
 
-本目录的 [databases.json](databases.json) 保存数据库连接、访问策略及平台文件服务配置。仅供服务端读取，不传给模型。
+本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务配置由 Nacos 提供。两者仅供服务端读取，不传给模型。
 
 默认读取本目录配置；可用 `CCSDK_DATABASES_FILE` 指定其他文件，相对路径以项目根目录为基准。修改配置后排空任务并重启服务；使用镜像内配置时须重建部署。
 
-本文集中维护 databases.json 字段，不复制实际地址、账号、密码或业务租户值。资产职责与查询边界见 [数据契约](../doc/specs/data-source-connections.md)。
+本文集中维护配置字段，不复制实际地址、账号、密码或业务租户值。资产职责与查询边界见 [数据契约](../doc/specs/data-source-connections.md)。
 
 ## 顶层结构
 
@@ -13,11 +13,24 @@
 | `version` | 配置文件格式版本，当前读取器要求为整数1；不是数据库或模板的版本。 |
 | `sources` | 业务数据源登记表；每个键必须对应.claude/databases下的数据源目录，不能在此表中插入注释条目。 |
 | `sources.schoolDoubleHigh` | 校双高业务数据源，hpm为其内部业务域；名称不代表另一套独立数据库。 |
-| `fileService` | 平台输入下载与成果上传配置，与 sources 并列，不属于某个数据库。 |
 
-## 文件服务：fileService
+## Nacos 文件服务：fileService
 
 平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
+
+每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，内容以 `fileService:` 为根；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
+启动侧 `.env` 或部署环境设置 `CCSDK_NACOS_URL`（如 `http://127.0.0.1:8848/nacos`）、`CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD`；凭据不放在 Nacos 配置正文中。
+`CCSDK_NACOS_NAMESPACE` 填 Namespace ID（public 留空）；`CCSDK_NACOS_GROUP` 默认 `DEFAULT_GROUP`，`CCSDK_NACOS_DATA_ID` 默认 `ai-center-agent-service`。容器须使用容器可达的地址。
+每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用10秒预算，每个响应分块检查，单次网络阻塞最多5秒，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
+没有本地文件回退或磁盘缓存；未配置、认证失败、不可达或内容无效时文件操作失败，不影响无文件的对话。更改 Nacos 启动参数须重启 Runtime。使用已有 httpx/PyYAML，无需额外 SDK 或 gRPC 端口。
+
+```yaml
+fileService:
+  baseUrl: https://files.example.internal
+  domainName: business.example.internal
+  remoteUrl: https://business.example.internal
+  downloadPath: /fwk_manage_service/sys_attachment/{fileId}/ai/download/
+```
 
 | 字段 | 用途与约束 |
 | --- | --- |

@@ -31,7 +31,7 @@
 - `runtime/config.py` 解析能力与 Workflow 并装配工具；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。没有 JS 工作流运行器或通用 DAG 引擎。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
-- `artifact_delivery.py` 自动上传发布快照并保存文件状态；Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
+- `artifact_delivery.py` 自动上传发布快照并保存文件状态；下载与上传通过 `file_service.py` 从 Nacos 读取服务端配置。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
 
 ## 5. Dependency directions
 

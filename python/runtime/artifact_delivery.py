@@ -194,7 +194,7 @@ class ArtifactDelivery:
         in_flight = False
         last_failure = None
         try:
-            config = file_service_config(self.env)
+            config = await asyncio.to_thread(file_service_config, self.env)
             await self._state(record, 'uploading')
             async with asyncio.timeout(config['timeoutSeconds']):
                 for attempt in range(len(RETRY_DELAYS) + 1):

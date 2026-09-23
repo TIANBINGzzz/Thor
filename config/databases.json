@@ -1,10 +1,4 @@
 {
-  "fileService": {
-    "baseUrl": "https://newtest.stringedu.com",
-    "domainName": "newtest.stringedu.com",
-    "remoteUrl": "https://newtest.stringedu.com",
-    "downloadPath": "/fwk_manage_service/sys_attachment/{fileId}/ai/download/"
-  },
   "sources": {
     "schoolDoubleHigh": {
       "policy": {

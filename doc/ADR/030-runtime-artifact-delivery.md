@@ -14,7 +14,7 @@
 
 ## 决策
 
-- 发布工具创建artifactId及不可变文件快照，父Runtime绑定当前可信Run；上传地址与Header由databases.json顶层fileService提供。
+- 发布工具创建artifactId及不可变文件快照，父Runtime绑定当前可信Run；上传地址与Header由Nacos的fileService提供，字段与更新边界见[配置说明](../../config/README.md)。
 - Runtime用httpx流式multipart上传现有接口，成功确认的data.id作为fileId；data.url只作内部存储路径，不推测下载URL。
 - 文件状态与事件原子持久化，公开pending/uploading/ready/failed/unknown；仅ready可关联远端文件，模型只接收artifactId/name/size交稿回执，上传状态由Runtime管理。
 - SDK结束后等待已提交上传收尾，再发Run终态；文件失败不伪造SDK失败。重启仅恢复pending，发送结果不确定不自动重试。

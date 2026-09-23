@@ -487,7 +487,8 @@ async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any],
         await _run_phase(run_request.run_id, payload)
 
     await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
-    files = await FileBroker(progress_sink=progress).fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
+    broker = await asyncio.to_thread(FileBroker, progress_sink=progress)
+    files = await broker.fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
         tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
         bearer_token=runtime_bearer, timeout_ms=FILE_PREPARE_TIMEOUT_MS)
     await progress({"name": "files_ready", "fileCount": len(files)})

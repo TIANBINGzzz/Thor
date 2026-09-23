@@ -98,6 +98,8 @@ class ImageCapabilityTests(unittest.TestCase):
                     self.assertEqual(image.format, 'PNG')
                     self.assertEqual(image.size, (32, 24))
             config = root / 'databases.json'
+            self.enterContext(patch('runtime.file_service._fetch_config', side_effect=lambda env, **kw:
+                json.loads(config.read_text(encoding='utf-8'))))
             config.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
                 'domainName': 'routing.test', 'remoteUrl': 'https://public.test'}}))
             store = RunStore(':memory:')
