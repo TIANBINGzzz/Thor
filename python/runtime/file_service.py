@@ -34,7 +34,7 @@ def _response(client, method, url, deadline, **kwargs):
 
 
 def _nacos_settings(env):
-    """读取仓库根目录配置，部署环境可显式覆盖；密钥只从调用方环境获取。"""
+    """按公共文件、本地文件、环境变量顺序覆盖；密钥只从调用方环境获取。"""
     fields = {'server-addr': 'CCSDK_NACOS_URL', 'namespace': 'CCSDK_NACOS_NAMESPACE',
               'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID'}
     try:
@@ -43,6 +43,17 @@ def _nacos_settings(env):
         if (not isinstance(config, dict) or set(config) != set(fields)
                 or any(not isinstance(value, str) for value in config.values())):
             raise ValueError()
+        local_path = APPLICATION_CONFIG_FILE.with_name('application.local.yml')
+        try:
+            local_text = local_path.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            pass
+        else:
+            local = yaml.safe_load(local_text)['nacos']
+            if (not isinstance(local, dict) or not set(local).issubset(fields)
+                    or any(not isinstance(value, str) for value in local.values())):
+                raise ValueError()
+            config.update(local)
         settings = {variable: env.get(variable, config[field]) for field, variable in fields.items()}
         address = settings['CCSDK_NACOS_URL'].strip()
         if address and '://' not in address:

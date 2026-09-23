@@ -164,3 +164,38 @@ class NacosFileServiceTests(unittest.TestCase):
                     with self.subTest(content=content):
                         with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_config_invalid$'):
                             self.read(lambda _: self.fail('invalid YAML must not access Nacos'))
+
+    def test_local_yaml_merges_fields_and_environment_has_highest_priority(self):
+        from runtime.file_service import _nacos_settings
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
+                'namespace': 'base-tenant', 'group': 'base-group', 'data-id': 'base-service'}}))
+            local = path.with_name('application.local.yml')
+            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
+                local.write_text('nacos:\n  server-addr: local.test:8848\n  namespace: ""\n')
+                merged = _nacos_settings({})
+                self.assertEqual(merged, {'CCSDK_NACOS_URL': 'http://local.test:8848',
+                    'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'base-group',
+                    'CCSDK_NACOS_DATA_ID': 'base-service'})
+                self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': 'https://env.test'})['CCSDK_NACOS_URL'],
+                                 'https://env.test')
+                self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': ''})['CCSDK_NACOS_URL'], '')
+                local.unlink()
+                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
+
+    def test_invalid_local_yaml_is_not_silently_ignored(self):
+        from runtime.file_service import _nacos_settings
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
+                'namespace': '', 'group': 'base-group', 'data-id': 'base-service'}}))
+            local = path.with_name('application.local.yml')
+            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+                for content in ('[]', '', 'nacos: null', 'nacos: {server-addr: null}',
+                                'nacos: {password: secret}', 'nacos: {unknown: value}', 'nacos: ['):
+                    local.write_text(content)
+                    with self.subTest(content=content), self.assertRaisesRegex(
+                            FileServiceError, '^file_service_nacos_config_invalid$'):
+                        _nacos_settings({})
