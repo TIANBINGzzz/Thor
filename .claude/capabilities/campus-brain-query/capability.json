@@ -1,0 +1,134 @@
+{
+  "documents": [
+    "instructions.md"
+  ],
+  "url": "https://schoolcloud.stringedu.com/string_campus_brain_service/mcp",
+  "headers": {
+    "domain-name": "schoolcloud.stringedu.com",
+    "app-key": "inter-page-key"
+  },
+  "max_calls": 10,
+  "catalogs": {
+    "indicator_compare": "indicator_compare.csv",
+    "norm_analysis": "norm_analysis.csv",
+    "schools": "schools.csv"
+  },
+  "tools": {
+    "get_school_info": {
+      "description": "仅在用户明确问当前登录本校，或已确认常模参照组需剔除本校，或用户明确声明具体名称就是本校需校验时读取身份；每轮最多一次。外校或未声明本校的具体名称查询禁止调用，不能为了拒绝而先查身份。",
+      "schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "output_fields": [
+        "school_id",
+        "school_name"
+      ]
+    },
+    "get_indicator_metrics": {
+      "description": "查询已确认的一个本校指标及预置群体统计。编码来自对比分析知识记录；年份省略表示最新。",
+      "catalog": "indicator_compare",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "indicator_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 9999
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "indicator_value",
+                "province_rank",
+                "province_median",
+                "national_median",
+                "same_type_rank",
+                "same_type_median",
+                "national_double_high_median",
+                "province_double_high_median",
+                "national_double_high_simulated_rank",
+                "province_double_high_simulated_rank",
+                "private_median"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "indicator_code"
+        ],
+        "additionalProperties": false
+      },
+      "output_fields": [
+        "indicator_value",
+        "province_rank",
+        "province_median",
+        "national_median",
+        "same_type_rank",
+        "same_type_median",
+        "national_double_high_median",
+        "province_double_high_median",
+        "national_double_high_simulated_rank",
+        "province_double_high_simulated_rank",
+        "private_median",
+        "year",
+        "rank_type",
+        "school_count",
+        "cohort_size",
+        "percentile"
+      ]
+    },
+    "get_norm_metrics": {
+      "description": "查询本校在至少{minimum_schools}所不同外校参照组中的表现，只返回本校及匿名组统计。先读取本校身份并剔除本校。",
+      "catalog": "norm_analysis",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "indicator_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 9999
+          },
+          "schools": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "indicator_code",
+          "schools"
+        ],
+        "additionalProperties": false
+      },
+      "output_fields": [
+        "indicator_value",
+        "median",
+        "rank",
+        "max_value",
+        "min_value",
+        "average_value",
+        "school_count",
+        "year"
+      ]
+    }
+  },
+  "minimum_schools": 8
+}

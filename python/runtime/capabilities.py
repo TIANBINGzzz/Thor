@@ -28,6 +28,7 @@ class Capability:
 # These names are business entry points. Workflow names remain implementation
 # details and may be reused by several capabilities.
 CAPABILITIES: dict[str, Capability] = {
+    "campus-brain-query": Capability("campus-brain-query", None, False, "校园大脑问数", "查询本校指标、预置群体对比与自选学校组常模分析"),
     "image-generation": Capability("image-generation", None, True, "图像生成", "根据文字或参考图生成、修改图片并交付 PNG 文件"),
     "conversation": Capability("conversation", None, True, "通用对话", "日常交流、内容总结与问题解答", web_search=True),
     "chart-generation": Capability("chart-generation", None, True, "图表生成", "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图", web_search=True),

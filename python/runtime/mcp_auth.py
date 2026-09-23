@@ -15,6 +15,8 @@ from typing import Any
 
 
 MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
+    # 进程内适配器独立校验并在请求时绑定工具参数；SDK配置不携带业务凭据。
+    "campus": {"required": True, "transport": "sdk", "argument": "user_context_token"},
     "business": {
         "required": True,
         "transport": "http",
@@ -75,6 +77,9 @@ def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = 
     if not token:
         raise MCPAuthError(f"MCP 缺少业务 Token：{mcp_ref}")
     transport = rule.get("transport")
+    if transport == 'sdk' and isinstance(rule.get('argument'), str) and _ENV_NAME.fullmatch(rule['argument']):
+        # 凭据只由受信进程内适配器在远端发送时绑定；不写入SDK配置或模型Schema。
+        return result
     if transport in {"http", "sse"}:
         header = rule.get("header", "Authorization")
         prefix = rule.get("prefix", "")

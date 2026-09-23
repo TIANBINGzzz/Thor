@@ -16,7 +16,7 @@
 - Python 管理 Runtime、SDK 和通用工具；`.claude/` 管理执行配置与业务知识。Workflow 专属表范围、口径及模板不得写进通用 Python。
 - Capability 是业务入口，内部资产和权限由可信服务端装配，遵循 [REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)。只有执行步骤、审批、并行、重试或外部副作用确实不同才拆 Workflow。
 - Skill 须有可复用方法、适用条件和可验证产出；单工具包装、几条提醒和模板说明不单建 Skill。单流程规则留在其目录，共同规则只维护一份。
-- 产品规则通过 `workflow.json` 的 `documents`/`skills`、所选 `template.json.assets` 和数据库 `source.json.domains` 显式加载，不依赖开发指引自动发现；未登记及 `not_for_model` 材料不进入 Prompt。
+- 产品规则通过 `workflow.json` 的 `documents`/`skills`、Capability 内部 `capability.json.documents`、所选 `template.json.assets` 和数据库 `source.json.domains` 显式加载，不依赖开发指引自动发现；未登记及 `not_for_model` 材料不进入 Prompt。
 - 数据库知识按来源集中，指标含义与 SQL 不复制到模板。未知定义不得编造 SQL，`pending`、`blocked`、`needs_definition` 不因目录整理自动升级；详见 [数据契约](doc/specs/data-source-connections.md)。
 - 文稿由 Agent 依据共同规则、所选指南及授权资料自主规划、取证、撰写和核验；OfficeCLI 原生 MCP 编辑，LibreOffice/PDFium 渲染及阅读。不得新增位置地图、固定取数计划、报告状态机或自研编辑层。
 - 上传模板作结构和样式参考生成新稿；预制与上传两类均须核验证据、目录和成稿，不用默认值掩盖缺口。执行规则以 [共同规则](.claude/workflows/writing-docx/instructions.md) 为准。

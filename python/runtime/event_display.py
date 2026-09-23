@@ -2,6 +2,10 @@
 
 # 精确匹配已登记工具，不从工具参数、命令、模型文字推导对外名称。
 TOOL_KEYS = {
+    'mcp__campus__search_knowledge': 'data.prepare',
+    'mcp__campus__get_school_info': 'data.resolve',
+    'mcp__campus__get_indicator_metrics': 'data.query',
+    'mcp__campus__get_norm_metrics': 'data.query',
     'mcp__data__list_data_sources': 'data.sources',
     'mcp__data__describe_data_source': 'data.describe',
     'mcp__data__resolve_entities': 'data.resolve',

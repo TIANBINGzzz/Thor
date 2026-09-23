@@ -126,6 +126,7 @@ Content-Type: application/json</pre></div>
 <h3>各能力应该传什么</h3>
 <table><thead><tr><th>能力 / 场景</th><th>payload 约定</th><th>说明</th></tr></thead><tbody>
 <tr><td>conversation</td><td>省略或 {}</td><td>当前没有 payload 字段，问题放 input.text。</td></tr>
+<tr><td>campus-brain-query</td><td>省略或 {}</td><td>校园大脑问数：指标、年份和参照学校写入 input.text；Java从当前认证上下文透传 credentials.platformBearer，浏览器不得指定身份。本版仅文字查询，不接收附件；继续使用标准回答与SSE协议。</td></tr>
 <tr><td>image-generation</td><td>省略或 {}</td><td>图像生成：画面、数量和尺寸写入 input.text，参考图走 input.attachmentRefs；每张PNG独立发布，经artifact.ready返回fileId供授权预览/下载，不返回模型临时URL。Java签发JWT须绑定此能力；未配置生图服务时执行失败。</td></tr>
 <tr><td>chart-generation</td><td>省略或 {}</td><td>图表生成：数据、单位、图表要求写入 input.text；输出为正文中的 Mermaid，见<a href="#mermaid-charts">图表接入</a>。</td></tr>
 <tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
@@ -210,6 +211,12 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <p>鉴权：无需 Authorization 请求头，不依赖 Runtime JWT 密钥配置。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "capabilities": [
+    {
+      "capabilityRef": "campus-brain-query",
+      "name": "校园大脑问数",
+      "description": "查询本校指标、预置群体对比与自选学校组常模分析",
+      "supportsAttachments": false
+    },
     {
       "capabilityRef": "image-generation",
       "name": "图像生成",

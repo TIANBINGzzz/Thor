@@ -360,8 +360,13 @@ async def run_client(initial: dict[str, Any]) -> None:
         emit({"type": "client_error", "code": "configuration_error"})
         return
     data_services = create_run_services(initial)
+    campus_service = None
+    if initial.get('capability_ref') == 'campus-brain-query':
+        from tools.campus import CampusQuery, load_campus_assets
+        campus_service = CampusQuery(load_campus_assets(), initial.get('credentials'))
     chart_delivery = ChartDelivery(emit)
-    options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record)
+    options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
+                            **({'campus_service': campus_service} if campus_service else {}))
     direct_workflow = options.tools == [] and options.strict_mcp_config
     client = ClaudeSDKClient(
         options,
@@ -401,6 +406,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                 try:
                     deadline = time.monotonic() + timeout_value / 1000
                     async with asyncio.timeout(timeout_value / 1000):
+                        if campus_service:
+                            campus_service.bind(command.get('credentials'))
                         if data_services:
                             await data_services.bind(command)
                             prompt = data_services.prepare_prompt(str(prompt or ""))
@@ -421,6 +428,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                     emit({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)})
                     return
                 finally:
+                    if campus_service:
+                        campus_service.clear()
                     if data_services:
                         await data_services.close()
         except asyncio.CancelledError:

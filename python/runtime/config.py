@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import date
 from contextlib import contextmanager
 from collections.abc import Iterator
 from pathlib import Path
@@ -365,11 +366,19 @@ def prepare_workflow_assets(payload):
         if template and template_key not in (workflow or {}).get('templates', {}):
             raise DataError('TEMPLATE_FORBIDDEN')
         content = workflow_prompt_documents(workflow, template=template)
+        capability_revision = None
+        if payload.get('capability_ref') == 'campus-brain-query':
+            from tools.campus import load_campus_assets
+            campus = load_campus_assets()
+            content += '\n' + campus['prompt']
+            content += '\n本轮当前日期：' + date.today().isoformat()
+            capability_revision = campus['revision']
         sources = sorted(set(template['source_roles'].values())) if template else None
         revision = template['_revision'] if template else None
         payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'prompt': content,
+            'capability_revision': capability_revision,
             'template_revision': revision, 'template_sources': sources,
-            'revision': fingerprint([workflow, content, revision])}
+            'revision': fingerprint([workflow, content, revision, capability_revision])}
     return payload['_workflow_assets']
 
 
@@ -441,7 +450,7 @@ def image_configuration():
     return base, key
 
 
-def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None) -> ClaudeAgentOptions:
+def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, campus_service=None) -> ClaudeAgentOptions:
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -456,7 +465,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
     registered_template = assets['template_revision'] is not None
-    restricted_tools = direct_workflow
+    campus_enabled = capability_ref == 'campus-brain-query'
+    restricted_tools = direct_workflow or campus_enabled
     mcp_servers: dict[str, Any] = {}
     # 搜索授权来自服务端Capability；模型/地址/密钥不接受工具参数覆盖。
     capability = CAPABILITIES.get(capability_ref)
@@ -468,7 +478,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
             and endpoint.path.rstrip('/') == '/apps/anthropic'
             and not endpoint.username and not endpoint.password and not endpoint.query and not endpoint.fragment):
         mcp_servers['web'] = create_web_server(base_url=search_base, api_key=search_key, model=model)
-    if data_services:
+    if data_services and not campus_enabled:
         mcp_servers["data"] = create_data_server(data_services)
     session_directory = payload.get("session_directory")
     work_directory = payload.get("work_directory")
@@ -523,8 +533,14 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     # mount the business MCP.  A bearer's mere presence must never expand the
     # tool set for an otherwise ordinary conversation.
     business_allowed = capability_ref in business_capabilities
-    if business_mcp_url and business_allowed:
+    if business_mcp_url and business_allowed and not campus_enabled:
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
+    if campus_enabled:
+        from tools.campus import CampusQuery, load_campus_assets, create_campus_server
+        campus_service = campus_service or CampusQuery(load_campus_assets(), credentials)
+        if campus_service.assets['revision'] != assets['capability_revision']:
+            raise RuntimeError('校园能力资产已变化，请重新发起请求')
+        mcp_servers['campus'] = create_campus_server(campus_service)
     if not restricted_tools:
         mcp_servers["documents"] = create_document_server(
             work_directory or payload.get("cwd") or Path.cwd(),
@@ -557,6 +573,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         prompt_append += '\n' + IMAGE_INSTRUCTIONS
     mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
     allowed_tools = [] if restricted_tools else ["mcp__office__*", "mcp__documents__*"]
+    if campus_enabled:
+        allowed_tools.extend('mcp__campus__' + name for name in ['search_knowledge', *campus_service.assets['config']['tools']])
     if 'web' in mcp_servers:
         allowed_tools.append('mcp__web__search')
     if "images" in mcp_servers:
