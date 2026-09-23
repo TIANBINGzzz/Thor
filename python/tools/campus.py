@@ -111,8 +111,17 @@ class CampusQuery:
             # 只提供按字序匹配的候选，不把简称猜测成唯一正式身份。
             pattern = '.*'.join(re.escape(c) for c in needle)
             found = [r for r in rows if re.search(pattern, _normalized(r['name']))]
-        found.sort(key=lambda r: (_normalized(r['name']) != needle, r['name'], r.get('year', '')))
-        return {'records': found[offset:offset + 20], 'total': len(found), 'has_more': len(found) > offset + 20}
+        def match_basis(row):
+            if _normalized(row['name']) == needle:
+                return 'exact'
+            if query == row['code']:
+                return 'code'
+            return 'substring' if needle in _normalized(row['name']) else 'subsequence'
+
+        found.sort(key=lambda r: (match_basis(r) not in ('exact', 'code'), r['name'], r.get('year', '')))
+        # 匹配依据只描述文字命中方式，不代表语义置信度；不修改共享知识记录。
+        records = [{**r, 'match_basis': match_basis(r)} for r in found[offset:offset + 20]]
+        return {'records': records, 'total': len(found), 'has_more': len(found) > offset + 20}
 
     async def call(self, name, arguments):
         async with self._lock:

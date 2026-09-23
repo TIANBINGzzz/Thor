@@ -196,6 +196,33 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any(r['name'] == '深圳职业技术大学' for r in result['queries'][0]['records']))
         self.assertGreater(result['queries'][1]['total'], 1)
 
+    def test_school_lookup_marks_match_basis_and_prioritizes_exact_name(self):
+        service = self.service()
+        before = copy.deepcopy(service.assets['catalogs'])
+        exact = service.search({'kind': 'schools', 'query': '深圳职业技术大学'})['records']
+        self.assertEqual(exact[0]['match_basis'], 'exact')
+        self.assertEqual(exact[0]['name'], '深圳职业技术大学')
+
+        shorthand = service.search({'kind': 'schools', 'query': '城职院'})
+        self.assertGreater(shorthand['total'], 1)
+        self.assertIn(shorthand['records'][0]['match_basis'], {'substring', 'subsequence'})
+        self.assertTrue(all('match_basis' in row for row in shorthand['records']))
+        self.assertEqual(service.assets['catalogs'], before)
+
+    def test_match_basis_does_not_hide_alternate_definitions_or_page_results(self):
+        service = self.service()
+        rows = service.search({'kind': 'norm_analysis', 'query': '行业导师数'})['records']
+        self.assertEqual(rows[0]['name'], '行业导师数（人）')
+        self.assertEqual(rows[0]['match_basis'], 'exact')
+        self.assertTrue(any(r['match_basis'] == 'substring' for r in rows[1:]))
+        first = service.search({'kind': 'schools', 'query': '城职院'})
+        second = service.search({'kind': 'schools', 'query': '城职院', 'offset': 20})
+        self.assertTrue(first['has_more'])
+        self.assertEqual(first['total'], second['total'])
+        self.assertFalse({r['code'] for r in first['records']} & {r['code'] for r in second['records']})
+        code = service.search({'kind': 'schools', 'query': '00312'})['records'][0]
+        self.assertEqual(code['match_basis'], 'code')
+
     def test_registered_assets_are_frozen_and_not_overridden_by_input(self):
         payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
         prepare_workflow_assets(payload)
