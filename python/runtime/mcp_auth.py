@@ -9,6 +9,7 @@ opaque platform bearer may be injected only into registered MCPs that declare
 from __future__ import annotations
 
 import copy
+import json
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -16,7 +17,7 @@ from typing import Any
 
 MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
     # 进程内适配器独立校验并在请求时绑定工具参数；SDK配置不携带业务凭据。
-    "campus": {"required": True, "transport": "sdk", "argument": "user_context_token"},
+    "campus": {"required": True, "transport": "sdk", "arguments": {"user_context_token": "platformBearer"}},
     "business": {
         "required": True,
         "transport": "http",
@@ -77,7 +78,8 @@ def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = 
     if not token:
         raise MCPAuthError(f"MCP 缺少业务 Token：{mcp_ref}")
     transport = rule.get("transport")
-    if transport == 'sdk' and isinstance(rule.get('argument'), str) and _ENV_NAME.fullmatch(rule['argument']):
+    if transport == 'sdk' and rule.get('arguments'):
+        MCPArgumentBinding(mcp_ref, credentials).clear()
         # 凭据只由受信进程内适配器在远端发送时绑定；不写入SDK配置或模型Schema。
         return result
     if transport in {"http", "sse"}:
@@ -118,3 +120,35 @@ def inject_mcp_authentication(
     if unknown:
         raise MCPAuthError(f"MCP server not found: {', '.join(unknown)}")
     return {ref: inject_mcp_auth(ref, servers[ref], credentials) for ref in refs}
+
+
+class MCPArgumentBinding:
+    """按可信映射绑定本轮凭据；只用于远端传输副本，不进入模型工具 Schema。"""
+
+    def __init__(self, mcp_ref, credentials):
+        rule = MCP_AUTH_RULES.get(mcp_ref, {})
+        mapping = rule.get('arguments')
+        if not rule.get('required') or not isinstance(mapping, dict) or not mapping:
+            raise MCPAuthError('MCP 未配置参数凭据映射')
+        if any(not isinstance(k, str) or not _ENV_NAME.fullmatch(k) or v != 'platformBearer'
+               for k, v in mapping.items()):
+            raise MCPAuthError('MCP 参数凭据映射无效')
+        token = _credentials_token(credentials)
+        if not token:
+            raise MCPAuthError('MCP 缺少业务 Token')
+        self._values = {key: token for key in mapping}
+
+    def clear(self):
+        self._values.clear()
+
+    def inject(self, arguments):
+        if not self._values:
+            raise MCPAuthError('本轮业务身份未绑定')
+        if not isinstance(arguments, dict) or self._values.keys() & arguments.keys():
+            raise MCPAuthError('不能覆盖 MCP 凭据参数')
+        return {**copy.deepcopy(arguments), **self._values}
+
+    def check_response(self, result):
+        if any(json.dumps(value, ensure_ascii=False)[1:-1] in json.dumps(result, ensure_ascii=False)
+               for value in self._values.values()):
+            raise MCPAuthError('上游响应包含凭据')

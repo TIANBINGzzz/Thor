@@ -367,18 +367,20 @@ def prepare_workflow_assets(payload):
             raise DataError('TEMPLATE_FORBIDDEN')
         content = workflow_prompt_documents(workflow, template=template)
         capability_revision = None
+        runtime = (workflow or {}).get("runtime", {})
         if payload.get('capability_ref') == 'campus-brain-query':
             from tools.campus import load_campus_assets
             campus = load_campus_assets()
             content += '\n' + campus['prompt']
             content += '\n本轮当前日期：' + date.today().isoformat()
             capability_revision = campus['revision']
+            runtime = campus['config'].get('runtime', {})
         sources = sorted(set(template['source_roles'].values())) if template else None
         revision = template['_revision'] if template else None
         payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'prompt': content,
-            'capability_revision': capability_revision,
+            'capability_revision': capability_revision, 'runtime': runtime,
             'template_revision': revision, 'template_sources': sources,
-            'revision': fingerprint([workflow, content, revision, capability_revision])}
+            'revision': fingerprint([workflow, content, revision, capability_revision, runtime])}
     return payload['_workflow_assets']
 
 
@@ -602,17 +604,24 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     else:
         # Workflow规则已显式注入；移除Skill包装后仍关闭SDK的默认技能发现。
         skills = [] if restricted_tools or workflow_config else None
+    runtime = assets["runtime"]
+    sdk_env = agent_environment()
+    if (runtime.get('thinking') or {}).get('type') == 'disabled':
+        # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
+        sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
     return build_agent_options(
         model=model,
+        thinking=runtime.get("thinking"),
+        effort=runtime.get("effort"),
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
-        max_turns=payload.get("max_turns") or (workflow_config or {}).get("runtime", {}).get(
+        max_turns=payload.get("max_turns") or runtime.get(
             "max_turns", int(os.environ.get("SCRIBE_MAX_TURNS", "30"))),
         include_partial_messages=bool(payload.get("include_partial_messages")),
         # 文档核验读取页面图片会产生较大的JSONL消息，默认1MiB会在发布前中断。
         max_buffer_size=16 * 1024 * 1024,
         setting_sources=[] if restricted_tools else ["project", "local"],
-        system_prompt=build_system_prompt(
+        system_prompt=(assets["prompt"] + "\n" + prompt_append) if runtime.get("prompt_mode") == "custom" else build_system_prompt(
             prompt_append,
             database_enabled,
             workflow_config,
@@ -627,5 +636,5 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         mcp_servers=mcp_servers,
         strict_mcp_config=restricted_tools,
         add_dirs=payload.get("additional_directories") or [],
-        env=agent_environment(),
+        env=sdk_env,
     )

@@ -15,7 +15,7 @@
   },
   "tools": {
     "get_school_info": {
-      "description": "仅在用户明确问当前登录本校，或已确认常模参照组需剔除本校，或用户明确声明具体名称就是本校需校验时读取身份；每轮最多一次。外校或未声明本校的具体名称查询禁止调用，不能为了拒绝而先查身份。",
+      "description": "读取当前登录本校；仅用于本校身份问题、明确本校名称的一致性校验或常模剔除本校，每轮最多一次。",
       "schema": {
         "type": "object",
         "properties": {},
@@ -28,14 +28,15 @@
       ]
     },
     "get_indicator_metrics": {
-      "description": "查询已确认的一个本校指标及预置群体统计。编码来自对比分析知识记录；年份省略表示最新。",
+      "description": "查询所选的一个本校指标及预置群体统计。编码来自对比分析知识记录；年份省略表示最新。",
       "catalog": "indicator_compare",
       "schema": {
         "type": "object",
         "properties": {
           "indicator_code": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "所选指标知识记录的 code，不能传指标名称。"
           },
           "year": {
             "type": "integer",
@@ -89,14 +90,15 @@
       ]
     },
     "get_norm_metrics": {
-      "description": "查询本校在至少{minimum_schools}所不同外校参照组中的表现，只返回本校及匿名组统计。先读取本校身份并剔除本校。",
+      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先调用 get_school_info，再传指标 code 和学校 code；剔除本校并去重后至少 {minimum_schools} 所。不得复用上轮身份授权。",
       "catalog": "norm_analysis",
       "schema": {
         "type": "object",
         "properties": {
           "indicator_code": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "所选指标知识记录的 code，不能传指标名称。"
           },
           "year": {
             "type": "integer",
@@ -109,7 +111,8 @@
               "type": "string",
               "minLength": 1
             },
-            "uniqueItems": true
+            "uniqueItems": true,
+            "description": "所选学校目录记录的 code 数组（保留前导零），不能传学校名称。"
           }
         },
         "required": [
@@ -130,5 +133,13 @@
       ]
     }
   },
-  "minimum_schools": 8
+  "minimum_schools": 8,
+  "runtime": {
+    "thinking": {
+      "type": "disabled"
+    },
+    "prompt_mode": "custom",
+    "max_turns": 12,
+    "effort": "low"
+  }
 }

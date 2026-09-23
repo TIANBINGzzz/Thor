@@ -13,6 +13,19 @@ from tools.campus import CampusQuery, create_campus_server, load_campus_assets
 
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
+    def test_trusted_runtime_config_controls_sdk_options(self):
+        service = self.service()
+        service.assets['config']['runtime'] = {
+            'thinking': {'type': 'disabled'}, 'effort': 'low', 'max_turns': 8, 'prompt_mode': 'custom'}
+        with patch('tools.campus.load_campus_assets', return_value=service.assets):
+            options = build_options({'capability_ref': 'campus-brain-query',
+                                     'credentials': {'platformBearer': 'test-secret'}}, campus_service=service)
+        self.assertEqual(options.thinking, {'type': 'disabled'})
+        self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
+        self.assertEqual(options.effort, 'low')
+        self.assertEqual(options.max_turns, 8)
+        self.assertIsInstance(options.system_prompt, str)
+
     def service(self, token='test-secret'):
         return CampusQuery(load_campus_assets(), {'platformBearer': token})
 
@@ -154,7 +167,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                         headers={'content-type': 'text/event-stream', 'mcp-session-id': 'test-session'})
                 return httpx.Response(200, json=value)
             client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
-            with patch('tools.campus.httpx.AsyncClient', return_value=client):
+            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client):
                 result = await self.service().call('get_school_info', {'payload': {}})
             self.assertTrue(result['success'])
             self.assertNotIn('test-secret', str(requests[:2]))
@@ -167,7 +180,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                 calls.append(request)
                 return httpx.Response(status, text='test-secret private error', headers={'location': 'https://other.test'})
             client = httpx.AsyncClient(transport=httpx.MockTransport(respond), follow_redirects=False)
-            with patch('tools.campus.httpx.AsyncClient', return_value=client), patch('tools.campus.create_sdk_mcp_server') as create:
+            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client), patch('tools.campus.create_sdk_mcp_server') as create:
                 create_campus_server(self.service())
                 tool = next(t for t in create.call_args.kwargs['tools'] if t.name == 'get_school_info')
                 result = await tool.handler({'payload': {}})
@@ -216,7 +229,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rows[0]['match_basis'], 'exact')
         self.assertTrue(any(r['match_basis'] == 'substring' for r in rows[1:]))
         first = service.search({'kind': 'schools', 'query': '城职院'})
-        second = service.search({'kind': 'schools', 'query': '城职院', 'offset': 20})
+        second = service.search({'kind': 'schools', 'query': '城职院', 'offset': 5})
         self.assertTrue(first['has_more'])
         self.assertEqual(first['total'], second['total'])
         self.assertFalse({r['code'] for r in first['records']} & {r['code'] for r in second['records']})
@@ -264,6 +277,34 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             return httpx.Response(200, json={'jsonrpc': '2.0', 'id': 2, 'result': {'content': [
                 {'type': 'text', 'text': '{"success":true,"data":{"school_id":"self","school_name":"school"}}'}]}})
         client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
-        with patch('tools.campus.httpx.AsyncClient', return_value=client):
+        with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client):
             result = await asyncio.wait_for(self.service().call('get_school_info', {'payload': {}}), 1)
         self.assertTrue(result['success'])
+
+    async def test_rejected_identity_response_cannot_authorize_later_queries(self):
+        service = self.service()
+        service._request = AsyncMock(return_value={'success': True, 'data': {
+            'school_id': '00312', 'school_name': 'test-secret'}})
+        with self.assertRaises(MCPAuthError):
+            await service.call('get_school_info', {'payload': {}})
+        with self.assertRaises(ValueError):
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss'}})
+        self.assertIsNone(service._school_id)
+        self.assertEqual(service._request.await_count, 1)
+
+    async def test_local_validation_is_actionable_but_upstream_value_error_is_private(self):
+        service = self.service()
+        service._request = AsyncMock(side_effect=ValueError('test-secret private body'))
+        with patch('tools.campus.create_sdk_mcp_server') as create:
+            create_campus_server(service)
+        tools = {t.name: t for t in create.call_args.kwargs['tools']}
+        codes = [r['code'] for r in service.assets['catalogs']['schools']][:8]
+        result = await tools['get_norm_metrics'].handler({'payload': {
+            'indicator_code': 'hydss', 'schools': codes}})
+        self.assertTrue(result['isError'])
+        self.assertIn('请先读取本轮当前登录本校身份', result['content'][0]['text'])
+        service._request.assert_not_called()
+        result = await tools['get_school_info'].handler({'payload': {}})
+        self.assertTrue(result['isError'])
+        self.assertNotIn('test-secret', str(result))
+        self.assertNotIn('private body', str(result))

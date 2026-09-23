@@ -102,7 +102,7 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertNotIn('web', options.mcp_servers)
                     self.assertNotIn('mcp__web__search', options.allowed_tools)
                     self.assertIn('WebSearch', options.disallowed_tools)
-                    self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
+                    self.assertIn('没有可用的联网搜索能力', options.system_prompt if isinstance(options.system_prompt, str) else options.system_prompt['append'])
 
     def test_web_search_follows_trusted_capability_configuration_not_payload(self):
         from runtime.capabilities import CAPABILITIES
