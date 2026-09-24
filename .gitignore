@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env.local
 /application.local.yml
 **/workflow.env
 deploy/*.env

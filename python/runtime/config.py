@@ -135,8 +135,9 @@ DIRECT_WORKFLOW_APPEND = (
 
 
 def load_runtime_environment(workflow_name: str | None = None) -> None:
-    """接收可选 Workflow 名称，依次加载根目录和流程环境文件到当前进程，无返回值。"""
+    """依次加载根配置、本机覆盖及所选流程环境；本机文件不随部署交付。"""
     load_dotenv(PROJECT_ROOT / ".env", override=True)
+    load_dotenv(PROJECT_ROOT / ".env.local", override=True)
     workflow_config = load_workflow_config(workflow_name)
     if workflow_config:
         env_path = workflow_environment_path(workflow_config)

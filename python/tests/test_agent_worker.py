@@ -1,4 +1,5 @@
 import unittest
+import os
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -332,8 +333,20 @@ class AgentWorkerTests(unittest.TestCase):
                 with patch("runtime.config.load_dotenv") as load_dotenv:
                     with patch("runtime.config.workflow_environment_path", return_value=Path(env_file.name)):
                         load_runtime_environment("double-high-qa")
-        self.assertEqual(load_dotenv.call_count, 2)
-        self.assertEqual(load_dotenv.call_args_list[1].args[0], Path(env_file.name))
+        self.assertEqual(load_dotenv.call_count, 3)
+        self.assertEqual(load_dotenv.call_args_list[1].args[0].name, '.env.local')
+        self.assertEqual(load_dotenv.call_args_list[2].args[0], Path(env_file.name))
+
+    def test_local_environment_overrides_defaults_and_is_optional(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.env').write_text('HTTP_PROXY=http://default.test:80\n', encoding='utf-8')
+            with patch('runtime.config.PROJECT_ROOT', root), patch.dict('os.environ', {}, clear=True):
+                load_runtime_environment()
+                self.assertEqual(os.environ['HTTP_PROXY'], 'http://default.test:80')
+                (root / '.env.local').write_text('HTTP_PROXY=http://localhost:7897\n', encoding='utf-8')
+                load_runtime_environment()
+                self.assertEqual(os.environ['HTTP_PROXY'], 'http://localhost:7897')
 
     def test_stream_text_is_not_emitted_again_by_assistant_message(self):
         streaming = {}

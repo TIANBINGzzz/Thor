@@ -4,7 +4,7 @@
 
 ## 本地开发
 
-安装 `requirements.txt`，从 `.env.example` 准备本地 `.env` 并配置模型和 Runtime JWT；`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
+安装 `requirements.txt`，从 `.env.example` 准备 `.env` 并配置模型和 Runtime JWT；本机代理等差异写 `.env.local`，加载顺序为 `.env`、`.env.local`、所选 Workflow 的 `workflow.env`。前两者均不提交、不进入镜像，部署不携带本机覆盖。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
 
 回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，参数见 `--help`；单元测试不能代替真实模型、Java 授权和成稿验收。
 
