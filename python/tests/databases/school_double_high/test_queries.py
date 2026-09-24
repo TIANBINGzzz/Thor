@@ -1,6 +1,5 @@
 """在内存 SQLite 上验证查询口径；MySQL 字段投影核验单独记录，二者不等同。"""
 from pathlib import Path
-import json
 import sqlite3
 import sys
 import unittest

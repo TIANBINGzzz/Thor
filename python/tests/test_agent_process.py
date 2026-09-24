@@ -65,7 +65,7 @@ class AgentProcessTests(unittest.TestCase):
             with patch("runtime.process.worker_environment", return_value={"SELECTED_SECRET":"test"}) as select, \
                  patch("runtime.process.asyncio.create_subprocess_exec", return_value=FakeProcess()) as spawn:
                 await _spawn_worker_process(payload)
-                select.assert_called_once_with(payload)
+                select.assert_called_once_with()
                 self.assertEqual(spawn.call_args.kwargs["env"], {"SELECTED_SECRET":"test"})
         asyncio.run(exercise())
 

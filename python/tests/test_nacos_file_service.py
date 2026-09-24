@@ -1,6 +1,5 @@
 """Nacos 配置读取、环境隔离及失败关闭边界。"""
 
-import json
 import unittest
 import tempfile
 from pathlib import Path
@@ -166,7 +165,7 @@ class NacosFileServiceTests(unittest.TestCase):
                             self.read(lambda _: self.fail('invalid YAML must not access Nacos'))
 
     def test_local_yaml_merges_fields_and_environment_has_highest_priority(self):
-        from runtime.nacos_config import _nacos_settings, NacosConfigError
+        from runtime.nacos_config import _nacos_settings
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'application.yml'
             path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',

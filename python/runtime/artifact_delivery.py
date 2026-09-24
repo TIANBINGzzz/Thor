@@ -24,11 +24,13 @@ LOGGER = logging.getLogger('ccsdk.artifacts')
 
 
 def public_artifact(record):
+    """按白名单提取公开交付状态，隐藏存储路径和内部元数据。"""
     return {key: record[key] for key in PUBLIC_FIELDS if key in record}
 
 
 class ArtifactDelivery:
     def __init__(self, store, root, notify, *, env=None, transport=None):
+        """绑定可信存储与环境副本，初始化上传任务和接收锁。"""
         self.store, self.root, self.notify = store, Path(root), notify
         self.env = dict(os.environ if env is None else env)
         self.transport = transport
@@ -36,9 +38,11 @@ class ArtifactDelivery:
         self.lock = asyncio.Lock()
 
     def list(self, run_id):
+        """列出指定 Run 的公开交付物状态。"""
         return [public_artifact(record) for record in self.store.artifacts(run_id)]
 
     def path(self, run_id, artifact_id):
+        """校验交付物归属与文件边界，拒绝符号链接或缺失快照。"""
         if not isinstance(artifact_id, str) or not ARTIFACT_ID.fullmatch(artifact_id):
             return None
         record = self.store.artifact(artifact_id)
@@ -51,6 +55,7 @@ class ArtifactDelivery:
         return path
 
     async def _state(self, record, status, **fields):
+        """先持久化交付状态与事件，再通知订阅者。"""
         record.update(status=status, **fields)
         event = self.store.save_artifact(record, with_display_name({
             'protocolVersion': 'agent-events/v1', 'runId': record['runId'],
@@ -63,6 +68,7 @@ class ArtifactDelivery:
             LOGGER.warning('文件事件通知失败：artifact=%s', record['artifactId'])
 
     def _snapshot(self, run_id, spool, artifact_id):
+        """校验并原子保存可信目录快照，同一标识仅接受相同内容。"""
         from tools.artifacts import _safe_name
         folder = Path(spool) / artifact_id
         source, manifest = folder / 'content', folder / 'manifest.json'
@@ -129,10 +135,12 @@ class ArtifactDelivery:
             self._start(record)
 
     def _start(self, record):
+        """登记后台上传任务，并在结束回调中清理任务引用。"""
         artifact_id = record['artifactId']
         task = asyncio.create_task(self._upload(record), name='upload:' + artifact_id)
         self.tasks[artifact_id] = task
         def completed(done):
+            """仅移除仍登记的当前任务，消费异常且不输出敏感详情。"""
             if self.tasks.get(artifact_id) is done:
                 self.tasks.pop(artifact_id, None)
             if not done.cancelled() and done.exception() is not None:
@@ -140,6 +148,7 @@ class ArtifactDelivery:
         task.add_done_callback(completed)
 
     async def _send(self, record, config):
+        """流式上传快照并校验响应，区分明确失败与结果不确定。"""
         path = self.path(record['runId'], record['artifactId'])
         if path is None:
             raise DeliveryError('artifact_snapshot_missing')
@@ -233,7 +242,7 @@ class ArtifactDelivery:
             await self._state(record, 'unknown' if in_flight else 'failed', error='file_upload_error')
 
     async def wait(self, run_id):
-        # 重试包含在上传任务内；Run终态前等待本Run所有已登记文件收尾。
+        """等待本 Run 已登记上传及其重试收尾，等待取消不传播给上传。"""
         while tasks := [self.tasks[r['artifactId']] for r in self.store.artifacts(run_id) if r['artifactId'] in self.tasks]:
             await asyncio.shield(asyncio.gather(*tasks, return_exceptions=True))
 
@@ -246,6 +255,7 @@ class ArtifactDelivery:
                 await self._state(record, 'unknown', error='file_upload_interrupted')
 
     async def close(self):
+        """取消并等待全部上传任务，由任务自身记录中断状态。"""
         tasks = list(self.tasks.values())
         for task in tasks:
             task.cancel()

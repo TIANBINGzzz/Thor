@@ -14,10 +14,12 @@ from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 
 
 def _resolved(path: str | Path) -> Path:
+    """展开用户目录并解析绝对路径，供后续授权目录校验。"""
     return Path(path).expanduser().resolve()
 
 
 def _source_path(value: str | Path, roots: list[Path]) -> Path:
+    """按授权根目录顺序定位相对文件，绝对路径交由发布边界校验。"""
     if not isinstance(value, (str, Path)) or not str(value).strip():
         raise ValueError("source_path 不能为空")
     raw = Path(value).expanduser()
@@ -31,10 +33,12 @@ def _source_path(value: str | Path, roots: list[Path]) -> Path:
 
 
 def _inside(path: Path, roots: list[Path]) -> bool:
+    """判断已解析路径是否位于任一授权根目录内。"""
     return any(path == root or root in path.parents for root in roots)
 
 
 def _safe_name(value: Any) -> str:
+    """校验交付文件名，拒绝目录路径、隐藏名称及控制字符。"""
     if not isinstance(value, str) or not value.strip():
         raise ValueError("file_name 不能为空")
     normalized = value.replace("\\", "/")
@@ -65,8 +69,8 @@ def publish_artifact(
     # the session root itself is never a readable/publishable tool root.  Only
     # the current session's work and deliverables directories are eligible;
     # this prevents historical Run inputs from becoming artifact sources.
-    _ = _resolved(session_directory)
-    source_roots = [_resolved(work_directory), _resolved(deliverables_directory)]
+    _resolved(session_directory)
+    source_roots = [work, deliverables]
     source = _source_path(source_path, source_roots)
     target_name = _safe_name(file_name)
     if not _inside(source, [work, deliverables]):
@@ -108,8 +112,7 @@ def publish_artifact(
 
 
 def _text_result(value: Any) -> dict[str, list[dict[str, str]]]:
-    import json
-
+    """将发布回执或可公开错误编码为 MCP 文本结果。"""
     return {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
 
 

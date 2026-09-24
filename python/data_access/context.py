@@ -8,11 +8,13 @@ import json
 
 class DataError(ValueError):
     def __init__(self, code: str):
+        """保存可公开的数据错误码，避免携带底层敏感信息。"""
         self.code = code
         super().__init__(code)
 
 
 def fingerprint(value) -> str:
+    """对规范化 JSON 计算指纹，用于身份、策略和资产比对。"""
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
                                     default=str).encode()).hexdigest()
 
@@ -28,6 +30,7 @@ class DataContext:
 
     @classmethod
     def from_payload(cls, payload):
+        """从可信内部载荷构造本轮数据上下文，拒绝缺失身份或目录。"""
         identity = payload.get("_data_identity", {})
         values = [payload.get("run_id"), identity.get("tenant_id"),
                   identity.get("user_id"), payload.get("capability_ref")]
@@ -40,4 +43,5 @@ class DataContext:
 
     @property
     def owner(self):
+        """生成绑定 Run、租户、用户与能力的结果归属指纹。"""
         return fingerprint([self.run_id, self.tenant_id, self.user_id, self.capability_ref])

@@ -34,11 +34,13 @@ def _chart_key(block):
     entities as their visible characters).  Delivery matching must compare
     those equivalent forms without changing either public response.
     """
+    # 回调仅将已匹配的 Mermaid 数字实体转换为对应字符。
     return _MERMAID_ENTITY.sub(lambda match: chr(int(match.group(1))), block)
 
 
 class ChartDelivery:
     def __init__(self, sink):
+        """绑定事件出口并初始化本轮图表与正文缓冲。"""
         self.sink = sink
         self.reset()
 
@@ -48,6 +50,7 @@ class ChartDelivery:
         self.text = []
 
     def record(self, markdown):
+        """登记可信图表工具产物，要求仅含一个完整 Mermaid 块。"""
         # 仅由可信图表工具在校验成功后调用，不消费通用工具结果或模型参数。
         blocks, _ = _blocks(markdown)
         if len(blocks) != 1:
@@ -56,6 +59,7 @@ class ChartDelivery:
         self.generated[_chart_key(block)] = markdown
 
     def emit(self, event):
+        """转发事件，并在结果事件前补齐及核验正文缺失的图表。"""
         if event.get('type') == 'text':
             self.text.append(event.get('text', ''))
         if event.get('type') == 'result':

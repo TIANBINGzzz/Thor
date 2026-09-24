@@ -30,6 +30,8 @@ class DataAccessTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        from runtime.capabilities import CAPABILITIES
+        self.enterContext(patch.dict(CAPABILITIES, {'qa': replace(CAPABILITIES['document-writing'], ref='qa')}))
         self.config_path = self.root/'config/databases.json'
         self.env = {'CCSDK_DATABASES_FILE': str(self.config_path)}
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
@@ -377,16 +379,13 @@ class DataAccessTests(unittest.TestCase):
         self.save_connections()
         source_path=self.root/'databases/second/source.json'
         source=json.loads(source_path.read_text());source['capabilities']=['other'];save(source_path,source)
-        payload = {'workflow_name':'qa', 'run_id':'r1', 'capability_ref':'qa',
-                   '_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
-                   '_data_run_directory':str(self.root/'r1')}
         values = {**self.env, 'FIRST_DB_SECRET':'first-secret',
                   'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
         with patch.dict('os.environ', values, clear=True), \
              patch('runtime.config.load_workflow_config', return_value={'data_access':'required'}), \
              patch('runtime.data_services.Catalog', return_value=self.catalog), \
              patch('runtime.config.Catalog', return_value=self.catalog):
-            selected = worker_environment(payload)
+            selected = worker_environment()
             self.assertEqual(selected['CCSDK_DATABASES_FILE'],self.env['CCSDK_DATABASES_FILE'])
             self.assertNotIn('FIRST_DB_SECRET', selected)
             self.assertNotIn('SECOND_DB_SECRET', selected)
@@ -398,8 +397,7 @@ class DataAccessTests(unittest.TestCase):
                 self.assertNotIn('SECOND_DB_SECRET', os.environ)
                 self.assertNotIn('CCSDK_DATABASES_FILE',os.environ)
             self.assertEqual(os.environ['FIRST_DB_SECRET'], 'first-secret')
-            denied = {**payload, '_data_identity':{'tenant_id':'jwt-b','user_id':'u1'}}
-            self.assertNotIn('FIRST_DB_SECRET', worker_environment(denied))
+            self.assertNotIn('FIRST_DB_SECRET', worker_environment())
 
     def test_sql_checks_nested_tables_functions_writes_comments_and_internal_columns(self):
         policy=self.config['policies']['first']['domains']['sales']

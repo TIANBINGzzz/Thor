@@ -13,17 +13,6 @@ from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from tools.document_conversion import _resolve, _roots, _new_output
 
 
-IMAGE_INSTRUCTIONS = (
-    '本轮选择图像生成能力：按用户描述及本轮授权参考图调用 mcp__images__generate，'
-    '不得用文字、SVG或占位文件冒充生成图片。画面要求、尺寸和数量从用户输入理解；'
-    '未指定数量时生成一张，未指定尺寸时使用工具默认尺寸。每次工具调用生成一张PNG，'
-    '多张图片逐张调用并使用不同文件名，不覆盖已有结果。参考图最多3张，仅使用已准备的授权附件。'
-    '生成后用Read查看图片并核对用户要求，调用 mcp__artifacts__publish_file 逐张发布最终PNG；'
-    '如用户同时要求文档，文档与图片分别发布，不擅自合并或打包。'
-    '生成或发布失败须如实说明，保留其他成功结果；不自动重复失败的付费生成请求。'
-    '最终回答简短说明图片内容；上传与下载状态由文件卡片展示，'
-    '不输出本地路径、上游临时URL、Base64或自行编造链接，不声称上传完成。'
-)
 
 
 async def generate_image(prompt, output_path, *, base_dir, base_url, api_key,
@@ -84,6 +73,7 @@ async def generate_image(prompt, output_path, *, base_dir, base_url, api_key,
 
 
 def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=None):
+    """绑定部署侧生图配置与授权目录，模型只能提交画面要求和文件参数。"""
     @sdk_tool('generate', '按需生成或编辑一张图片，保存PNG并返回路径。reference_paths可选1至3张本轮授权参考图。生成图不能作为真实成果照片或数据证据；完成后用Read查看。',
               {'type': 'object', 'properties': {
                   'prompt': {'type': 'string', 'minLength': 1},
@@ -91,6 +81,7 @@ def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=N
                   'reference_paths': {'type': 'array', 'maxItems': 3, 'items': {'type': 'string'}},
               }, 'required': ['prompt', 'output_path'], 'additionalProperties': False})
     async def generate(arguments):
+        """调用绑定的生图服务并返回文件结果，失败不自动重试付费请求。"""
         try:
             result = await generate_image(**arguments, base_dir=base_dir, additional_dirs=additional_dirs,
                                           base_url=base_url, api_key=api_key, model=model)

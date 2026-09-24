@@ -25,10 +25,8 @@ class TemplateDocumentTests(unittest.TestCase):
         self.root = Path(temp.name)
         self.directory = self.root / 'workflow'
         self.directory.mkdir()
-        (self.directory / 'instructions.md').write_text('COMMON_RULES', encoding='utf-8')
-        (self.directory / 'adapter.md').write_text('REPORT_ADAPTER', encoding='utf-8')
         self.workflow = {'name':'writing-docx', '_directory':str(self.directory),
-                         'documents':{'constraints':['instructions.md'], 'template':['adapter.md']},
+                         '_body':'COMMON_RULES',
                          'templates':{}, 'data_access':'optional'}
         for name in ('alpha','beta'):
             directory = self.directory / 'templates' / name
@@ -41,7 +39,7 @@ class TemplateDocumentTests(unittest.TestCase):
                     'writing_guide':'writing-guide.md'},
                 'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
                 'report':{'file_name':'report.docx'}})
-            (directory/'writing-guide.md').write_text(name.upper()+'_GUIDE',encoding='utf-8')
+            (directory/'writing-guide.md').write_text('REPORT_ADAPTER\n'+name.upper()+'_GUIDE',encoding='utf-8')
             self.workflow['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
                             ('runtime.config.load_workflow_config', None)]:
@@ -115,7 +113,7 @@ class TemplateDocumentTests(unittest.TestCase):
             old=self.payload('alpha')
             before=_client_config_fingerprint(request,old)
             json.dumps(old)
-            (self.directory/'instructions.md').write_text('CHANGED_COMMON')
+            self.workflow['_body'] = 'CHANGED_COMMON'
             self.assertEqual(before,_client_config_fingerprint(request,old))
             self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('alpha')))
             self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('beta')))

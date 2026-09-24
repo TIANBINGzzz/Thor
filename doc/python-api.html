@@ -211,43 +211,43 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <p>鉴权：无需 Authorization 请求头，不依赖 Runtime JWT 密钥配置。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "capabilities": [
-    {
-      "capabilityRef": "campus-brain-query",
-      "name": "校园大脑问数",
-      "description": "查询本校指标、预置群体对比与自选学校组常模分析",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "image-generation",
-      "name": "图像生成",
-      "description": "根据文字或参考图生成、修改图片并交付 PNG 文件",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "conversation",
-      "name": "通用对话",
-      "description": "日常交流、内容总结与问题解答",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "chart-generation",
-      "name": "图表生成",
-      "description": "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "document-writing",
-      "name": "文档撰写",
-      "description": "起草、修改与生成 Word 文档",
-      "supportsAttachments": true
-    },
-    {
-      "capabilityRef": "national-excellence-data-qa",
-      "name": "双高问数",
-      "description": "查询国双高项目、任务、资金与绩效",
-      "supportsAttachments": true
-    }
-  ]
+  {
+    "capabilityRef": "campus-brain-query",
+    "name": "校园大脑问数",
+    "description": "查询本校指标、预置群体对比与自选学校组常模分析",
+    "supportsAttachments": true
+  },
+  {
+    "capabilityRef": "chart-generation",
+    "name": "图表生成",
+    "description": "根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图",
+    "supportsAttachments": true
+  },
+  {
+    "capabilityRef": "conversation",
+    "name": "通用对话",
+    "description": "日常交流、内容总结与问题解答",
+    "supportsAttachments": true
+  },
+  {
+    "capabilityRef": "document-writing",
+    "name": "文档撰写",
+    "description": "起草、修改与生成 Word 文档",
+    "supportsAttachments": true
+  },
+  {
+    "capabilityRef": "image-generation",
+    "name": "图像生成",
+    "description": "根据文字或参考图生成、修改图片并交付 PNG 文件",
+    "supportsAttachments": true
+  },
+  {
+    "capabilityRef": "national-excellence-data-qa",
+    "name": "双高问数",
+    "description": "查询国双高项目、任务、资金与绩效",
+    "supportsAttachments": true
+  }
+]
 }</pre></div>
 <table><thead><tr><th>字段</th><th>类型</th><th>用途</th></tr></thead><tbody>
 <tr><td>capabilityRef</td><td>string</td><td>创建 Run 使用的稳定业务能力标识。</td></tr>

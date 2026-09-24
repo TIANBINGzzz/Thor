@@ -9,6 +9,7 @@ from runtime.nacos_config import NacosConfigError
 
 class FileServiceError(ValueError):
     def __init__(self, code, status='failed'):
+        """保存文件服务稳定错误码及失败或不确定状态。"""
         self.code, self.status = code, status
         super().__init__(code)
 

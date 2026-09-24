@@ -34,6 +34,7 @@ async def call_mcp_tool(config, name, arguments):
     headers = {**config['headers'], 'Accept': 'application/json, text/event-stream'}
     async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
         async def send(body):
+            """发送本次 JSON-RPC 消息，维护会话头并限量读取 JSON 或 SSE 响应。"""
             async with client.stream('POST', config['url'], headers=headers, json=body) as response:
                 response.raise_for_status()
                 session = response.headers.get('mcp-session-id')
@@ -42,6 +43,7 @@ async def call_mcp_tool(config, name, arguments):
                 if 'id' not in body:
                     return None
                 def result_of(value):
+                    """提取当前请求的结果，拒绝标识不匹配或携带错误的响应。"""
                     if not isinstance(value, dict) or value.get('id') != body['id'] or 'error' in value:
                         raise RuntimeError('上游 MCP 查询失败')
                     return value['result']

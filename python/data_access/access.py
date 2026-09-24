@@ -6,6 +6,7 @@ from .context import DataError, fingerprint
 
 
 def resolve_data_access(context, source, config, catalog):
+    """按可信身份校验来源授权，并生成包含表白名单的独立策略副本。"""
     policy = deepcopy(config['policy'])
     # 部署侧显式配置 * 才共享来源；真实身份仍用于 Run 和结果归属。
     if (policy.get("source_key") != source["source_key"]
@@ -38,6 +39,7 @@ def resolve_data_access(context, source, config, catalog):
 
 
 def domain_policy(policy, domain, query_id=None):
+    """取得获准业务域策略，并按需检查固定查询权限。"""
     domain = policy.get("domains", {}).get(domain)
     if not domain:
         raise DataError("DOMAIN_FORBIDDEN")

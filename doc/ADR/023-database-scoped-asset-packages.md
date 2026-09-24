@@ -20,7 +20,7 @@
 
 ## 证据与后果
 
-数据库包、`python/data_access/` 和 `runtime/data_services.py` 已接入；主题 YAML 合并了原 024 的组织方式。历史真实查询核验见[来源记录](../verification/report-source-audit.md)，移动或合并文档不升级未核验查询的状态。文稿证据规则由[共同规则](../../.claude/workflows/writing-docx/instructions.md)和所选模板指南维护，不在 ADR 重复。
+数据库包、`python/data_access/` 和 `runtime/data_services.py` 已接入；主题 YAML 合并了原 024 的组织方式。历史真实查询核验见[来源记录](../verification/report-source-audit.md)，移动或合并文档不升级未核验查询的状态。文稿证据规则由[共同规则](../../.claude/workflows/writing-docx/WORKFLOW.md)和所选模板指南维护，不在 ADR 重复。
 
 按库维护减少问数与撰写口径分叉；新增来源仍需逐源验证结构、历史期间和业务含义。目录集中不是权限隔离，生产跨租户、Java 授权和撤销链路须独立验收。
 

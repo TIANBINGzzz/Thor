@@ -25,7 +25,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - templateKey 不是路径、数据库名或权限参数。省略/null 不选模板，其他非空值须通过登记、启用、能力及路径校验；校验在异步准备阶段，202 不代表模板通过。其他能力传非 null 模板值同样触发校验。
 - 预制模板由 template.json 登记 DOCX、指南及来源绑定；本 Run 冻结实际资源版本。共同规则显式加载，指南仅按所选模板加载；缺失、越界或版本漂移失败，不静默省略。指标含义与 SQL 只维护在数据库包。
 - 上传模板使用 document-writing、不传 templateKey，通过附件引用及文字说明用途；purpose 仅 input/reference。Python 参考结构和样式生成新稿，不自动登记模板、生成位置地图或扩大数据权限。再次使用须重新提交授权引用。
-- 同时传 templateKey 和附件仍以预制模板为准，附件只补充材料。两类模板及无模板共用同一撰写流程，见 [共同规则](../../.claude/workflows/writing-docx/instructions.md)；工具成功或文件 ready 不代表业务及版式验收。
+- 同时传 templateKey 和附件仍以预制模板为准，附件只补充材料。两类模板及无模板共用同一撰写流程，见 [共同规则](../../.claude/workflows/writing-docx/WORKFLOW.md)；工具成功或文件 ready 不代表业务及版式验收。
 - 图表数据、单位和要求放 input.text，Mermaid 作为 message.delta 正文交付，不产生图表 Artifact；图像生成使用正文要求及参考附件，PNG 按 Artifact 交付。
 
 ## 4. Run 查询与控制模块

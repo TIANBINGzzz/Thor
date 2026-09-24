@@ -11,6 +11,7 @@ _PATH = re.compile(r'[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*')
 
 class ConfigReferenceError(ValueError):
     def __init__(self, code):
+        """保存配置引用错误码，避免暴露配置内容。"""
         self.code = code
         super().__init__(code)
 
@@ -19,6 +20,7 @@ class ConfigSnapshot:
     """按需读取一次 YAML；values 模式只使用服务端传入的引用快照，禁止联网补值。"""
 
     def __init__(self, env=None, *, transport=None, values=None):
+        """隔离调用方环境与配置副本；传入引用快照时禁用远端补值。"""
         self._env = dict(os.environ if env is None else env) if values is None else {}
         self._transport = transport
         self._offline = values is not None
@@ -59,4 +61,5 @@ class ConfigSnapshot:
         return copy.deepcopy(asset)
 
     def export(self):
+        """导出已选配置项的独立副本，不包含整份远端配置。"""
         return copy.deepcopy(self._values)

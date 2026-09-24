@@ -1,3 +1,4 @@
+from runtime.prompt_documents import read_entry
 """验证查询资产之间的引用、参数和输出契约，不作为 SQL 安全执行器。"""
 from pathlib import Path
 import json
@@ -71,7 +72,7 @@ class AssetContractTests(unittest.TestCase):
         self.assertNotIn('province_high_flag_', self.tables['t_hpm_project'])
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
         for workflow in ('double-high-qa','writing-docx'):
-            config=json.loads((ROOT/f'.claude/workflows/{workflow}/workflow.json').read_text(encoding='utf-8'))
+            config=read_entry(ROOT/f'.claude/workflows/{workflow}/WORKFLOW.md')
             self.assertNotIn('data_sources',config)
         self.assertEqual(self.source['capabilities'],['national-excellence-data-qa','document-writing'])
 

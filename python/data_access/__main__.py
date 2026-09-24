@@ -11,6 +11,7 @@ from .sql_policy import validate_sql
 
 
 def main():
+    """执行来源列举、资产校验或显式连接探测，失败时仅输出错误码。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['list', 'validate', 'check-config', 'probe'])
     parser.add_argument('--source')

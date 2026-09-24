@@ -26,7 +26,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         second = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
         self.assertNotEqual(first['revision'], second['revision'])
         frozen = load_campus_assets(ConfigSnapshot(values=first['config_values']))
-        self.assertEqual(frozen['revision'], first['capability_revision'])
+        self.assertEqual(frozen['revision'], first['tool_revisions']['campus'])
         self.assertNotIn('campus.example.test', first['prompt'])
         self.assertEqual(first['config_values'], {
             'campusMcp.url': 'https://campus.example.test/string_campus_brain_service/mcp',
@@ -87,12 +87,12 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('mcp__attachments__read', options.allowed_tools)
 
     def test_trusted_runtime_config_controls_sdk_options(self):
-        service = self.service()
-        service.assets['config']['runtime'] = {
-            'thinking': {'type': 'disabled'}, 'effort': 'low', 'max_turns': 8, 'prompt_mode': 'custom'}
-        with patch('tools.campus.load_campus_assets', return_value=service.assets):
+        from runtime.capabilities import capability_entry, CAPABILITIES
+        entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)
+        entry['runtime']['max_turns'] = 8
+        with patch('runtime.config.capability_entry', return_value=entry):
             options = build_options({'capability_ref': 'campus-brain-query',
-                                     'credentials': {'platformBearer': 'test-secret'}}, campus_service=service)
+                                     'credentials': {'platformBearer': 'test-secret'}})
         self.assertEqual(options.thinking, {'type': 'disabled'})
         self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
         self.assertEqual(options.effort, 'low')
@@ -267,13 +267,11 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         import shutil
         with tempfile.TemporaryDirectory() as directory:
             root = __import__('pathlib').Path(directory)
-            for path in ASSET_ROOT.iterdir():
-                shutil.copy2(path, root / path.name)
-            path = root / 'capability.json'
+            shutil.copytree(ASSET_ROOT, root, dirs_exist_ok=True)
+            path = root / 'assets/campus.json'
             config = json.loads(path.read_text(encoding='utf-8'));config['minimum_schools'] = 12
             path.write_text(json.dumps(config), encoding='utf-8')
-            with patch('tools.campus.ASSET_ROOT', root):
-                assets = load_campus_assets()
+            assets = load_campus_assets(directory=root)
             self.assertIn('至少 12', assets['prompt'])
             self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 12)
 
@@ -312,9 +310,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     def test_registered_assets_are_frozen_and_not_overridden_by_input(self):
         payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
         prepare_workflow_assets(payload)
-        service = self.service();service.assets['revision'] = 'changed'
+        payload['_workflow_assets']['tool_revisions']['campus'] = 'changed'
         with self.assertRaisesRegex(RuntimeError, '资产已变化'):
-            build_options(payload, campus_service=service)
+            build_options(payload)
 
     async def test_conflicting_source_code_cannot_be_queried(self):
         service = self.service()

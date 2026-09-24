@@ -21,14 +21,14 @@
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
 | `python/data_access/` | 来源授权、连接、查询校验及结果 |
 | `python/workflows/writing_docx/` | 可信模板与指南加载、参考副本 |
-| `.claude/` | Workflow、Skill、模板、数据库语义和指标 |
+| `.claude/` | Capability / Workflow 入口、Skill、工具规则、模板及数据库知识 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
 | `config/`、`doc/` | 部署配置；契约、决策及必要核验记录 |
 
 ## 4. Subsystem responsibilities
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
-- `runtime/config.py` 解析能力与 Workflow 并装配工具；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。没有 JS 工作流运行器或通用 DAG 引擎。
+- `capabilities.py` 从 `capabilities/<名称>/CAPABILITY.md` 注册能力，`config.py` 统一装配选定入口与 `workflows/<名称>/WORKFLOW.md`；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。元数据只在服务端使用，Skill 仅注入用途及按需读取路径，详细资产不整包进入 Prompt；有状态工具通过 `tool_services.py` 逐 Run 绑定和清理。新增或删除能力需重启注册目录；没有 JS 工作流运行器或通用 DAG 引擎。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
@@ -68,6 +68,6 @@
 | HTTP 字段及示例 | [API 参考](doc/python-api.html)；校验：`python/runtime/protocol.py`、`auth.py` |
 | 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md)、[Java 职责](doc/specs/java-control-plane.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
-| 执行规则 | [问数](.claude/workflows/double-high-qa/instructions.md)、[撰写](.claude/workflows/writing-docx/instructions.md) |
+| 执行规则 | [问数](.claude/workflows/double-high-qa/WORKFLOW.md)、[撰写](.claude/workflows/writing-docx/WORKFLOW.md) |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |
 | 启动、构建和发布 | [部署说明](deploy/README.md)、`package.json`、`requirements.txt` |

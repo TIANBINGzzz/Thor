@@ -11,26 +11,6 @@ from jsonschema import Draft202012Validator
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 
 
-CHART_INSTRUCTIONS = (
-    "当前支持在回答正文中展示数据图表。用户要求柱状图、横向柱状图、折线图、饼图、雷达图或矩形树图时，使用"
-    "mcp__charts__build_mermaid；这类图表不是生图或文件交付，不调用生图、文件发布或Bash来替代。"
-    "先从用户明确提供的文字、表格或已读取的材料提取标签和数值，保持数值、单位、顺序及口径；"
-    "使用联网取得的公开数据时，先核对原始发布机构、日期、单位及统计口径，并在图表旁附来源链接；搜索摘要不能代替原始数值核验。"
-    "不要编造、补零、偷偷删除数据或将比例乘100。缺少数据先询问，有示例需求时明确标注演示数据。"
-    "非负数量对比用bar，名称较长或类别较多优先用bar-horizontal；按明确时间顺序的趋势用line，"
-    "非负构成用pie，正数的面积构成用treemap；bar和bar-horizontal不支持负值，"
-    "负值不能取绝对值或平移，若不适合有序趋势则保留数据表。不确定统计含义先澄清。"
-    "饼图有正值占比低于1%时改用柱状图或表格，不能删除小项或擅自合并为其他。"
-    "radar仅用于3至12个同量纲、同尺度的非负指标，不混合金额和数量，不擅自归一化；"
-    "雷达图刻度上限取本组最大值，不代表满分；有固定满分或跨图比较要求时先说明该限制。"
-    "矩形树图按面积排布，图内数字可能舍入或采用科学计数法，极小项可能难以看清。"
-    "将工具返回的markdown原样放入回答的适当位置，前后可以写说明和分析；多图逐块展示。"
-    "同一数据和图形已成功生成时直接复用结果，不重复调用工具；每张雷达图和矩形树图都必须"
-    "在正文或表格逐项附上完整原始数值及单位，不仅补充小项，不使用舍入值替代。"
-    "保留```mermaid围栏及换行，不再套外层代码块、不改写数值、不把代码块作为下载文件。"
-    "图表可显示在正文中，工具不提供下载地址；前端是否支持导出由页面功能决定，不能声称已生成下载文件。"
-    "若工具拒绝数据，按具体缺口说明或询问；不要自行拼写图表绕过校验。"
-)
 
 CHART_SCHEMA = {
     "type": "object",
@@ -58,11 +38,13 @@ class ChartInputError(ValueError):
     """只暴露可修正的字段及原因，不回显原始数据或校验器堆栈。"""
 
     def __init__(self, field, message):
+        """保存可修正字段和公开原因，不包含原始数据或校验堆栈。"""
         self.field = field
         super().__init__(message)
 
 
 def _text(value, field):
+    """拒绝不可见控制字符，合并空白并要求标题或标签非空。"""
     if any(unicodedata.category(char).startswith('C') and char not in '\r\n\t' for char in value):
         raise ChartInputError(field, '文本含不支持的控制字符，请提供可见标签。')
     text = re.sub(r'\s+', ' ', value).strip()
@@ -72,12 +54,12 @@ def _text(value, field):
 
 
 def _escape(text):
-    # Mermaid使用数字实体，不使用JSON的反斜杠转义；先编码原始#，避免输入实体被再次解释。
+    """用 Mermaid 数字实体编码特殊字符，包含原始井号以防实体被再次解释。"""
     return ''.join(f'#{ord(char)};' if char in '"\\`<>&#%' else char for char in text)
 
 
 def _number(value):
-    # Mermaid数值语法不接受科学计数法，展开十进制而不进行隐式四舍五入。
+    """将数值展开为 Mermaid 支持的十进制文本，不隐式四舍五入。"""
     if value == 0:
         return '0'
     text = format(Decimal(str(value)), 'f')
@@ -145,10 +127,12 @@ def build_mermaid(arguments):
 
 
 def create_chart_server(on_generated=None):
+    """注册显式数据图表工具，并按需通知调用方收集生成的正文。"""
     @sdk_tool('build_mermaid',
               '用明确数据生成正文内Mermaid图表：柱状图、横向柱状图、折线图、饼图、雷达图、矩形树图。返回markdown，须原样放入回答；'
               '不查询数据库、不生成文件、不提供下载链接。', CHART_SCHEMA)
     async def build(arguments):
+        """返回 Mermaid 正文或可修正的字段错误，成功后触发生成回调。"""
         try:
             value = build_mermaid(arguments)
         except ChartInputError as error:

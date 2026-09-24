@@ -4,18 +4,20 @@ from pathlib import Path
 from hashlib import sha256
 from data_access.catalog import PROJECT_ROOT, asset_path, key, read_json
 from data_access.context import DataError, fingerprint
-from runtime.prompt_documents import read_documents
+from runtime.prompt_documents import read_documents, read_entry
 
 TEMPLATES = PROJECT_ROOT / ".claude/workflows/writing-docx/templates"
 
 
 def document_digest(path):
+    """计算模板文件字节的 SHA-256 摘要，用于冻结和核验实际版本。"""
     return sha256(path.read_bytes()).hexdigest()
 
 def load_template(template_key, capability_ref, root=TEMPLATES):
+    """校验模板登记与能力范围，加载指南和原稿并计算本轮资产版本。"""
     template_key = key(template_key)
     if Path(root).resolve()==TEMPLATES.resolve():
-        registry=read_json(TEMPLATES.parent/'workflow.json').get('templates',{})
+        registry=read_entry(TEMPLATES.parent/'WORKFLOW.md').get('templates',{})
         if (template_key not in registry
                 or registry[template_key] != f'templates/{key(template_key)}/template.json'):
             raise DataError('TEMPLATE_FORBIDDEN')

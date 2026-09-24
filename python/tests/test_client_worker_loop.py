@@ -2,13 +2,44 @@ import asyncio
 from contextlib import nullcontext
 from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import agent_worker
 from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_client_tool_service_setup_failure_closes_data_services(self):
+        data = SimpleNamespace(close=AsyncMock())
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: data,
+                            ToolServices=Mock(side_effect=RuntimeError('tool setup failed'))):
+            with self.assertRaisesRegex(RuntimeError, 'tool setup failed'):
+                await agent_worker.run_client({})
+        data.close.assert_awaited_once()
+
+    async def test_one_shot_tool_service_setup_failure_closes_data_services(self):
+        data = SimpleNamespace(close=AsyncMock())
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: data,
+                            ToolServices=Mock(side_effect=RuntimeError('tool setup failed'))):
+            with self.assertRaisesRegex(RuntimeError, 'tool setup failed'):
+                await agent_worker.run({'prompt': 'question'})
+        data.close.assert_awaited_once()
+
+    async def test_client_setup_failure_clears_bound_tool_credentials(self):
+        from unittest.mock import Mock
+        services = Mock()
+        data = SimpleNamespace(close=AsyncMock())
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: data,
+                            ToolServices=lambda *args: services,
+                            build_options=Mock(side_effect=RuntimeError('invalid config'))):
+            with self.assertRaisesRegex(RuntimeError, 'invalid config'):
+                await agent_worker.run_client({})
+        services.clear.assert_called_once()
+        data.close.assert_awaited_once()
+
     async def test_upstream_failure_overrides_success_in_query(self):
         from server import _public_internal_event
         callback = None

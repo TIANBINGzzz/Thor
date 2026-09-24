@@ -31,6 +31,7 @@ class SessionActorError(RuntimeError):
     """Project-owned error for actor routing and Client worker failures."""
 
     def __init__(self, message: str, *, code: str = "session_actor_error") -> None:
+        """保存 Actor 错误信息与供上层识别的错误码。"""
         super().__init__(message)
         self.code = code
 
@@ -42,10 +43,12 @@ RunCleanup = Callable[[], Awaitable[None]]
 
 
 async def _noop_public(_: str, __: dict[str, Any]) -> None:
+    """作为未配置公共事件接收方时的异步空回调。"""
     return
 
 
 async def _noop_state(_: dict[str, Any]) -> None:
+    """作为未配置状态接收方时的异步空回调。"""
     return
 
 
@@ -84,6 +87,7 @@ class SessionActor:
         control_timeout_ms: int = 5_000,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
     ) -> None:
+        """初始化单会话命令队列、回调与生命周期状态，此时不启动 Worker。"""
         if not isinstance(session_key, str) or not session_key.strip():
             raise ValueError("session_key is required")
         if isinstance(idle_ttl_ms, bool) or not isinstance(idle_ttl_ms, int) or idle_ttl_ms <= 0:
@@ -123,19 +127,23 @@ class SessionActor:
 
     @property
     def config_fingerprint(self) -> str | None:
+        """返回当前配置及凭据绑定指纹，用于判断是否重建 Worker。"""
         value = self._initial_payload.get("_credential_binding")
         return str(value) if value is not None else None
 
     @property
     def state(self) -> ActorState:
+        """返回当前 Actor 生命周期状态。"""
         return self._state
 
     @property
     def active_run_id(self) -> str | None:
+        """返回当前活动 Run 标识，空闲时返回 None。"""
         return self._active_run_id
 
     @property
     def worker_pid(self) -> int | None:
+        """返回尚未退出的 Worker 进程号，无活动进程时返回 None。"""
         process = self._worker.process if self._worker else None
         return process.pid if process and process.returncode is None else None
 
@@ -252,6 +260,7 @@ class SessionActor:
         cleanup: RunCleanup | None = None,
         initial_payload: Mapping[str, Any] | None = None,
     ) -> _Command:
+        """登记命令及结果 Future 后入队，拒绝重复 Run 和关闭后的执行请求。"""
         if self._state in {ActorState.CLOSING, ActorState.CLOSED} and kind != "close":
             raise SessionActorError("SessionActor 已关闭", code="session_actor_closed")
         loop = asyncio.get_running_loop()
@@ -266,10 +275,12 @@ class SessionActor:
         return command
 
     def _ensure_task(self) -> None:
+        """仅在主循环未运行时创建唯一的 Actor 消费任务。"""
         if self._task is None or self._task.done():
             self._task = asyncio.create_task(self._loop(), name=f"ccsdk-session-actor:{self.session_key}")
 
     async def _loop(self) -> None:
+        """串行消费会话命令，跳过已取消 Run，并在退出时回收 Worker。"""
         try:
             while self._state not in {ActorState.CLOSING, ActorState.CLOSED}:
                 command = self._pending_runs.popleft() if self._pending_runs else await self._commands.get()
@@ -303,6 +314,7 @@ class SessionActor:
                 await self._close_worker()
 
     async def _execute_run(self, command: _Command) -> None:
+        """管理单轮准备、配置切换、执行及清理，完成后结算结果并更新状态。"""
         assert command.run_id is not None
         self._cancel_idle_timer()
         self._active_run_id = command.run_id
@@ -391,6 +403,7 @@ class SessionActor:
                 self._schedule_idle_close()
 
     async def _cleanup_run(self, command: _Command) -> None:
+        """等待本轮清理回调，记录普通清理错误并继续传播取消信号。"""
         if command.cleanup is None:
             return
         try:
@@ -405,6 +418,7 @@ class SessionActor:
             LOGGER.warning("SessionActor Run cleanup failed: %s", type(error).__name__)
 
     async def _ensure_worker(self) -> None:
+        """复用就绪 Worker 或按最新配置重建，并续接已知 SDK 历史。"""
         if self._worker is not None and self._worker.alive and self._state == ActorState.READY:
             return
         if self._worker is not None:
@@ -430,6 +444,7 @@ class SessionActor:
         await self._notify_state()
 
     async def _run_worker_command(self, run_id: str, payload: dict[str, Any]) -> _RunOutcome:
+        """发送查询并同时消费 Worker 事件与控制命令，终态或超时时回收等待任务。"""
         worker = self._worker
         if worker is None or not worker.alive:
             raise SessionActorError("Client worker 不可用", code="sdk_connection_error")
@@ -517,6 +532,7 @@ class SessionActor:
                 await asyncio.gather(*pending, return_exceptions=True)
 
     async def _close_worker(self) -> None:
+        """关闭 Worker、拒绝剩余命令并发布 Actor 关闭状态。"""
         self._cancel_idle_timer()
         self._state = ActorState.CLOSING
         await self._notify_state()
@@ -537,6 +553,7 @@ class SessionActor:
         await self._notify_state()
 
     async def _discard_worker(self) -> None:
+        """终止并解除当前 Worker 引用，保留 SDK 会话历史供后续重建。"""
         worker = self._worker
         self._worker = None
         if worker is None:
@@ -554,6 +571,7 @@ class SessionActor:
         run_id: str,
         worker: ClientWorkerProcess,
     ) -> None:
+        """执行活动 Run 的控制命令，将后续 Run 留待串行处理。"""
         command_type = command_value.kind
         if command_type == "run":
             self._pending_runs.append(command_value)
@@ -584,22 +602,26 @@ class SessionActor:
         )
 
     def _schedule_idle_close(self) -> None:
+        """重置空闲截止时间并登记延迟关闭回调。"""
         self._cancel_idle_timer()
         loop = asyncio.get_running_loop()
         self._idle_deadline = int(time.time() * 1000) + self._idle_ttl_ms
         self._idle_handle = loop.call_later(self._idle_ttl_ms / 1000, self._idle_close_callback)
 
     def _idle_close_callback(self) -> None:
+        """由事件循环在空闲超时后触发，异步提交 Actor 关闭请求。"""
         self._idle_handle = None
         asyncio.create_task(self.close(), name=f"ccsdk-idle-close:{self.session_key}")
 
     def _cancel_idle_timer(self) -> None:
+        """取消已登记的空闲关闭回调并清空截止时间。"""
         if self._idle_handle is not None:
             self._idle_handle.cancel()
             self._idle_handle = None
         self._idle_deadline = None
 
     async def _notify_state(self) -> None:
+        """更新时间戳并等待状态回调接收当前快照。"""
         self._updated_at = int(time.time() * 1000)
         await self._on_state(self.snapshot())
 
@@ -624,23 +646,27 @@ class SessionActor:
 
     @staticmethod
     def _resolve(command: _Command, value: Any) -> None:
+        """唤醒命令等待方，仅对尚未完成的 Future 写入结果。"""
         command.started.set()
         if not command.future.done():
             command.future.set_result(value)
 
     @staticmethod
     def _resolve_error(command: _Command, error: BaseException) -> None:
+        """唤醒命令等待方，仅对尚未完成的 Future 写入异常。"""
         command.started.set()
         if not command.future.done():
             command.future.set_exception(error)
 
     def _resolve_run(self, command: _Command, value: Any) -> None:
+        """清除 Run 活动登记与取消标记后完成其结果 Future。"""
         if command.run_id is not None:
             self._run_commands.pop(command.run_id, None)
             self._cancel_requested.discard(command.run_id)
         self._resolve(command, value)
 
     def _resolve_run_error(self, command: _Command, error: BaseException) -> None:
+        """清除 Run 活动登记与取消标记后向等待方传递异常。"""
         if command.run_id is not None:
             self._run_commands.pop(command.run_id, None)
             self._cancel_requested.discard(command.run_id)
@@ -648,6 +674,7 @@ class SessionActor:
 
     @staticmethod
     def _as_actor_error(error: BaseException, *, code: str | None = None) -> SessionActorError:
+        """保留已有 Actor 异常，其余异常转换为统一的 Actor 错误。"""
         if isinstance(error, SessionActorError):
             return error
         return SessionActorError(str(error) or "SessionActor 执行失败", code=code or "session_actor_error")
@@ -664,6 +691,7 @@ class SessionManager:
         idle_ttl_ms: int = 300_000,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
     ) -> None:
+        """初始化会话及 Run 路由表，并保存创建 Actor 所需的公共配置。"""
         self._on_public_event = on_public_event
         self._on_state = on_state
         self._idle_ttl_ms = idle_ttl_ms

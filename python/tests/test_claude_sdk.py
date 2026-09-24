@@ -14,6 +14,22 @@ from runtime.claude_sdk import (
 
 
 class ClaudeSDKFacadeTests(unittest.TestCase):
+    def test_empty_skill_filter_is_sent_in_sdk_initialize_handshake(self):
+        from unittest.mock import AsyncMock, Mock, patch
+        from claude_agent_sdk._internal.query import Query
+        from runtime.config import build_options
+        async def exercise():
+            options = build_options({'capability_ref': 'conversation'})
+            transport = Mock()
+            transport.close = AsyncMock()
+            query = Query(transport=transport, is_streaming_mode=True, skills=options.skills)
+            with patch.object(query, '_send_control_request', new_callable=AsyncMock) as send:
+                await query.initialize()
+            self.assertEqual(send.call_args.args[0]['skills'], [])
+            await query.close()
+            query.close_receive_stream()
+        asyncio.run(exercise())
+
     def test_normalize_message_keeps_provider_fields_as_plain_data(self):
         message = AssistantMessage(
             content=[TextBlock(text="hello")],

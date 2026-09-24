@@ -13,11 +13,13 @@ from .context import DataError
 
 
 def config_path(env):
+    """按调用方环境解析部署配置路径，相对路径以仓库根目录为基准。"""
     location = Path(env.get('CCSDK_DATABASES_FILE') or 'config/databases.json')
     return (location if location.is_absolute() else PROJECT_ROOT / location).resolve()
 
 
 def load_config(env, *, optional=False):
+    """校验部署连接配置，补入来源标识和相对路径基准。"""
     location = config_path(env)
     if optional and not location.exists():
         return {}
@@ -38,6 +40,7 @@ def load_config(env, *, optional=False):
 
 
 def resolve_connection(context, source, config):
+    """独立校验来源与租户连接权限，返回本次连接配置副本。"""
     connection = dict(config['connection'])
     # 连接必须单独显式允许所有租户，不能仅凭来源策略放开其他连接。
     if (not connection.get("revision") or connection.get("source_key") != source["source_key"]
@@ -48,11 +51,13 @@ def resolve_connection(context, source, config):
 
 class Connections:
     def __init__(self):
+        """初始化本轮取消信号与受锁保护的活动连接集合。"""
         self.cancelled = Event()
         self._lock = Lock()
         self._active = set()
 
     def cancel(self):
+        """标记本轮取消并中断活动连接，不额外执行 SQL。"""
         self.cancelled.set()
         # Interrupt local test databases and shut down a MySQL socket without
         # issuing another SQL statement on the connection being cancelled.
@@ -67,11 +72,13 @@ class Connections:
                         pass
 
     def check(self):
+        """取消后阻止继续建立连接或读取结果。"""
         if self.cancelled.is_set():
             raise DataError("CANCELLED")
 
     @contextmanager
     def snapshot(self, config):
+        """建立有时限的只读事务快照，退出时回滚并释放连接。"""
         self.check()
         base = Path(config['_base_directory'])
         timeout = max(1, min(int(config.get("timeout_seconds", 30)), 120))
@@ -117,7 +124,11 @@ class Connections:
                     if driver == "sqlite":
                         connection.exec_driver_sql("PRAGMA query_only = ON")
                         deadline = time.monotonic() + timeout
-                        raw.set_progress_handler(lambda: int(self.cancelled.is_set() or time.monotonic() > deadline), 1000)
+                        def should_interrupt():
+                            """供 SQLite 进度回调在取消或超时时中断查询。"""
+                            return int(self.cancelled.is_set() or time.monotonic() > deadline)
+
+                        raw.set_progress_handler(should_interrupt, 1000)
                         connection.exec_driver_sql("BEGIN")
                     else:
                         connection.exec_driver_sql(f"SET SESSION MAX_EXECUTION_TIME={timeout * 1000}")

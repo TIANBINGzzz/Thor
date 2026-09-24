@@ -21,6 +21,7 @@ _PDFIUM_LOCK = threading.Lock()
 
 
 def _resolve(value, roots: list[Path], *, exists: bool = True) -> Path:
+    """解析授权目录内的路径，按需检查文件存在并拒绝路径越界。"""
     if not isinstance(value, (str, Path)) or not str(value).strip():
         raise ValueError("文件路径不能为空")
     path = Path(value).expanduser()
@@ -33,10 +34,12 @@ def _resolve(value, roots: list[Path], *, exists: bool = True) -> Path:
 
 
 def _roots(base_dir, additional_dirs) -> list[Path]:
+    """展开主目录与附加目录，生成后续路径校验使用的绝对根目录。"""
     return [Path(p).expanduser().resolve() for p in [base_dir, *(additional_dirs or [])]]
 
 
 def _new_output(path: Path, source: Path) -> None:
+    """要求输出路径区别于源文件，且不能覆盖任何已有文件。"""
     if path == source:
         raise ValueError("输出文件必须不同于原文件")
     if path.exists():
@@ -44,7 +47,7 @@ def _new_output(path: Path, source: Path) -> None:
 
 
 def _publish_files(pairs: list[tuple[Path, Path]]) -> None:
-    # 独占创建防止覆盖既有成果；失败只清理本次已创建的输出。
+    """独占创建各输出文件；失败仅清理本次已创建的成果。"""
     created = []
     try:
         for source, target in pairs:
@@ -59,6 +62,7 @@ def _publish_files(pairs: list[tuple[Path, Path]]) -> None:
 
 
 def _source_toc_count(path: Path) -> int:
+    """统计 DOCX 复杂域与简单域中的 TOC 指令，供刷新结果校验。"""
     namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     with zipfile.ZipFile(path) as archive:
         root = ElementTree.fromstring(archive.read("word/document.xml"))
@@ -98,6 +102,7 @@ def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[st
 
 
 def _prepare_fonts(source: Path, work: Path) -> tuple[Path, list[str]]:
+    """在渲染副本中解除字体子集引用，使用完整部署字体且不改原稿。"""
     from lxml import etree
 
     namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -126,6 +131,7 @@ def _prepare_fonts(source: Path, work: Path) -> tuple[Path, list[str]]:
 
 
 def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str, Any]:
+    """限时执行独立解释器脚本并解析 JSON 结果，转换进程失败异常。"""
     try:
         completed = subprocess.run(
             [executable, "-c", script, *arguments], capture_output=True,
@@ -140,6 +146,7 @@ def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str,
 
 
 def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+    """选择本机或容器渲染；本机 LibreOffice 使用独立配置和 UNO 管道。"""
     if os.name == "nt":
         return _run_container(source, docx_path, pdf_path, work)
     soffice = os.environ.get("CCSDK_LIBREOFFICE_PATH") or shutil.which("soffice") or shutil.which("libreoffice")
@@ -167,6 +174,7 @@ def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> di
 
 
 def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+    """在禁网容器中渲染本次文档，结束后强制清理指定容器。"""
     image = os.environ.get("CCSDK_RENDER_IMAGE", "ccsdkscribe-renderer:local")
     docker = shutil.which("docker")
     if not docker:
@@ -195,6 +203,7 @@ import uno
 from com.sun.star.beans import PropertyValue
 
 def properties(**values):
+    """将命名选项转换为 UNO 加载与导出所需的属性元组。"""
     result = []
     for name, value in values.items():
         item = PropertyValue()
@@ -251,6 +260,7 @@ def read_pdf(path, base_dir, additional_dirs=None, start=1, limit=5, render=Fals
 
 
 def _read_pdf_pages(source: Path, roots: list[Path], directory: Path | None, start: int, limit: int) -> dict[str, Any]:
+    """提取指定页的文本与尺寸，可独占输出 PNG，并逐层释放 PDFium 对象。"""
     import pypdfium2 as pdfium
 
     document = pdfium.PdfDocument(source)

@@ -9,6 +9,7 @@ from .context import DataError
 
 
 def json_value(value):
+    """序列化精确数值和日期，拒绝二进制及未知结果类型。"""
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, (date, datetime)):
@@ -20,6 +21,7 @@ def json_value(value):
 
 class Results:
     def __init__(self, context, *, max_bytes=20_000_000):
+        """初始化本轮私有结果、分页引用与总存储配额。"""
         self.context = context
         self.directory = context.run_directory / "data"
         self.records = {}
@@ -28,6 +30,7 @@ class Results:
         self.bytes = 0
 
     def save(self, rows, metadata, output):
+        """在配额内保存绑定本轮归属的结果，返回不透明引用。"""
         reference = "result_" + token_urlsafe(18)
         record = {"result_ref": reference, "owner": self.context.owner,
                   "rows": rows, "metadata": metadata, "output": output}
@@ -42,12 +45,14 @@ class Results:
         return reference
 
     def get(self, reference):
+        """仅返回当前上下文拥有的本轮结果，拒绝未知或越权引用。"""
         record = self.records.get(reference)
         if record is None or record["owner"] != self.context.owner:
             raise DataError("RESULT_FORBIDDEN")
         return record
 
     def page(self, reference, cursor=None):
+        """校验分页引用并隐藏内部列，返回携带口径与来源证据的一页。"""
         record = self.get(reference)
         offset = 0
         if cursor is not None:

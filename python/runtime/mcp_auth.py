@@ -42,6 +42,7 @@ class MCPAuthError(ValueError):
 
 
 def _credentials_token(credentials: Any) -> str:
+    """读取并校验不透明业务 Token 的格式，不验证业务权限。"""
     if credentials is None:
         return ""
     if hasattr(credentials, "platform_bearer"):
@@ -127,6 +128,7 @@ class MCPArgumentBinding:
     """按可信映射绑定本轮凭据；只用于远端传输副本，不进入模型工具 Schema。"""
 
     def __init__(self, mcp_ref, credentials):
+        """校验已登记 MCP 的参数映射并保存本轮必需凭据。"""
         rule = MCP_AUTH_RULES.get(mcp_ref, {})
         mapping = rule.get('arguments')
         if not rule.get('required') or not isinstance(mapping, dict) or not mapping:
@@ -140,9 +142,11 @@ class MCPArgumentBinding:
         self._values = {key: token for key in mapping}
 
     def clear(self):
+        """清空本轮凭据，使后续参数注入立即失效。"""
         self._values.clear()
 
     def inject(self, arguments):
+        """向参数深拷贝注入本轮凭据，拒绝调用方覆盖凭据字段。"""
         if not self._values:
             raise MCPAuthError('本轮业务身份未绑定')
         if not isinstance(arguments, dict) or self._values.keys() & arguments.keys():
@@ -150,6 +154,7 @@ class MCPArgumentBinding:
         return {**copy.deepcopy(arguments), **self._values}
 
     def check_response(self, result):
+        """检查上游响应是否含已绑定凭据，发现泄漏即拒绝返回。"""
         if any(json.dumps(value, ensure_ascii=False)[1:-1] in json.dumps(result, ensure_ascii=False)
                for value in self._values.values()):
             raise MCPAuthError('上游响应包含凭据')

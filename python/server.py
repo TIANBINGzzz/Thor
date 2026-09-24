@@ -16,10 +16,10 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_runtime_environment, load_workflow_config, runtime_mode_for, prepare_workflow_assets
+from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets
 from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
-from runtime.capabilities import CAPABILITIES, CapabilityError, resolve_capability
+from runtime.capabilities import CAPABILITIES
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
 from runtime.run_store import RunStore
@@ -111,6 +111,7 @@ async def secure_runtime_api(request: Request, call_next):
 
 
 def _plain(message: str, status: int) -> PlainTextResponse:
+    """返回禁止缓存和内容嗅探的纯文本 HTTP 响应。"""
     return PlainTextResponse(
         message,
         status_code=status,
@@ -164,6 +165,7 @@ class _InternalAuthError(ValueError):
 
 
 def _bearer_from_request(request: Request) -> str:
+    """从授权头提取 Runtime Bearer JWT，缺失或格式不符时拒绝请求。"""
     value = request.headers.get("authorization", "")
     scheme, _, token = value.partition(" ")
     if scheme.lower() != "bearer" or not token.strip():
@@ -172,6 +174,7 @@ def _bearer_from_request(request: Request) -> str:
 
 
 def _claim_scope(claims: dict[str, Any]) -> set[str]:
+    """将已验证声明中的单项或列表权限归一为集合。"""
     scope = claims.get("scope")
     if isinstance(scope, str):
         return {scope}
@@ -333,6 +336,7 @@ async def _notify_stored_event(stored: dict[str, Any]) -> None:
 
 
 def _artifact_delivery() -> ArtifactDelivery:
+    """按当前 RunStore 延迟创建并复用产物交付服务。"""
     global ARTIFACT_DELIVERY
     if ARTIFACT_DELIVERY is None or ARTIFACT_DELIVERY.store is not RUN_STORE:
         ARTIFACT_DELIVERY = ArtifactDelivery(RUN_STORE, PROJECT_ROOT / '.scribe-runs' / 'artifacts', _notify_stored_event)
@@ -340,6 +344,7 @@ def _artifact_delivery() -> ArtifactDelivery:
 
 
 async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
+    """分流私有观测、产物和公共事件，暂存终态直到文件交付收尾。"""
     if private_trace.enabled() and raw.get('type') in private_trace.TRACE_TYPES:
         RUN_STORE.append_trace(run_id, private_trace.sanitize(raw, TRACE_SECRETS.get(run_id, ())))
     if raw.get('type') == 'artifact.published':
@@ -357,6 +362,7 @@ async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
 
 
 async def _finish_run(run_id: str, event: dict[str, Any]) -> None:
+    """等待产物上传收尾后保存并发布 Run 终态，避免覆盖已有终态。"""
     delivery = _artifact_delivery()
     if any(item['status'] in {'pending', 'uploading'} for item in delivery.list(run_id)):
         await _run_phase(run_id, {'name': 'saving_files'})
@@ -369,6 +375,7 @@ async def _finish_run(run_id: str, event: dict[str, Any]) -> None:
 
 
 def _create_session_manager() -> SessionManager:
+    """绑定公共事件和状态回调，创建使用部署空闲时限的会话管理器。"""
     return SessionManager(
         on_public_event=_handle_client_public_event,
         on_state=_handle_actor_state,
@@ -377,10 +384,12 @@ def _create_session_manager() -> SessionManager:
 
 
 async def _handle_actor_state(snapshot: dict[str, Any]) -> None:
+    """接收 Actor 状态回调，按有效会话键保存内部快照。"""
     session_key = snapshot.get("sessionKey")
     if isinstance(session_key, str) and session_key:
         actor_snapshots[session_key] = dict(snapshot)
 async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
+    """保存 Client 的 SDK 会话引用，再将事件交给统一分流入口。"""
     provider_session = raw.get("sessionId") or raw.get("session_id")
     if provider_session:
         try:
@@ -400,6 +409,7 @@ def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) ->
 
 
 def _client_session_directory(session_key: str) -> Path:
+    """将会话键散列为受控目录名并创建持久会话工作目录。"""
     digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
     directory = (CLIENT_SESSION_ROOT / digest).resolve()
     directory.mkdir(parents=True, exist_ok=True)
@@ -411,6 +421,7 @@ def _runtime_input_directory(
     run_directory: Path,
     session_directory: Path | None,
 ) -> Path:
+    """选择本轮临时输入目录，Client 模式必须使用会话内的共享输入区。"""
     if runtime_mode == "client":
         if session_directory is None:
             raise ValueError("Client Runtime 缺少 Session Workspace")
@@ -434,6 +445,7 @@ def _clear_runtime_input(directory: Path) -> None:
 
 
 def _data_config_fingerprint(payload):
+    """仅为所选来源计算资产及部署配置指纹，不向模型暴露连接内容。"""
     from data_access.catalog import Catalog
     from data_access.connections import config_path
     from runtime.config import data_source_keys
@@ -453,7 +465,6 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
         "capabilityRef": run_request.capability_ref or "conversation",
         "workflow": payload.get("workflow_name"),
         "model": payload.get("model"),
-        "skills": payload.get("skill_refs") or [],
         "credentialDigest": credential_digest,
         "templateKey": payload.get("_template_key"),
         "workflowAssets": prepare_workflow_assets(payload)['revision'],
@@ -462,17 +473,17 @@ def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, 
     return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def _runtime_mode_for_request(run_request: AgentRunRequest) -> str:
+def _runtime_mode_for_request(run_request: AgentRunRequest, execution_entry=None) -> str:
     """解析请求能力对应的可信 Workflow 配置，返回 query 或 client 执行模式。"""
-    capability = resolve_capability(run_request.capability_ref)
-    workflow_config = load_workflow_config(capability.workflow_ref)
+    local = execution_entry or load_execution_entry(run_request.capability_ref)
     if run_request.business_session_id:
         return "client"
-    mode = runtime_mode_for(run_request.capability_ref, workflow_config)
+    mode = runtime_mode_for(run_request.capability_ref, local['config'], capability_config=local['capability'])
     return mode
 
 
 async def _run_phase(run_id: str, payload: dict[str, Any]) -> None:
+    """只发布允许的业务进度字段，避免内部准备信息进入公共事件。"""
     # File preparation events expose business identifiers and progress only.
     public = {key: payload[key] for key in ("name", "fileId", "receivedBytes", "totalBytes", "fileCount") if key in payload}
     await _publish_internal_event(run_id, {"runId": run_id, "type": "phase", "payload": public})
@@ -484,6 +495,7 @@ async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any],
     if not run_request.input.attachment_refs:
         return ()
     async def progress(payload: dict[str, Any]) -> None:
+        """将文件代理进度绑定到当前 Run 的公共阶段事件。"""
         await _run_phase(run_request.run_id, payload)
 
     await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
@@ -504,6 +516,7 @@ def _internal_worker_payload(
     attachment_files: tuple[FetchedFile, ...] = (),
     claims: dict[str, Any] | None = None,
     workflow_assets: dict[str, Any] | None = None,
+    execution_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
     model = MODELS[0] if MODELS else ""
@@ -544,14 +557,12 @@ def _internal_worker_payload(
         prompt = (
             f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
         )
-    capability = resolve_capability(run_request.capability_ref)
-    workflow_name = capability.workflow_ref
-    workflow_config = load_workflow_config(workflow_name) if workflow_name else None
-    if workflow_name and workflow_config is None:
-        raise ValueError(f"workflow 不在已配置 Capability 中：{workflow_name}")
+    local = workflow_assets or execution_entry or load_execution_entry(run_request.capability_ref)
+    workflow_name = local['capability'].get('workflow')
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
         "_template_key": template_key,
+        "_execution_entry": {key: local[key] for key in ("capability", "config")},
         "_data_identity": {"tenant_id": (claims or {}).get("tenant"), "user_id": (claims or {}).get("sub")},
         "_data_run_directory": str(run_directory),
         "prompt": prompt,
@@ -576,14 +587,13 @@ def _internal_worker_payload(
         "session_directory": str(session_directory),
         "work_directory": str(work_directory),
         "deliverables_directory": str(deliverables_directory),
-        "skill_refs": (workflow_config or {}).get("skills", []),
         "runtime_mode": runtime_mode,
-        # 长篇撰写预算来自可信Workflow，业务请求不能覆盖执行限制。
-        "timeout_ms": (workflow_config or {}).get("runtime", {}).get("timeout_ms", RUN_EXECUTION_TIMEOUT_MS),
     }
     if workflow_assets is not None:
         payload['_workflow_assets'] = workflow_assets
-    prepare_workflow_assets(payload)
+    assets = prepare_workflow_assets(payload)
+    # 执行预算使用本轮冻结的合并配置，业务输入不能覆盖且附件准备后不重读。
+    payload["timeout_ms"] = assets['runtime'].get("timeout_ms", RUN_EXECUTION_TIMEOUT_MS)
     credentials = run_request.credentials.to_dict(include_secret=True)
     if credentials:
         # This value remains in the worker's transient stdin payload.  The
@@ -598,6 +608,7 @@ async def _execute_internal_run(
     claims: dict[str, Any],
     *,
     runtime_bearer: str | None = None,
+    execution_entry: dict[str, Any] | None = None,
 ) -> None:
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
@@ -605,7 +616,8 @@ async def _execute_internal_run(
     input_workspace: Path | None = None
     runtime_mode: str | None = None
     try:
-        runtime_mode = _runtime_mode_for_request(run_request)
+        execution_entry = execution_entry or load_execution_entry(run_request.capability_ref)
+        runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         session_key = _client_session_key(run_request, claims) if runtime_mode == "client" else None
         session_directory = _client_session_directory(session_key) if session_key else None
         run_base = session_directory / "runs" if session_directory else PROJECT_ROOT / ".scribe-runs" / "work"
@@ -623,11 +635,13 @@ async def _execute_internal_run(
                 run_request,
                 run_directory,
                 claims=claims,
+                execution_entry=execution_entry,
                 runtime_mode=runtime_mode,
                 session_directory=session_directory,
             )
 
             async def prepare_client_run() -> dict[str, Any]:
+                """在 Actor 串行区准备本轮附件，并沿用入队时冻结的执行资产。"""
                 _clear_runtime_input(input_workspace)
                 if not run_request.input.attachment_refs:
                     prepared_files: tuple[FetchedFile, ...] = ()
@@ -646,6 +660,7 @@ async def _execute_internal_run(
                 return prepared_payload
 
             async def cleanup_client_run() -> None:
+                """在 Actor 串行区清理本轮输入，避免删除下一轮已准备的文件。"""
                 # Accepted Client commands are cleaned inside the Actor. This
                 # keeps cleanup serialized with the next Run's preparation.
                 _clear_runtime_input(input_workspace)
@@ -656,6 +671,7 @@ async def _execute_internal_run(
                 run_request,
                 run_directory,
                 claims=claims,
+                execution_entry=execution_entry,
                 runtime_mode=runtime_mode,
                 session_directory=session_directory,
                 attachment_files=attachment_files,
@@ -666,6 +682,7 @@ async def _execute_internal_run(
             if business:
                 worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)
         async def consume_agent() -> None:
+            """消费一次性 Worker 事件，保存 SDK 会话引用并交给统一分流入口。"""
             async for raw in stream_agent(worker_payload):
                 provider_session = raw.get("sessionId")
                 if provider_session:
@@ -752,8 +769,9 @@ async def internal_create_run(request: Request):
 
     capability = run_request.capability_ref or "conversation"
     try:
-        runtime_mode = _runtime_mode_for_request(run_request)
-        if run_request.input.attachment_refs and not resolve_capability(capability).supports_attachments:
+        execution_entry = load_execution_entry(capability)
+        runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
+        if run_request.input.attachment_refs and not execution_entry['capability'].get('supports_attachments', False):
             return _plain("capability_does_not_support_attachments", 400)
         async with internal_runs_lock:
             existing = RUN_STORE.get_run(run_request.run_id)
@@ -776,11 +794,13 @@ async def internal_create_run(request: Request):
             # recovery handshake; it must not create a second task in-process.
             if run.get("status") not in TERMINAL_RUN_STATUSES and run_request.run_id not in internal_tasks:
                 internal_tasks[run_request.run_id] = asyncio.create_task(
-                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer),
+                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer, execution_entry=execution_entry),
                     name=f"ccsdk-run:{run_request.run_id}",
                 )
     except (KeyError, PermissionError, ValueError) as error:
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
+    except RuntimeError:
+        return _plain("execution_configuration_invalid", 503)
     return JSONResponse(
         {
             "run": _public_run(run),
@@ -873,9 +893,11 @@ async def internal_run_events(
     cursor = afterSequence or 0
 
     async def event_stream():
+        """先订阅再回放历史并推送实时 SSE，退出时仅释放订阅。"""
         nonlocal cursor
 
         def format_event(event: dict[str, Any]) -> str:
+            """按可信显示字典规范事件并编码为含游标的 SSE 帧。"""
             event = with_display_name(event)
             lines = [f"id: {event['sequence']}", f"event: {event['type']}"]
             lines.append(f"data: {json.dumps(event, ensure_ascii=False)}")
@@ -934,6 +956,7 @@ async def internal_artifacts(run_id: str, request: Request):
 
 
 def _authorize_artifacts(run_id: str, request: Request):
+    """校验产物所属 Run 的读取授权，成功返回 None，失败返回 HTTP 响应。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)

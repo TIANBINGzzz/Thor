@@ -50,27 +50,32 @@ class FileBrokerError(RuntimeError):
     """Stable, non-sensitive error from the File Broker exchange."""
 
     def __init__(self, message: str, *, code: str = "file_broker_error") -> None:
+        """保存稳定错误码和不含敏感信息的文件获取错误。"""
         super().__init__(message)
         self.code = code
 
 
 class FileBrokerUnavailableError(FileBrokerError):
     def __init__(self, message: str = "File Broker 未配置或不可用") -> None:
+        """标记下载服务未配置或缺少可用鉴权。"""
         super().__init__(message, code="file_broker_unavailable")
 
 
 class FileBrokerConfigurationError(FileBrokerError):
     def __init__(self, message: str = "File Broker 配置无效") -> None:
+        """标记部署侧文件下载配置无效。"""
         super().__init__(message, code="file_broker_configuration_error")
 
 
 class FileBrokerTimeoutError(FileBrokerError):
     def __init__(self, message: str = "File Broker 请求超时") -> None:
+        """将下载或附件准备超时转换为统一错误码。"""
         super().__init__(message, code="file_broker_timeout")
 
 
 class FileBrokerValidationError(FileBrokerError):
     def __init__(self, message: str = "File Broker 文件校验失败") -> None:
+        """标记文件元数据、内容或下载目标校验失败。"""
         super().__init__(message, code="file_validation_failed")
 
 
@@ -118,12 +123,14 @@ ProgressSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 def _positive_int(value: Any, name: str) -> int:
+    """校验正整数配置，明确拒绝布尔值。"""
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         raise FileBrokerConfigurationError(f"{name} 必须是正整数")
     return value
 
 
 def _env_int(name: str, default: int) -> int:
+    """读取正整数环境配置，未设置时使用既定默认值。"""
     value = os.environ.get(name, "").strip()
     if not value:
         return default
@@ -135,10 +142,12 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _split_csv(name: str) -> set[str]:
+    """将逗号分隔的环境配置规范化为小写非空集合。"""
     return {item.strip().lower() for item in os.environ.get(name, "").split(",") if item.strip()}
 
 
 def _safe_filename(value: Any, *, fallback: str | None = None) -> str:
+    """校验单个文件名，拒绝路径字符、控制字符和系统保留名。"""
     name = value if isinstance(value, str) else fallback
     if not isinstance(name, str) or not name.strip():
         raise FileBrokerValidationError("File Broker 未返回文件名")
@@ -158,6 +167,7 @@ def _safe_filename(value: Any, *, fallback: str | None = None) -> str:
 
 
 def _safe_mime(value: Any, *, required: bool = True) -> str:
+    """校验并规范化 MIME 类型，仅在明确可省略时使用通用类型。"""
     if value is None and not required:
         return "application/octet-stream"
     if not isinstance(value, str) or not SAFE_MIME.fullmatch(value.strip()):
@@ -166,6 +176,7 @@ def _safe_mime(value: Any, *, required: bool = True) -> str:
 
 
 def _safe_sha256(value: Any) -> str | None:
+    """校验可选 SHA-256 摘要并统一为小写。"""
     if value is None or value == "":
         return None
     if not isinstance(value, str) or not SHA256.fullmatch(value.strip()):
@@ -174,6 +185,7 @@ def _safe_sha256(value: Any) -> str | None:
 
 
 def _header_int(headers: httpx.Headers, name: str) -> int | None:
+    """读取可选非负整数响应头，拒绝无效大小字段。"""
     value = headers.get(name)
     if value is None or not value.strip():
         return None
@@ -187,6 +199,7 @@ def _header_int(headers: httpx.Headers, name: str) -> int | None:
 
 
 def _content_type(headers: httpx.Headers) -> str | None:
+    """去除响应类型参数并校验 MIME，未提供时返回空值。"""
     value = headers.get("content-type")
     if not value:
         return None
@@ -195,11 +208,13 @@ def _content_type(headers: httpx.Headers) -> str | None:
 
 
 def _is_json_response(headers: httpx.Headers) -> bool:
+    """识别 JSON 授权响应，包括带加号后缀的 JSON 类型。"""
     value = headers.get("content-type", "").split(";", 1)[0].strip().lower()
     return value == "application/json" or value.endswith("+json")
 
 
 def _filename_from_content_disposition(value: str | None) -> str | None:
+    """从标准附件响应头解析文件名，交由调用方校验安全性。"""
     if not value:
         return None
     message = Message()
@@ -208,6 +223,7 @@ def _filename_from_content_disposition(value: str | None) -> str | None:
 
 
 def _validate_download_url(value: Any, *, allowed_hosts: set[str]) -> str:
+    """限制临时下载地址为允许主机的标准 HTTPS，拒绝嵌入身份。"""
     if not isinstance(value, str) or len(value) > 4096:
         raise FileBrokerValidationError("File Broker 下载地址无效")
     if any(char.isspace() for char in value):
@@ -230,6 +246,7 @@ def _validate_download_url(value: Any, *, allowed_hosts: set[str]) -> str:
 
 
 def _resolve_public_addresses(host: str, port: int) -> tuple[str, ...]:
+    """解析并去重公网地址，任一私网或保留地址都会拒绝下载。"""
     try:
         resolved = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     except socket.gaierror as error:
@@ -281,6 +298,7 @@ def _pinned_download_target(value: str) -> tuple[str, str, str]:
 
 
 def _validate_expected_size(value: Any, max_bytes: int) -> int | None:
+    """校验可选预期大小，拒绝负数、布尔值和超限文件。"""
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > max_bytes:
@@ -311,6 +329,7 @@ class FileBroker:
         event_sink: EventSink | None = None,
         progress_sink: ProgressSink | None = None,
     ) -> None:
+        """装配部署侧下载目标与限制，隔离显式 Broker 的凭据配置。"""
         raw_endpoint = (endpoint if endpoint is not None else configured_broker_endpoint()).strip()
         if raw_endpoint:
             parsed = urlsplit(raw_endpoint)
@@ -363,6 +382,7 @@ class FileBroker:
 
     @property
     def configured(self) -> bool:
+        """判断是否存在可用的显式 Broker 或平台文件服务配置。"""
         return bool(self.endpoint or self.file_service)
 
     async def fetch_all(
@@ -380,7 +400,6 @@ class FileBroker:
 
         Java 负责授权引用；平台下载不转发 Run 凭据，失败、超时或取消时清理本次文件。
         """
-        _ = tenant_id, user_id
         refs = tuple(attachment_refs or ())
         if not refs:
             return ()
@@ -463,7 +482,6 @@ class FileBroker:
                             )
                             raise
                         except (httpx.TimeoutException, TimeoutError) as error:
-                            _ = error
                             failure = FileBrokerTimeoutError()
                             self._emit(
                                 "file.fetch.failed",
@@ -471,7 +489,6 @@ class FileBroker:
                             )
                             raise failure from error
                         except (httpx.HTTPError, OSError, ValueError) as error:
-                            _ = error
                             failure = FileBrokerError("File Broker 请求失败", code="file_broker_request_failed")
                             self._emit(
                                 "file.fetch.failed",
@@ -499,6 +516,7 @@ class FileBroker:
         return tuple(results)
 
     def _timeout(self, timeout_ms: int | None) -> httpx.Timeout:
+        """将有效毫秒配置转换为连接、读取、写入和连接池超时。"""
         effective_timeout_ms = (
             _positive_int(timeout_ms, "timeout_ms")
             if timeout_ms is not None
@@ -508,6 +526,7 @@ class FileBroker:
         return httpx.Timeout(value, connect=value, read=value, write=value, pool=value)
 
     def _selected_token(self, bearer_token: str | None) -> str | None:
+        """按显式鉴权模式选择本次 Broker 凭据，不混用服务与 Run 身份。"""
         if self.auth_mode == "service":
             return self.service_token or None
         return bearer_token or None
@@ -795,6 +814,7 @@ class FileBroker:
 
     @staticmethod
     def _unique_name(name: str, file_id: str, used_names: set[str]) -> str:
+        """为本批次重名文件添加安全后缀，按大小写不敏感规则去重。"""
         if name.lower() not in used_names:
             return name
         stem, dot, suffix = name.rpartition(".")
@@ -808,10 +828,12 @@ class FileBroker:
 
     @staticmethod
     def _duration(started: float) -> int:
+        """用单调时钟计算非负耗时毫秒数。"""
         return max(0, int((time.monotonic() - started) * 1000))
 
     @staticmethod
     def _start_data(reference: Any) -> dict[str, Any]:
+        """提取文件标识与用途，生成不含路径或凭据的事件字段。"""
         return {
             "fileId": str(getattr(reference, "file_id", "") or ""),
             "purpose": str(getattr(reference, "purpose", "input") or "input"),
@@ -819,9 +841,11 @@ class FileBroker:
 
     @staticmethod
     def _failure_data(reference: Any, code: str, duration_ms: int) -> dict[str, Any]:
+        """组合文件失败事件，仅附稳定错误码和耗时。"""
         return {**FileBroker._start_data(reference), "errorCode": code, "durationMs": duration_ms}
 
     def _emit(self, event_type: str, data: dict[str, Any]) -> None:
+        """发送文件事件，订阅回调失败时仅记录异常类型。"""
         if self.event_sink is not None:
             try:
                 self.event_sink(event_type, data)
@@ -831,11 +855,13 @@ class FileBroker:
                 LOGGER.warning("File Broker event sink failed: %s", type(error).__name__)
 
     async def _progress(self, name: str, **fields: Any) -> None:
+        """向已配置的异步回调报告附件准备进度。"""
         if self.progress_sink is not None:
             await self.progress_sink({"name": name, **fields})
 
     @staticmethod
     def _remove_files(files: list[FetchedFile]) -> None:
+        """失败时清理本次已下载文件，清理错误不覆盖原异常。"""
         for item in files:
             try:
                 item.path.unlink(missing_ok=True)

@@ -8,6 +8,7 @@ from tools.document_conversion import render_document, read_pdf
 
 
 def create_document_server(base_dir, additional_dirs=None):
+    """绑定授权文件目录，注册 Office 渲染与 PDF 分页阅读工具。"""
     string = {'type': 'string'}
     integer = {'type': 'integer'}
     definitions = [
@@ -19,6 +20,7 @@ def create_document_server(base_dir, additional_dirs=None):
     registered = []
     for name, description, properties, required, handler in definitions:
         async def invoke(args, _handler=handler):
+            """在线程中执行已绑定的文档处理器，将结果或错误编码为 MCP 文本。"""
             try:
                 result = await asyncio.to_thread(_handler, base_dir=base_dir, additional_dirs=additional_dirs, **args)
                 return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}

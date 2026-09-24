@@ -36,7 +36,7 @@ class ImageCapabilityTests(unittest.TestCase):
     def test_unknown_provider_is_not_guessed_as_image_endpoint(self):
         with patch.dict('os.environ', {'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
                 'ANTHROPIC_BASE_URL': 'https://provider.test/apps/anthropic'}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, '图像生成服务未配置'):
+            with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
     def test_catalog_and_reference_input(self):
@@ -67,7 +67,7 @@ class ImageCapabilityTests(unittest.TestCase):
 
     def test_missing_image_credentials_fails_explicitly(self):
         with patch.dict('os.environ', {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, '图像生成服务未配置'):
+            with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
     def test_three_generated_pngs_publish_independently(self):

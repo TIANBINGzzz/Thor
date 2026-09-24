@@ -25,10 +25,12 @@ class JWTError(ValueError):
 
 
 def _b64encode(value: bytes) -> str:
+    """将字节编码为不带填充符的 JWT Base64URL 片段。"""
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
 
 def _b64decode(value: str) -> bytes:
+    """校验并解码 JWT Base64URL 片段，非法编码统一抛出 JWTError。"""
     if not isinstance(value, str) or not value or any(char not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_" for char in value):
         raise JWTError("invalid JWT encoding")
     try:
@@ -38,6 +40,7 @@ def _b64decode(value: str) -> bytes:
 
 
 def _json_segment(value: str, name: str) -> dict[str, Any]:
+    """解码 JWT 的 JSON 对象片段，拒绝非法文本及非对象内容。"""
     try:
         decoded = json.loads(_b64decode(value).decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -66,6 +69,7 @@ class ReplayCache:
     """Thread-safe TTL cache for one-time JWT ``jti`` values."""
 
     def __init__(self, *, max_entries: int = 10_000) -> None:
+        """校验缓存容量并初始化进程内重放记录与互斥锁。"""
         if max_entries < 1:
             raise ValueError("max_entries must be positive")
         self.max_entries = max_entries
@@ -89,21 +93,25 @@ class ReplayCache:
             return True
 
     def clear(self) -> None:
+        """在锁内清空全部 JWT 重放记录。"""
         with self._lock:
             self._values.clear()
 
     def __len__(self) -> int:
+        """在锁内返回当前记录数，不主动清理过期项。"""
         with self._lock:
             return len(self._values)
 
 
 def _number(value: Any, name: str) -> float:
+    """将有限数值声明转为浮点数，拒绝布尔值及非数值。"""
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise JWTError(f"JWT {name} must be numeric")
     return float(value)
 
 
 def _audience_matches(value: Any, expected: str) -> bool:
+    """检查单个或列表形式的受众声明是否匹配预期值。"""
     if isinstance(value, str):
         return hmac.compare_digest(value, expected)
     if isinstance(value, list):
@@ -116,6 +124,7 @@ def _verify_signed_claims(
     expected_scope: str, required_claims: tuple[str, ...], now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
+    """校验签名、时效、受众、签发方和权限声明，不消费重放标识。"""
     if not isinstance(token, str) or token.count(".") != 2:
         raise JWTError("malformed JWT")
     encoded_header, encoded_claims, encoded_signature = token.split(".")

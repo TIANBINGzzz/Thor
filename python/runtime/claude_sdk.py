@@ -116,6 +116,7 @@ class SDKMessage:
             raise ValueError("SDK message data must be an object")
 
         def optional_string(name: str) -> str | None:
+            """读取可选字符串字段，缺失时返回 None，类型不符时报错。"""
             item = value.get(name)
             if item is None:
                 return None
@@ -276,9 +277,9 @@ async def _disconnect_provider(provider: Any, timeout_ms: int) -> SDKError | Non
         # caller owns the final client state and must still be able to tell a
         # requested shutdown from a failed disconnect.
         raise
-    except asyncio.TimeoutError as error:
+    except asyncio.TimeoutError:
         return SDKTimeoutError("Claude SDK disconnect 超时")
-    except Exception as error:
+    except Exception:
         return SDKCleanupError("Claude SDK disconnect 失败")
     return None
 

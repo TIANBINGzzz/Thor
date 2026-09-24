@@ -12,6 +12,7 @@ APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'appl
 
 class NacosConfigError(ValueError):
     def __init__(self, code, status='failed'):
+        """保存配置中心稳定错误码与状态，不携带响应或凭据。"""
         self.code, self.status = code, status
         super().__init__(code)
 

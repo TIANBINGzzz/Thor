@@ -17,6 +17,7 @@ from .sql_policy import validate_sql
 
 
 def validate_parameters(parameters, definitions, constraints=None):
+    """校验参数类型、必填项和跨参数约束，拒绝额外字段。"""
     schema = {"type": "object", "additionalProperties": False,
               "properties": {k: {a: b for a, b in v.items() if a != "required"}
                              for k, v in definitions.items()},
@@ -32,6 +33,7 @@ def validate_parameters(parameters, definitions, constraints=None):
 
 class Executor:
     def __init__(self, context, env, catalog=None, source_keys=()):
+        """冻结本轮来源资产与连接配置，初始化独立结果和范围引用。"""
         self.context = context
         self.catalog = (catalog or Catalog()).freeze(source_keys)
         self.source_keys = tuple(source_keys)
@@ -45,6 +47,7 @@ class Executor:
         self._versions = {s: self.catalog.revision(s) for s in self.source_keys}
 
     def access(self, source_key):
+        """检查取消状态及本轮来源授权，分别校验策略和连接。"""
         self.connections.check()
         if source_key not in self.source_keys:
             raise DataError("SOURCE_FORBIDDEN")
@@ -54,6 +57,7 @@ class Executor:
         return source, policy, connection
 
     def list_data_sources(self):
+        """列出本轮实际获准的来源与范围摘要，隐藏连接配置。"""
         result = []
         for source_key in self.source_keys:
             try:
@@ -66,6 +70,7 @@ class Executor:
         return {"sources": result}
 
     def describe_data_source(self, source_key, domain, topics=None):
+        """返回获准业务域的表结构、函数及所选登记文档。"""
         source, policy, _ = self.access(source_key)
         allowed = domain_policy(policy, domain)
         _, catalog = self.catalog.domain(source_key, domain)
@@ -96,6 +101,7 @@ class Executor:
         return {'sources': prepared}
 
     def find_query_specs(self, source_key, domain, intent=None, metric_key=None):
+        """检索获准查询，按相关性排序并保留缺定义说明。"""
         _, policy, _ = self.access(source_key)
         allowed = domain_policy(policy, domain)
         _, catalog = self.catalog.domain(source_key, domain)
@@ -116,10 +122,15 @@ class Executor:
                              if not v.get("origin", "").startswith("authorized_")},
                             "output": output, "semantics": spec.get("semantics", []),
                             "blockers": spec.get("blockers", [])}))
-        matches.sort(key=lambda item: (-item[0], item[1]["id"]))
+        def query_order(item):
+            """优先较高相关性，同分时按查询标识稳定排序。"""
+            return -item[0], item[1]["id"]
+
+        matches.sort(key=query_order)
         return {"queries": [item for _, item in matches[:50]], "has_more": len(matches) > 50}
 
     def scope(self, source_key, domain, reference):
+        """校验范围引用属于当前来源、业务域及授权策略。"""
         _, policy, _ = self.access(source_key)
         domain_policy(policy, domain)
         scope = self.scopes.get(reference)
@@ -129,12 +140,14 @@ class Executor:
         return scope
 
     def _scope_ref(self, source_key, domain, project_id, policy):
+        """为当前策略下的项目范围创建本轮不透明引用。"""
         reference = "scope_" + token_urlsafe(18)
         self.scopes[reference] = {"source_key": source_key, "domain": domain,
                                   "project_id": project_id, "access": policy["fingerprint"]}
         return reference
 
     def resolve_entities(self, source_key, domain, entity_type, query, parent_ref=None, parameters=None):
+        """在授权范围内解析业务对象，返回候选项及本轮引用。"""
         _, policy, connection = self.access(source_key)
         if entity_type == "school":
             if policy["project_scope"]["mode"] != "all_school":
@@ -178,6 +191,7 @@ class Executor:
                 "ambiguous" if len(candidates) > 1 else "resolved"}
 
     def _fixed_rows(self, source_key, domain, spec, parameters, project, entity_refs, db, stack):
+        """注入可信身份与对象，校验依赖和 SQL 后执行固定查询。"""
         _, policy, connection = self.access(source_key)
         allowed = domain_policy(policy, domain, spec["id"])
         if spec["status"] != "defined":
@@ -225,6 +239,7 @@ class Executor:
         return self._rows(db, sql, values, connection, spec["output"])
 
     def _rows(self, db, sql, values, connection, output=None):
+        """流式读取受行数和体积限制的结果，并校验输出列契约。"""
         self.connections.check()
         limit = max(1, min(int(connection.get("max_rows", 10000)), 100000))
         statement = text(sql)
@@ -251,6 +266,7 @@ class Executor:
             result.close()
 
     def execute_query_spec(self, source_key, domain, query_id, parameters, scope_ref, entity_refs=None, *, db=None):
+        """执行已授权固定查询，保存来源证据并返回首屏结果。"""
         source, policy, connection = self.access(source_key)
         scope = self.scope(source_key, domain, scope_ref)
         spec = self.catalog.spec(source_key, domain, query_id)
@@ -267,6 +283,7 @@ class Executor:
         return self.results.page(reference)
 
     def execute_readonly_sql(self, source_key, domain, sql, parameters, purpose, scope_ref):
+        """仅在数据库已强制隔离授权范围时执行受限只读 SQL。"""
         _, policy, connection = self.access(source_key)
         scope = self.scope(source_key, domain, scope_ref)
         allowed = domain_policy(policy, domain)

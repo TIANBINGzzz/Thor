@@ -20,6 +20,7 @@ class UniqueLoader(yaml.SafeLoader):
 
 
 def unique_mapping(loader, node, deep=False):
+    """作为 YAML 映射回调拒绝重复键和非字符串键。"""
     result = {}
     for key_node, value_node in node.value:
         name = loader.construct_object(key_node, deep=deep)
@@ -33,12 +34,14 @@ UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, uni
 
 
 def key(value):
+    """校验资产引用标识，拒绝非法字符和越界长度。"""
     if not isinstance(value, str) or not KEY.fullmatch(value):
         raise DataError("INVALID_REFERENCE")
     return value
 
 
 def asset_path(root: Path, relative: str) -> Path:
+    """解析根目录内已存在的资产文件，拒绝绝对路径和路径越界。"""
     if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
         raise DataError("ASSET_PATH_INVALID")
     root = root.resolve()
@@ -49,6 +52,7 @@ def asset_path(root: Path, relative: str) -> Path:
 
 
 def read_json(path):
+    """读取 JSON 配置，将文件和格式错误统一为非敏感错误码。"""
     try:
         return json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -58,6 +62,7 @@ def read_json(path):
 def search_score(spec, intent):
     """Rank explicit business aliases first, then overlapping Chinese word pairs."""
     def normalize(value):
+        """统一字符形式和大小写，去除检索无关的符号。"""
         return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", value).casefold())
 
     query = normalize(intent)
@@ -75,11 +80,13 @@ def search_score(spec, intent):
 
 class Catalog:
     def __init__(self, root=DATABASES_ROOT):
+        """绑定资产根目录，初始化按 Run 冻结的内容与业务域缓存。"""
         self.root = Path(root).resolve()
         self._contents = None
         self._domains = {}
 
     def freeze(self, source_keys):
+        """校验所选来源并冻结其登记资产，避免同一 Run 内口径漂移。"""
         frozen = Catalog(self.root)
         frozen._contents = {}
         for source_key in source_keys:
@@ -87,7 +94,7 @@ class Catalog:
             root = self.root / source_key
             paths = [self._path(root, "source.json")]
             for domain in source["domains"]:
-                base, config, specs = self._domain(source_key, domain)
+                base, config, _ = self._domain(source_key, domain)
                 paths += self._metric_files(base)
                 paths += [self._path(root, config['schema'])]
                 paths += [self._path(root, path) for path in config.get("documents", {}).values()]
@@ -96,6 +103,7 @@ class Catalog:
         return frozen
 
     def _path(self, root, relative):
+        """解析受限资产路径；冻结后仅允许访问快照中已有文件。"""
         if self._contents is None:
             return asset_path(root, relative)
         if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
@@ -106,15 +114,18 @@ class Catalog:
         return path
 
     def _text(self, path):
+        """读取冻结内容；尚未冻结时从资产文件读取文本。"""
         return self._contents[path] if self._contents is not None else path.read_text(encoding="utf-8")
 
     def _json(self, path):
+        """解析当前资产视图中的 JSON，统一文件和格式错误。"""
         try:
             return json.loads(self._text(path))
         except (OSError, ValueError):
             raise DataError("CONFIG_INVALID") from None
 
     def source(self, source_key):
+        """读取并校验来源标识与启用状态，不授予访问权限。"""
         path = self._path(self.root, f"{key(source_key)}/source.json")
         data = self._json(path)
         if data.get("source_key") != source_key or data.get("enabled") is not True:
@@ -122,19 +133,23 @@ class Catalog:
         return data
 
     def sources(self):
+        """按目录顺序列出已启用来源，供后续授权筛选。"""
         return [self.source(p.parent.name) for p in sorted(self.root.glob("*/source.json"))
                 if read_json(p).get("enabled") is True]
 
     def sources_for(self, capability_ref):
+        """筛选声明支持指定能力的来源标识，不替代部署侧授权。"""
         return [s['source_key'] for s in self.sources() if capability_ref in s.get('capabilities', [])]
 
     def schema(self, source_key, domain):
+        """读取来源登记的业务域表结构，拒绝未登记业务域。"""
         definition = self.source(source_key).get('domains', {}).get(key(domain))
         if not definition:
             raise DataError('DOMAIN_UNAVAILABLE')
         return self._json(self._path(self.root / source_key, definition['schema']))
 
     def _domain(self, source_key, domain):
+        """校验并装配指标定义，保留待定义状态；冻结资产可复用缓存。"""
         cache_key = (key(source_key), key(domain))
         if cache_key in self._domains:
             return self._domains[cache_key]
@@ -199,6 +214,7 @@ class Catalog:
         return result
 
     def _metric_files(self, root):
+        """列出当前资产视图中的指标 YAML，缺少定义文件时失败。"""
         paths = [p for p in self._contents if p.parent == root and p.suffix == '.yaml'] \
             if self._contents is not None else list(root.glob('*.yaml'))
         if not paths:
@@ -206,6 +222,7 @@ class Catalog:
         return sorted(paths)
 
     def domain(self, source_key, domain):
+        """返回业务域的查询摘要与文档登记副本。"""
         root, config, specs = self._domain(source_key, domain)
         queries = [{k: spec[k] for k in ("id", "name", "description", "status")}
                    for _, spec in sorted(specs.items())]
@@ -214,15 +231,18 @@ class Catalog:
         return root, {**public, "queries": queries}
 
     def spec(self, source_key, domain, query_id):
+        """按登记标识取得查询定义副本，避免调用方修改冻结资产。"""
         spec = self._domain(source_key, domain)[2].get(key(query_id))
         if spec is None:
             raise DataError("QUERY_UNAVAILABLE")
         return deepcopy(spec)
 
     def sql(self, source_key, domain, spec):
+        """按查询标识读取可信资产中的 SQL，不采信传入的 SQL 内容。"""
         return self.spec(source_key, domain, spec['id'])['sql']
 
     def documents(self, source_key, domain, document_keys=None):
+        """按登记键读取限量模型文档，拒绝未登记或人工专用材料。"""
         _, config, _ = self._domain(source_key, domain)
         root = self.root / source_key
         registered = config.get("documents", {})
@@ -247,6 +267,7 @@ class Catalog:
         return result
 
     def revision(self, source_key):
+        """计算指定来源的冻结资产指纹，供本轮结果追溯。"""
         if self._contents is None:
             return self.freeze([source_key]).revision(source_key)
         root = self.root / key(source_key)

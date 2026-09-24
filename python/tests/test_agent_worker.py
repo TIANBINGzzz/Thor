@@ -1,11 +1,10 @@
 import unittest
 import os
 import tempfile
-from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from claude_agent_sdk import AssistantMessage, ResultMessage, StreamEvent, TextBlock
+from claude_agent_sdk import AssistantMessage, StreamEvent, TextBlock
 
 from agent_worker import direct_workflow_event, event_from_stream, events_from_assistant
 from runtime.config import (
@@ -108,16 +107,17 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertIn('没有可用的联网搜索能力', options.system_prompt if isinstance(options.system_prompt, str) else options.system_prompt['append'])
 
     def test_web_search_follows_trusted_capability_configuration_not_payload(self):
-        from runtime.capabilities import CAPABILITIES
+        from runtime.capabilities import CAPABILITIES, capability_entry
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
-        configured = replace(CAPABILITIES['chart-generation'], web_search=False)
-        with patch.dict('os.environ', values, clear=True), patch.dict(CAPABILITIES, {'chart-generation': configured}):
+        configured = capability_entry(CAPABILITIES['chart-generation'].directory)
+        configured['tools'].remove('web')
+        with patch.dict('os.environ', values, clear=True), patch('runtime.config.capability_entry', return_value=configured):
             options = build_options({'capability_ref': 'chart-generation', 'web_search': True,
                                      'tools': ['mcp__web__search']})
         self.assertNotIn('web', options.mcp_servers)
         self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
-        self.assertNotIn('web_search', configured.to_public_dict())
+        self.assertNotIn('web_search', CAPABILITIES['chart-generation'].to_public_dict())
 
     def test_missing_or_non_bailian_provider_does_not_advertise_web_search(self):
         for base in ('', 'https://other.test/apps/anthropic'):
@@ -156,7 +156,7 @@ class AgentWorkerTests(unittest.TestCase):
         for topic in topics:
             self.assertIn(f"`{topic}`", prompt)
         self.assertNotIn("DBHub", prompt)
-        self.assertNotIn("semantics", config["documents"])
+        self.assertNotIn("documents", config)
 
     def test_fixed_template_uses_general_harness_and_stages_source(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {}, clear=True):
@@ -183,7 +183,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('reports',options.mcp_servers)
         self.assertNotIn('prepare_report_data',options.system_prompt['append'])
         self.assertEqual(options.skills,[])
-        self.assertIn('instructions.md', options.system_prompt['append'])
+        self.assertIn('WORKFLOW.md', options.system_prompt['append'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -276,10 +276,10 @@ class AgentWorkerTests(unittest.TestCase):
             })
         self.assertNotIn("business", options.mcp_servers)
 
-        values["CCSDK_BUSINESS_MCP_CAPABILITIES"] = "business-report"
+        values["CCSDK_BUSINESS_MCP_CAPABILITIES"] = "conversation"
         with patch.dict("os.environ", values, clear=True):
             options = build_options({
-                "capability_ref": "business-report",
+                "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},
             })
         self.assertIn("business", options.mcp_servers)
@@ -318,8 +318,8 @@ class AgentWorkerTests(unittest.TestCase):
         common=workflow_prompt_documents(config)
         template=load_template('szpt-midterm','document-writing')
         selected=workflow_prompt_documents(config,template=template)
-        self.assertFalse(config.get('skills'))
-        instructions=(Path(config['_directory'])/'instructions.md').read_bytes().decode('utf-8').strip()
+        self.assertEqual(config.get('skills'), ['document-review'])
+        instructions=config['_body']
         self.assertIn(instructions,common)
         self.assertIn(common,selected)
         self.assertNotIn('szpt-midterm',common)

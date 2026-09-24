@@ -32,6 +32,7 @@ from runtime.claude_sdk import (
     stream_query,
 )
 from runtime.chart_delivery import ChartDelivery
+from runtime.tool_services import ToolServices
 DEFAULT_TIMEOUT_MS = 300_000
 
 # 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
@@ -363,25 +364,28 @@ async def run_client(initial: dict[str, Any]) -> None:
         emit({"type": "client_error", "code": "configuration_error"})
         return
     data_services = create_run_services(initial)
-    campus_service = None
-    if initial.get('capability_ref') == 'campus-brain-query':
-        from tools.campus import CampusQuery, load_campus_assets
-        from runtime.deployment_config import ConfigSnapshot
-        settings = ConfigSnapshot(values=prepare_workflow_assets(initial)['config_values'])
-        campus_service = CampusQuery(load_campus_assets(settings), initial.get('credentials'))
-    chart_delivery = ChartDelivery(emit)
-    mcp_errors = []
-    options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
-                            mcp_error_sink=lambda: mcp_errors.append(True),
-                            **({'campus_service': campus_service} if campus_service else {}))
-    direct_workflow = options.tools == [] and options.strict_mcp_config
-    client = ClaudeSDKClient(
-        options,
-        connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
-        query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
-        receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
-        disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
-    )
+    tool_services = None
+    try:
+        tool_services = ToolServices(prepare_workflow_assets(initial), initial.get('credentials'))
+        chart_delivery = ChartDelivery(emit)
+        mcp_errors = []
+        options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
+                                mcp_error_sink=lambda: mcp_errors.append(True),
+                                tool_services=tool_services)
+        direct_workflow = options.tools == [] and options.strict_mcp_config
+        client = ClaudeSDKClient(
+            options,
+            connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
+            query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
+            receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
+            disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
+        )
+    except BaseException:
+        if tool_services is not None:
+            tool_services.clear()
+        if data_services:
+            await data_services.close()
+        raise
     command_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     reader_task = asyncio.create_task(_read_client_commands(command_queue), name="ccsdk-client-stdin")
     client_closed = False
@@ -414,8 +418,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                 try:
                     deadline = time.monotonic() + timeout_value / 1000
                     async with asyncio.timeout(timeout_value / 1000):
-                        if campus_service:
-                            campus_service.bind(command.get('credentials'))
+                        tool_services.bind(command.get('credentials'))
                         if data_services:
                             await data_services.bind(command)
                             prompt = data_services.prepare_prompt(str(prompt or ""))
@@ -436,8 +439,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                     emit({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)})
                     return
                 finally:
-                    if campus_service:
-                        campus_service.clear()
+                    tool_services.clear()
                     if data_services:
                         await data_services.close()
         except asyncio.CancelledError:
@@ -445,6 +447,8 @@ async def run_client(initial: dict[str, Any]) -> None:
         except Exception as error:
             emit({"type": "client_error", "code": _client_error_code(error)})
         finally:
+            if tool_services is not None:
+                tool_services.clear()
             if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW, ClientState.FAILED}:
                 try:
                     await client.disconnect()
@@ -479,7 +483,9 @@ async def run(payload: dict[str, Any]) -> None:
     # The SDK merges ``options.env`` with the worker process environment.  Keep
     # secrets loaded for configuration construction out of the provider CLI.
     timeout_ms = payload.get("timeout_ms", payload.get("timeoutMs", DEFAULT_TIMEOUT_MS))
+    tool_services = None
     try:
+        tool_services = ToolServices(prepare_workflow_assets(payload), payload.get('credentials'))
         prompt = payload['prompt']
         if data_services:
             await data_services.bind(payload)
@@ -487,15 +493,16 @@ async def run(payload: dict[str, Any]) -> None:
         chart_delivery = ChartDelivery(emit)
         mcp_errors = []
         options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
-                                mcp_error_sink=lambda: mcp_errors.append(True))
+                                mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
         direct_workflow = options.tools == [] and options.strict_mcp_config
         with isolated_sdk_environment():
             async for message in stream_query(prompt, options, timeout_ms=timeout_ms):
-                normalized = normalize_message(message)
                 for event in message_events(message, streaming):
                     event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
     finally:
+        if tool_services is not None:
+            tool_services.clear()
         if data_services:
             await data_services.close()
 

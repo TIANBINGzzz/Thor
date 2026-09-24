@@ -36,16 +36,19 @@ SECRET_KEYS = {
 
 
 def _now_ms() -> int:
+    """返回持久化记录使用的当前 Unix 毫秒时间戳。"""
     return int(time.time() * 1000)
 
 
 def _validate_run_id(value: Any) -> str:
+    """校验存储标识格式，拒绝空值及非法字符。"""
     if not isinstance(value, str) or not RUN_ID.fullmatch(value):
         raise ValueError("run_id must be a non-empty opaque identifier")
     return value
 
 
 def _redact(value: Any) -> Any:
+    """递归移除已登记敏感键并复制容器，不扫描普通字符串中的凭据。"""
     if isinstance(value, Mapping):
         return {
             str(key): _redact(item)
@@ -60,6 +63,7 @@ def _redact(value: Any) -> Any:
 
 
 def _json(value: Any) -> str:
+    """过滤敏感字段后生成紧凑 JSON，未知类型按字符串序列化。"""
     return json.dumps(_redact(value), ensure_ascii=False, separators=(",", ":"), default=str)
 
 
@@ -67,6 +71,7 @@ class RunStore:
     """SQLite-backed Run metadata and ordered event storage."""
 
     def __init__(self, path: str | Path = ".scribe-runs/runs.sqlite3") -> None:
+        """打开 SQLite 存储并初始化表、索引和必要字段，支持内存数据库。"""
         self.path = str(path)
         self._memory = self.path == ":memory:"
         if not self._memory:
@@ -138,12 +143,14 @@ class RunStore:
             self._connection.commit()
 
     def artifact(self, artifact_id: str) -> dict[str, Any] | None:
+        """按产物标识读取内部记录，不存在时返回 None；授权由调用方负责。"""
         with self._lock:
             row = self._connection.execute('SELECT record_json FROM artifacts WHERE artifact_id = ?',
                                            (artifact_id,)).fetchone()
             return json.loads(row['record_json']) if row else None
 
     def artifacts(self, run_id: str | None = None) -> list[dict[str, Any]]:
+        """按插入顺序读取全部或指定 Run 的产物，授权由调用方负责。"""
         with self._lock:
             rows = self._connection.execute(
                 'SELECT record_json FROM artifacts' + (' WHERE run_id = ?' if run_id is not None else '') + ' ORDER BY rowid',
@@ -222,18 +229,22 @@ class RunStore:
 
     @staticmethod
     def _session_cursor(run_id: str) -> str:
+        """将 Run 标识编码为版本化分页游标，不附加访问权限。"""
         return 'v1.' + base64.urlsafe_b64encode(run_id.encode('ascii')).rstrip(b'=').decode('ascii')
 
     def close(self) -> None:
+        """在锁内关闭数据库连接，重复关闭时直接返回。"""
         with self._lock:
             if self._connection is not None:
                 self._connection.close()
                 self._connection = None  # type: ignore[assignment]
 
     def __enter__(self) -> "RunStore":
+        """进入同步上下文并返回当前存储实例。"""
         return self
 
     def __exit__(self, *_: Any) -> None:
+        """退出上下文时关闭存储，不抑制上下文异常。"""
         self.close()
 
     def create_run(
@@ -350,7 +361,6 @@ class RunStore:
             row = self._connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return self._run_row(row)
 
-    set_status = update_status
 
     def update_runtime_session_ref(self, run_id: str, value: str | None) -> dict[str, Any]:
         """为指定 Run 保存或清空 SDK 会话引用，返回更新后的内部记录。"""
@@ -433,7 +443,6 @@ class RunStore:
             return [self._event_row(row) for row in rows]
 
     replay = events_after
-    get_events = events_after
 
     def append_trace(self, run_id, raw):
         """私有调试事件独立编号，不进入公共事件回放或lastSequence。"""
@@ -446,20 +455,12 @@ class RunStore:
             return event
 
     def traces_after(self, run_id, after_sequence=0, limit=100):
+        """按独立序号读取私有观测事件，调用方负责观测权限校验。"""
         with self._lock:
             rows = self._connection.execute(
                 'SELECT event_json FROM run_traces WHERE run_id=? AND sequence>? ORDER BY sequence LIMIT ?',
                 (run_id, after_sequence, limit)).fetchall()
             return [json.loads(row[0]) for row in rows]
-
-    def last_sequence(self, run_id: str) -> int:
-        """接收 Run 标识，返回已存事件的最大序号，无事件时返回 0。"""
-        run_id = _validate_run_id(run_id)
-        with self._lock:
-            row = self._connection.execute(
-                "SELECT COALESCE(MAX(sequence), 0) AS sequence FROM run_events WHERE run_id = ?", (run_id,)
-            ).fetchone()
-            return int(row["sequence"])
 
     def delete_run(self, run_id: str) -> bool:
         """删除指定 Run 及关联事件，返回是否实际删除了 Run 记录。"""
@@ -471,6 +472,7 @@ class RunStore:
 
     @staticmethod
     def _run_row(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        """将数据库行转换为内部 Run 记录，元数据解析失败时使用空对象。"""
         if row is None:
             return None
         try:
@@ -497,6 +499,7 @@ class RunStore:
 
     @staticmethod
     def _event_row(row: sqlite3.Row) -> dict[str, Any]:
+        """还原事件并补齐存储序号，内容无法解析时标记为未知事件。"""
         try:
             event = json.loads(row["event_json"])
         except (TypeError, json.JSONDecodeError):

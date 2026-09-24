@@ -106,9 +106,11 @@ class ToolCallDisplays:
     """工具结果通常不含名称，按Run和调用作用域记住安全标识，结束后释放。"""
 
     def __init__(self):
+        """初始化按 Run 隔离的工具调用显示标识缓存。"""
         self.runs = {}
 
     def resolve(self, run_id, raw):
+        """按 Run 和调用作用域关联可信显示名称，未知工具使用默认标识。"""
         call = (raw.get('scope') or 'main', raw.get('id'))
         calls = self.runs.setdefault(run_id, {})
         key = calls.get(call)
@@ -119,4 +121,5 @@ class ToolCallDisplays:
         return {'toolKey': key, 'displayName': TOOL_DISPLAY_NAMES[key]}
 
     def clear(self, run_id):
+        """释放指定 Run 的工具显示缓存，不影响其他 Run。"""
         self.runs.pop(run_id, None)

@@ -22,11 +22,13 @@ SCOPE_REFERENCE = {**REFERENCE, "description": (
 
 
 def tool_server(name, definitions):
+    """按可信定义注册数据工具，统一参数校验和非敏感错误输出。"""
     registered = []
     for tool_name, description, properties, required, handler in definitions:
         schema = {"type": "object", "properties": properties, "required": required, "additionalProperties": False}
 
         async def invoke(args, _handler=handler, _schema=schema):
+            """校验本工具参数后执行绑定处理器，仅反馈可信字段提示。"""
             try:
                 invalid = next(Draft202012Validator(_schema).iter_errors(args), None)
                 if invalid:
@@ -61,6 +63,7 @@ def tool_server(name, definitions):
 
 
 def create_data_server(services):
+    """按本轮来源资产注册问数与结果分页工具，权限仍由执行器校验。"""
     # 实体类型跟随本次挂载的数据资产；枚举只说明语法，实际来源/范围授权仍由执行器校验。
     entity_types = {'school'}
     for source_key in services.source_keys:
@@ -68,12 +71,15 @@ def create_data_server(services):
             entity_types.update(domain.get('entities', {}))
 
     def call(method):
+        """绑定受控执行器方法名，调用时再取得当前 Run 的执行器。"""
         async def handler(**args):
+            """通过服务调用当前执行器，避免工具闭包保留上轮身份。"""
             executor = services.current()
             return await services.call(getattr(executor, method), **args)
         return handler
 
     async def read(result_ref, cursor=None):
+        """读取当前 Run 已物化结果的一页，不重新执行数据库查询。"""
         return services.current().results.page(result_ref, cursor)
 
     return tool_server("data", [

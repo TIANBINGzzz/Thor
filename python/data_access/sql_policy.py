@@ -9,6 +9,7 @@ from .context import DataError
 
 
 def validate_sql(sql, policy, *, dynamic=False):
+    """校验完整只读查询树，限制表、函数及动态查询的内部列输出。"""
     if not isinstance(sql, str) or len(sql) > 60_000:
         raise DataError("SQL_INVALID")
     if "/*!" in sql or "/*M!" in sql.upper():

@@ -1,6 +1,6 @@
 # 双高模板来源核验
 
-本文合并原 SQL 核验、逐页阅读和旧位置清单中仍有效的来源证据与未决项，不是执行规则或当期实绩；2026-09-22 仅整理历史记录，未重新查库或渲染。撰写以 [共同规则](../../.claude/workflows/writing-docx/instructions.md)及所选 [模板指南](../../.claude/workflows/writing-docx/templates/szpt-midterm/writing-guide.md)为准，本文不自动注入 Prompt。
+本文合并原 SQL 核验、逐页阅读和旧位置清单中仍有效的来源证据与未决项，不是执行规则或当期实绩；2026-09-22 仅整理历史记录，未重新查库或渲染。撰写以 [共同规则](../../.claude/workflows/writing-docx/WORKFLOW.md)及所选 [模板指南](../../.claude/workflows/writing-docx/templates/szpt-midterm/writing-guide.md)为准，本文不自动注入 Prompt。
 
 ## 来源与确认范围
 

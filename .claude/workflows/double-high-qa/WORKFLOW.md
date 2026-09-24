@@ -1,3 +1,15 @@
+---
+name: double-high-qa
+description: 通过授权数据工具回答双高项目、任务、资金与绩效问题
+execution:
+  mode: direct
+data_access: required
+data_context_topics:
+- schema
+- relationships
+- business
+---
+
 # 双高问数流程
 
 1. 本轮 `database_context` 已由程序准备可用来源、范围引用，以及 `schema`、`relationships`、`business`。单一来源直接使用；多来源按问题选择，无法判定时澄清。直接依据这些字段和规则理解问题，不重复调用 `list_data_sources` 或 `describe_data_source` 读取已有内容，不从流程名猜测表或字段。

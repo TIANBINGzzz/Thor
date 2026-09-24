@@ -6,6 +6,7 @@ TRACE_TYPES = {'thinking', 'tool_use', 'tool_result', 'tool_progress', 'result',
 SENSITIVE = re.compile(r'authorization|credential|password|secret|api.?key|token|cookie|signature', re.I)
 
 def enabled():
+    """仅在部署环境显式启用时开放私有观测记录。"""
     return os.environ.get('CCSDK_ENABLE_RUN_TRACE', '').strip() == '1'
 
 def sanitize(value, secrets=()):
@@ -13,6 +14,7 @@ def sanitize(value, secrets=()):
     known = tuple(str(v) for k, v in os.environ.items() if SENSITIVE.search(k) and len(str(v)) >= 8)
     known += tuple(str(v) for v in secrets if v)
     def clean(item, depth=0):
+        """递归遮盖敏感内容，并限制层级、集合大小和文本长度。"""
         if depth > 24:
             return '[TRUNCATED]'
         if isinstance(item, dict):

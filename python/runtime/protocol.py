@@ -28,6 +28,7 @@ def _payload(value: Any) -> dict[str, Any]:
                 "model", "tools", "mcp", "mcpservers", "mcps", "cwd", "workspace", "permissions"}
 
     def check(item: Any, depth: int) -> None:
+        """递归校验业务值的深度、保留字段和 JSON 类型，拒绝非法输入。"""
         if depth > 16:
             raise ProtocolError("payload nesting exceeds 16 levels")
         if isinstance(item, dict):
@@ -55,18 +56,21 @@ def _payload(value: Any) -> dict[str, Any]:
 
 
 def _object(value: Any, name: str) -> Mapping[str, Any]:
+    """要求输入为映射对象，类型不符时报告对应协议字段。"""
     if not isinstance(value, Mapping):
         raise ProtocolError(f"{name} must be an object")
     return value
 
 
 def _keys(value: Mapping[str, Any], allowed: set[str], name: str) -> None:
+    """拒绝协议对象中未明确允许的字段。"""
     unknown = sorted(set(value) - allowed)
     if unknown:
         raise ProtocolError(f"{name} contains unsupported field(s): {', '.join(unknown)}")
 
 
 def _id(value: Any, name: str, *, required: bool = True) -> str | None:
+    """校验不透明标识的字符范围，仅允许可选标识缺失。"""
     if value is None:
         if required:
             raise ProtocolError(f"{name} is required")
@@ -192,10 +196,5 @@ class AgentRunRequest:
         if include_credentials:
             result["credentials"] = self.credentials.to_dict(include_secret=True)
         return {key: value for key, value in result.items() if value not in (None, {})}
-
-    def to_internal_dict(self) -> dict[str, Any]:
-        """返回包含凭据的内部请求字典，仅供需要传递本次请求 Token 的内部调用使用。"""
-        return self.to_dict(include_credentials=True)
-
 
 __all__ = ["AgentRunRequest", "AttachmentRef", "Credentials", "Input", "PROTOCOL", "ProtocolError"]

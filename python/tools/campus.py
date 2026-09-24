@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
-from runtime.prompt_documents import read_documents
+from runtime.prompt_documents import read_entry
 from runtime.deployment_config import ConfigSnapshot
 
 
@@ -24,9 +24,13 @@ class CampusInputError(ValueError):
 ASSET_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities/campus-brain-query'
 
 
-def load_campus_assets(settings=None):
+def load_campus_assets(settings=None, directory=ASSET_ROOT):
     """只读取登记文件；知识保留在服务端内存，不整表注入提示词。"""
-    raw = (ASSET_ROOT / 'capability.json').read_bytes()
+    entry = read_entry(Path(directory) / 'CAPABILITY.md')
+    config_path = (Path(directory) / entry['tool_config']['campus']).resolve()
+    if not config_path.is_relative_to(Path(directory).resolve()):
+        raise RuntimeError('校园工具资产路径无效')
+    raw = config_path.read_bytes()
     config = json.loads(raw)
     connection = (settings or ConfigSnapshot()).resolve(config.pop('connection'))
     validate_http_connection(connection)
@@ -41,8 +45,8 @@ def load_campus_assets(settings=None):
     digest = hashlib.sha256(raw)
     digest.update(json.dumps(connection, sort_keys=True).encode('utf-8'))
     for kind, name in config['catalogs'].items():
-        path = (ASSET_ROOT / name).resolve()
-        if not path.is_relative_to(ASSET_ROOT.resolve()) or path.suffix != '.csv':
+        path = (config_path.parent / name).resolve()
+        if not path.is_relative_to(config_path.parent) or path.suffix != '.csv':
             raise RuntimeError('校园知识资产路径无效')
         digest.update(path.read_bytes())
         with path.open(encoding='utf-8', newline='') as stream:
@@ -53,13 +57,13 @@ def load_campus_assets(settings=None):
                 definitions.setdefault(row['code'], set()).add(row['name'])
             for row in catalogs[kind]:
                 row['definition_conflict'] = len(definitions[row['code']]) > 1
-    documents = read_documents(ASSET_ROOT, config['documents'])
-    prompt = '\n\n'.join(d['text'] for d in documents).replace('{minimum_schools}', str(minimum))
+    prompt = entry['_body'].replace('{minimum_schools}', str(minimum))
     digest.update(prompt.encode('utf-8'))
     return {'config': config, 'catalogs': catalogs, 'prompt': prompt, 'revision': digest.hexdigest()}
 
 
 def _normalized(text):
+    """去除末尾括注及常见分隔符，统一检索文本的大小写。"""
     text = re.sub(r'[（(][^()（）]*[）)]$', '', text.strip())
     return re.sub(r'[\s，,。；;、：:]', '', text).casefold()
 
@@ -79,9 +83,14 @@ def _statistic(key, value):
 
 class CampusQuery:
     def __init__(self, assets, credentials):
+        """绑定可信校园资产与本轮凭据，串行执行身份和统计查询。"""
         self.assets = assets
         self._lock = asyncio.Lock()
         self.bind(credentials)
+
+    def tool_names(self):
+        """返回知识检索及已配置查询工具名，供装配层生成白名单。"""
+        return ['search_knowledge', *self.assets['config']['tools']]
 
     def bind(self, credentials):
         """每轮重新绑定；不得用上轮身份或调用预算授权下一轮。"""
@@ -89,6 +98,7 @@ class CampusQuery:
         self._binding = MCPArgumentBinding('campus', credentials)
 
     def clear(self):
+        """清除凭据绑定、本校身份和本轮去重记录及调用计数。"""
         if getattr(self, '_binding', None):
             self._binding.clear()
         self._seen = set()
@@ -97,6 +107,7 @@ class CampusQuery:
         self._identity_failed = False
 
     def search(self, arguments):
+        """检索本地登记词表并分页返回候选，文字命中不代表身份确认。"""
         if (not isinstance(arguments, dict) or set(arguments) - {'kind', 'query', 'offset'}
                 or arguments.get('kind') not in self.assets['catalogs']):
             raise CampusInputError('请选择有效的知识类型')
@@ -119,18 +130,24 @@ class CampusQuery:
             pattern = '.*'.join(re.escape(c) for c in needle)
             found = [r for r in rows if re.search(pattern, _normalized(r['name']))]
         def match_basis(row):
+            """区分名称全匹配、编码匹配、子串及字序匹配。"""
             if _normalized(row['name']) == needle:
                 return 'exact'
             if query == row['code']:
                 return 'code'
             return 'substring' if needle in _normalized(row['name']) else 'subsequence'
 
-        found.sort(key=lambda r: (match_basis(r) not in ('exact', 'code'), r['name'], r.get('year', '')))
+        def match_order(row):
+            """优先名称全匹配与编码匹配，再按名称和年份稳定排序。"""
+            return match_basis(row) not in ('exact', 'code'), row['name'], row.get('year', '')
+
+        found.sort(key=match_order)
         # 匹配依据只描述文字命中方式，不代表语义置信度；不修改共享知识记录。
         records = [{**r, 'match_basis': match_basis(r)} for r in found[offset:offset + 5]]
         return {'records': records, 'total': len(found), 'has_more': len(found) > offset + 5}
 
     async def call(self, name, arguments):
+        """校验本轮身份、查询范围与预算，注入凭据并过滤上游结果。"""
         async with self._lock:
             self._binding.inject({})
             rules = self.assets['config']['tools']
@@ -198,12 +215,16 @@ class CampusQuery:
             return {'success': True, 'data': safe}
 
     async def _request(self, name, arguments):
+        """将已绑定凭据的查询参数发送到可信资产指定的 MCP。"""
         return await call_mcp_tool(self.assets['config'], name, arguments)
 
 
 def create_campus_server(service, *, on_error=None):
+    """按服务资产注册知识检索与查询工具，统一隔离上游错误正文。"""
     def wrap(handler):
+        """为工具处理器绑定 MCP 结果编码与分级错误反馈。"""
         async def invoke(arguments):
+            """执行处理器；仅透出本地输入提示，其他错误返回固定文本。"""
             try:
                 result = await handler(arguments)
                 return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
@@ -220,6 +241,7 @@ def create_campus_server(service, *, on_error=None):
         return invoke
 
     async def search(arguments):
+        """把 MCP 检索参数交给服务的本地登记词表检索。"""
         return service.search(arguments)
     tools = [sdk_tool('search_knowledge', '批量检索指标或常模学校；常模指标用 norm_analysis。多个候选直接选最贴近名称的一项，同样合理时取首项，不停下来澄清；回答展示所选全称。', {
         'type': 'object', 'properties': {'kind': {'type': 'string', 'enum': list(service.assets['catalogs'])},
@@ -229,6 +251,7 @@ def create_campus_server(service, *, on_error=None):
         'required': ['kind', 'query'], 'additionalProperties': False})(wrap(search))]
     for name, rule in service.assets['config']['tools'].items():
         async def call(arguments, tool_name=name):
+            """固定本次注册的工具名，避免循环回调串用最后一个名称。"""
             return await service.call(tool_name, arguments)
         tools.append(sdk_tool(name, rule['description'], {'type': 'object',
             'properties': {'payload': rule['schema']}, 'required': ['payload'], 'additionalProperties': False})(wrap(call)))

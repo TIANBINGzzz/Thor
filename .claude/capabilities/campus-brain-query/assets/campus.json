@@ -1,7 +1,4 @@
 {
-  "documents": [
-    "instructions.md"
-  ],
   "connection": {
     "url": "${campusMcp.url}",
     "headers": {
@@ -135,13 +132,5 @@
       ]
     }
   },
-  "minimum_schools": 8,
-  "runtime": {
-    "thinking": {
-      "type": "disabled"
-    },
-    "prompt_mode": "custom",
-    "max_turns": 12,
-    "effort": "low"
-  }
+  "minimum_schools": 8
 }

@@ -61,7 +61,7 @@ async def _spawn_worker_process(payload: dict[str, Any]) -> asyncio.subprocess.P
         sys.executable,
         str(WORKER),
         cwd=str(PROJECT_ROOT),
-        env=worker_environment(payload),
+        env=worker_environment(),
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -82,6 +82,7 @@ async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]
     stderr_task: asyncio.Task[Any] | None = None
 
     async def relay_stderr() -> None:
+        """异步转发本次 Worker 标准错误，不混入 JSONL 事件流。"""
         while line := await process.stderr.readline():
             message = line.decode("utf-8", errors="replace").strip()
             if message:
@@ -140,6 +141,7 @@ class ClientWorkerProcess:
         send_timeout_ms: int = 5_000,
         close_timeout_ms: int = 5_000,
     ) -> None:
+        """校验各阶段超时并初始化持久 Worker 通道，此时不启动进程。"""
         for value, name in (
             (start_timeout_ms, "start_timeout_ms"),
             (send_timeout_ms, "send_timeout_ms"),
@@ -159,10 +161,12 @@ class ClientWorkerProcess:
 
     @property
     def process(self) -> asyncio.subprocess.Process | None:
+        """返回当前 Worker 进程引用，未启动或已回收时返回 None。"""
         return self._process
 
     @property
     def alive(self) -> bool:
+        """检查 Worker 已启动、尚未退出且未标记关闭。"""
         return self._process is not None and self._process.returncode is None and not self._closed
 
     async def start(self, payload: dict[str, Any]) -> dict[str, Any]:

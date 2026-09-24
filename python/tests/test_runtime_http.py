@@ -1,3 +1,4 @@
+from runtime.prompt_documents import read_entry
 import asyncio
 import json
 import tempfile
@@ -97,6 +98,18 @@ class RuntimeHTTPTests(unittest.TestCase):
                 response = self.client.post('/internal/v1/runs', json=body,
                     headers=self.headers('run.execute', runId=run_id, capabilityRef=capability))
                 self.assertEqual(response.status_code, 202, response.text)
+
+    def test_attachment_switch_uses_current_entry_not_startup_catalog(self):
+        from runtime.capabilities import capability_entry, CAPABILITIES
+        entry = capability_entry(CAPABILITIES['conversation'].directory)
+        entry['supports_attachments'] = False
+        body = {**self.body, 'input': {'text': '', 'attachmentRefs': [{'fileId': 'authorized-file'}]}}
+        with patch('runtime.config.capability_entry', return_value=entry), patch.object(
+                server, '_execute_internal_run', new_callable=AsyncMock) as execute:
+            response = self.client.post('/internal/v1/runs', json=body, headers=self.headers('run.execute'))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('capability_does_not_support_attachments', response.text)
+        execute.assert_not_called()
 
     def test_omitted_capability_binds_only_to_conversation_jwt(self):
         body={k:v for k,v in self.body.items() if k!='capabilityRef'}
@@ -199,8 +212,8 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_writing_budget_comes_from_trusted_workflow_for_both_modes(self):
         # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
-        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx/workflow.json'
-        expected_timeout = json.loads(workflow_path.read_text(encoding='utf-8'))['runtime']['timeout_ms']
+        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx/WORKFLOW.md'
+        expected_timeout = read_entry(workflow_path)['runtime']['timeout_ms']
         self.assertIs(type(expected_timeout), int)
         self.assertGreater(expected_timeout, 0)
         self.assertNotEqual(expected_timeout, 500)
