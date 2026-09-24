@@ -196,7 +196,7 @@ class CampusQuery:
         return await call_mcp_tool(self.assets['config'], name, arguments)
 
 
-def create_campus_server(service):
+def create_campus_server(service, *, on_error=None):
     def wrap(handler):
         async def invoke(arguments):
             try:
@@ -205,8 +205,12 @@ def create_campus_server(service):
             except CampusInputError as error:
                 return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
             except ValueError:
+                if on_error:
+                    on_error()
                 return {'isError': True, 'content': [{'type': 'text', 'text': '查询条件或本轮身份无效，请核对指标、年份、学校集合及调用预算。'}]}
             except Exception:
+                if on_error:
+                    on_error()
                 return {'isError': True, 'content': [{'type': 'text', 'text': '查询服务暂时不可用或返回未支持的数据，未自动重试。'}]}
         return invoke
 

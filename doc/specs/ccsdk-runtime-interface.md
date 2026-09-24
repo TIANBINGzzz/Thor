@@ -20,6 +20,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 ### 3.4 业务 payload
 
 - 业务要求放 input.text，文件放 input.attachmentRefs；当前仅 document-writing 选择预制模板时使用 payload.templateKey，登记值为 szpt-midterm。其他场景省略 payload 或传 {}，不自行新增字段。
+- 所有现有能力支持附件普通问答，复用同一只读入口和本轮输入目录。支持UTF-8文字、DOCX、PDF及PNG/JPEG/WebP，读取上限20MiB；不支持的格式明确反馈。附件不改变业务工具权限，也不作为接口最新数据。
 - 通用 JSON 校验仍可能接受未约定字段，尚无逐能力字段白名单；未拒绝不表示接口支持。大小、深度及保留字段见 [payload 字段参考](../python-api.html#business-payload)，Java 仅传允许模型读取的数据。
 - templateKey 不是路径、数据库名或权限参数。省略/null 不选模板，其他非空值须通过登记、启用、能力及路径校验；校验在异步准备阶段，202 不代表模板通过。其他能力传非 null 模板值同样触发校验。
 - 预制模板由 template.json 登记 DOCX、指南及来源绑定；本 Run 冻结实际资源版本。共同规则显式加载，指南仅按所选模板加载；缺失、越界或版本漂移失败，不静默省略。指标含义与 SQL 只维护在数据库包。
@@ -75,6 +76,8 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 排队、全部文件准备、单次网络等待、SDK 执行分别计时；默认与限制见 [超时字段](../python-api.html#file-broker)。平台下载还与 fileService.maxFileBytes/timeoutSeconds 取较小限额，单文件限制不是磁盘总配额。
 
 ## 9. 错误响应
+
+- 校园 MCP 鉴权、连接、服务及返回结构失败仍发出工具错误，并将最终 Run 标为 failed，复用 sdk_execution_error；即使模型正常结束答复也不记成功。参数纠正、澄清和成功空结果不触发此映射，下一 Run 清空失败标记。
 
 同步业务错误通常为 text/plain，查询参数校验 422 返回 JSON detail；状态映射见 [错误参考](../python-api.html#errors)。创建后发生的附件/模板/模型错误通过 run.failed 和 Run.error 表达，上传错误通过文件事件表达，不能只按 HTTP 202 或 SDK 成功判断交付。
 

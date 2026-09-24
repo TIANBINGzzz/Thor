@@ -280,6 +280,7 @@ async def _receive_client_response(
     direct_workflow: bool,
     deadline: float | None,
     chart_delivery: ChartDelivery | None = None,
+    mcp_errors: list | None = None,
 ) -> str | None:
     """接收 Client、当前命令、流状态、控制队列及执行策略，输出回复事件并返回最后的 SDK 会话标识。
 
@@ -309,6 +310,7 @@ async def _receive_client_response(
                 if normalized.session_id:
                     last_session_id = normalized.session_id
                 for event in message_events(normalized, streaming):
+                    event = mcp_result_event(event, mcp_errors)
                     (chart_delivery.emit if chart_delivery else emit)(direct_workflow_event(event) if direct_workflow else event)
                 if normalized.kind == "result":
                     completed = True
@@ -365,7 +367,9 @@ async def run_client(initial: dict[str, Any]) -> None:
         from tools.campus import CampusQuery, load_campus_assets
         campus_service = CampusQuery(load_campus_assets(), initial.get('credentials'))
     chart_delivery = ChartDelivery(emit)
+    mcp_errors = []
     options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
+                            mcp_error_sink=lambda: mcp_errors.append(True),
                             **({'campus_service': campus_service} if campus_service else {}))
     direct_workflow = options.tools == [] and options.strict_mcp_config
     client = ClaudeSDKClient(
@@ -397,6 +401,7 @@ async def run_client(initial: dict[str, Any]) -> None:
 
                 run_id = _client_command_run_id(command)
                 chart_delivery.reset()
+                mcp_errors.clear()
                 prompt = command.get("prompt")
                 streaming: dict[str, str] = {}
                 timeout_value = command.get("timeout_ms", command.get("timeoutMs", DEFAULT_TIMEOUT_MS))
@@ -413,7 +418,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                             prompt = data_services.prepare_prompt(str(prompt or ""))
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
                         session_id = await _receive_client_response(
-                            client, command, streaming, command_queue, direct_workflow, deadline, chart_delivery,
+                            client, command, streaming, command_queue, direct_workflow, deadline, chart_delivery, mcp_errors,
                         )
                     emit({"type": "client_run_completed", "run_id": run_id, "session_id": session_id})
                 except ClientRunCancelled:
@@ -453,6 +458,13 @@ def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
     return {**event, "skills": [], "agents": [], "commands": []}
 
 
+def mcp_result_event(event, failures):
+    """上游失败即使被模型解释为正常文本，本轮终态仍沿用SDK执行失败协议。"""
+    if event.get('type') == 'result' and failures:
+        return {**event, 'ok': False, 'message': '上游服务调用失败'}
+    return event
+
+
 async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
     load_runtime_environment(payload.get("workflow_name"))
@@ -470,12 +482,15 @@ async def run(payload: dict[str, Any]) -> None:
             await data_services.bind(payload)
             prompt = data_services.prepare_prompt(prompt)
         chart_delivery = ChartDelivery(emit)
-        options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record)
+        mcp_errors = []
+        options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
+                                mcp_error_sink=lambda: mcp_errors.append(True))
         direct_workflow = options.tools == [] and options.strict_mcp_config
         with isolated_sdk_environment():
             async for message in stream_query(prompt, options, timeout_ms=timeout_ms):
                 normalized = normalize_message(message)
                 for event in message_events(message, streaming):
+                    event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
     finally:
         if data_services:

@@ -9,6 +9,28 @@ from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upstream_failure_overrides_success_in_query(self):
+        from server import _public_internal_event
+        callback = None
+        events = []
+        def options(_, **kwargs):
+            nonlocal callback
+            callback = kwargs['mcp_error_sink']
+            return SimpleNamespace(tools=[], strict_mcp_config=True)
+        async def query(*args, **kwargs):
+            callback()
+            yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: None,
+                            build_options=options, stream_query=query,
+                            isolated_sdk_environment=nullcontext, emit=events.append):
+            await agent_worker.run({'prompt': 'question'})
+        result = next(e for e in events if e['type'] == 'result')
+        self.assertFalse(result['ok'])
+        public = _public_internal_event('run-test', result)
+        self.assertEqual(public['type'], 'run.failed')
+        self.assertEqual(public['payload']['code'], 'sdk_execution_error')
+
     async def test_one_shot_prepares_prompt_before_query_and_cleans_up_on_failure(self):
         services = SimpleNamespace(bind=AsyncMock(), close=AsyncMock(),
                                    prepare_prompt=lambda prompt: 'prepared:' + prompt)
@@ -36,6 +58,13 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
     async def test_client_injects_fresh_prepared_context_into_each_query(self):
         queries = []
         completed = asyncio.Event()
+        results = []
+        error_sink = None
+
+        def options(_, **kwargs):
+            nonlocal error_sink
+            error_sink = kwargs['mcp_error_sink']
+            return SimpleNamespace(tools=[], strict_mcp_config=True)
 
         class Services:
             async def bind(self, command):
@@ -55,6 +84,8 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
             async def query(self, prompt, session_id):
                 queries.append(prompt)
+                if len(queries) == 1:
+                    error_sink()
 
             async def receive_response(self, **kwargs):
                 yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
@@ -70,17 +101,20 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
             await queue.put({'type': 'client_close'})
 
         def emit(event):
+            if event['type'] == 'result':
+                results.append(event['ok'])
             if event['type'] == 'client_run_completed':
                 completed.set()
 
         services = Services()
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [], create_run_services=lambda _: services,
-                            build_options=lambda _, **kwargs: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            build_options=options,
                             ClaudeSDKClient=lambda *args, **kwargs: Client(),
                             isolated_sdk_environment=nullcontext, _read_client_commands=commands, emit=emit):
             await asyncio.wait_for(agent_worker.run_client({}), 3)
         self.assertEqual(queries, ['r1:question', 'r2:question'])
+        self.assertEqual(results, [False, True])
         self.assertIsNone(services.run_id)
 
     async def test_closing_at_result_keeps_client_ready_for_next_query(self):

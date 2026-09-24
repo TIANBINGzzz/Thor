@@ -215,7 +215,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
       "capabilityRef": "campus-brain-query",
       "name": "校园大脑问数",
       "description": "查询本校指标、预置群体对比与自选学校组常模分析",
-      "supportsAttachments": false
+      "supportsAttachments": true
     },
     {
       "capabilityRef": "image-generation",
@@ -245,7 +245,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
       "capabilityRef": "national-excellence-data-qa",
       "name": "双高问数",
       "description": "查询国双高项目、任务、资金与绩效",
-      "supportsAttachments": false
+      "supportsAttachments": true
     }
   ]
 }</pre></div>
@@ -824,6 +824,7 @@ Accept: application/octet-stream</pre></div>
 <p>文件准备超时通过 run.failed 返回 file_broker_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。平台下载还受 fileService.maxFileBytes 和 timeoutSeconds 约束，分别与 Runtime 对应上限取较小值。显式 Broker 的授权 Token 由接入方保证有效，Python 不自动刷新。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
+<p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用既有 sdk_execution_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>
 <p>业务错误使用 <code>text/plain; charset=utf-8</code>；查询参数校验失败返回 <code>422 application/json</code>，包含 detail 数组。Java 应先按 HTTP 状态及 Content-Type 分支处理，不能假设所有错误都是 JSON 或纯文本。不存在的 Run 可先返回 404，不应把该响应当成鉴权成功。</p>
 <table class="error-table"><thead><tr><th>HTTP</th><th>含义</th><th>常见场景</th></tr></thead><tbody>
 <tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability、附件或 control 操作不合法。</td></tr>

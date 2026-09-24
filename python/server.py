@@ -567,6 +567,7 @@ def _internal_worker_payload(
         "resume": None,
         "include_partial_messages": True,
         "cwd": str(PROJECT_ROOT),
+        "input_directory": str(input_directory),
         "additional_directories": [
             str(input_directory),
             str(work_directory),

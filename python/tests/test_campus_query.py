@@ -13,6 +13,35 @@ from tools.campus import CampusQuery, create_campus_server, load_campus_assets
 
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
+    async def test_upstream_failure_marks_run_but_local_validation_does_not(self):
+        service = self.service()
+        failures = []
+        with patch('tools.campus.create_sdk_mcp_server') as create:
+            create_campus_server(service, on_error=lambda: failures.append(True))
+        tool = next(t for t in create.call_args.kwargs['tools'] if t.name == 'get_indicator_metrics')
+        await tool.handler({'payload': {'indicator_code': 'unknown'}})
+        self.assertEqual(failures, [])
+        service._request = AsyncMock(return_value={'success': True, 'data': None})
+        result = await tool.handler({'payload': {'indicator_code': 'hydss', 'year': 2024}})
+        self.assertNotIn('isError', result)
+        self.assertEqual(failures, [])
+        service._request = AsyncMock(side_effect=RuntimeError('private upstream'))
+        await tool.handler({'payload': {'indicator_code': 'hydss'}})
+        self.assertEqual(failures, [True])
+
+    def test_attachments_only_mount_scoped_reader(self):
+        import tempfile
+        from pathlib import Path
+        self.assertTrue(resolve_capability('campus-brain-query').supports_attachments)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / 'input'
+            root.mkdir()
+            options = build_options({'capability_ref': 'campus-brain-query',
+                'credentials': {'platformBearer': 'test-secret'}, 'input_directory': str(root)})
+        self.assertEqual(set(options.mcp_servers), {'campus', 'attachments'})
+        self.assertEqual(options.tools, [])
+        self.assertIn('mcp__attachments__read', options.allowed_tools)
+
     def test_trusted_runtime_config_controls_sdk_options(self):
         service = self.service()
         service.assets['config']['runtime'] = {

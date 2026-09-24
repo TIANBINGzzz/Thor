@@ -88,6 +88,16 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(self.client.get("/internal/v1/runs/run-test").status_code, 401)
         self.assertEqual(self.client.post("/internal/v1/runs/run-test/cancel").status_code, 401)
 
+    def test_all_capabilities_accept_standard_attachment_only_requests(self):
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
+            for capability in server.CAPABILITIES:
+                run_id = 'attachment-' + capability
+                body = {**self.body, 'runId': run_id, 'capabilityRef': capability,
+                        'input': {'text': '', 'attachmentRefs': [{'fileId': 'authorized-file'}]}}
+                response = self.client.post('/internal/v1/runs', json=body,
+                    headers=self.headers('run.execute', runId=run_id, capabilityRef=capability))
+                self.assertEqual(response.status_code, 202, response.text)
+
     def test_omitted_capability_binds_only_to_conversation_jwt(self):
         body={k:v for k,v in self.body.items() if k!='capabilityRef'}
         with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
