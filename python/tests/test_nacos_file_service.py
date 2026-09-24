@@ -122,7 +122,7 @@ class NacosFileServiceTests(unittest.TestCase):
                 for _ in range(20):
                     ticks[0] += 1
                     yield b' '
-        with patch('runtime.file_service.time.monotonic', side_effect=lambda: ticks[0]):
+        with patch('runtime.nacos_config.time.monotonic', side_effect=lambda: ticks[0]):
             with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_unavailable$'):
                 self.read(lambda _: httpx.Response(200, stream=SlowStream()))
         self.assertLessEqual(ticks[0], 10)
@@ -141,7 +141,7 @@ class NacosFileServiceTests(unittest.TestCase):
                 self.assertEqual(dict(request.url.params), {'tenant': 'yaml-namespace',
                     'group': 'yaml-group', 'dataId': 'yaml-service'})
                 return httpx.Response(200, json=self.config)
-            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
                 self.read(handle)
                 self.env = {'CCSDK_NACOS_URL': 'https://override.test/nacos',
                     'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'override',
@@ -155,7 +155,7 @@ class NacosFileServiceTests(unittest.TestCase):
     def test_invalid_application_yaml_fails_before_network(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'application.yml'
-            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
                 for content in (None, '[]', 'nacos: [bad]', 'nacos: {server-addr: 123}',
                                 'nacos: {server-addr: localhost:8848, namespace: null}',
                                 'nacos: {server-addr: localhost:8848, password: secret}'):
@@ -166,13 +166,13 @@ class NacosFileServiceTests(unittest.TestCase):
                             self.read(lambda _: self.fail('invalid YAML must not access Nacos'))
 
     def test_local_yaml_merges_fields_and_environment_has_highest_priority(self):
-        from runtime.file_service import _nacos_settings
+        from runtime.nacos_config import _nacos_settings, NacosConfigError
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'application.yml'
             path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
                 'namespace': 'base-tenant', 'group': 'base-group', 'data-id': 'base-service'}}))
             local = path.with_name('application.local.yml')
-            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
                 self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
                 local.write_text('nacos:\n  server-addr: local.test:8848\n  namespace: ""\n')
                 merged = _nacos_settings({})
@@ -186,16 +186,16 @@ class NacosFileServiceTests(unittest.TestCase):
                 self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
 
     def test_invalid_local_yaml_is_not_silently_ignored(self):
-        from runtime.file_service import _nacos_settings
+        from runtime.nacos_config import _nacos_settings, NacosConfigError
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'application.yml'
             path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
                 'namespace': '', 'group': 'base-group', 'data-id': 'base-service'}}))
             local = path.with_name('application.local.yml')
-            with patch('runtime.file_service.APPLICATION_CONFIG_FILE', path):
+            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
                 for content in ('[]', '', 'nacos: null', 'nacos: {server-addr: null}',
                                 'nacos: {password: secret}', 'nacos: {unknown: value}', 'nacos: ['):
                     local.write_text(content)
                     with self.subTest(content=content), self.assertRaisesRegex(
-                            FileServiceError, '^file_service_nacos_config_invalid$'):
+                            NacosConfigError, '^nacos_config_invalid$'):
                         _nacos_settings({})

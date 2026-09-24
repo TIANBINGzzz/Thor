@@ -45,6 +45,7 @@ Workflow、Skill、模型、MCP 地址和工作目录由 Python 管理，不接�
 - 原始思考、工具参数/结果、SQL、路径、凭据及 SDK 会话标识不进入业务页面。开发观测使用独立 run.observe 权限及部署开关，见[观测契约](ccsdk-runtime-interface.md#10-开发观测)。
 - 一个回答可有多个文件和图片。按 artifactId 幂等更新卡片，按首次文件事件的 sequence 定位；正文与文件事件可交错，不按文件名覆盖，也不能只保存最后一个 ready。
 - artifact.ready 才关联远端 fileId，再提供经过业务 ACL 的下载/预览。模型回答中的文件名、链接或“待上传”文字不能作为上传状态；状态以结构化文件事件为准。
+- fileId 位于 `artifact.ready.payload.fileId`，不在 `run.completed` 或模型正文中；漏收时用同身份 Run JWT 查询 `GET /internal/v1/runs/{runId}/artifacts` 的 `files`。`unknown/file_upload_response_invalid` 表示上传响应字段或大小校验失败，即使远端已存文件也不能当作确认交付，且不得自动重复上传。
 - data.url 是内部存储路径，不推测公开下载地址。failed/unknown 与 Run 失败分别表达；本地快照可供授权恢复，但不证明远端已保存。
 
 ## 验收边界

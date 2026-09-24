@@ -179,6 +179,20 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
             await self.delivery.wait('run_01')
             self.assertEqual(self.store.artifact(item['artifactId'])['status'], 'unknown')
 
+    async def test_saved_file_with_incompatible_metadata_has_no_confirmed_file_id(self):
+        valid = {'id': 'file_1', 'fileName': 'image.png', 'fileSize': 5, 'fileSuffix': 'png', 'url': 'private/x'}
+        for field, value in (('id', 123), ('fileSize', '5'), ('fileSize', 6), ('url', ''), ('fileSuffix', None)):
+            data = {**valid, field: value}
+            self.reply = lambda request: httpx.Response(200, json={'state': 200, 'success': True, 'data': data})
+            with self.subTest(field=field, value=value):
+                item = self.publish()
+                await self.delivery.accept('run_01', self.spool, item['artifactId'])
+                await self.delivery.wait('run_01')
+                record = self.store.artifact(item['artifactId'])
+                self.assertEqual(record['error'], 'file_upload_response_invalid')
+                self.assertEqual(record['status'], 'unknown')
+                self.assertNotIn('fileId', record)
+
     async def test_http_500_retries_same_file_then_succeeds(self):
         success = self.reply
         self.reply = lambda request: httpx.Response(500) if len(self.requests) < 3 else success(request)

@@ -14,7 +14,7 @@
 
 ## 决策
 - 新增 campus-brain-query Capability，复用现有 Agent/会话，不新增 Workflow 或 Java 响应分支，不接入双高数据库。
-- 工具 Schema 不暴露 Token；通用 Runtime 的 `MCP_AUTH_RULES.arguments` 在发送请求副本时映射当前 Run 凭据，业务能力不维护 Token 字段。此限定例外同步至 REQ-001；地址、静态 Header、Schema、学校数量及知识记录均由服务端资产确定。
+- 工具 Schema 不暴露 Token；通用 Runtime 的 `MCP_AUTH_RULES.arguments` 在发送请求副本时映射当前 Run 凭据，业务能力不维护 Token 字段。此限定例外同步至 REQ-001；URL及路由域名从Nacos的campusMcp读取，见[配置字段](../../config/README.md)，其余静态Header、Schema、学校数量及知识记录由服务端资产确定。
 - 每轮绑定凭据、预算和身份；Client 续用时重置，Token 变化仍由既有指纹机制重建 Client。只挂载校园工具，关闭内置工具及隐式 Skill/MCP 发现。
 - 仅放行本校与匿名统计字段；原始上游错误不进入模型或日志。请求不重试、不跟随重定向。未来上游改用 Header 时可移除参数绑定，保持业务协议不变。
 

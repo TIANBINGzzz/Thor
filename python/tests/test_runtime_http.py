@@ -36,7 +36,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
-                server._notify_stored_event, env={'CCSDK_DATABASES_FILE': str(Path(self.temp.name) / 'missing.json')}),
+                server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
         }.items():
             patcher = patch.object(server, name, value)
             patcher.start()
@@ -328,6 +328,20 @@ class RuntimeHTTPTests(unittest.TestCase):
         for suffix in ('', '/' + item['artifactId'], '/' + item['artifactId'] + '/content'):
             for identity in ({'sub': 'other-user'}, {'tenant': 'other-tenant'}):
                 self.assertEqual(self.client.get(route + suffix, headers=self.headers(**identity)).status_code, 401)
+
+    def test_ready_image_file_id_is_visible_in_http_listing_and_sse_replay(self):
+        self.seed('succeeded')
+        item = self.seed_artifact()
+        record = self.store.artifact(item['artifactId'])
+        asyncio.run(server.ARTIFACT_DELIVERY._state(record, 'ready', fileId='remote-image-id', suffix='png'))
+        listing = self.client.get('/internal/v1/runs/run-test/artifacts', headers=self.headers())
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(listing.json()['files'][0]['fileId'], 'remote-image-id')
+        events = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        self.assertEqual(events.status_code, 200)
+        decoded = [json.loads(line[6:]) for line in events.text.splitlines() if line.startswith('data: ')]
+        ready = [e for e in decoded if e['type'] == 'artifact.ready']
+        self.assertEqual(ready[-1]['payload']['fileId'], 'remote-image-id')
 
     def test_event_replay_includes_file_result_after_more_than_500_events(self):
         self.seed('succeeded')

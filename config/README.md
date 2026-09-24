@@ -1,6 +1,6 @@
 # 配置说明
 
-本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务配置由 Nacos 提供。两者仅供服务端读取，不传给模型。
+本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务及校园 MCP 连接由 Nacos 提供。配置仅供服务端读取，不传给模型。
 
 默认读取本目录配置；可用 `CCSDK_DATABASES_FILE` 指定其他文件，相对路径以项目根目录为基准。修改配置后排空任务并重启服务；使用镜像内配置时须重建部署。
 
@@ -18,7 +18,7 @@
 
 平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
 
-每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，内容以 `fileService:` 为根；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
+每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，`fileService` 与 `campusMcp` 为并列节点；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
 启动连接统一放在本目录 [application.yml](application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。固定读取仓库根目录下的 `config/application.yml`，不依赖启动工作目录，随镜像交付。
 本机可在同目录创建 `application.local.yml`，只写需要覆盖的 `nacos` 字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
 `.env` 或部署环境只需配置 `CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD`；YAML 不接收凭据。部署需要时可用 `CCSDK_NACOS_URL`、`CCSDK_NACOS_NAMESPACE`、`CCSDK_NACOS_GROUP`、`CCSDK_NACOS_DATA_ID` 显式覆盖对应字段，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
@@ -41,6 +41,16 @@ fileService:
 | `downloadPath` | 文件下载GET路径；{fileId}由本轮授权附件引用替换，使用存文件接口返回的data.id，不是模板业务ID或会话附件ID。 |
 | `timeoutSeconds` | 默认600，范围1–3600秒；上传的全部尝试和等待共用预算，下载还受Runtime全部附件准备预算约束。 |
 | `maxFileBytes` | 默认1 GiB，范围1字节–10 GiB；单文件上传限制，下载与CCSDK_FILE_MAX_BYTES取较小值，不代表磁盘总配额。 |
+
+## Nacos 校园 MCP：campusMcp
+
+`url` 是完整 MCP HTTP(S) 地址，`domainName` 是路由头 `domain-name`；两项必填，不接受其他字段。示例：
+```yaml
+campusMcp:
+  url: https://campus.example.internal/string_campus_brain_service/mcp
+  domainName: campus.example.internal
+```
+Runtime 每轮从同一 Data ID 读取连接并固定快照；快照参与 Client 指纹，下一轮地址变化时重建 Client。Worker 仅接收选定连接，不接收 Nacos 凭据或其他配置；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

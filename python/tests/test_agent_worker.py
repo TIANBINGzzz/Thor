@@ -89,6 +89,8 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertNotIn('当前通用问答', options.system_prompt['append'])
 
     def test_unconfigured_capabilities_do_not_enable_provider_web_search(self):
+        self.enterContext(patch('tools.campus.campus_mcp_config', return_value={
+            'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}))
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         from runtime.capabilities import CAPABILITIES

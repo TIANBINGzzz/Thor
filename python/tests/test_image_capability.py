@@ -126,6 +126,11 @@ class ImageCapabilityTests(unittest.TestCase):
                 self.assertTrue(all(f['status'] == 'ready' for f in files))
                 self.assertEqual(len({f['fileId'] for f in files}), 3)
                 self.assertEqual(sum(e['type'] == 'artifact.ready' for e in states), 3)
+                ready = [e['payload'] for e in states if e['type'] == 'artifact.ready']
+                self.assertEqual({e['fileId'] for e in ready}, {f['fileId'] for f in files})
+                replay = [e['payload'] for e in store.events_after('images-run') if e['type'] == 'artifact.ready']
+                self.assertEqual(replay, ready)
+                self.assertFalse(any('private/image.png' in json.dumps(e) for e in ready))
             finally:
                 await delivery.close()
                 store.close()

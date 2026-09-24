@@ -2,9 +2,7 @@
   "documents": [
     "instructions.md"
   ],
-  "url": "https://schoolcloud.stringedu.com/string_campus_brain_service/mcp",
   "headers": {
-    "domain-name": "schoolcloud.stringedu.com",
     "app-key": "inter-page-key"
   },
   "max_calls": 10,

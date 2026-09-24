@@ -368,10 +368,12 @@ def prepare_workflow_assets(payload):
             raise DataError('TEMPLATE_FORBIDDEN')
         content = workflow_prompt_documents(workflow, template=template)
         capability_revision = None
+        campus_connection = None
         runtime = (workflow or {}).get("runtime", {})
         if payload.get('capability_ref') == 'campus-brain-query':
             from tools.campus import load_campus_assets
             campus = load_campus_assets()
+            campus_connection = campus['connection']
             content += '\n' + campus['prompt']
             content += '\n本轮当前日期：' + date.today().isoformat()
             capability_revision = campus['revision']
@@ -380,6 +382,7 @@ def prepare_workflow_assets(payload):
         revision = template['_revision'] if template else None
         payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'prompt': content,
             'capability_revision': capability_revision, 'runtime': runtime,
+            'campus_connection': campus_connection,
             'template_revision': revision, 'template_sources': sources,
             'revision': fingerprint([workflow, content, revision, capability_revision, runtime])}
     return payload['_workflow_assets']
@@ -540,7 +543,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
     if campus_enabled:
         from tools.campus import CampusQuery, load_campus_assets, create_campus_server
-        campus_service = campus_service or CampusQuery(load_campus_assets(), credentials)
+        campus_service = campus_service or CampusQuery(load_campus_assets(assets['campus_connection']), credentials)
         if campus_service.assets['revision'] != assets['capability_revision']:
             raise RuntimeError('校园能力资产已变化，请重新发起请求')
         mcp_servers['campus'] = create_campus_server(campus_service, on_error=mcp_error_sink)

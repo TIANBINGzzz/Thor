@@ -619,7 +619,7 @@ async def _execute_internal_run(
             # A persistent Client cannot change its SDK add_dirs after connect.
             # Prepare the shared current-input directory inside the SessionActor,
             # which serializes this step with the actual Client query.
-            worker_payload = _internal_worker_payload(
+            worker_payload = await asyncio.to_thread(_internal_worker_payload,
                 run_request,
                 run_directory,
                 claims=claims,
@@ -633,7 +633,7 @@ async def _execute_internal_run(
                     prepared_files: tuple[FetchedFile, ...] = ()
                 else:
                     prepared_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
-                prepared_payload = _internal_worker_payload(
+                prepared_payload = await asyncio.to_thread(_internal_worker_payload,
                     run_request,
                     run_directory,
                     claims=claims,
@@ -652,7 +652,7 @@ async def _execute_internal_run(
         else:
             if run_request.input.attachment_refs:
                 attachment_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
-            worker_payload = _internal_worker_payload(
+            worker_payload = await asyncio.to_thread(_internal_worker_payload,
                 run_request,
                 run_directory,
                 claims=claims,

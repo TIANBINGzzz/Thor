@@ -13,6 +13,25 @@ from tools.campus import CampusQuery, create_campus_server, load_campus_assets
 
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.connection = {'url': 'https://campus.example.test/string_campus_brain_service/mcp',
+                           'domainName': 'campus.example.test'}
+        self.enterContext(patch('tools.campus.campus_mcp_config',
+                                side_effect=lambda env: dict(self.connection)))
+
+    def test_endpoint_is_frozen_and_changes_client_revision(self):
+        first = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        self.connection['url'] = 'https://new.example.test/mcp'
+        second = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        self.assertNotEqual(first['revision'], second['revision'])
+        frozen = load_campus_assets(first['campus_connection'])
+        self.assertEqual(frozen['revision'], first['capability_revision'])
+        self.assertNotIn('campus.example.test', first['prompt'])
+        with patch('tools.campus.campus_mcp_config', side_effect=AssertionError('worker must use snapshot')):
+            options = build_options({'capability_ref': 'campus-brain-query', '_workflow_assets': first,
+                                     'credentials': {'platformBearer': 'test-secret'}})
+        self.assertIn('campus', options.mcp_servers)
+
     async def test_upstream_failure_marks_run_but_local_validation_does_not(self):
         service = self.service()
         failures = []
@@ -182,7 +201,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             def respond(request):
                 body = json.loads(request.content);requests.append(body)
                 self.assertEqual(str(request.url), load_campus_assets()['config']['url'])
-                self.assertEqual(request.headers['domain-name'], 'schoolcloud.stringedu.com')
+                self.assertEqual(request.headers['domain-name'], 'campus.example.test')
                 self.assertEqual(request.headers['app-key'], 'inter-page-key')
                 self.assertNotIn('authorization', request.headers)
                 if body['method'] == 'notifications/initialized':
