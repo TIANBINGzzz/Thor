@@ -1,4 +1,3 @@
-# Nacos 启动连接；账号密码由 .env 或部署密钥注入。
 nacos:
   server-addr: 127.0.0.1:8848
   namespace: "" # public；其他命名空间填 ID

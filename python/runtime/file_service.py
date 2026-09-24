@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 import httpx
 import yaml
 
-APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'application.yml'
+APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
 
 
 class FileServiceError(ValueError):

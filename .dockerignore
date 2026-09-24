@@ -1,6 +1,5 @@
 **
 !requirements.txt
-!application.yml
 !package.json
 !package-lock.json
 !python/
@@ -21,11 +20,12 @@
 !deploy/compose*.yaml
 !config/
 !config/databases.json
+!config/application.yml
 **/__pycache__/
 **/*.pyc
 **/node_modules/
 **/.env
-application.local.yml
+config/application.local.yml
 **/.env.*
 **/*.env
 **/*.env.*

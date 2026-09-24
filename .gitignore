@@ -1,7 +1,7 @@
 node_modules/
 .env
 .env.local
-/application.local.yml
+/config/application.local.yml
 **/workflow.env
 deploy/*.env
 *.secret.json
@@ -11,6 +11,7 @@ deploy/data-access.json
 /config/*
 !/config/databases.json
 !/config/README.md
+!/config/application.yml
 *.secret.b64
 /dist/
 *.log
