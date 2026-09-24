@@ -319,13 +319,6 @@ def _csv_environment(name: str) -> set[str]:
     }
 
 
-def _platform_bearer_present(credentials: Any) -> bool:
-    if not isinstance(credentials, dict):
-        return False
-    value = credentials.get("platformBearer")
-    return isinstance(value, str) and bool(value.strip())
-
-
 def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, template=None) -> str:
     """读取 Workflow 配置显式列出的约束和语义 Markdown，返回合并文本，并校验路径与大小限制。"""
     if not workflow_config:
@@ -532,13 +525,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     business_mcp_url = os.environ.get("BUSINESS_MCP_URL", "").strip()
     business_capabilities = _csv_environment("CCSDK_BUSINESS_MCP_CAPABILITIES")
     credentials = payload.get("credentials")
-    # A business MCP is never mounted merely because its URL exists.  An
-    # operator may explicitly allow capabilities through the environment; in
-    # the small MVP, the presence of the Java-supplied bearer is the fallback
-    # signal for a capability that has no separate allow-list yet.
-    # Fail closed when the operator has not declared which capabilities may
-    # mount the business MCP.  A bearer's mere presence must never expand the
-    # tool set for an otherwise ordinary conversation.
+    # 业务 MCP 只对显式登记的能力挂载；地址或 Token 存在均不构成授权。
     business_allowed = capability_ref in business_capabilities
     if business_mcp_url and business_allowed and not campus_enabled:
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
