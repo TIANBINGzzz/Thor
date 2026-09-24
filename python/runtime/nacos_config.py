@@ -1,6 +1,5 @@
-"""Nacos 部署配置读取及可信服务端连接校验；凭据不离开 Runtime。"""
+"""Nacos 启动配置与 HTTP 读取；不包含能力或业务字段。"""
 
-import re
 import time
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -122,23 +121,3 @@ def fetch_config(env, *, transport=None):
         return value
     except (ValueError, yaml.YAMLError):
         raise NacosConfigError('nacos_content_invalid') from None
-
-
-def campus_mcp_config(env):
-    """只提取校园 MCP 的连接字段，不允许配置任意鉴权头或工具范围。"""
-    value = fetch_config(env).get('campusMcp')
-    try:
-        if not isinstance(value, dict) or set(value) != {'url', 'domainName'}:
-            raise ValueError()
-        url, domain = value['url'], value['domainName']
-        if not isinstance(url, str) or any(c.isspace() for c in url):
-            raise ValueError()
-        parsed = urlsplit(url)
-        if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username
-                or parsed.password or parsed.query or parsed.fragment or parsed.port == 0):
-            raise ValueError()
-        if not isinstance(domain, str) or not re.fullmatch(r'[A-Za-z0-9.-]+', domain):
-            raise ValueError()
-        return dict(value)
-    except (ValueError, TypeError):
-        raise NacosConfigError('campus_mcp_config_invalid') from None

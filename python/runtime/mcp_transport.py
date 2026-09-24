@@ -1,7 +1,32 @@
 """通用只读 MCP HTTP 请求；隔离每次连接，禁止重定向和自动重试。"""
 
 import json
+import re
+from urllib.parse import urlsplit
 import httpx
+
+
+def validate_http_connection(connection):
+    """连接与静态 Header 在注入后校验；不允许 URL 携带凭据或 Header 控制字符。"""
+    try:
+        url = connection['url']
+        if not isinstance(url, str) or any(c.isspace() for c in url):
+            raise ValueError()
+        parsed = urlsplit(url)
+        if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username
+                or parsed.password or parsed.query or parsed.fragment or parsed.port == 0):
+            raise ValueError()
+        headers = connection.get('headers', {})
+        if not isinstance(headers, dict):
+            raise ValueError()
+        for key, value in headers.items():
+            if (not isinstance(key, str) or not re.fullmatch(r'[A-Za-z0-9-]+', key)
+                    or not isinstance(value, str) or not re.fullmatch(r'[\x20-\x7e]+', value)):
+                raise ValueError()
+            if key.lower() == 'domain-name' and not re.fullmatch(r'[A-Za-z0-9.-]+', value):
+                raise ValueError()
+    except (ValueError, TypeError, KeyError):
+        raise ValueError('mcp_connection_invalid') from None
 
 
 async def call_mcp_tool(config, name, arguments):

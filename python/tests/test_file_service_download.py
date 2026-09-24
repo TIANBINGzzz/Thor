@@ -23,7 +23,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.root = Path(self.temp.name)
         (self.root / 'input').mkdir()
         self.config = self.root / 'databases.json'
-        self.enterContext(patch('runtime.file_service._fetch_config',
+        self.enterContext(patch('runtime.nacos_config.fetch_config',
             side_effect=lambda env, **kw: json.loads(self.config.read_text(encoding='utf-8'))))
         self.settings = {'version': 1, 'sources': {}, 'fileService': {
             'baseUrl': 'https://files.example.test',

@@ -26,7 +26,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.store.close)
         self.store.create_run('run_01', tenant_id='tenant', user_id='user')
         self.config = self.root / 'databases.json'
-        self.enterContext(patch('runtime.file_service._fetch_config',
+        self.enterContext(patch('runtime.nacos_config.fetch_config',
             side_effect=lambda env, **kw: json.loads(self.config.read_text(encoding='utf-8'))))
         self.config.write_text(json.dumps({'version': 1, 'sources': {}, 'fileService': {
             'baseUrl': 'https://files.example.test', 'domainName': 'routing.example.test',
@@ -114,10 +114,10 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.delivery.list('run_01')[0]['error'], 'file_service_not_configured')
 
     async def test_nacos_failure_does_not_upload_using_previous_settings(self):
-        from runtime.file_service import FileServiceError
+        from runtime.nacos_config import NacosConfigError
         item = self.publish()
-        with patch('runtime.file_service._fetch_config',
-                   side_effect=FileServiceError('file_service_nacos_unavailable')):
+        with patch('runtime.nacos_config.fetch_config',
+                   side_effect=NacosConfigError('nacos_unavailable')):
             await self.delivery.accept('run_01', self.spool, item['artifactId'])
             await self.delivery.wait('run_01')
         self.assertEqual(self.requests, [])

@@ -4,7 +4,7 @@
 
 ## 实现与配置
 - `campus-brain-query` 复用 Agent 与既有会话，不新增 Workflow；普通 input.text、agent-run/v1、SSE 和内部 credentials.platformBearer 保持不变。附件普通问答使用所有能力共用的只读入口，格式与限制见 [Runtime契约](../specs/ccsdk-runtime-interface.md#34-业务-payload)。
-- [内部配置](../../.claude/capabilities/campus-brain-query/capability.json) 管理固定地址、静态 Header、工具参数、输出字段、max_calls 和独立 minimum_schools；后者同时生成工具 Schema 与指令。
+- [内部配置](../../.claude/capabilities/campus-brain-query/capability.json) 管理配置引用、静态 Header、工具参数、输出字段、max_calls 和独立 minimum_schools；后者同时生成工具 Schema 与指令。
 - 指标知识按分析类型分别保留402条记录，学校1658条；只按需返回候选，保留前导零、名称、类型和源年份，不向模型整表注入。
 - 模型只看到知识检索与三个查询工具；凭据由进程内适配器发送时绑定，异常正文不回传，统计字段按类型过滤。Client 每轮重置身份与预算，凭据变化沿用现有指纹重建。
 

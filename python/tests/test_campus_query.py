@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 from runtime.capabilities import resolve_capability
 from runtime.config import build_options, prepare_workflow_assets
+from runtime.deployment_config import ConfigSnapshot
 from runtime.mcp_auth import MCPAuthError
 from tools.campus import CampusQuery, create_campus_server, load_campus_assets
 
@@ -16,21 +17,45 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.connection = {'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                            'domainName': 'campus.example.test'}
-        self.enterContext(patch('tools.campus.campus_mcp_config',
-                                side_effect=lambda env: dict(self.connection)))
+        self.enterContext(patch('runtime.nacos_config.fetch_config',
+                                side_effect=lambda env, **kw: {'campusMcp': dict(self.connection)}))
 
     def test_endpoint_is_frozen_and_changes_client_revision(self):
         first = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
         self.connection['url'] = 'https://new.example.test/mcp'
         second = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
         self.assertNotEqual(first['revision'], second['revision'])
-        frozen = load_campus_assets(first['campus_connection'])
+        frozen = load_campus_assets(ConfigSnapshot(values=first['config_values']))
         self.assertEqual(frozen['revision'], first['capability_revision'])
         self.assertNotIn('campus.example.test', first['prompt'])
-        with patch('tools.campus.campus_mcp_config', side_effect=AssertionError('worker must use snapshot')):
+        self.assertEqual(first['config_values'], {
+            'campusMcp.url': 'https://campus.example.test/string_campus_brain_service/mcp',
+            'campusMcp.domainName': 'campus.example.test'})
+        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('worker must use snapshot')):
             options = build_options({'capability_ref': 'campus-brain-query', '_workflow_assets': first,
                                      'credentials': {'platformBearer': 'test-secret'}})
         self.assertIn('campus', options.mcp_servers)
+
+    def test_invalid_connections_fail_before_mcp_calls(self):
+        for connection in ({'url': 'http://user:secret@host/mcp', 'domainName': 'host'},
+                           {'url': 'https://host/mcp?token=secret', 'domainName': 'host'},
+                           {'url': 'https://host/mcp', 'domainName': 'host\r\nsecret'},
+                           {'url': 42, 'domainName': 'host'}):
+            with self.subTest(connection=connection), self.assertRaisesRegex(
+                    ValueError, '^mcp_connection_invalid$'):
+                load_campus_assets(ConfigSnapshot(values={
+                    'campusMcp.url': connection['url'], 'campusMcp.domainName': connection['domainName']}))
+
+    def test_unreferenced_remote_fields_do_not_change_tools_or_credentials(self):
+        with patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
+                **self.connection, 'headers': {'Authorization': 'unwanted'}, 'tools': ['unwanted']},
+                'fileService': {'private': 'unwanted'}}):
+            payload = {'capability_ref': 'campus-brain-query'}
+            assets = prepare_workflow_assets(payload)
+            campus = load_campus_assets(ConfigSnapshot(values=assets['config_values']))
+        self.assertNotIn('unwanted', str(assets))
+        self.assertNotIn('Authorization', campus['config']['headers'])
+        self.assertIn('get_school_info', campus['config']['tools'])
 
     async def test_upstream_failure_marks_run_but_local_validation_does_not(self):
         service = self.service()

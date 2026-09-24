@@ -3,7 +3,8 @@
 import re
 from urllib.parse import urlsplit
 
-from runtime.nacos_config import NacosConfigError, fetch_config
+from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
+from runtime.nacos_config import NacosConfigError
 
 
 class FileServiceError(ValueError):
@@ -12,20 +13,16 @@ class FileServiceError(ValueError):
         super().__init__(code)
 
 
-def _fetch_config(env, *, transport=None):
-    # 公共配置中心错误在文件边界映射为既有文件事件错误码。
+def file_service_config(env, *, download=False, transport=None):
+    """通过公共配置快照取值；本模块只负责文件字段校验与文件错误码。"""
     try:
-        return fetch_config(env, transport=transport)
+        config = ConfigSnapshot(env, transport=transport).get('fileService')
+    except ConfigReferenceError:
+        raise FileServiceError('file_service_not_configured') from None
     except NacosConfigError as error:
         code = {'nacos_not_configured': 'file_service_not_configured',
                 'nacos_content_invalid': 'file_service_config_invalid'}.get(error.code, 'file_service_' + error.code)
         raise FileServiceError(code) from None
-
-
-def file_service_config(env, *, download=False, transport=None):
-    """每次传输从 Nacos 读取独立快照；下载须显式配置含 fileId 的站内路径。"""
-    value = _fetch_config(env, transport=transport)
-    config = value.get('fileService')
     if not config:
         raise FileServiceError('file_service_not_configured')
     try:

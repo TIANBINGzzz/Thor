@@ -5,7 +5,6 @@ import csv
 import hashlib
 import json
 import math
-import os
 import re
 from pathlib import Path
 
@@ -13,9 +12,9 @@ from jsonschema import Draft202012Validator
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.mcp_auth import MCPArgumentBinding
-from runtime.mcp_transport import call_mcp_tool
+from runtime.mcp_transport import call_mcp_tool, validate_http_connection
 from runtime.prompt_documents import read_documents
-from runtime.nacos_config import campus_mcp_config
+from runtime.deployment_config import ConfigSnapshot
 
 
 class CampusInputError(ValueError):
@@ -25,13 +24,13 @@ class CampusInputError(ValueError):
 ASSET_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities/campus-brain-query'
 
 
-def load_campus_assets(connection=None):
+def load_campus_assets(settings=None):
     """只读取登记文件；知识保留在服务端内存，不整表注入提示词。"""
     raw = (ASSET_ROOT / 'capability.json').read_bytes()
     config = json.loads(raw)
-    connection = campus_mcp_config(os.environ) if connection is None else dict(connection)
-    config['url'] = connection['url']
-    config['headers']['domain-name'] = connection['domainName']
+    connection = (settings or ConfigSnapshot()).resolve(config.pop('connection'))
+    validate_http_connection(connection)
+    config.update(connection)
     minimum = config['minimum_schools']
     if type(minimum) is not int or minimum < 1:
         raise RuntimeError('常模最少学校数量配置无效')
@@ -57,8 +56,7 @@ def load_campus_assets(connection=None):
     documents = read_documents(ASSET_ROOT, config['documents'])
     prompt = '\n\n'.join(d['text'] for d in documents).replace('{minimum_schools}', str(minimum))
     digest.update(prompt.encode('utf-8'))
-    return {'config': config, 'catalogs': catalogs, 'prompt': prompt, 'revision': digest.hexdigest(),
-            'connection': connection}
+    return {'config': config, 'catalogs': catalogs, 'prompt': prompt, 'revision': digest.hexdigest()}
 
 
 def _normalized(text):

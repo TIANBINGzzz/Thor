@@ -2,8 +2,12 @@
   "documents": [
     "instructions.md"
   ],
-  "headers": {
-    "app-key": "inter-page-key"
+  "connection": {
+    "url": "${campusMcp.url}",
+    "headers": {
+      "app-key": "inter-page-key",
+      "domain-name": "${campusMcp.domainName}"
+    }
   },
   "max_calls": 10,
   "catalogs": {

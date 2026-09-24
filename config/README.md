@@ -14,9 +14,7 @@
 | `sources` | 业务数据源登记表；每个键必须对应.claude/databases下的数据源目录，不能在此表中插入注释条目。 |
 | `sources.schoolDoubleHigh` | 校双高业务数据源，hpm为其内部业务域；名称不代表另一套独立数据库。 |
 
-## Nacos 文件服务：fileService
-
-平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
+## 配置加载与注入
 
 每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，`fileService` 与 `campusMcp` 为并列节点；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
 启动连接统一放在本目录 [application.yml](application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。固定读取仓库根目录下的 `config/application.yml`，不依赖启动工作目录，随镜像交付。
@@ -24,6 +22,13 @@
 `.env` 或部署环境只需配置 `CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD`；YAML 不接收凭据。部署需要时可用 `CCSDK_NACOS_URL`、`CCSDK_NACOS_NAMESPACE`、`CCSDK_NACOS_GROUP`、`CCSDK_NACOS_DATA_ID` 显式覆盖对应字段，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
 每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用10秒预算，每个响应分块检查，单次网络阻塞最多5秒，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
 没有本地文件回退或磁盘缓存；未配置、认证失败、不可达或内容无效时文件操作失败，不影响无文件的对话。更改 Nacos 启动参数须重启 Runtime。使用已有 httpx/PyYAML，无需额外 SDK 或 gRPC 端口。
+
+`runtime/deployment_config.py` 的 `ConfigSnapshot` 是业务配置唯一取值入口：`get('fileService')` 读取节点，`resolve(资产配置)` 解析完整 `${节点.字段}` 引用，保留数字、布尔等原类型。只解析可信连接配置，不扫描用户输入、Prompt 或凭据，不支持表达式、字符串拼接、环境变量展开或远端值递归引用。缺失值直接失败。
+每个快照首次用到引用时读取一次 Nacos，后续引用复用同份 YAML；导出时只保留已引用的值。Runtime 按轮装配并将快照交给 Worker，Worker 不联网补值；文件传输按前述批次使用独立快照。新增连接只在可信资产中声明引用并使用公共解析器，不新增能力专用 Nacos 读取器；业务字段校验留在消费边界，Token 继续按 Run 独立注入。
+
+## Nacos 文件服务：fileService
+
+平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
 
 ```yaml
 fileService:
@@ -44,13 +49,13 @@ fileService:
 
 ## Nacos 校园 MCP：campusMcp
 
-`url` 是完整 MCP HTTP(S) 地址，`domainName` 是路由头 `domain-name`；两项必填，不接受其他字段。示例：
+`url` 是完整 MCP HTTP(S) 地址，`domainName` 是路由头 `domain-name`；当前能力只引用这两项，其余未引用字段不注入。示例：
 ```yaml
 campusMcp:
   url: https://campus.example.internal/string_campus_brain_service/mcp
   domainName: campus.example.internal
 ```
-Runtime 每轮从同一 Data ID 读取连接并固定快照；快照参与 Client 指纹，下一轮地址变化时重建 Client。Worker 仅接收选定连接，不接收 Nacos 凭据或其他配置；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
+能力资产 `capability.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。快照参与 Client 指纹，下一轮地址变化时重建 Client；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

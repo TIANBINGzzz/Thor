@@ -31,6 +31,7 @@ from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
 from runtime.capabilities import CAPABILITIES
+from runtime.deployment_config import ConfigSnapshot
 from runtime.prompt_documents import read_documents, MAX_DOCUMENT_TOTAL_BYTES
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -368,23 +369,23 @@ def prepare_workflow_assets(payload):
             raise DataError('TEMPLATE_FORBIDDEN')
         content = workflow_prompt_documents(workflow, template=template)
         capability_revision = None
-        campus_connection = None
+        settings = ConfigSnapshot()
         runtime = (workflow or {}).get("runtime", {})
         if payload.get('capability_ref') == 'campus-brain-query':
             from tools.campus import load_campus_assets
-            campus = load_campus_assets()
-            campus_connection = campus['connection']
+            campus = load_campus_assets(settings)
             content += '\n' + campus['prompt']
             content += '\n本轮当前日期：' + date.today().isoformat()
             capability_revision = campus['revision']
             runtime = campus['config'].get('runtime', {})
         sources = sorted(set(template['source_roles'].values())) if template else None
         revision = template['_revision'] if template else None
+        config_values = settings.export()
         payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'prompt': content,
             'capability_revision': capability_revision, 'runtime': runtime,
-            'campus_connection': campus_connection,
+            'config_values': config_values,
             'template_revision': revision, 'template_sources': sources,
-            'revision': fingerprint([workflow, content, revision, capability_revision, runtime])}
+            'revision': fingerprint([workflow, content, revision, capability_revision, runtime, config_values])}
     return payload['_workflow_assets']
 
 
@@ -543,7 +544,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         mcp_servers["business"] = {"type": "http", "url": business_mcp_url}
     if campus_enabled:
         from tools.campus import CampusQuery, load_campus_assets, create_campus_server
-        campus_service = campus_service or CampusQuery(load_campus_assets(assets['campus_connection']), credentials)
+        campus_service = campus_service or CampusQuery(
+            load_campus_assets(ConfigSnapshot(values=assets['config_values'])), credentials)
         if campus_service.assets['revision'] != assets['capability_revision']:
             raise RuntimeError('校园能力资产已变化，请重新发起请求')
         mcp_servers['campus'] = create_campus_server(campus_service, on_error=mcp_error_sink)

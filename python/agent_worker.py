@@ -366,8 +366,9 @@ async def run_client(initial: dict[str, Any]) -> None:
     campus_service = None
     if initial.get('capability_ref') == 'campus-brain-query':
         from tools.campus import CampusQuery, load_campus_assets
-        campus_service = CampusQuery(load_campus_assets(prepare_workflow_assets(initial)['campus_connection']),
-                                     initial.get('credentials'))
+        from runtime.deployment_config import ConfigSnapshot
+        settings = ConfigSnapshot(values=prepare_workflow_assets(initial)['config_values'])
+        campus_service = CampusQuery(load_campus_assets(settings), initial.get('credentials'))
     chart_delivery = ChartDelivery(emit)
     mcp_errors = []
     options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
