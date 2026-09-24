@@ -1,21 +1,26 @@
-"""执行入口的严格解析、目录发现和按需加载回归。"""
+"""执行资产 manifest、声明式装配和工具生命周期回归。"""
 
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-import os
 
-from runtime import prompt_documents
 from runtime import capabilities
 
 
 class ExecutionEntryTests(unittest.TestCase):
+    def test_declared_tools_are_built_by_one_registry(self):
+        from runtime.tool_registry import build_registered_tools
+        result = build_registered_tools({'tools': ['charts'], 'required_tools': []}, {'chart_sink': None})
+        self.assertIn('charts', result.servers)
+
     def test_entry_change_uses_current_workflow_and_freezes_request(self):
         import server
         from runtime.protocol import AgentRunRequest
         entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
-        entry['workflow'] = 'writing-docx'
+        entry['workflow_refs'] = ['writing-docx']
         entry['supports_attachments'] = False
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'fresh-entry',
             'messageId': 'm1', 'input': {'text': 'hello'}})
@@ -44,73 +49,88 @@ class ExecutionEntryTests(unittest.TestCase):
         with self.assertRaises(MCPAuthError):
             campus._binding.inject({})
 
-    def test_markdown_entry_separates_private_metadata(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / 'CAPABILITY.md'
-            path.write_text('---\nname: example\ntools: [charts]\n---\n只处理所选任务。', encoding='utf-8')
-            self.assertTrue(hasattr(prompt_documents, 'read_entry'))
-            entry = prompt_documents.read_entry(path)
-            self.assertEqual(entry['name'], 'example')
-            self.assertEqual(entry['_body'], '只处理所选任务。')
-            self.assertNotIn('tools:', entry['_body'])
-
-    def test_rejects_duplicate_keys_aliases_and_missing_frontmatter(self):
-        self.assertTrue(hasattr(prompt_documents, 'read_entry'))
-        with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / 'CAPABILITY.md'
-            for content in ('---\nname: a\nname: b\n---\nx',
-                            '---\nname: &a hi\ntools: *a\n---\nx', 'no metadata'):
-                with self.subTest(content=content):
-                    path.write_text(content, encoding='utf-8')
-                    with self.assertRaises(RuntimeError):
-                        prompt_documents.read_entry(path)
+    def _write_capability_tree(self, root, *, capability, workflow=None, skill=None):
+        capabilities_root = root / 'capabilities'
+        capability_dir = capabilities_root / capability['ref']
+        capability_dir.mkdir(parents=True)
+        (capability_dir / 'capability.json').write_text(json.dumps(capability), encoding='utf-8')
+        (capability_dir / 'CAPABILITY.md').write_text('任务规则。', encoding='utf-8')
+        if workflow:
+            directory = root / 'workflows' / workflow['ref']
+            directory.mkdir(parents=True)
+            (directory / 'workflow.json').write_text(json.dumps(workflow), encoding='utf-8')
+            (directory / 'WORKFLOW.md').write_text('流程规则。', encoding='utf-8')
+        if skill:
+            directory = root / 'skills' / skill['ref']
+            directory.mkdir(parents=True)
+            (directory / 'skill.json').write_text(json.dumps(skill), encoding='utf-8')
+            (directory / 'SKILL.md').write_text('Skill规则。', encoding='utf-8')
+        return capabilities_root
 
     def test_discovers_new_capability_without_python_name_mapping(self):
-        self.assertTrue(hasattr(capabilities, 'load_capabilities'))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            directory = root / 'example'
-            directory.mkdir()
-            entry = directory / 'CAPABILITY.md'
-            entry.write_text('---\nname: example\ntitle: 示例\ndescription: 示例任务\ntools: [charts]\n---\n任务规则。', encoding='utf-8')
-            item = capabilities.load_capabilities(root)['example']
+            manifest = {'ref': 'example', 'title': '示例', 'description': '示例任务',
+                        'toolRefs': ['charts'], 'workflowRefs': [], 'skillRefs': []}
+            capability_root = self._write_capability_tree(root, capability=manifest)
+            item = capabilities.load_capabilities(capability_root)['example']
             self.assertEqual(item.tools, ('charts',))
             self.assertEqual(set(item.to_public_dict()), {'capabilityRef', 'name', 'description', 'supportsAttachments'})
             from runtime.config import build_options
             with patch.dict(capabilities.CAPABILITIES, {'example': item}), patch.dict(os.environ, {}, clear=True):
-                options = build_options({'capability_ref': 'example', 'tools': ['campus']})
+                options = build_options({'capability_ref': 'example'})
             self.assertEqual(set(options.mcp_servers), {'charts'})
-            self.assertIn('任务规则。', options.system_prompt['append'])
-            self.assertNotIn('校园大脑', options.system_prompt['append'])
-            entry.write_text(entry.read_text(encoding='utf-8').replace('[charts]', '[unregistered]'), encoding='utf-8')
-            with self.assertRaises(RuntimeError):
-                capabilities.load_capabilities(root)
 
-    def test_invalid_runtime_is_rejected_at_registration(self):
+    def test_manifest_rejects_invalid_runtime_missing_asset_and_ref_mismatch(self):
+        cases = [{'runtime': {'max_turns': True}}, {'runtime': {'mode': 'typo'}},
+                 {'runtime': {'thinking': {'type': 'unknown'}}}, {'execution': {'mode': 'typo'}}]
+        for extra in cases:
+            with self.subTest(extra=extra), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
+                            'workflowRefs': [], 'skillRefs': [], **extra}
+                capability_root = self._write_capability_tree(root, capability=manifest)
+                with self.assertRaises(RuntimeError):
+                    capabilities.load_capabilities(capability_root)
         with tempfile.TemporaryDirectory() as temporary:
-            directory = Path(temporary) / 'example'
-            directory.mkdir()
-            for value in ('runtime: {max_turns: true}', 'runtime: {mode: typo}',
-                          'runtime: {thinking: {type: unknown}}', 'execution: {mode: typo}',
-                          'runtime: {unknown: true}', 'skills: [../outside]'):
-                with self.subTest(value=value):
-                    (directory / 'CAPABILITY.md').write_text(
-                        '---\nname: example\ntitle: 示例\ndescription: 示例\n' + value + '\n---\n正文', encoding='utf-8')
-                    with self.assertRaises(RuntimeError):
-                        capabilities.load_capabilities(temporary)
+            root = Path(temporary)
+            manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
+                        'workflowRefs': ['missing'], 'skillRefs': []}
+            capability_root = self._write_capability_tree(root, capability=manifest)
+            with self.assertRaises(RuntimeError):
+                capabilities.load_capabilities(capability_root)
+
+    def test_declared_workflow_and_skill_are_loaded_from_json(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            workflow = {'ref': 'review-flow', 'description': '审核流程', 'skillRefs': ['review']}
+            skill = {'ref': 'review', 'description': '按需核验'}
+            manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
+                        'workflowRefs': ['review-flow'], 'skillRefs': ['review'], 'toolRefs': [],
+                        'requiredToolRefs': []}
+            capability_root = self._write_capability_tree(root, capability=manifest,
+                                                           workflow=workflow, skill=skill)
+            item = capabilities.load_capabilities(capability_root)['example']
+            from runtime.config import load_workflow_configs
+            config = load_workflow_configs(item.workflow_refs, workflows_root=root / 'workflows')
+            self.assertEqual(config['skills'], ['review'])
+            self.assertIn('流程规则。', config['_body'])
 
     def test_only_selected_skill_metadata_is_injected_and_content_changes_revision(self):
         from runtime.config import prepare_workflow_assets
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            skill = root / '.claude/skills/review'
-            skill.mkdir(parents=True)
-            path = skill / 'SKILL.md'
-            path.write_text('---\nname: review\ndescription: 按需核验\n---\nPRIVATE_SKILL_BODY', encoding='utf-8')
+            skill_dir = root / '.claude/skills/review'
+            skill_dir.mkdir(parents=True)
+            (skill_dir / 'skill.json').write_text('{"ref":"review","description":"按需核验"}', encoding='utf-8')
+            path = skill_dir / 'SKILL.md'
+            path.write_text('PRIVATE_SKILL_BODY', encoding='utf-8')
             entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
+            entry['skill_refs'] = ['review']
+            entry['_skill_root'] = str(skill_dir.parent)
+            entry['workflow_refs'] = []
             entry['tools'] = []
-            entry['skills'] = ['review']
-            with patch('runtime.config.PROJECT_ROOT', root), patch('runtime.config.capability_entry', return_value=entry):
+            with patch('runtime.config.capability_entry', return_value=entry):
                 payload = {'capability_ref': 'conversation'}
                 before = prepare_workflow_assets(payload)
                 self.assertIn('按需核验', before['prompt'])
@@ -118,3 +138,11 @@ class ExecutionEntryTests(unittest.TestCase):
                 path.write_text(path.read_text(encoding='utf-8') + '\nCHANGED', encoding='utf-8')
                 self.assertEqual(before, prepare_workflow_assets(payload))
                 self.assertNotEqual(before['revision'], prepare_workflow_assets({'capability_ref': 'conversation'})['revision'])
+
+    def test_capability_and_workflow_shared_skill_is_injected_once(self):
+        from runtime.config import prepare_workflow_assets
+        entry = capabilities.capability_entry(capabilities.CAPABILITIES['document-writing'].directory)
+        entry['skill_refs'] = ['document-review']
+        with patch('runtime.config.capability_entry', return_value=entry):
+            assets = prepare_workflow_assets({'capability_ref': 'document-writing'})
+        self.assertEqual(assets['prompt'].count('- document-review：'), 1)

@@ -1,18 +1,3 @@
----
-name: chart-generation
-title: 图表生成
-description: 根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图
-supports_attachments: true
-tools:
-- documents
-- office
-- images
-- artifacts
-- business
-- charts
-- web
----
-
 # 图表生成
 
 根据提供的数据生成正文内柱状图、折线图、饼图、雷达图和矩形树图。

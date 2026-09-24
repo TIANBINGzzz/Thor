@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
-from runtime.prompt_documents import read_entry
+from runtime.asset_registry import read_asset_body, read_manifest
 from runtime.deployment_config import ConfigSnapshot
 
 
@@ -26,8 +26,9 @@ ASSET_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities/campus-
 
 def load_campus_assets(settings=None, directory=ASSET_ROOT):
     """只读取登记文件；知识保留在服务端内存，不整表注入提示词。"""
-    entry = read_entry(Path(directory) / 'CAPABILITY.md')
-    config_path = (Path(directory) / entry['tool_config']['campus']).resolve()
+    directory = Path(directory).resolve()
+    entry = read_manifest(directory, 'capability.json')
+    config_path = (directory / entry['toolConfig']['campus']).resolve()
     if not config_path.is_relative_to(Path(directory).resolve()):
         raise RuntimeError('校园工具资产路径无效')
     raw = config_path.read_bytes()
@@ -57,7 +58,7 @@ def load_campus_assets(settings=None, directory=ASSET_ROOT):
                 definitions.setdefault(row['code'], set()).add(row['name'])
             for row in catalogs[kind]:
                 row['definition_conflict'] = len(definitions[row['code']]) > 1
-    prompt = entry['_body'].replace('{minimum_schools}', str(minimum))
+    prompt = read_asset_body(directory, 'CAPABILITY.md').replace('{minimum_schools}', str(minimum))
     digest.update(prompt.encode('utf-8'))
     return {'config': config, 'catalogs': catalogs, 'prompt': prompt, 'revision': digest.hexdigest()}
 

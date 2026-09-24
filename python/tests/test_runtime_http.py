@@ -1,4 +1,4 @@
-from runtime.prompt_documents import read_entry
+from runtime.asset_registry import read_manifest
 import asyncio
 import json
 import tempfile
@@ -212,8 +212,8 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_writing_budget_comes_from_trusted_workflow_for_both_modes(self):
         # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
-        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx/WORKFLOW.md'
-        expected_timeout = read_entry(workflow_path)['runtime']['timeout_ms']
+        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx'
+        expected_timeout = read_manifest(workflow_path, 'workflow.json')['runtime']['timeout_ms']
         self.assertIs(type(expected_timeout), int)
         self.assertGreater(expected_timeout, 0)
         self.assertNotEqual(expected_timeout, 500)

@@ -1,0 +1,11 @@
+{
+  "ref": "image-generation",
+  "title": "图像生成",
+  "description": "根据文字或参考图生成、修改图片并交付 PNG 文件",
+  "supportsAttachments": true,
+  "workflowRefs": [],
+  "skillRefs": [],
+  "toolRefs": ["documents", "office", "images", "artifacts", "business"],
+  "requiredToolRefs": ["images"],
+  "execution": {"mode": "agent"}
+}

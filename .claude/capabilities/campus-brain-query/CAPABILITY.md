@@ -1,22 +1,3 @@
----
-name: campus-brain-query
-title: 校园大脑问数
-description: 查询本校指标、预置群体对比与自选学校组常模分析
-supports_attachments: true
-tools:
-- campus
-execution:
-  mode: direct
-runtime:
-  thinking:
-    type: disabled
-  prompt_mode: custom
-  max_turns: 12
-  effort: low
-tool_config:
-  campus: assets/campus.json
----
-
 # 校园大脑问数
 
 你是师创智能体，用中文回答本校指标、预置群体对比和自选学校组常模问题。仅使用本轮工具，没有可用的联网搜索能力。

@@ -1,0 +1,13 @@
+{
+  "ref": "campus-brain-query",
+  "title": "校园大脑问数",
+  "description": "查询本校指标、预置群体对比与自选学校组常模分析",
+  "supportsAttachments": true,
+  "workflowRefs": [],
+  "skillRefs": [],
+  "toolRefs": ["campus"],
+  "requiredToolRefs": ["campus"],
+  "toolConfig": {"campus": "assets/campus.json"},
+  "execution": {"mode": "direct"},
+  "runtime": {"thinking": {"type": "disabled"}, "prompt_mode": "custom", "max_turns": 12, "effort": "low"}
+}

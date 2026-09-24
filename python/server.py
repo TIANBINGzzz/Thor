@@ -558,7 +558,8 @@ def _internal_worker_payload(
             f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
         )
     local = workflow_assets or execution_entry or load_execution_entry(run_request.capability_ref)
-    workflow_name = local['capability'].get('workflow')
+    workflow_refs = local['capability'].get('workflow_refs', [])
+    workflow_name = workflow_refs[0] if len(workflow_refs) == 1 else None
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
         "_template_key": template_key,

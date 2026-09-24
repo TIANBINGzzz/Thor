@@ -1,0 +1,10 @@
+{
+  "ref": "conversation",
+  "title": "通用对话",
+  "description": "日常交流、内容总结与问题解答",
+  "supportsAttachments": true,
+  "workflowRefs": [],
+  "skillRefs": [],
+  "toolRefs": ["documents", "office", "images", "artifacts", "business", "charts", "web"],
+  "execution": {"mode": "agent"}
+}
