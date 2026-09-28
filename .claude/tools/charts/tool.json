@@ -1,0 +1,5 @@
+{
+  "ref": "charts", "version": 1, "implementation": "charts", "transport": "sdk", "lifecycle": "per_run",
+  "description": "生成 Mermaid 图表正文",
+  "operations": [{"ref": "build_mermaid", "description": "用明确数据生成 Mermaid 图表", "inputSchema": {"type": "object", "required": ["chart_type", "title", "labels", "values"], "additionalProperties": false}}]
+}

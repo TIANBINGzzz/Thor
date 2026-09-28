@@ -1,0 +1,5 @@
+{
+  "ref": "documents", "version": 1, "implementation": "documents", "transport": "sdk", "lifecycle": "per_run",
+  "scope": "namespace", "description": "读取、转换和核验文档",
+  "operations": [{"ref": "render", "description": "渲染并核验授权文档", "inputSchema": {"type": "object", "additionalProperties": false}}]
+}

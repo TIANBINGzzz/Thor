@@ -1,0 +1,5 @@
+{
+  "ref": "business", "version": 1, "implementation": "business", "transport": "http", "lifecycle": "per_run",
+  "scope": "namespace", "description": "访问受控业务 MCP",
+  "operations": [{"ref": "business", "description": "调用已登记业务服务", "inputSchema": {"type": "object", "additionalProperties": false}}]
+}

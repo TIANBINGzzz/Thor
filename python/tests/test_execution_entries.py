@@ -11,6 +11,19 @@ from runtime import capabilities
 
 
 class ExecutionEntryTests(unittest.TestCase):
+    def test_builtin_tool_catalog_loads_declared_operations(self):
+        from runtime.tool_registry import TOOL_CATALOG
+
+        image = TOOL_CATALOG.resolve('images')
+        self.assertEqual(image.implementation, 'images')
+        self.assertEqual(image.operation('generate').required, ('prompt', 'output_path'))
+
+    def test_capability_tool_refs_are_resolved_by_tool_catalog(self):
+        from runtime.tool_registry import TOOL_CATALOG
+
+        entry = capabilities.capability_entry(Path('.claude/capabilities/image-generation'))
+        self.assertEqual(tuple(TOOL_CATALOG.resolve_many(entry['tools']))[2].ref, 'images')
+
     def test_declared_tools_are_built_by_one_registry(self):
         from runtime.tool_registry import build_registered_tools
         result = build_registered_tools({'tools': ['charts'], 'required_tools': []}, {'chart_sink': None})

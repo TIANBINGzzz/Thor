@@ -1,0 +1,5 @@
+{
+  "ref": "office", "version": 1, "implementation": "office", "transport": "stdio", "lifecycle": "per_run",
+  "scope": "namespace", "description": "通过 OfficeCLI 编辑文档",
+  "operations": [{"ref": "officecli", "description": "执行受控 OfficeCLI 操作", "inputSchema": {"type": "object", "additionalProperties": false}}]
+}

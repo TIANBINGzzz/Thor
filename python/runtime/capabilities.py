@@ -6,11 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from runtime.asset_registry import ENTRY_NAME, load_declared_asset, read_asset_body, read_manifest, validate_refs
+from runtime.tool_registry import TOOL_CATALOG
 
 CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities'
 WORKFLOWS_ROOT = Path(__file__).resolve().parents[2] / '.claude/workflows'
 SKILLS_ROOT = Path(__file__).resolve().parents[2] / '.claude/skills'
-TOOL_NAMES = frozenset({'campus', 'charts', 'data', 'web', 'business', 'documents', 'office', 'images', 'artifacts'})
 
 
 class CapabilityError(ValueError):
@@ -80,7 +80,12 @@ def _validate_manifest(directory: Path, manifest: dict, workflows_root: Path, sk
     skills = validate_refs(manifest.get('skillRefs', []), 'skillRefs')
     tools = validate_refs(manifest.get('toolRefs', []), 'toolRefs')
     required = validate_refs(manifest.get('requiredToolRefs', []), 'requiredToolRefs')
-    if any(tool not in TOOL_NAMES for tool in tools + required) or not set(required) <= set(tools):
+    try:
+        TOOL_CATALOG.resolve_many(tools)
+        TOOL_CATALOG.resolve_many(required)
+    except RuntimeError as error:
+        raise RuntimeError('能力工具声明无效') from error
+    if not set(required) <= set(tools):
         raise RuntimeError('能力工具声明无效')
     configs = manifest.get('toolConfig', {})
     if not isinstance(configs, dict) or not set(configs) <= set(tools):

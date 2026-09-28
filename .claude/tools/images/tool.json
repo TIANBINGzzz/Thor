@@ -1,0 +1,16 @@
+{
+  "ref": "images",
+  "version": 1,
+  "implementation": "images",
+  "transport": "sdk",
+  "lifecycle": "per_run",
+  "scope": "namespace",
+  "description": "图像生成和图像编辑",
+  "operations": [
+    {
+      "ref": "generate",
+      "description": "生成或编辑图片并保存为 PNG",
+      "inputSchema": {"type": "object", "required": ["prompt", "output_path"], "additionalProperties": false}
+    }
+  ]
+}

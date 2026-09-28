@@ -1,0 +1,5 @@
+{
+  "ref": "web", "version": 1, "implementation": "web", "transport": "sdk", "lifecycle": "per_run",
+  "description": "联网检索公开信息",
+  "operations": [{"ref": "search", "description": "检索公开信息并返回来源", "inputSchema": {"type": "object", "required": ["query"], "additionalProperties": false}}]
+}

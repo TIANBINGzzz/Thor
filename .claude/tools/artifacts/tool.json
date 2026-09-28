@@ -1,0 +1,5 @@
+{
+  "ref": "artifacts", "version": 1, "implementation": "artifacts", "transport": "sdk", "lifecycle": "per_run",
+  "scope": "namespace", "description": "发布本轮成果文件",
+  "operations": [{"ref": "publish_file", "description": "提交最终成果文件", "inputSchema": {"type": "object", "additionalProperties": false}}]
+}

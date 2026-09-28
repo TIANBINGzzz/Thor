@@ -1,0 +1,5 @@
+{
+  "ref": "attachments", "version": 1, "implementation": "attachments", "transport": "sdk", "lifecycle": "per_run",
+  "description": "读取本轮授权附件",
+  "operations": [{"ref": "read", "description": "读取授权附件内容", "inputSchema": {"type": "object", "required": ["path"], "additionalProperties": false}}]
+}
