@@ -174,23 +174,10 @@ class ExecutionEntryTests(unittest.TestCase):
             capability_root = self._write_capability_tree(root, capability=manifest,
                                                            workflow=workflow, skill=skill)
             item = capabilities.load_capabilities(capability_root)['example']
-            from runtime.config import load_workflow_configs
-            config = load_workflow_configs(item.workflow_refs, workflows_root=root / 'workflows')
+            from runtime.config import load_workflow_config
+            config = load_workflow_config(item.workflow_refs[0], workflows_root=root / 'workflows')
             self.assertEqual(config['skills'], ['review'])
             self.assertIn('流程规则。', config['_body'])
-
-    def test_multiple_executable_workflows_are_rejected(self):
-        from runtime.config import load_workflow_configs
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            for ref in ('first', 'second'):
-                directory = root / ref
-                directory.mkdir()
-                (directory / 'workflow.json').write_text(json.dumps({
-                    'ref': ref, 'description': ref, 'execution': {'mode': 'agent'}}), encoding='utf-8')
-                (directory / 'WORKFLOW.md').write_text(ref, encoding='utf-8')
-            with self.assertRaisesRegex(RuntimeError, '只支持一个'):
-                load_workflow_configs(['first', 'second'], workflows_root=root)
 
     def test_capability_registration_rejects_multiple_workflows(self):
         with tempfile.TemporaryDirectory() as temporary:

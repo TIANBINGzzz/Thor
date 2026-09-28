@@ -268,14 +268,6 @@ def load_workflow_config(workflow_name: str | None, *, workflows_root: Path = WO
     return config
 
 
-def load_workflow_configs(refs, *, workflows_root: Path = WORKFLOWS_ROOT):
-    """加载唯一可执行 Workflow；共享规则由 Skill 组合。"""
-    names = validate_refs(list(refs), 'workflowRefs')
-    if len(names) > 1:
-        raise RuntimeError('一个能力只支持一个可执行 Workflow；复用规则请声明 Skill')
-    return load_workflow_config(names[0], workflows_root=workflows_root) if names else None
-
-
 def is_direct_workflow(workflow_config: dict[str, Any] | None) -> bool:
     """检查输入配置的 execution.mode，返回是否采用 direct 执行模式。"""
     execution = workflow_config.get("execution") if workflow_config else None
@@ -351,8 +343,10 @@ def load_execution_entry(capability_ref):
     """冻结本轮本地能力及流程声明，供HTTP校验和执行共用；此处不访问Nacos。"""
     capability = resolve_capability(capability_ref)
     entry = capability_entry(capability.directory)
-    return {'capability': entry, 'config': load_workflow_configs(
-        entry.get('workflow_refs', []), workflows_root=Path(entry['_workflow_root']))}
+    workflow_refs = entry.get('workflow_refs', [])
+    workflow = load_workflow_config(
+        workflow_refs[0], workflows_root=Path(entry['_workflow_root'])) if workflow_refs else None
+    return {'capability': entry, 'config': workflow}
 
 
 def prepare_workflow_assets(payload):
