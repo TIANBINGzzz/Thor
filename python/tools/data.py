@@ -128,3 +128,9 @@ def create_data_server(services):
         ("read_query_result", "读取当前Run内同一物化结果的下一页，不重复查询。",
             {"result_ref": REFERENCE, "cursor": REFERENCE}, ["result_ref"], read),
     ])
+
+
+def provide_tool(definition, context):
+    """绑定本轮已准备的数据服务；未声明数据需求时不挂载。"""
+    services = context.get('data_services')
+    return (definition.ref, create_data_server(services), '') if services is not None else None

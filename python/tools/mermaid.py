@@ -1,6 +1,7 @@
 """将明确给出的数据转换为 Mermaid 正文；不查询数据库、不生成或上传文件。"""
 
 from decimal import Decimal
+from functools import lru_cache
 import json
 import math
 import re
@@ -9,29 +10,14 @@ import unicodedata
 from jsonschema import Draft202012Validator
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from tools.declarations import operation
 
 
-
-CHART_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["chart_type", "title", "labels", "values"],
-    "properties": {
-        "chart_type": {"type": "string", "enum": ["bar", "bar-horizontal", "line", "pie", "radar", "treemap"],
-                       "description": "bar=非负分类对比，bar-horizontal=长名称横向对比，line=有序趋势（允许负值），pie=非负构成且每个正值占比至少1%，radar=同尺度非负指标，treemap=正数面积构成。"},
-        "title": {"type": "string", "minLength": 1, "maxLength": 120,
-                  "description": "简短主题，单位单独放unit，不要在标题中重复单位。"},
-        "labels": {"type": "array", "minItems": 1, "maxItems": 50,
-                   "items": {"type": "string", "minLength": 1, "maxLength": 80},
-                   "description": "不重复的分类或时间标签，保持来源顺序；折线图至少2项，饼图最多12项，雷达图3至12项。"},
-        "values": {"type": "array", "minItems": 1, "maxItems": 50,
-                   "items": {"type": "number", "minimum": -1e15, "maximum": 1e15},
-                   "description": "与labels逐项对应的有限数值，不传字符串、null或布尔值；不能擅自补0或截断。"},
-        "unit": {"type": "string", "maxLength": 20,
-                 "description": "来源中明确的单位，如个、万元、%；只作标注，不转换values。"},
-    },
-}
-_VALIDATOR = Draft202012Validator(CHART_SCHEMA)
+@lru_cache(maxsize=1)
+def _chart_validator():
+    """延迟从 Catalog 取得图表契约，避免工具模块导入时循环加载。"""
+    schema = operation('charts', 'build_mermaid').input_schema
+    return schema, Draft202012Validator(schema)
 
 
 class ChartInputError(ValueError):
@@ -68,12 +54,13 @@ def _number(value):
 
 def build_mermaid(arguments):
     """校验显式数据并返回完整Markdown块；不聚合、排序或推测缺失值。"""
-    invalid = next(_VALIDATOR.iter_errors(arguments), None)
+    chart_schema, validator = _chart_validator()
+    invalid = next(validator.iter_errors(arguments), None)
     if invalid:
         field = next(iter(invalid.absolute_path), None)
         if invalid.validator == 'required' and isinstance(arguments, dict):
-            field = next((key for key in CHART_SCHEMA['required'] if key not in arguments), None)
-        field = field if field in CHART_SCHEMA['properties'] else 'arguments'
+            field = next((key for key in chart_schema['required'] if key not in arguments), None)
+        field = field if field in chart_schema['properties'] else 'arguments'
         raise ChartInputError(field, '字段类型、长度或取值不符合工具约定，请按输入schema修正。')
     kind = arguments['chart_type']
     title = _text(arguments['title'], 'title')
@@ -128,9 +115,8 @@ def build_mermaid(arguments):
 
 def create_chart_server(on_generated=None):
     """注册显式数据图表工具，并按需通知调用方收集生成的正文。"""
-    @sdk_tool('build_mermaid',
-              '用明确数据生成正文内Mermaid图表：柱状图、横向柱状图、折线图、饼图、雷达图、矩形树图。返回markdown，须原样放入回答；'
-              '不查询数据库、不生成文件、不提供下载链接。', CHART_SCHEMA)
+    spec = operation('charts', 'build_mermaid')
+    @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def build(arguments):
         """返回 Mermaid 正文或可修正的字段错误，成功后触发生成回调。"""
         try:
@@ -144,3 +130,8 @@ def create_chart_server(on_generated=None):
         return {'content': [{'type': 'text', 'text': json.dumps(value, ensure_ascii=False)}]}
 
     return create_sdk_mcp_server(name='charts', version='1.0.0', tools=[build])
+
+
+def provide_tool(definition, context):
+    """创建本轮图表正文 Tool。"""
+    return definition.ref, create_chart_server(on_generated=context.get('chart_sink')), ''

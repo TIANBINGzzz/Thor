@@ -3,13 +3,16 @@
 import base64
 from io import BytesIO
 import json
+import os
 from pathlib import Path
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from PIL import Image
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from tools.declarations import operation
 from tools.document_conversion import _resolve, _roots, _new_output
 
 
@@ -74,12 +77,8 @@ async def generate_image(prompt, output_path, *, base_dir, base_url, api_key,
 
 def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=None):
     """绑定部署侧生图配置与授权目录，模型只能提交画面要求和文件参数。"""
-    @sdk_tool('generate', '按需生成或编辑一张图片，保存PNG并返回路径。reference_paths可选1至3张本轮授权参考图。生成图不能作为真实成果照片或数据证据；完成后用Read查看。',
-              {'type': 'object', 'properties': {
-                  'prompt': {'type': 'string', 'minLength': 1},
-                  'output_path': {'type': 'string'}, 'size': {'type': 'string'},
-                  'reference_paths': {'type': 'array', 'maxItems': 3, 'items': {'type': 'string'}},
-              }, 'required': ['prompt', 'output_path'], 'additionalProperties': False})
+    spec = operation('images', 'generate')
+    @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def generate(arguments):
         """调用绑定的生图服务并返回文件结果，失败不自动重试付费请求。"""
         try:
@@ -89,3 +88,28 @@ def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=N
         except (ValueError, OSError, RuntimeError) as error:
             return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
     return create_sdk_mcp_server('images', version='1.0.0', tools=[generate])
+
+
+def image_configuration():
+    """解析部署侧生图配置；仅受信任的阿里云工作空间可复用模型连接。"""
+    base = os.environ.get('CCSDK_IMAGE_BASE_URL', '').strip()
+    key = os.environ.get('CCSDK_IMAGE_API_KEY', '').strip() or os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
+    if not base:
+        url = urlsplit(os.environ.get('ANTHROPIC_BASE_URL', ''))
+        if (url.scheme == 'https' and (url.hostname or '').endswith('.maas.aliyuncs.com')
+                and url.path.rstrip('/') == '/apps/anthropic'
+                and not url.username and not url.password and not url.query and not url.fragment):
+            base = urlunsplit((url.scheme, url.netloc, '/compatible-mode/v1', '', ''))
+    return base, key
+
+
+def provide_tool(definition, context):
+    """仅在生图连接可用时，为本轮目录创建图片 MCP。"""
+    base, key = image_configuration()
+    if not base or not key:
+        return None
+    work = context.get('work_directory') or context.get('cwd') or Path.cwd()
+    server = create_image_server(work, base_url=base, api_key=key,
+                                 model=os.environ.get('CCSDK_IMAGE_MODEL', 'qwen-image-3.0'),
+                                 additional_dirs=context.get('additional_directories'))
+    return definition.ref, server, ''

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from tools.declarations import operation
 
 
 def _resolved(path: str | Path) -> Path:
@@ -127,18 +128,8 @@ def create_artifact_server(
     work = _resolved(work_directory)
     deliverables = _resolved(deliverables_directory)
 
-    @sdk_tool(
-        "publish_file",
-        "提交已生成的最终文件；不转换格式，DOCX必须是真实Word文件。返回文件回执，上传与下载状态由系统文件卡片展示，勿在回答中描述上传状态或编造下载链接。",
-        {
-            "type": "object",
-            "properties": {
-                "source_path": {"type": "string"},
-                "file_name": {"type": "string"},
-            },
-            "required": ["source_path", "file_name"],
-        },
-    )
+    spec = operation('artifacts', 'publish_file')
+    @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def publish_file(args: dict[str, Any]) -> dict[str, Any]:
         """接收 source_path 和 file_name 工具参数，发布文件并返回 MCP 文本结果。"""
         import asyncio
@@ -167,3 +158,21 @@ def create_artifact_server(
         version="0.1.0",
         tools=[publish_file],
     )
+
+
+def provide_tool(definition, context):
+    """为本轮受控工作目录挂载成果发布工具。"""
+    if not context.get('artifact_enabled'):
+        return None
+    prompt = ("\n当前执行的受控工作目录：" + str(context['work_directory'])
+              + "\n当前执行的交付目录：" + str(context['deliverables_directory'])
+              + "\n生成文件时使用工作目录下的绝对路径；不要写入项目根目录、猜测目录或扫描其他会话。"
+              "用户要求生成文档、报告而未指定格式时，默认交付真正的Word（.docx）；用户明确指定其他格式时遵从。"
+              "生成Word时使用 mcp__office__officecli 创建和编辑，不能用Write写Markdown冒充Word或交付.docx.md；此时Write只用于草稿和操作JSON。"
+              "核对最终文稿内容和所需字数后，调用 mcp__artifacts__publish_file 提交最终文件；该工具不转换格式。"
+              "工具回执仅确认文件已提交，上传与下载状态由系统文件卡片展示。回复不得复述pending、待上传、后台上传中，"
+              "也不得声称上传完成或可下载；不要自行生成下载链接。最终回复用一两句话说明文稿名称和必要内容，"
+              "不重复完整目录或内部操作过程，不输出服务器本地路径；提交失败必须如实说明。")
+    server = create_artifact_server(context['session_directory'], context['work_directory'],
+                                    context['deliverables_directory'], on_published=context.get('artifact_sink'))
+    return definition.ref, server, prompt

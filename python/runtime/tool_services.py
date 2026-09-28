@@ -1,19 +1,21 @@
 """受控有状态工具注册表；能力只引用工具名，不改变 Worker 生命周期。"""
 
 from runtime.deployment_config import ConfigSnapshot
-from runtime.tool_registry import TOOL_CATALOG
-from tools.campus import CampusQuery, create_campus_server, load_campus_assets
-
-# 仅受信任的代码可以注册适配器，不支持从 manifest 动态导入模块。
-STATEFUL_PROVIDERS = {'campus': (load_campus_assets, CampusQuery, create_campus_server)}
+from runtime.tool_registry import TOOL_CATALOG, PROVIDERS
 
 
 def load_tool_assets(entry, settings):
     """仅准备所选工具的资产，配置引用统一由同一个快照解析。"""
     selected = TOOL_CATALOG.resolve_many(entry.get('tools', []))
-    return {definition.ref: STATEFUL_PROVIDERS[definition.ref][0](settings, directory=entry['_directory'])
-            for definition in selected
-            if definition.lifecycle == 'per_client' and definition.ref in STATEFUL_PROVIDERS}
+    result = {}
+    for definition in selected:
+        if definition.lifecycle != 'per_client':
+            continue
+        provider = PROVIDERS[definition.implementation]
+        if provider.load_assets is None:
+            raise RuntimeError(f'有状态工具缺少资产加载器：{definition.ref}')
+        result[definition.ref] = provider.load_assets(settings, directory=entry['_directory'])
+    return result
 
 
 class ToolServices:
@@ -27,7 +29,10 @@ class ToolServices:
             for name, value in loaded.items():
                 if value['revision'] != assets['tool_revisions'].get(name):
                     raise RuntimeError('能力工具资产已变化，请重新发起请求')
-                self.services[name] = STATEFUL_PROVIDERS[name][1](value, credentials)
+                provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
+                if provider.create_service is None:
+                    raise RuntimeError(f'有状态工具缺少服务工厂：{name}')
+                self.services[name] = provider.create_service(value, credentials)
         except Exception:
             self.clear()
             raise
@@ -49,5 +54,10 @@ class ToolServices:
 
     def servers(self, on_error=None):
         """把已登记适配器挂载为 MCP，统一转交脱敏失败回调。"""
-        return {name: STATEFUL_PROVIDERS[name][2](service, on_error=on_error)
-                for name, service in self.services.items()}
+        servers = {}
+        for name, service in self.services.items():
+            provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
+            if provider.create_server is None:
+                raise RuntimeError(f'有状态工具缺少 MCP 工厂：{name}')
+            servers[name] = provider.create_server(service, on_error=on_error)
+        return servers

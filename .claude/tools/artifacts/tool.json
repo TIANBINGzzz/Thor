@@ -1,5 +1,7 @@
 {
   "ref": "artifacts", "version": 1, "implementation": "artifacts", "transport": "sdk", "lifecycle": "per_run",
-  "scope": "namespace", "description": "发布本轮成果文件",
-  "operations": [{"ref": "publish_file", "description": "提交最终成果文件", "inputSchema": {"type": "object", "additionalProperties": false}}]
+  "scope": "operations", "description": "发布本轮成果文件",
+  "operations": [{"ref": "publish_file", "description": "提交已生成的最终文件；不转换格式，DOCX必须是真实Word文件。返回文件回执，上传与下载状态由系统文件卡片展示，勿在回答中描述上传状态或编造下载链接。", "inputSchema": {"type": "object", "properties": {
+    "source_path": {"type": "string"}, "file_name": {"type": "string"}
+  }, "required": ["source_path", "file_name"]}}]
 }

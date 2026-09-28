@@ -16,7 +16,26 @@ class ExecutionEntryTests(unittest.TestCase):
 
         image = TOOL_CATALOG.resolve('images')
         self.assertEqual(image.implementation, 'images')
-        self.assertEqual(image.operation('generate').required, ('prompt', 'output_path'))
+        self.assertEqual(image.operation('generate').input_schema['required'], ['prompt', 'output_path'])
+
+    def test_every_tool_uses_one_provider_catalog(self):
+        from runtime.tool_registry import TOOL_CATALOG, PROVIDERS
+
+        for ref in TOOL_CATALOG.refs:
+            definition = TOOL_CATALOG.resolve(ref)
+            provider = PROVIDERS[definition.implementation]
+            with self.subTest(ref=ref):
+                self.assertEqual(bool(provider.create_service), definition.lifecycle == 'per_client')
+                self.assertEqual(bool(provider.create), definition.lifecycle == 'per_run')
+
+    def test_opaque_tools_do_not_publish_placeholder_operations(self):
+        from runtime.tool_registry import TOOL_CATALOG
+
+        for ref in ('business', 'campus', 'data', 'office'):
+            definition = TOOL_CATALOG.resolve(ref)
+            with self.subTest(ref=ref):
+                self.assertEqual(definition.scope, 'namespace')
+                self.assertEqual(definition.operations, ())
 
     def test_capability_tool_refs_are_resolved_by_tool_catalog(self):
         from runtime.tool_registry import TOOL_CATALOG
@@ -28,6 +47,37 @@ class ExecutionEntryTests(unittest.TestCase):
         from runtime.tool_registry import build_registered_tools
         result = build_registered_tools({'tools': ['charts'], 'required_tools': []}, {'chart_sink': None})
         self.assertIn('charts', result.servers)
+
+    def test_static_tool_declarations_match_registered_sdk_contracts(self):
+        from runtime.tool_registry import TOOL_CATALOG
+        from tools.attachments import create_attachment_server
+        from tools.artifacts import create_artifact_server
+        from tools.documents import create_document_server
+        from tools.images import create_image_server
+        from tools.mermaid import create_chart_server
+        from tools.web_search import create_web_server
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            work, output = root / 'work', root / 'output'
+            work.mkdir()
+            output.mkdir()
+            cases = (
+                ('attachments', 'tools.attachments', lambda: create_attachment_server(root)),
+                ('artifacts', 'tools.artifacts', lambda: create_artifact_server(root, work, output)),
+                ('documents', 'tools.documents', lambda: create_document_server(root)),
+                ('images', 'tools.images', lambda: create_image_server(root,
+                    base_url='https://image.test', api_key='test', model='test')),
+                ('charts', 'tools.mermaid', create_chart_server),
+                ('web', 'tools.web_search', lambda: create_web_server(
+                    base_url='https://web.test', api_key='test', model='test')),
+            )
+            for ref, module, create in cases:
+                with self.subTest(ref=ref), patch(module + '.create_sdk_mcp_server',
+                                                  side_effect=lambda *args, **kwargs: kwargs):
+                    actual = {item.name: item.input_schema for item in create()['tools']}
+                declared = {item.ref: item.input_schema for item in TOOL_CATALOG.resolve(ref).operations}
+                self.assertEqual(actual, declared)
 
     def test_entry_change_uses_current_workflow_and_freezes_request(self):
         import server
@@ -128,6 +178,28 @@ class ExecutionEntryTests(unittest.TestCase):
             config = load_workflow_configs(item.workflow_refs, workflows_root=root / 'workflows')
             self.assertEqual(config['skills'], ['review'])
             self.assertIn('流程规则。', config['_body'])
+
+    def test_multiple_executable_workflows_are_rejected(self):
+        from runtime.config import load_workflow_configs
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for ref in ('first', 'second'):
+                directory = root / ref
+                directory.mkdir()
+                (directory / 'workflow.json').write_text(json.dumps({
+                    'ref': ref, 'description': ref, 'execution': {'mode': 'agent'}}), encoding='utf-8')
+                (directory / 'WORKFLOW.md').write_text(ref, encoding='utf-8')
+            with self.assertRaisesRegex(RuntimeError, '只支持一个'):
+                load_workflow_configs(['first', 'second'], workflows_root=root)
+
+    def test_capability_registration_rejects_multiple_workflows(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
+                        'workflowRefs': ['first', 'second']}
+            capability_root = self._write_capability_tree(root, capability=manifest)
+            with self.assertRaisesRegex(RuntimeError, '只支持一个'):
+                capabilities.load_capabilities(capability_root)
 
     def test_only_selected_skill_metadata_is_injected_and_content_changes_revision(self):
         from runtime.config import prepare_workflow_assets

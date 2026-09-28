@@ -1,5 +1,13 @@
 {
   "ref": "documents", "version": 1, "implementation": "documents", "transport": "sdk", "lifecycle": "per_run",
-  "scope": "namespace", "description": "读取、转换和核验文档",
-  "operations": [{"ref": "render", "description": "渲染并核验授权文档", "inputSchema": {"type": "object", "additionalProperties": false}}]
+  "scope": "operations", "description": "读取、转换和核验文档",
+  "operations": [
+    {"ref": "render", "description": "Office引擎更新DOCX已有目录字段，另存DOCX与PDF；不会从静态目录文字创建TOC。output_dir为新目录。OfficeCLI编辑后先close；需要目录时tocStatus=not_present表示未通过，须修复字段再渲染。版式通过PDF核验。", "inputSchema": {"type": "object", "properties": {
+      "path": {"type": "string"}, "output_dir": {"type": "string"}
+    }, "required": ["path", "output_dir"], "additionalProperties": false}},
+    {"ref": "read_pdf", "description": "按页读取PDF文字，可render=true生成页面图片。页码从1开始；用Read查看返回图片。", "inputSchema": {"type": "object", "properties": {
+      "path": {"type": "string"}, "start": {"type": "integer"}, "limit": {"type": "integer"},
+      "render": {"type": "boolean"}, "output_dir": {"type": "string"}
+    }, "required": ["path"], "additionalProperties": false}}
+  ]
 }

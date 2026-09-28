@@ -1,5 +1,14 @@
 {
   "ref": "charts", "version": 1, "implementation": "charts", "transport": "sdk", "lifecycle": "per_run",
   "description": "生成 Mermaid 图表正文",
-  "operations": [{"ref": "build_mermaid", "description": "用明确数据生成 Mermaid 图表", "inputSchema": {"type": "object", "required": ["chart_type", "title", "labels", "values"], "additionalProperties": false}}]
+  "operations": [{"ref": "build_mermaid", "description": "用明确数据生成正文内Mermaid图表：柱状图、横向柱状图、折线图、饼图、雷达图、矩形树图。返回markdown，须原样放入回答；不查询数据库、不生成文件、不提供下载链接。", "inputSchema": {
+    "type": "object", "additionalProperties": false, "required": ["chart_type", "title", "labels", "values"],
+    "properties": {
+      "chart_type": {"type": "string", "enum": ["bar", "bar-horizontal", "line", "pie", "radar", "treemap"], "description": "bar=非负分类对比，bar-horizontal=长名称横向对比，line=有序趋势（允许负值），pie=非负构成且每个正值占比至少1%，radar=同尺度非负指标，treemap=正数面积构成。"},
+      "title": {"type": "string", "minLength": 1, "maxLength": 120, "description": "简短主题，单位单独放unit，不要在标题中重复单位。"},
+      "labels": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "string", "minLength": 1, "maxLength": 80}, "description": "不重复的分类或时间标签，保持来源顺序；折线图至少2项，饼图最多12项，雷达图3至12项。"},
+      "values": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"type": "number", "minimum": -1000000000000000, "maximum": 1000000000000000}, "description": "与labels逐项对应的有限数值，不传字符串、null或布尔值；不能擅自补0或截断。"},
+      "unit": {"type": "string", "maxLength": 20, "description": "来源中明确的单位，如个、万元、%；只作标注，不转换values。"}
+    }
+  }}]
 }

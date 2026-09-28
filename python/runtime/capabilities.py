@@ -77,6 +77,8 @@ def _validate_manifest(directory: Path, manifest: dict, workflows_root: Path, sk
     if not ENTRY_NAME.fullmatch(manifest['ref']) or type(manifest.get('supportsAttachments', False)) is not bool:
         raise RuntimeError('能力 manifest 标识或附件配置无效')
     workflows = validate_refs(manifest.get('workflowRefs', []), 'workflowRefs')
+    if len(workflows) > 1:
+        raise RuntimeError('一个能力只支持一个可执行 Workflow；复用规则请声明 Skill')
     skills = validate_refs(manifest.get('skillRefs', []), 'skillRefs')
     tools = validate_refs(manifest.get('toolRefs', []), 'toolRefs')
     required = validate_refs(manifest.get('requiredToolRefs', []), 'requiredToolRefs')

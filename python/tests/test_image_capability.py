@@ -26,7 +26,7 @@ class ImageCapabilityTests(unittest.TestCase):
         with patch.dict('os.environ', {
                 'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
                 'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic'}, clear=True), \
-                patch('runtime.config.create_image_server', return_value={}) as create:
+                patch('tools.images.create_image_server', return_value={}) as create:
             options = build_options({'capability_ref': 'image-generation'})
         self.assertEqual(create.call_args.kwargs['api_key'], 'shared-private-key')
         self.assertEqual(create.call_args.kwargs['base_url'],
@@ -60,8 +60,8 @@ class ImageCapabilityTests(unittest.TestCase):
                 'session_directory': directory, 'work_directory': directory,
                 'deliverables_directory': str(Path(directory) / 'output')})
         self.assertTrue({'images', 'artifacts'} <= set(options.mcp_servers))
-        self.assertIn('mcp__images__*', options.allowed_tools)
-        self.assertIn('mcp__artifacts__*', options.allowed_tools)
+        self.assertIn('mcp__images__generate', options.allowed_tools)
+        self.assertIn('mcp__artifacts__publish_file', options.allowed_tools)
         self.assertIn('逐张', options.system_prompt['append'])
         self.assertNotIn('private-image-key', options.system_prompt['append'])
 

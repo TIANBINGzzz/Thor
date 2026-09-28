@@ -1,5 +1,5 @@
 {
   "ref": "data", "version": 1, "implementation": "data", "transport": "sdk", "lifecycle": "per_run",
   "scope": "namespace", "description": "访问本轮获准的数据服务",
-  "operations": [{"ref": "query", "description": "执行已授权的数据访问操作", "inputSchema": {"type": "object", "additionalProperties": false}}]
+  "operations": []
 }

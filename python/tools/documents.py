@@ -2,23 +2,22 @@
 
 import asyncio
 import json
+from pathlib import Path
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from tools.declarations import operation
 from tools.document_conversion import render_document, read_pdf
 
 
 def create_document_server(base_dir, additional_dirs=None):
     """绑定授权文件目录，注册 Office 渲染与 PDF 分页阅读工具。"""
-    string = {'type': 'string'}
-    integer = {'type': 'integer'}
     definitions = [
-        ('render', 'Office引擎更新DOCX已有目录字段，另存DOCX与PDF；不会从静态目录文字创建TOC。output_dir为新目录。OfficeCLI编辑后先close；需要目录时tocStatus=not_present表示未通过，须修复字段再渲染。版式通过PDF核验。',
-         {'path': string, 'output_dir': string}, ['path', 'output_dir'], render_document),
-        ('read_pdf', '按页读取PDF文字，可render=true生成页面图片。页码从1开始；用Read查看返回图片。',
-         {'path': string, 'start': integer, 'limit': integer, 'render': {'type': 'boolean'}, 'output_dir': string}, ['path'], read_pdf),
+        ('render', render_document),
+        ('read_pdf', read_pdf),
     ]
     registered = []
-    for name, description, properties, required, handler in definitions:
+    for name, handler in definitions:
+        spec = operation('documents', name)
         async def invoke(args, _handler=handler):
             """在线程中执行已绑定的文档处理器，将结果或错误编码为 MCP 文本。"""
             try:
@@ -26,6 +25,13 @@ def create_document_server(base_dir, additional_dirs=None):
                 return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
             except Exception as error:
                 return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
-        registered.append(sdk_tool(name, description, {'type': 'object', 'properties': properties,
-                                                       'required': required, 'additionalProperties': False})(invoke))
+        registered.append(sdk_tool(spec.ref, spec.description, spec.input_schema)(invoke))
     return create_sdk_mcp_server('documents', version='1.0.0', tools=registered)
+
+
+def provide_tool(definition, context):
+    """绑定本轮工作目录和额外授权文件目录。"""
+    work = context.get('work_directory') or context.get('cwd') or Path.cwd()
+    dirs = [*(context.get('additional_directories') or []),
+            *(item for item in (context.get('work_directory'), context.get('deliverables_directory')) if item)]
+    return definition.ref, create_document_server(work, dirs), ''

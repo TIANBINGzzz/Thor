@@ -14,13 +14,10 @@ from contextlib import contextmanager
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
 from tools.web_search import WEB_INSTRUCTIONS
-from tools.images import create_image_server
-from tools.web_search import create_web_server
 from runtime.data_services import RunServices
 from data_access.catalog import Catalog
 from data_access.connections import load_config
@@ -272,28 +269,11 @@ def load_workflow_config(workflow_name: str | None, *, workflows_root: Path = WO
 
 
 def load_workflow_configs(refs, *, workflows_root: Path = WORKFLOWS_ROOT):
-    """按声明顺序加载多个 Workflow，并合并其执行配置与正文。"""
+    """加载唯一可执行 Workflow；共享规则由 Skill 组合。"""
     names = validate_refs(list(refs), 'workflowRefs')
-    configs = [load_workflow_config(name, workflows_root=workflows_root) for name in names]
-    if not configs:
-        return None
-    merged = {**configs[0]}
-    merged['_body'] = '\n\n'.join(item['_body'] for item in configs)
-    merged['skills'] = list(dict.fromkeys(skill for item in configs for skill in item.get('skills', [])))
-    for field in ('templates', 'runtime', 'data_access'):
-        values = [item.get(field) for item in configs if item.get(field) is not None]
-        if field == 'templates':
-            merged[field] = {}
-            for item in configs:
-                for key, value in item.get(field, {}).items():
-                    if key in merged[field] and merged[field][key] != value:
-                        raise RuntimeError(f'Workflow模板配置冲突：{key}')
-                    merged[field][key] = value
-        elif values and any(value != values[0] for value in values[1:]):
-            raise RuntimeError(f'Workflow {field}配置冲突')
-    merged['data_context_topics'] = list(dict.fromkeys(topic for item in configs for topic in item.get('data_context_topics', [])))
-    merged['_directories'] = [item['_directory'] for item in configs]
-    return merged
+    if len(names) > 1:
+        raise RuntimeError('一个能力只支持一个可执行 Workflow；复用规则请声明 Skill')
+    return load_workflow_config(names[0], workflows_root=workflows_root) if names else None
 
 
 def is_direct_workflow(workflow_config: dict[str, Any] | None) -> bool:
@@ -476,19 +456,6 @@ def build_system_prompt(
     return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
 
 
-def image_configuration():
-    """同一阿里云工作空间默认复用通用Key及地址；其他供应商须显式指定生图地址。"""
-    base = os.environ.get('CCSDK_IMAGE_BASE_URL', '').strip()
-    key = os.environ.get('CCSDK_IMAGE_API_KEY', '').strip() or os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
-    if not base:
-        url = urlsplit(os.environ.get('ANTHROPIC_BASE_URL', ''))
-        if (url.scheme == 'https' and (url.hostname or '').endswith('.maas.aliyuncs.com')
-                and url.path.rstrip('/') == '/apps/anthropic'
-                and not url.username and not url.password and not url.query and not url.fragment):
-            base = urlunsplit((url.scheme, url.netloc, '/compatible-mode/v1', '', ''))
-    return base, key
-
-
 def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
@@ -527,7 +494,6 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         )
     credentials = payload.get("credentials")
     tool_services = tool_services or ToolServices(assets, credentials)
-    image_base, image_key = image_configuration()
     registered = build_registered_tools(entry, {
         'model': model, 'restricted': restricted_tools, 'data_services': data_services,
         'chart_sink': chart_sink, 'artifact_sink': artifact_sink,
@@ -536,11 +502,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         'capability_ref': capability_ref,
         'business_capabilities': _csv_environment('CCSDK_BUSINESS_MCP_CAPABILITIES'),
         'input_directory': payload.get('input_directory'), 'cwd': payload.get('cwd'),
-        'additional_directories': payload.get('additional_directories'), 'image_base': image_base,
-        'image_key': image_key,
+        'additional_directories': payload.get('additional_directories'),
         'provided_tools': set(tool_services.services),
-        'create_web_server': create_web_server,
-        'create_image_server': create_image_server,
     })
     prompt_append += registered.prompt_append
     mcp_servers = {**registered.servers, **tool_services.servers(on_error=mcp_error_sink)}

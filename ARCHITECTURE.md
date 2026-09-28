@@ -29,6 +29,7 @@
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
 - `capabilities.py` 从 `capabilities/<名称>/CAPABILITY.md` 注册能力，`config.py` 统一装配选定入口与 `workflows/<名称>/WORKFLOW.md`；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。元数据只在服务端使用，Skill 仅注入用途及按需读取路径，详细资产不整包进入 Prompt；有状态工具通过 `tool_services.py` 逐 Run 绑定和清理。新增或删除能力需重启注册目录；没有 JS 工作流运行器或通用 DAG 引擎。
+- `.claude/tools/<名称>/tool.json` 声明 Tool 契约，`tool_registry.py` 统一校验并登记受信任 Provider；工具工厂留在各自 `python/tools/` 模块。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。

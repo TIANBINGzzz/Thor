@@ -128,11 +128,11 @@ class AgentWorkerTests(unittest.TestCase):
                 self.assertIn('没有可用的联网搜索能力', options.system_prompt['append'])
 
     def test_web_search_reuses_selected_model_key_without_business_token(self):
-        from runtime.config import create_web_server
+        from tools.web_search import create_web_server
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'default-model'}
         with patch.dict('os.environ', values, clear=True), patch(
-                'runtime.config.create_web_server', wraps=create_web_server) as create:
+                'tools.web_search.create_web_server', wraps=create_web_server) as create:
             options = build_options({'capability_ref': 'conversation', 'model': 'selected-model',
                                      'credentials': {'platformBearer': 'business-secret'}})
         self.assertEqual(create.call_args.kwargs, {

@@ -1,5 +1,5 @@
 {
-  "ref": "campus", "version": 1, "implementation": "campus", "transport": "http", "lifecycle": "per_client",
+  "ref": "campus", "version": 1, "implementation": "campus", "transport": "sdk", "lifecycle": "per_client", "scope": "namespace",
   "description": "访问校园大脑查询服务",
-  "operations": [{"ref": "search_knowledge", "description": "检索校园查询知识目录", "inputSchema": {"type": "object", "required": ["kind", "query"], "additionalProperties": false}}]
+  "operations": []
 }
