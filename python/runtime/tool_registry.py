@@ -24,13 +24,10 @@ class ToolOperation:
 class ToolDefinition:
     """描述可由 Runtime 装配的受信任 Tool。"""
     ref: str
-    version: int
     implementation: str
-    transport: str
     lifecycle: str
     scope: str
     operations: tuple[ToolOperation, ...]
-    directory: str
 
     def operation(self, ref: str) -> ToolOperation:
         """按操作引用查找声明。"""
@@ -95,8 +92,7 @@ class ToolCatalog:
             if not isinstance(required, list) or any(not isinstance(name, str) for name in required):
                 raise RuntimeError(f'工具操作 required 无效：{ref}.{operation_ref}')
             parsed.append(ToolOperation(operation_ref, item['description'], schema))
-        return ToolDefinition(ref, value['version'], implementation, value['transport'],
-                              value['lifecycle'], value.get('scope', 'operations'), tuple(parsed), str(directory))
+        return ToolDefinition(ref, implementation, value['lifecycle'], scope, tuple(parsed))
 
     def resolve(self, ref: str) -> ToolDefinition:
         """按 Tool 引用返回声明。"""
