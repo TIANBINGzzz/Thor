@@ -75,6 +75,16 @@ class RuntimeHTTPTests(unittest.TestCase):
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
 
+    def test_only_runtime_and_health_routes_are_exposed(self):
+        """内部服务不暴露浏览器 API，也不接受浏览器直接发起 Run。"""
+        paths = {route.path for route in server.app.routes}
+        self.assertTrue(all(path == "/health" or path.startswith("/internal/v1/") for path in paths), paths)
+        self.assertEqual(self.client.get("/health").status_code, 200)
+        for path in ("/api/sessions", "/api/capabilities", "/api/models", "/api/files/test"):
+            self.assertEqual(self.client.get(path).status_code, 404)
+        response = self.client.post("/internal/v1/runs", headers={"Origin": "http://browser.example"})
+        self.assertEqual(response.status_code, 403)
+
     def test_catalog_is_public_and_does_not_grant_run_access(self):
         for secret in ("test-runtime-secret", ""):
             with self.subTest(secret_configured=bool(secret)), patch.object(server, "RUNTIME_JWT_SECRET", secret):

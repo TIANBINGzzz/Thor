@@ -6,7 +6,7 @@ import time
 import unittest
 import uuid
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 
@@ -44,6 +44,35 @@ def file_response(chunk, count, *, gate=None, started=None, valid=True):
 
 
 class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_payload_file_id_does_not_authorize_fetch(self):
+        """业务 payload 中的文件 ID 不能替代授权附件引用。"""
+        request = AgentRunRequest.from_dict({
+            "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
+            "capabilityRef": "conversation", "input": {}, "payload": {"fileId": "file-id"},
+        })
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker:
+            result = await server._fetch_run_files(request, {"tenant": "t", "sub": "u"},
+                                                   Path(folder), "runtime-jwt")
+            self.assertEqual(result, ())
+            broker.assert_not_called()
+
+    async def test_authorized_attachments_use_claims_and_runtime_token(self):
+        """文件准备将已验证身份和 Run Token 传入统一 File Broker。"""
+        request = AgentRunRequest.from_dict({
+            "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
+            "businessSessionId": "session-file", "capabilityRef": "conversation",
+            "input": {"text": "read", "attachmentRefs": [{"fileId": "file-id", "purpose": "input"}]},
+        })
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker, \
+                patch.object(server, "_run_phase", new_callable=AsyncMock):
+            broker.return_value.fetch_all = AsyncMock(return_value=())
+            await server._fetch_run_files(request, {"tenant": "tenant-test", "sub": "user-test"},
+                                          Path(folder), "runtime-jwt")
+            broker.return_value.fetch_all.assert_awaited_once_with(
+                request.input.attachment_refs, run_id="run-file", tenant_id="tenant-test",
+                user_id="user-test", workspace=Path(folder), bearer_token="runtime-jwt",
+                timeout_ms=server.FILE_PREPARE_TIMEOUT_MS)
+
     async def test_progress_arrives_before_download_finishes(self):
         chunk = b"x" * 262144
         gate, reported = asyncio.Event(), asyncio.Event()

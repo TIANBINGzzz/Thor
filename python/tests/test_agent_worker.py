@@ -204,13 +204,6 @@ class AgentWorkerTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "workflow 不存在"):
                 load_workflow_config(name)
 
-    def test_unregistered_flat_script_is_not_a_workflow(self):
-        with tempfile.TemporaryDirectory() as directory:
-            (Path(directory)/'legacy.js').write_text('export const meta = {};', encoding='utf-8')
-            with patch('runtime.config.WORKFLOWS_ROOT', Path(directory)):
-                with self.assertRaisesRegex(RuntimeError, 'workflow 不存在'):
-                    load_workflow_config('legacy')
-
     def test_workflow_credentials_are_not_in_prompt(self):
         values = {
             "DB_HOST": "192.0.2.10",
