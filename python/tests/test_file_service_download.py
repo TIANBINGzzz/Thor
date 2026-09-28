@@ -22,22 +22,14 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         (self.root / 'input').mkdir()
-        self.config = self.root / 'databases.json'
-        self.enterContext(patch('runtime.nacos_config.fetch_config',
-            side_effect=lambda env, **kw: json.loads(self.config.read_text(encoding='utf-8'))))
-        self.settings = {'version': 1, 'sources': {}, 'fileService': {
+        self.settings = {'fileService': {
             'baseUrl': 'https://files.example.test',
             'domainName': 'routing.example.test',
             'remoteUrl': 'https://public.example.test',
             'downloadPath': '/fwk_manage_service/sys_attachment/{fileId}/ai/download/',
         }}
-        self.save()
-        env = patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(self.config)}, clear=True)
-        env.start()
-        self.addCleanup(env.stop)
-
-    def save(self):
-        self.config.write_text(json.dumps(self.settings), encoding='utf-8')
+        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value=self.settings))
+        self.enterContext(patch.dict('os.environ', {}, clear=True))
 
     async def fetch(self, handler, refs=None, **kwargs):
         broker = FileBroker(transport=httpx.MockTransport(handler), **kwargs)
@@ -241,7 +233,6 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(field=field, value=value):
                 original = self.settings['fileService'][field]
                 self.settings['fileService'][field] = value
-                self.save()
                 with self.assertRaises(FileBrokerConfigurationError):
                     FileBroker()
                 self.settings['fileService'][field] = original

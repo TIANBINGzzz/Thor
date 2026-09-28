@@ -27,12 +27,8 @@ class FileBrokerTests(unittest.TestCase):
             self.assertEqual(FileBroker('https://explicit.test/broker').endpoint, 'https://explicit.test/broker')
 
     def test_missing_file_service_config_keeps_broker_unconfigured(self):
-        with tempfile.TemporaryDirectory() as directory:
-            config = Path(directory) / 'databases.json'
-            with patch.dict('os.environ', {'CCSDK_DATABASES_FILE': str(config), 'CCSDK_NACOS_URL': ''}, clear=True):
-                self.assertFalse(FileBroker().configured)
-                config.write_text('{}')
-                self.assertFalse(FileBroker().configured)
+        with patch.dict('os.environ', {'CCSDK_NACOS_URL': ''}, clear=True):
+            self.assertFalse(FileBroker().configured)
 
     def ref(self, file_id="file-1", purpose="input"):
         return AttachmentRef(file_id=file_id, purpose=purpose)

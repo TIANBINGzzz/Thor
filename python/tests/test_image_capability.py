@@ -97,11 +97,9 @@ class ImageCapabilityTests(unittest.TestCase):
                 with Image.open(root / 'output' / receipt['artifactId'] / 'content') as image:
                     self.assertEqual(image.format, 'PNG')
                     self.assertEqual(image.size, (32, 24))
-            config = root / 'databases.json'
-            self.enterContext(patch('runtime.nacos_config.fetch_config', side_effect=lambda env, **kw:
-                json.loads(config.read_text(encoding='utf-8'))))
-            config.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
-                'domainName': 'routing.test', 'remoteUrl': 'https://public.test'}}))
+            self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+                'fileService': {'baseUrl': 'https://files.test',
+                    'domainName': 'routing.test', 'remoteUrl': 'https://public.test'}}))
             store = RunStore(':memory:')
             store.create_run('images-run', tenant_id='tenant', user_id='user')
             uploaded = []
@@ -116,7 +114,7 @@ class ImageCapabilityTests(unittest.TestCase):
             async def notify(event):
                 states.append(event)
             delivery = ArtifactDelivery(store, root / 'archive', notify,
-                env={'CCSDK_DATABASES_FILE': str(config)}, transport=httpx.MockTransport(upload))
+                env={}, transport=httpx.MockTransport(upload))
             try:
                 for receipt in receipts:
                     await delivery.accept('images-run', root / 'output', receipt['artifactId'])

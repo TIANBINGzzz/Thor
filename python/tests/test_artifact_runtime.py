@@ -1,7 +1,6 @@
 """真实快照/存储/Runtime链路，仅替换SDK与外部HTTP服务。"""
 
 import asyncio
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,8 +18,10 @@ from tools.artifacts import publish_artifact
 
 class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.nacos_config.fetch_config', side_effect=lambda env, **kw:
-            json.loads(Path(env['CCSDK_DATABASES_FILE']).read_text(encoding='utf-8'))))
+        """只替换 Nacos 返回值，保留配置解析及文件交付链路。"""
+        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+            'fileService': {'baseUrl': 'https://files.test',
+                'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
 
     async def test_run_waits_for_automatic_retries_before_final_file_result(self):
         for succeeds in (True, False):
@@ -30,9 +31,6 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 self.addCleanup(store.close)
                 store.create_run('run_01')
                 store.update_status('run_01', 'running')
-                config = root / 'files.json'
-                config.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
-                    'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
                 requests, events = [], []
                 async def notify(event):
                     events.append(event)
@@ -45,7 +43,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 5,
                         'fileSuffix': 'txt', 'url': 'private/path'}})
                 delivery = ArtifactDelivery(store, root / 'archive', notify,
-                    env={'CCSDK_DATABASES_FILE': str(config)}, transport=httpx.MockTransport(upload))
+                    env={}, transport=httpx.MockTransport(upload))
                 work = root / 'work'
                 work.mkdir()
                 (work / 'result.txt').write_bytes(b'hello')
@@ -72,9 +70,6 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             store = RunStore(root / 'runs.sqlite3')
-            config = root / 'files.json'
-            config.write_text(json.dumps({'fileService': {'baseUrl': 'https://files.test',
-                'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
             sending, release = asyncio.Event(), asyncio.Event()
             async def upload(request):
                 sending.set()
@@ -83,7 +78,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 5,
                     'fileSuffix': 'txt', 'url': 'private/path'}})
             delivery = ArtifactDelivery(store, root / 'archive', server._notify_stored_event,
-                env={'CCSDK_DATABASES_FILE': str(config)}, transport=httpx.MockTransport(upload))
+                env={}, transport=httpx.MockTransport(upload))
             request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run_01',
                 'messageId': 'msg_01', 'businessSessionId': 'session_01', 'input': {'text': 'write'}})
             store.create_run('run_01', request=request, tenant_id='tenant', user_id='user')

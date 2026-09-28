@@ -25,13 +25,11 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.store = RunStore(self.root / 'runs.sqlite3')
         self.addCleanup(self.store.close)
         self.store.create_run('run_01', tenant_id='tenant', user_id='user')
-        self.config = self.root / 'databases.json'
-        self.enterContext(patch('runtime.nacos_config.fetch_config',
-            side_effect=lambda env, **kw: json.loads(self.config.read_text(encoding='utf-8'))))
-        self.config.write_text(json.dumps({'version': 1, 'sources': {}, 'fileService': {
+        self.config = {'fileService': {
             'baseUrl': 'https://files.example.test', 'domainName': 'routing.example.test',
             'remoteUrl': 'https://public.example.test',
-        }}), encoding='utf-8')
+        }}
+        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value=self.config))
         self.requests = []
         self.reply = lambda request: httpx.Response(200, json={'state': 200, 'success': True, 'data': {
             'id': 'remote_01', 'fileName': '报告.txt', 'fileSize': 5, 'fileSuffix': 'txt',
@@ -44,7 +42,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         async def notify(event):
             self.events.append(event)
         self.delivery = ArtifactDelivery(self.store, self.root / 'archive', notify,
-            env={'CCSDK_DATABASES_FILE': str(self.config)}, transport=httpx.MockTransport(handler))
+            env={}, transport=httpx.MockTransport(handler))
         self.addAsyncCleanup(self.delivery.close)
         self.work = self.root / 'session' / '.work'
         self.work.mkdir(parents=True)
@@ -106,7 +104,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
                          ['artifact.pending', 'artifact.uploading', 'artifact.failed'])
 
     async def test_missing_configuration_never_uses_an_implicit_host(self):
-        self.config.write_text('{"version": 1, "sources": {}}')
+        self.config.clear()
         item = self.publish()
         await self.delivery.accept('run_01', self.spool, item['artifactId'])
         await self.delivery.wait('run_01')
@@ -240,18 +238,14 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_size_check_happens_before_network(self):
         item = self.publish()
-        config = json.loads(self.config.read_text())
-        config['fileService']['maxFileBytes'] = 1
-        self.config.write_text(json.dumps(config))
+        self.config['fileService']['maxFileBytes'] = 1
         await self.delivery.accept('run_01', self.spool, item['artifactId'])
         await self.delivery.wait('run_01')
         self.assertEqual(self.store.artifact(item['artifactId'])['error'], 'artifact_too_large')
         self.assertEqual(self.requests, [])
 
     async def test_total_deadline_includes_retry_waits(self):
-        config = json.loads(self.config.read_text())
-        config['fileService']['timeoutSeconds'] = 1
-        self.config.write_text(json.dumps(config))
+        self.config['fileService']['timeoutSeconds'] = 1
         self.reply = lambda request: httpx.Response(500)
         with patch('runtime.artifact_delivery.RETRY_DELAYS', (5, 5), create=True):
             item = self.publish()
