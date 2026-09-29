@@ -3,3 +3,5 @@ nacos:
   namespace: "" # public；其他命名空间填 ID
   group: DEFAULT_GROUP
   data-id: ai-center-agent-service
+  username: ""
+  password: ""

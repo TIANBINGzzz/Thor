@@ -34,13 +34,15 @@ def _response(client, method, url, deadline, **kwargs):
 
 
 def _nacos_settings(env):
-    """按公共文件、本地文件、环境变量顺序覆盖；密钥只从调用方环境获取。"""
+    """按公共文件、本地文件、环境变量顺序覆盖；凭据不进入业务配置快照。"""
     fields = {'server-addr': 'CCSDK_NACOS_URL', 'namespace': 'CCSDK_NACOS_NAMESPACE',
-              'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID'}
+              'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID',
+              'username': 'CCSDK_NACOS_USERNAME', 'password': 'CCSDK_NACOS_PASSWORD'}
     try:
         document = yaml.safe_load(APPLICATION_CONFIG_FILE.read_text(encoding='utf-8'))
         config = document['nacos']
-        if (not isinstance(config, dict) or set(config) != set(fields)
+        if (not isinstance(config, dict) or not set(config).issubset(fields)
+                or not {'server-addr', 'namespace', 'group', 'data-id'}.issubset(config)
                 or any(not isinstance(value, str) for value in config.values())):
             raise ValueError()
         local_path = APPLICATION_CONFIG_FILE.with_name('application.local.yml')
@@ -54,7 +56,7 @@ def _nacos_settings(env):
                     or any(not isinstance(value, str) for value in local.values())):
                 raise ValueError()
             config.update(local)
-        settings = {variable: env.get(variable, config[field]) for field, variable in fields.items()}
+        settings = {variable: env.get(variable, config.get(field, '')) for field, variable in fields.items()}
         address = settings['CCSDK_NACOS_URL'].strip()
         if address and '://' not in address:
             address = 'http://' + address
@@ -79,8 +81,8 @@ def fetch_config(env, *, transport=None):
             raise ValueError()
         if not url.path:
             address += '/nacos'
-        username = env.get('CCSDK_NACOS_USERNAME', '').strip()
-        password = env.get('CCSDK_NACOS_PASSWORD', '')
+        username = settings['CCSDK_NACOS_USERNAME'].strip()
+        password = settings['CCSDK_NACOS_PASSWORD']
         if bool(username) != bool(password):
             raise ValueError()
         group = settings['CCSDK_NACOS_GROUP'].strip()

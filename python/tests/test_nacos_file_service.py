@@ -177,7 +177,8 @@ class NacosFileServiceTests(unittest.TestCase):
                 merged = _nacos_settings({})
                 self.assertEqual(merged, {'CCSDK_NACOS_URL': 'http://local.test:8848',
                     'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'base-group',
-                    'CCSDK_NACOS_DATA_ID': 'base-service'})
+                    'CCSDK_NACOS_DATA_ID': 'base-service',
+                    'CCSDK_NACOS_USERNAME': '', 'CCSDK_NACOS_PASSWORD': ''})
                 self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': 'https://env.test'})['CCSDK_NACOS_URL'],
                                  'https://env.test')
                 self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': ''})['CCSDK_NACOS_URL'], '')
@@ -193,8 +194,31 @@ class NacosFileServiceTests(unittest.TestCase):
             local = path.with_name('application.local.yml')
             with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
                 for content in ('[]', '', 'nacos: null', 'nacos: {server-addr: null}',
-                                'nacos: {password: secret}', 'nacos: {unknown: value}', 'nacos: ['):
+                                'nacos: {password: 123}', 'nacos: {unknown: value}', 'nacos: ['):
                     local.write_text(content)
                     with self.subTest(content=content), self.assertRaisesRegex(
                             NacosConfigError, '^nacos_config_invalid$'):
                         _nacos_settings({})
+
+    def test_yaml_credentials_authenticate_and_environment_overrides(self):
+        from runtime.nacos_config import fetch_config
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'nacos.test:8848',
+                'namespace': '', 'group': 'DEFAULT_GROUP', 'data-id': 'service',
+                'username': 'yaml-user', 'password': 'yaml-$^password'}}))
+            for env, expected in (({}, b'username=yaml-user&password=yaml-%24%5Epassword'),
+                    ({'CCSDK_NACOS_USERNAME': 'env-user', 'CCSDK_NACOS_PASSWORD': 'env-password'},
+                     b'username=env-user&password=env-password')):
+                calls = []
+                def handle(request):
+                    calls.append(request.url.path)
+                    if request.url.path.endswith('/auth/login'):
+                        self.assertEqual(request.content, expected)
+                        return httpx.Response(200, json={'accessToken': 'test-token'})
+                    self.assertEqual(request.headers['Authorization'], 'Bearer test-token')
+                    return httpx.Response(200, text='fileService: {}\ncampusMcp: {}\n')
+                with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
+                    self.assertEqual(set(fetch_config(env, transport=httpx.MockTransport(handle))),
+                                     {'fileService', 'campusMcp'})
+                self.assertEqual(calls, ['/nacos/v1/auth/login', '/nacos/v1/cs/configs'])
