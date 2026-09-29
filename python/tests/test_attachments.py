@@ -15,15 +15,19 @@ from tools.attachments import read_attachment
 class AttachmentTests(unittest.TestCase):
     def test_every_capability_mounts_the_same_scoped_reader(self):
         with tempfile.TemporaryDirectory() as folder:
-            for capability in CAPABILITIES.values():
-                with self.subTest(capability=capability.ref), patch.dict('os.environ', {
-                        'CCSDK_IMAGE_BASE_URL': 'https://model.test', 'CCSDK_IMAGE_API_KEY': 'test-key'}):
-                    self.assertTrue(capability.supports_attachments)
-                    options = build_options({'capability_ref': capability.ref,
-                        'workflow_name': capability.workflow_ref, 'input_directory': folder,
-                        'credentials': {'platformBearer': 'test-token'}})
-                    self.assertIn('attachments', options.mcp_servers)
-                    self.assertIn('mcp__attachments__read', options.allowed_tools)
+            with patch('runtime.nacos_config.fetch_config', return_value={
+                    'campusMcp': {
+                        'url': 'https://campus.example.test/string_campus_brain_service/mcp',
+                        'domainName': 'campus.example.test'}}):
+                for capability in CAPABILITIES.values():
+                    with self.subTest(capability=capability.ref), patch.dict('os.environ', {
+                            'CCSDK_IMAGE_BASE_URL': 'https://model.test', 'CCSDK_IMAGE_API_KEY': 'test-key'}):
+                        self.assertTrue(capability.supports_attachments)
+                        options = build_options({'capability_ref': capability.ref,
+                            'workflow_name': capability.workflow_ref, 'input_directory': folder,
+                            'credentials': {'platformBearer': 'test-token'}})
+                        self.assertIn('attachments', options.mcp_servers)
+                        self.assertIn('mcp__attachments__read', options.allowed_tools)
 
     def test_text_pagination_docx_tables_and_path_boundary(self):
         with tempfile.TemporaryDirectory() as folder:
