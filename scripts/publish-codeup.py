@@ -8,7 +8,7 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_REF = "refs/heads/codex/codeup-release"
+RELEASE_REF = "refs/heads/dev"
 
 
 def git(*args, env=None, input=None):
@@ -21,6 +21,9 @@ def git(*args, env=None, input=None):
 def excluded(name):
     path = PurePosixPath(name)
     if path.parts[0].lower() in {"doc", "docs"}:
+        return True
+    if any(part.lower().endswith(".local") or ".local." in part.lower()
+           for part in path.parts):
         return True
     if path.name.lower() in {"agent.md", "agents.md", "claude.md"}:
         return True
@@ -44,9 +47,7 @@ def main():
     if git("status", "--porcelain").strip():
         raise SystemExit("Commit local changes before building the Codeup snapshot.")
     source = git("rev-parse", "HEAD").decode().strip()
-    if git("symbolic-ref", "HEAD").decode().strip() == RELEASE_REF:
-        raise SystemExit("Run this script from the complete source branch.")
-    git("fetch", "codeup", "refs/heads/main")
+    git("fetch", "codeup", RELEASE_REF)
     parent = git("rev-parse", "FETCH_HEAD").decode().strip()
     paths = git("ls-tree", "-r", "--name-only", "-z", source).decode().split("\0")
     removed = [name for name in paths if name and excluded(name)]
@@ -67,19 +68,18 @@ def main():
     else:
         commit = git("commit-tree", tree, "-p", parent, "-F", "-",
                      input=message.encode("utf-8")).decode().strip()
-    git("update-ref", RELEASE_REF, commit)
     print(f"Source: {source}\nRelease: {commit}\nExcluded: {len(removed)} files")
     for name in removed:
         print(f"  {name}")
     if args.push:
         # A normal fast-forward push rejects concurrent remote changes.
-        git("push", "codeup", f"{RELEASE_REF}:refs/heads/main")
-        remote = git("ls-remote", "codeup", "refs/heads/main").decode().split()[0]
+        git("push", "codeup", f"{commit}:{RELEASE_REF}")
+        remote = git("ls-remote", "codeup", RELEASE_REF).decode().split()[0]
         if remote != commit:
             raise SystemExit("Remote verification failed.")
-        print("Published and verified Codeup main.")
+        print("Published and verified Codeup dev.")
     else:
-        print("Local release prepared. Use --push to publish.")
+        print("Release snapshot prepared. Use --push to publish.")
 
 
 if __name__ == "__main__":
