@@ -67,7 +67,7 @@
 | --- | --- |
 | 开发与持续要求 | [AGENTS.md](AGENTS.md)、[工程要求](doc/specs/engineering-requirements.md) |
 | HTTP 字段及示例 | [API 参考](doc/python-api.html)；校验：`python/runtime/protocol.py`、`auth.py` |
-| 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md)、[Java 职责](doc/specs/java-control-plane.md) |
+| 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
 | 执行规则 | [问数](.claude/workflows/double-high-qa/WORKFLOW.md)、[撰写](.claude/workflows/writing-docx/WORKFLOW.md) |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |

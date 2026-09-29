@@ -1,5 +1,5 @@
-ARG NODE_IMAGE=public.ecr.aws/docker/library/node:22-bookworm-slim
-ARG PYTHON_IMAGE=public.ecr.aws/docker/library/python:3.12-slim-bookworm
+ARG NODE_IMAGE=crpi-0xufclpa0j3y3dn0.cn-shanghai.personal.cr.aliyuncs.com/ai_agent_python/node:22-bookworm-slim
+ARG PYTHON_IMAGE=crpi-0xufclpa0j3y3dn0.cn-shanghai.personal.cr.aliyuncs.com/ai_agent_python/python:3.12-slim-bookworm
 ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
 ARG DEBIAN_MIRROR=mirrors.aliyun.com
 FROM ${NODE_IMAGE} AS node-deps
