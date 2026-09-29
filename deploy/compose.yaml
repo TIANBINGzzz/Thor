@@ -5,6 +5,8 @@ services:
     pull_policy: never
     init: true
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - path: ${CCSDK_ENV_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/runtime.env}
         format: raw

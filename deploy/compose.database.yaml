@@ -2,11 +2,11 @@ services:
   runtime:
     environment:
       # Container path; the host directory is selected at deployment time.
-      CCSDK_DATABASES_FILE: /app/config/databases.json
+      CCSDK_DATABASES_FILE: /app/deployment-config/databases.json
     volumes:
       - type: bind
         source: ${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}
-        target: /app/config
+        target: /app/deployment-config
         read_only: true
         bind:
           create_host_path: false
