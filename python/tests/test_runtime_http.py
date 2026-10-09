@@ -152,6 +152,37 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assertNotIn('测试模型返回的思考', json.dumps(self.store.events_after('run-test'), ensure_ascii=False))
             self.assertNotIn('template.docx', json.dumps(self.store.events_after('run-test')))
 
+    def test_upstream_failure_persists_failed_status_and_safe_sse(self):
+        self.seed()
+        raw = {'type': 'result', 'ok': False, 'code': 'upstream_service_error',
+               'message': 'private-upstream-response', 'inputTokens': 17, 'outputTokens': 9}
+        async def finish():
+            await server._handle_agent_event('run-test', {'type': 'text', 'text': 'partial answer'})
+            await server._handle_agent_event('run-test', raw)
+            await server._finish_run('run-test', server.pending_terminals.pop('run-test'))
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+            asyncio.run(finish())
+            run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
+            self.assertEqual(run['status'], 'failed')
+            self.assertEqual(run['error'], 'upstream_service_error')
+            trace = self.client.get('/internal/v1/runs/run-test/trace', headers=self.headers('run.observe'))
+            self.assertEqual(trace.status_code, 200)
+            self.assertEqual(trace.json()['events'][-1]['event']['code'], 'upstream_service_error')
+        stored = self.store.events_after('run-test')
+        self.assertNotIn('private-upstream-response', json.dumps(stored))
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        self.assertEqual(response.status_code, 200)
+        events = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+        self.assertEqual([event['type'] for event in events], ['message.delta', 'run.failed'])
+        self.assertEqual(events[0]['payload']['textDelta'], 'partial answer')
+        self.assertEqual(events[-1]['payload']['code'], 'upstream_service_error')
+        self.assertEqual(events[-1]['payload']['inputTokens'], 17)
+        self.assertEqual(events[-1]['payload']['outputTokens'], 9)
+        self.assertTrue(events[-1]['payload']['message'])
+        self.assertNotEqual(events[-1]['payload']['message'], 'upstream_service_error')
+        self.assertNotIn('private-upstream-response', response.text)
+        self.assertFalse(any(event['type'] == 'run.completed' for event in events))
+
     def test_chart_capability_uses_existing_jwt_and_generic_execution(self):
         items = self.client.get('/internal/v1/capabilities').json()['capabilities']
         charts = [item for item in items if item['capabilityRef'] == 'chart-generation']
