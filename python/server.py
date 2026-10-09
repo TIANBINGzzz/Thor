@@ -302,7 +302,8 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
         return {
             "runId": run_id,
             "type": "run.completed" if ok else "run.failed",
-            "payload": usage if ok else {**usage, "code": "sdk_execution_error"},
+            "payload": usage if ok else {**usage, "code": (
+                "upstream_service_error" if raw.get("code") == "upstream_service_error" else "sdk_execution_error")},
         }
     if raw_type == "error":
         return {"runId": run_id, "type": "run.failed", "payload": {"code": "runtime_error"}}

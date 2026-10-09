@@ -60,7 +60,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result['ok'])
         public = _public_internal_event('run-test', result)
         self.assertEqual(public['type'], 'run.failed')
-        self.assertEqual(public['payload']['code'], 'sdk_execution_error')
+        self.assertEqual(public['payload']['code'], 'upstream_service_error')
 
     async def test_one_shot_prepares_prompt_before_query_and_cleans_up_on_failure(self):
         services = SimpleNamespace(bind=AsyncMock(), close=AsyncMock(),

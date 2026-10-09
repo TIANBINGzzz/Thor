@@ -32,7 +32,8 @@ def validate_http_connection(connection):
 async def call_mcp_tool(config, name, arguments):
     """窄范围只读 JSON-RPC 传输，兼容 JSON/SSE；不跟随重定向、不重试、不回传原始错误。"""
     headers = {**config['headers'], 'Accept': 'application/json, text/event-stream'}
-    async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
+    # 业务 MCP 直连，不继承仅供模型访问使用的进程代理。
+    async with httpx.AsyncClient(timeout=30, follow_redirects=False, trust_env=False) as client:
         async def send(body):
             """发送本次 JSON-RPC 消息，维护会话头并限量读取 JSON 或 SSE 响应。"""
             async with client.stream('POST', config['url'], headers=headers, json=body) as response:

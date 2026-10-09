@@ -77,7 +77,7 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 
 ## 9. 错误响应
 
-- 校园 MCP 鉴权、连接、服务及返回结构失败仍发出工具错误，并将最终 Run 标为 failed，复用 sdk_execution_error；即使模型正常结束答复也不记成功。参数纠正、澄清和成功空结果不触发此映射，下一 Run 清空失败标记。
+- 校园 MCP 鉴权、连接、服务及返回结构失败仍发出工具错误，并将最终 Run 标为 failed，使用 upstream_service_error 区别于 SDK 执行异常；即使模型正常结束答复也不记成功。参数纠正、澄清和成功空结果不触发此映射，下一 Run 清空失败标记。公共 run.failed.message 由服务端固定中文文案生成，Java 不向用户展示内部 code 或异常正文。
 
 同步业务错误通常为 text/plain，查询参数校验 422 返回 JSON detail；状态映射见 [错误参考](../python-api.html#errors)。创建后发生的附件/模板/模型错误通过 run.failed 和 Run.error 表达，上传错误通过文件事件表达，不能只按 HTTP 202 或 SDK 成功判断交付。
 

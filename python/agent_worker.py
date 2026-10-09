@@ -466,9 +466,9 @@ def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
 
 
 def mcp_result_event(event, failures):
-    """上游失败即使被模型解释为正常文本，本轮终态仍沿用SDK执行失败协议。"""
+    """上游失败保留失败终态，并与 SDK 本身的执行异常区分。"""
     if event.get('type') == 'result' and failures:
-        return {**event, 'ok': False, 'message': '上游服务调用失败'}
+        return {**event, 'ok': False, 'code': 'upstream_service_error', 'message': '上游服务调用失败'}
     return event
 
 

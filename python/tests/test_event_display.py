@@ -11,6 +11,14 @@ from runtime.event_display import ToolCallDisplays, with_display_name, TOOL_DISP
 
 
 class EventDisplayTests(unittest.TestCase):
+    def test_failure_message_is_server_owned_even_on_replay(self):
+        for code in ('sdk_execution_error', 'upstream_service_error', 'private-provider-error'):
+            event = with_display_name({'type': 'run.failed', 'payload': {
+                'code': code, 'message': 'private-provider-response'}})
+            self.assertTrue(event['payload'].get('message'))
+            self.assertNotIn('private-provider-response', json.dumps(event))
+            self.assertNotEqual(event['payload']['message'], code)
+
     def setUp(self):
         self.store = RunStore(':memory:')
         self.addCleanup(self.store.close)

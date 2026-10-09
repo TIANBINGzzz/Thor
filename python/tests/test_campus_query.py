@@ -240,8 +240,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                         headers={'content-type': 'text/event-stream', 'mcp-session-id': 'test-session'})
                 return httpx.Response(200, json=value)
             client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
-            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client):
+            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client) as factory:
                 result = await self.service().call('get_school_info', {'payload': {}})
+            self.assertIs(factory.call_args.kwargs.get('trust_env'), False)
             self.assertTrue(result['success'])
             self.assertNotIn('test-secret', str(requests[:2]))
             self.assertEqual(requests[2]['params']['arguments']['user_context_token'], 'test-secret')

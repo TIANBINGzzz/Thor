@@ -81,6 +81,12 @@ EVENT_DISPLAY_NAMES = {
     'artifact.unknown': '上传结果待确认',
 }
 TOOL_EVENTS = {'tool.started', 'tool.progress', 'tool.finished'}
+FAILURE_MESSAGES = {
+    'upstream_service_error': '查询服务暂时不可用，请稍后重试。',
+    'timeout': '本次处理超时，请稍后重试。',
+    'sdk_timeout': '本次处理超时，请稍后重试。',
+    'nacos_unavailable': '服务暂时不可用，请稍后重试。',
+}
 
 
 def with_display_name(event):
@@ -88,6 +94,9 @@ def with_display_name(event):
     payload = dict(event.get('payload') or {})
     payload.pop('toolName', None)
     kind = event.get('type')
+    if kind == 'run.failed':
+        # 回放也覆盖旧消息，供应商及异常正文不能成为公共错误文案。
+        payload['message'] = FAILURE_MESSAGES.get(payload.get('code'), '本次处理未能完成，请稍后重试。')
     if kind in TOOL_EVENTS:
         key = payload.get('toolKey')
         if key not in TOOL_DISPLAY_NAMES:
