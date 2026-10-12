@@ -18,9 +18,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from tools.web_search import WEB_INSTRUCTIONS
-from runtime.data_services import RunServices
 from data_access.catalog import Catalog
-from data_access.connections import load_config
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
 from runtime.claude_sdk import build_agent_options
@@ -408,6 +406,7 @@ def data_source_keys(payload):
             raise DataError('SOURCE_FORBIDDEN')
         return selected
     if mode == 'optional' and not payload.get('_template_key'):
+        from data_access.connections import load_config
         configured = load_config(os.environ, optional=True)
         return [source for source in sources if source in configured]
     if not sources:
@@ -418,8 +417,12 @@ def data_source_keys(payload):
 def create_run_services(payload):
     """仅为声明数据需求且具有绑定来源的执行创建数据服务。"""
     sources = data_source_keys(payload)
+    if not sources:
+        return None
+    # 执行器会加载 SQLAlchemy/SQL 解析器，只在本轮确实绑定数据来源时导入。
+    from runtime.data_services import RunServices
     workflow = prepare_workflow_assets(payload)['config'] or {}
-    return RunServices(sources, context_topics=workflow.get('data_context_topics')) if sources else None
+    return RunServices(sources, context_topics=workflow.get('data_context_topics'))
 
 
 def build_system_prompt(

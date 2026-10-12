@@ -162,6 +162,7 @@ class ClientWorkerProcess:
         self._closed = False
         self._prewarmed = False
         self._bound = False
+        self._connected = False
 
     @property
     def process(self) -> asyncio.subprocess.Process | None:
@@ -172,6 +173,13 @@ class ClientWorkerProcess:
     def alive(self) -> bool:
         """检查 Worker 已启动、尚未退出且未标记关闭。"""
         return self._process is not None and self._process.returncode is None and not self._closed
+
+    @property
+    def awaiting_connection(self) -> bool:
+        """已领取但尚未连接完成的进程优先占用启动资源；失败或关闭后解除。"""
+        return not self._closed and not self._connected and (
+            self._process is None or self._process.returncode is None
+        )
 
     async def prewarm(self) -> None:
         """只启动 Python 并等待导入完成，不发送会话配置或连接 SDK。"""
@@ -210,6 +218,7 @@ class ClientWorkerProcess:
                     raise asyncio.TimeoutError
                 event = await asyncio.wait_for(self.next_event(), remaining)
                 if event.get("type") == "client_ready":
+                    self._connected = True
                     return event
                 if event.get("type") == "client_error":
                     raise ClientWorkerError("Client worker 连接失败")

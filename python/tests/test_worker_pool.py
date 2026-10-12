@@ -18,6 +18,7 @@ class FakeWorker:
 
     def __init__(self, **kwargs):
         self.alive = False
+        self.awaiting_connection = False
         self.terminated = False
         self.process = None
         self.created.append(self)
@@ -80,6 +81,23 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         acquired = self.pool.acquire()
         self.assertIsNot(acquired, dead)
         await until(lambda: dead.terminated)
+        await until(lambda: self.pool.snapshot()['ready'] == 6)
+
+    async def test_refill_waits_for_all_leased_connections_including_cold_misses(self):
+        self.pool.start()
+        FakeWorker.gate.set()
+        await until(lambda: self.pool.snapshot()['ready'] == 6)
+        leases = [self.pool.acquire() for _ in range(7)]
+        for worker in leases:
+            worker.awaiting_connection = True
+        await asyncio.sleep(.6)
+        self.assertEqual(len(FakeWorker.created), 7)
+        self.assertEqual(self.pool.snapshot()['starting'], 0)
+        for worker in leases[:6]:
+            worker.awaiting_connection = False
+        await asyncio.sleep(.6)
+        self.assertEqual(len(FakeWorker.created), 7)
+        leases[-1].awaiting_connection = False
         await until(lambda: self.pool.snapshot()['ready'] == 6)
 
     async def test_shutdown_cancels_import_and_prevents_new_leases(self):
@@ -181,6 +199,10 @@ class WorkerPoolActorTests(unittest.IsolatedAsyncioTestCase):
         from tests.test_session_actor import FakeClientWorker, complete_script
         workers = []
         class Worker(FakeClientWorker):
+            @property
+            def awaiting_connection(self):
+                return self.start_payload is None and not self.closed
+
             async def prewarm(self):
                 self.started = True
         def factory(**kwargs):

@@ -101,6 +101,7 @@ class WorkerPool:
         """仅返回非秘密计数，命中率分母是需要新 Worker 的次数。"""
         return {'ready': sum(w.alive for w in self._ready), 'starting': len(self._starting),
                 'leased_alive': sum(w.alive for w in self._leased),
+                'leased_connecting': sum(w.awaiting_connection for w in self._leased),
                 'hits': self._hits, 'misses': self._misses, 'failures': self._failures,
                 'memory_paused': self._memory_paused}
 
@@ -200,7 +201,9 @@ class WorkerPool:
                 for task in tuple(self._starting):
                     if not task.cancelling():
                         task.cancel()
-            elif time.monotonic() >= self._retry_at and not self._retiring:
+            elif (time.monotonic() >= self._retry_at and not self._retiring
+                  and not any(w.awaiting_connection for w in self._leased)):
+                # SDK 初始化会创建 CLI/MCP 进程；业务连接期间不再发起后台导入争抢 CPU/I/O。
                 count = min(self.max_idle - len(self._ready) - len(self._starting),
                             self.max_starting - len(self._starting))
                 for _ in range(max(0, count)):
