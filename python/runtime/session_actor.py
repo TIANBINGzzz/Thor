@@ -124,6 +124,11 @@ class SessionActor:
         self._active_run_started_at: int | None = None
         self._last_run_duration_ms: int | None = None
         self._last_error_code: str | None = None
+        self._worker_starts = 0
+        self._worker_reuses = 0
+        self._next_start_reason = 'history_restore' if self._last_session_id else 'new_session'
+        self._last_start_reason: str | None = None
+        self._last_worker_start_ms: int | None = None
 
     @property
     def config_fingerprint(self) -> str | None:
@@ -166,6 +171,10 @@ class SessionActor:
             "activeRunStartedAt": self._active_run_started_at,
             "lastRunDurationMs": self._last_run_duration_ms,
             "lastErrorCode": self._last_error_code,
+            "workerStarts": self._worker_starts,
+            "workerReuses": self._worker_reuses,
+            "lastWorkerStartReason": self._last_start_reason,
+            "lastWorkerStartMs": self._last_worker_start_ms,
         }
 
     async def submit(
@@ -343,7 +352,7 @@ class SessionActor:
                         initial = {**command.initial_payload, **prepared}
                         fingerprint = initial.get('_credential_binding')
                         if self.config_fingerprint != (str(fingerprint) if fingerprint is not None else None):
-                            await self._discard_worker()
+                            await self._discard_worker('config_changed')
                         self._initial_payload = initial
                     await self._ensure_worker()
                     self._state = ActorState.RUNNING
@@ -356,7 +365,7 @@ class SessionActor:
             if self._close_requested:
                 await self._close_worker()
             elif outcome.status == "cancelled":
-                await self._discard_worker()
+                await self._discard_worker('cancelled')
                 self._state = ActorState.FAILED
                 self._streaming_state = "cancelled"
                 self._last_error_code = "cancelled"
@@ -420,8 +429,10 @@ class SessionActor:
     async def _ensure_worker(self) -> None:
         """复用就绪 Worker 或按最新配置重建，并续接已知 SDK 历史。"""
         if self._worker is not None and self._worker.alive and self._state == ActorState.READY:
+            self._worker_reuses += 1
             return
         if self._worker is not None:
+            self._next_start_reason = 'worker_unavailable'
             await self._worker.terminate()
         payload = dict(self._initial_payload)
         if self._last_session_id:
@@ -433,6 +444,9 @@ class SessionActor:
             send_timeout_ms=self._worker_send_timeout_ms,
             close_timeout_ms=self._worker_close_timeout_ms,
         )
+        self._last_start_reason = self._next_start_reason
+        self._worker_starts += 1
+        started = time.monotonic()
         try:
             await self._worker.start(payload)
         except (ClientWorkerError, asyncio.TimeoutError) as error:
@@ -440,6 +454,10 @@ class SessionActor:
             self._state = ActorState.FAILED
             await self._notify_state()
             raise self._as_actor_error(error, code="sdk_connection_error") from error
+        finally:
+            self._last_worker_start_ms = round((time.monotonic() - started) * 1000)
+            LOGGER.info('Worker start: reason=%s duration_ms=%s',
+                        self._last_start_reason, self._last_worker_start_ms)
         self._state = ActorState.READY
         await self._notify_state()
 
@@ -552,8 +570,9 @@ class SessionActor:
         self._streaming_state = "closed"
         await self._notify_state()
 
-    async def _discard_worker(self) -> None:
+    async def _discard_worker(self, reason='previous_run_failed') -> None:
         """终止并解除当前 Worker 引用，保留 SDK 会话历史供后续重建。"""
+        self._next_start_reason = reason
         worker = self._worker
         self._worker = None
         if worker is None:

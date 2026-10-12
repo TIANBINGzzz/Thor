@@ -18,7 +18,7 @@
 
 每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，`fileService` 与 `campusMcp` 为并列节点；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
 启动连接统一放在本目录 [application.yml](application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。固定读取仓库根目录下的 `config/application.yml`，不依赖启动工作目录，随镜像交付。
-本机可在同目录创建 `application.local.yml`，只写需要覆盖的 `nacos` 字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
+本机可在同目录创建 `application.local.yml`，只写需要覆盖的字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。Nacos 字段优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
 镜像默认地址 `host.docker.internal:8848` 用于 Compose bridge 网络，Linux Compose 已配置 `host-gateway` 映射；Docker host 网络可在环境专属 YAML 中写 `127.0.0.1:8848`。各环境可挂载自己的 `application.yml` 到容器 `/app/config/application.yml`，复用同一镜像；宿主机 Nacos 须允许对应网络访问。
 Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；真实凭据只保存在部署文件或被忽略的本地覆盖文件，不提交 Git 或打进镜像。`CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD` 及连接字段环境变量仍可显式覆盖 YAML，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
 每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用10秒预算，每个响应分块检查，单次网络阻塞最多5秒，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
@@ -26,6 +26,19 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 
 `runtime/deployment_config.py` 的 `ConfigSnapshot` 是业务配置唯一取值入口：`get('fileService')` 读取节点，`resolve(资产配置)` 解析完整 `${节点.字段}` 引用，保留数字、布尔等原类型。只解析可信连接配置，不扫描用户输入、Prompt 或凭据，不支持表达式、字符串拼接、环境变量展开或远端值递归引用。缺失值直接失败。
 每个快照首次用到引用时读取一次 Nacos，后续引用复用同份 YAML；导出时只保留已引用的值。Runtime 按轮装配并将快照交给 Worker，Worker 不联网补值；文件传输按前述批次使用独立快照。新增连接只在可信资产中声明引用并使用公共解析器，不新增能力专用 Nacos 读取器；业务字段校验留在消费边界，Token 继续按 Run 独立注入。
+
+## Runtime 预热进程池
+
+`application.yml` 的 `runtime.worker-pool` 在 Runtime 启动时读取；同目录 `application.local.yml` 按字段覆盖，无环境变量覆盖。更改后重启 Runtime；未配置该节点的已有部署不开启预热。
+
+| 字段 | 用途与约束 |
+| --- | --- |
+| `max-idle` | 未绑定会话的预热库存上限，公共配置为6，0关闭；不是业务并发数或总进程上限。创建中的进程也占库存名额。 |
+| `max-starting` | 同时创建预热 Worker 的上限，公共配置为2，正整数；不限制按需冷启动或业务并发。 |
+| `min-available-memory-mib` | 内存保留阈值，公共配置为1024；宿主机或可读取的 cgroup 剩余内存低于此值时暂停补充并释放待命进程；至少冷却30秒且恢复到阈值的2倍才补充，防止反复创建。0关闭该保护，不是业务进程硬限额。 |
+
+预热只完成 Python 导入，不装配用户凭据、不连接 SDK。已有会话先复用；新建或指纹变化时领取预热 Worker，耗尽则按需冷启动；绑定后不会归还给其他会话。原 Client 空闲回收期限与指纹规则保持不变。
+`ccsdk.worker_pool` 的 INFO 日志记录领取来源、库存/创建/失败计数，以及每15秒的各进程 RSS/PSS（平台不支持PSS时为空）；Actor 内部快照记录复用次数、重建原因与耗时。原始凭据不进入这些观测。内存采样不代表并发容量已验收。
 
 ## Nacos 文件服务：fileService
 

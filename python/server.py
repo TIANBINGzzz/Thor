@@ -26,6 +26,8 @@ from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
+from runtime.worker_pool import WorkerPool, configure_worker_logging
+from runtime.runtime_settings import load_worker_pool_settings
 from runtime import private_trace
 
 
@@ -59,6 +61,7 @@ TOOL_DISPLAYS = ToolCallDisplays()
 internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
+WORKER_POOL: WorkerPool | None = None
 actor_snapshots: dict[str, dict[str, Any]] = {}
 INTERNAL_BODY_BYTES = 2 * 1024 * 1024
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
@@ -72,10 +75,26 @@ CLIENT_QUEUE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_CLIENT_QUEUE_TIMEOUT_
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """管理 FastAPI 生命周期，启动时创建会话管理器，退出时关闭 Client 并取消后台 Run。"""
-    global SESSION_MANAGER
-    SESSION_MANAGER = _create_session_manager()
-    await _artifact_delivery().recover()
-    yield
+    global SESSION_MANAGER, WORKER_POOL
+    settings = load_worker_pool_settings()
+    configure_worker_logging()
+    WORKER_POOL = WorkerPool(max_idle=settings.max_idle, max_starting=settings.max_starting,
+                            min_available_memory_mib=settings.min_available_memory_mib)
+    WORKER_POOL.start()
+    try:
+        SESSION_MANAGER = _create_session_manager()
+        await _artifact_delivery().recover()
+        yield
+    finally:
+        await _shutdown_runtime()
+
+
+async def _shutdown_runtime():
+    """先停止预热，再按既有退出流程关闭会话；启动中异常也清理池。"""
+    global SESSION_MANAGER, WORKER_POOL
+    if WORKER_POOL is not None:
+        await WORKER_POOL.close()
+        WORKER_POOL = None
     manager = SESSION_MANAGER
     if manager is not None:
         try:
@@ -381,6 +400,7 @@ def _create_session_manager() -> SessionManager:
         on_public_event=_handle_client_public_event,
         on_state=_handle_actor_state,
         idle_ttl_ms=max(1_000, int(os.environ.get("CCSDK_CLIENT_IDLE_TTL_MS", "300000"))),
+        worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
     )
 
 

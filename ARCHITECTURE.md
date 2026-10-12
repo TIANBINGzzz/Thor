@@ -51,6 +51,7 @@
 - 同 tenant、user、businessSessionId 的全部能力串行共用 SDK 历史；工具、规则或凭据变化时重建 Client 并恢复历史。重启恢复依赖 RunStore 和 SDK transcript。
 - 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
+- `runtime/worker_pool.py` 预热未绑定 Python Worker，SessionActor 新建 Client 时独占领取；配置相同仍复用原 Client，指纹变化照常重建并续接历史。池耗尽按需启动，已绑定进程不跨会话归还；容量和创建并发见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有观测另需部署开关及 run.observe，不进入公共 SSE。
 - 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 显式管理指令、按需知识和 MCP 参数，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，`tools/campus.py` 校验业务参数并过滤响应，见 [ADR-035](doc/ADR/035-campus-query-adapter.md)。
 

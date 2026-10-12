@@ -51,7 +51,10 @@ def _nacos_settings(env):
         except FileNotFoundError:
             pass
         else:
-            local = yaml.safe_load(local_text)['nacos']
+            document = yaml.safe_load(local_text)
+            if not isinstance(document, dict):
+                raise ValueError()
+            local = document.get('nacos', {})
             if (not isinstance(local, dict) or not set(local).issubset(fields)
                     or any(not isinstance(value, str) for value in local.values())):
                 raise ValueError()

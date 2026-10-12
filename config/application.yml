@@ -5,3 +5,8 @@ nacos:
   data-id: ai-center-agent-service
   username: ""
   password: ""
+runtime:
+  worker-pool:
+    max-idle: 6
+    max-starting: 2
+    min-available-memory-mib: 1024

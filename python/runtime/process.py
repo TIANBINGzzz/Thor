@@ -98,6 +98,8 @@ async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]
                 event = json.loads(line.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
                 continue
+            if event.get("type") == "worker_ready":
+                continue
             if event.get("type") == "worker_done":
                 saw_done = True
                 continue
@@ -158,6 +160,8 @@ class ClientWorkerProcess:
         self._stderr_task: asyncio.Task[Any] | None = None
         self._write_lock = asyncio.Lock()
         self._closed = False
+        self._prewarmed = False
+        self._bound = False
 
     @property
     def process(self) -> asyncio.subprocess.Process | None:
@@ -169,19 +173,37 @@ class ClientWorkerProcess:
         """检查 Worker 已启动、尚未退出且未标记关闭。"""
         return self._process is not None and self._process.returncode is None and not self._closed
 
-    async def start(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """接收初始执行配置并启动持久 Worker，等待连接就绪后返回 client_ready 事件。"""
-        if self._process is not None:
+    async def prewarm(self) -> None:
+        """只启动 Python 并等待导入完成，不发送会话配置或连接 SDK。"""
+        if self._process is not None or self._closed or self._bound:
             raise ClientWorkerError("Client worker 已经启动")
-        self._closed = False
-        self._process = await _spawn_worker_process(payload)
-        self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
-        self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
         try:
+            self._process = await _spawn_worker_process({})
+            self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
+            self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
+            event = await asyncio.wait_for(self.next_event(), self.start_timeout_ms / 1000)
+            if event.get('type') != 'worker_ready':
+                raise ClientWorkerError('Client worker 预热协议无效')
+            self._prewarmed = True
+        except asyncio.TimeoutError as error:
+            await self.terminate()
+            raise ClientWorkerError('Client worker 预热超时') from error
+        except BaseException:
+            await self.terminate()
+            raise
+
+    async def start(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """给全新或预热 Worker 绑定一次配置，在同一启动预算内等待 SDK 就绪。"""
+        if self._bound or self._closed:
+            raise ClientWorkerError("Client worker 已经绑定或关闭")
+        deadline = time.monotonic() + self.start_timeout_ms / 1000
+        try:
+            if not self._prewarmed:
+                await self.prewarm()
+            self._bound = True
             initial = dict(payload)
             initial["mode"] = "client"
             await self.send(initial)
-            deadline = time.monotonic() + self.start_timeout_ms / 1000
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
@@ -242,6 +264,7 @@ class ClientWorkerProcess:
         self._reader_task = None
         self._stderr_task = None
         self._process = None
+        self._prewarmed = False
 
     async def close(self) -> None:
         """请求 Worker 正常关闭并限时等待确认，最后回收进程，无额外输入和返回值。"""
@@ -251,6 +274,9 @@ class ClientWorkerProcess:
         try:
             if self.alive:
                 await self.send({"type": "client_close"})
+                # 关闭输入使 Worker 的阻塞 stdin reader 能退出；仅收到 client_closed
+                # 不代表 Python 默认执行器中的读取线程已经结束。
+                self._process.stdin.close()
                 deadline = time.monotonic() + self.close_timeout_ms / 1000
                 while time.monotonic() < deadline:
                     try:

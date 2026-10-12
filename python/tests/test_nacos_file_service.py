@@ -184,6 +184,8 @@ class NacosFileServiceTests(unittest.TestCase):
                 self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': ''})['CCSDK_NACOS_URL'], '')
                 local.unlink()
                 self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
+                local.write_text('runtime:\n  worker-pool:\n    max-idle: 0\n')
+                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
 
     def test_invalid_local_yaml_is_not_silently_ignored(self):
         from runtime.nacos_config import _nacos_settings, NacosConfigError

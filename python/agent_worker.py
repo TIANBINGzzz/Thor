@@ -509,6 +509,7 @@ async def run(payload: dict[str, Any]) -> None:
 
 async def main() -> None:
     """从标准输入读取 JSONL，按首条消息选择 Query 或 Client 模式，输出执行事件及完成或错误标记。"""
+    emit({"type": "worker_ready"})
     first_line = await asyncio.to_thread(sys.stdin.readline)
     if not first_line.strip():
         return
