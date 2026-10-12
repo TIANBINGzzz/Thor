@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1280" viewBox="0 0 1680 1280" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1070" viewBox="0 0 1680 1070" role="img" aria-labelledby="title desc">
 <title id="title">请求与结果 · 血缘关系</title><desc id="desc">业务身份、会话、消息、执行与文件相互关联；SDK 会话引用留在 Python 内部。</desc>
 <defs>
 <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#236AAB"/></marker>
@@ -8,10 +8,8 @@
 <marker id="orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#A26620"/></marker>
 </defs>
 <style>text{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif} .mono{font-family:Consolas,"Microsoft YaHei",monospace}</style>
-<rect width="1680" height="1280" fill="#FFFFFF"/>
-<text x="64" y="55" fill="#5A6C7D" font-size="16" font-weight="600" text-anchor="start">CCSDK SCRIBE  /  ARCHITECTURE</text>
-<text x="64" y="105" fill="#173148" font-size="38" font-weight="700" text-anchor="start">请求与结果 · 血缘关系</text>
-<text x="64" y="140" fill="#5A6C7D" font-size="20" font-weight="400" text-anchor="start">业务身份、会话、消息、执行与文件相互关联；SDK 会话引用留在 Python 内部。</text>
+<rect width="1680" height="1070" fill="#FFFFFF"/>
+<g transform="translate(0,-150)">
 <rect x="64" y="183" width="350" height="835" rx="12" fill="#ECF7F4" stroke="#BCCBD6" stroke-width="1.5"/>
 <text x="86" y="221" fill="#173148" font-size="25" font-weight="600" text-anchor="start">Java · 业务控制面</text>
 <rect x="526" y="183" width="610" height="835" rx="12" fill="#EDF5FC" stroke="#BCCBD6" stroke-width="1.5"/>
@@ -68,9 +66,8 @@
 <rect x="548" y="793" width="566" height="178" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
 <text x="568" y="827" fill="#173148" font-size="23" font-weight="600" text-anchor="start">执行记录与成果归属</text>
 <text x="568" y="859" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">runId → toolCallId / 查询结果引用 / artifactId</text>
-<text x="568" y="886" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">SDK 返回消息、用量和内部 session_id</text>
+<text x="568" y="886" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">SDK 会话关联：session_id（内部）</text>
 <text x="568" y="913" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">公共事件 → sequence；文件 ready → fileId</text>
-<text x="568" y="940" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">SDK session_id 不作为业务 API 字段返回</text>
 <path d="M831 749 L831 793" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
 <path d="M1432 569 L1432 595 L1220 595 L1220 837 L1114 837" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
 <text x="1208" y="810" fill="#187A73" font-size="17" font-weight="400" text-anchor="end">SDK 事件</text>
@@ -88,12 +85,9 @@
 <text x="471" y="842" fill="#187A73" font-size="16" font-weight="400" text-anchor="middle">SSE / 文件状态</text>
 <path d="M239 793 L239 569" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
 <text x="259" y="680" fill="#187A73" font-size="17" font-weight="400" text-anchor="start">关联原业务消息</text>
-<rect x="64" y="1055" width="1552" height="128" rx="12" fill="#F5F0FA" stroke="#725393" stroke-width="1.5"/>
-<text x="88" y="1096" fill="#725393" font-size="26" font-weight="600" text-anchor="start">外部观测平台 · 按 Run 关联执行证据</text>
-<text x="88" y="1133" fill="#173148" font-size="21" font-weight="400" text-anchor="start">公开 SSE 与私有 Trace 分流；Trace 需独立 run.observe 授权；业务 Token 与模型密钥不进入观测。</text>
-<text x="88" y="1166" fill="#5A6C7D" font-size="19" font-weight="400" text-anchor="start">现有观测入口可接入平台；业务请求链与 SDK 事件关联不等于已具备完整数据库字段级血缘。</text>
+<rect x="64" y="1055" width="1552" height="95" rx="12" fill="#F5F0FA" stroke="#725393" stroke-width="1.5"/>
+<text x="88" y="1096" fill="#725393" font-size="26" font-weight="600" text-anchor="start">外部观测平台</text>
+<text x="88" y="1133" fill="#173148" font-size="21" font-weight="400" text-anchor="start">runId 关联  ·  Trace / 工具 / 耗时 / 用量  ·  run.observe 授权</text>
 <path d="M831 971 L831 1055" fill="none" stroke="#725393" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#purple)"/>
 <text x="854" y="1038" fill="#725393" font-size="18" font-weight="400" text-anchor="start">授权观测 / 脱敏用量</text>
-<text x="64" y="1252" fill="#5A6C7D" font-size="17" font-weight="400" text-anchor="start">Run JWT 授权 Runtime；业务 Token 只注入所选 MCP；模型密钥来自部署配置。三类凭据独立。</text>
-<text x="1616" y="1252" fill="#5A6C7D" font-size="17" font-weight="400" text-anchor="end">2026-10-12</text>
-</svg>
+</g></svg>
