@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from unittest.mock import patch
 
 from runtime.session_actor import ActorState, SessionActor, SessionActorError, SessionManager
 
@@ -84,6 +85,55 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_performance_callback_failure_does_not_fail_run_or_next_command(self):
+        async def exercise():
+            async def receive(run_id, event):
+                if event['type'] == 'performance':
+                    raise OSError('private diagnostic storage unavailable')
+
+            def script(message):
+                return [{'type': 'performance', 'version': 1, 'scope': 'worker_run',
+                         'elapsedMs': {}, 'cpuMs': {}, 'counts': {}}] + complete_script()(message)
+
+            worker = FakeClientWorker([script, script], worker_id=0)
+            worker.startup_traces = [{'type': 'performance', 'version': 1, 'scope': 'worker_boot',
+                                     'elapsedMs': {'imported': 10}, 'cpuMs': {}, 'counts': {}}]
+            actor = SessionActor('session', {}, on_public_event=receive, worker_factory=lambda **kw: worker)
+            try:
+                results = await asyncio.gather(actor.submit('r1', {}), actor.submit('r2', {}))
+                self.assertEqual([r['status'] for r in results], ['succeeded', 'succeeded'])
+                await _wait_until(lambda: actor.snapshot()['activeRunId'] is None)
+                self.assertEqual(actor.state, ActorState.READY)
+                self.assertFalse(worker.closed)
+            finally:
+                await actor.close()
+
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+            asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_timing_distinguishes_new_worker_and_reuse_with_fresh_origin(self):
+        async def exercise():
+            events = []
+
+            async def receive(run_id, event):
+                events.append((run_id, event))
+
+            actor = SessionActor('session', {}, on_public_event=receive,
+                worker_factory=lambda **kw: FakeClientWorker([complete_script(), complete_script()], worker_id=0))
+            await actor.submit('r1', {})
+            await actor.submit('r2', {})
+            await actor.close()
+            timings = {r: e for r, e in events if e['type'] == 'performance' and e['scope'] == 'actor'}
+            self.assertEqual(timings['r1']['counts']['worker_created'], 1)
+            self.assertEqual(timings['r1']['counts']['worker_reused'], 0)
+            self.assertEqual(timings['r2']['counts']['worker_created'], 0)
+            self.assertEqual(timings['r2']['counts']['worker_reused'], 1)
+            self.assertLessEqual(timings['r2']['elapsedMs']['queue_exit'], timings['r2']['elapsedMs']['query_sent'])
+            self.assertEqual(len([e for r, e in events if e['type'] == 'text']), 2)
+
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+            asyncio.run(exercise())
+
     def test_preparation_can_be_cancelled_without_starting_sdk(self):
         async def exercise(operation):
             workers = []

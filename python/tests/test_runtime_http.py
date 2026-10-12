@@ -36,6 +36,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
+            "RUN_TIMINGS": {}, "TRACE_SECRETS": {},
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
                 server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
         }.items():
@@ -74,6 +75,47 @@ class RuntimeHTTPTests(unittest.TestCase):
             await server.ARTIFACT_DELIVERY.wait('run-test')
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
+
+    def test_performance_is_private_even_when_trace_is_disabled(self):
+        self.seed()
+        event = {'type': 'performance', 'version': 1, 'scope': 'worker_run',
+                 'elapsedMs': {'first_text': 10, 'token': 'business-token'},
+                 'cpuMs': {}, 'prompt': 'private'}
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '0'}):
+            asyncio.run(server._handle_agent_event('run-test', event))
+        self.assertEqual(self.store.events_after('run-test'), [])
+        self.assertEqual(self.store.traces_after('run-test'), [])
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+            asyncio.run(server._handle_agent_event('run-test', event))
+        self.assertEqual(self.store.events_after('run-test'), [])
+        trace = self.store.traces_after('run-test')[0]['event']
+        self.assertEqual(trace['elapsedMs'], {'first_text': 10})
+        self.assertNotIn('prompt', trace)
+
+    def test_performance_storage_failure_preserves_run_result_and_cleanup(self):
+        self.seed()
+        server.RUN_TIMINGS['run-test'] = server.private_trace.Timing('runtime', active=True)
+        server.internal_tasks['run-test'] = object()
+
+        async def stream(payload):
+            yield {'type': 'performance', 'version': 1, 'scope': 'worker_run',
+                   'elapsedMs': {'first_text': 10}, 'cpuMs': {}, 'counts': {}}
+            yield {'type': 'text', 'text': 'answer'}
+            yield {'type': 'result', 'ok': True}
+
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
+             patch.object(self.store, 'append_trace', side_effect=OSError('diagnostic storage unavailable')), \
+             patch.object(server, '_runtime_mode_for_request', return_value='query'), \
+             patch.object(server, '_internal_worker_payload', return_value={'timeout_ms': 2000}), \
+             patch.object(server, '_clear_runtime_input') as clear, \
+             patch.object(server, 'stream_agent', stream):
+            asyncio.run(server._execute_internal_run(AgentRunRequest.from_dict(self.body),
+                {'tenant': 'tenant-test', 'sub': 'user-test'}, runtime_bearer='test-runtime-token'))
+        self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
+        self.assertNotIn('run-test', server.RUN_TIMINGS)
+        self.assertNotIn('run-test', server.TRACE_SECRETS)
+        self.assertNotIn('run-test', server.internal_tasks)
+        clear.assert_called_once()
 
     def test_only_runtime_and_health_routes_are_exposed(self):
         """内部服务不暴露浏览器 API，也不接受浏览器直接发起 Run。"""

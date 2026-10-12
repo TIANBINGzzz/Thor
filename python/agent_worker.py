@@ -15,6 +15,8 @@ import sys
 import time
 from typing import Any
 
+_BOOT_ORIGIN = (time.perf_counter(), time.process_time())
+
 from runtime.config import (
     build_options,
     create_run_services,
@@ -33,6 +35,7 @@ from runtime.claude_sdk import (
 )
 from runtime.chart_delivery import ChartDelivery
 from runtime.tool_services import ToolServices
+from runtime.private_trace import Timing
 DEFAULT_TIMEOUT_MS = 300_000
 
 # 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
@@ -74,6 +77,16 @@ def emit(event: dict[str, Any]) -> None:
     """将事件字典写为一行 UTF-8 JSON 并立即刷新标准输出，无返回值。"""
     sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
     sys.stdout.flush()
+
+
+def emit_performance(timing: Timing) -> None:
+    """诊断输出失败不遮盖执行结果，也不跳过凭据和数据服务清理。"""
+    event = timing.event()
+    if event is not None:
+        try:
+            emit(event)
+        except Exception:
+            pass
 
 
 def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
@@ -283,6 +296,7 @@ async def _receive_client_response(
     deadline: float | None,
     chart_delivery: ChartDelivery | None = None,
     mcp_errors: list | None = None,
+    timing: Timing | None = None,
 ) -> str | None:
     """接收 Client、当前命令、流状态、控制队列及执行策略，输出回复事件并返回最后的 SDK 会话标识。
 
@@ -309,9 +323,17 @@ async def _receive_client_response(
                 except StopAsyncIteration as error:
                     raise SDKError("Claude SDK response stream 提前结束") from error
                 normalized = normalize_message(message)
+                if timing is not None:
+                    timing.mark('first_message')
                 if normalized.session_id:
                     last_session_id = normalized.session_id
                 for event in message_events(normalized, streaming):
+                    if timing is not None and event.get('type') in {'text', 'thinking'} and event.get('text'):
+                        stage = 'first_' + event['type']
+                        first = stage not in timing.elapsed
+                        timing.mark(stage)
+                        if first:
+                            emit_performance(timing)
                     event = mcp_result_event(event, mcp_errors)
                     (chart_delivery.emit if chart_delivery else emit)(direct_workflow_event(event) if direct_workflow else event)
                 if normalized.kind == "result":
@@ -358,6 +380,14 @@ async def _receive_client_response(
 async def run_client(initial: dict[str, Any]) -> None:
     """接收初始配置并持有一个 SDK Client，串行处理标准输入命令，将回复和控制结果写入 JSONL；无返回值。"""
 
+    startup = Timing('worker_start')
+
+    def terminal(event, timing):
+        """先输出本轮计时再输出终态，防止剩余事件被下一 Run 错领。"""
+        timing.mark('completed')
+        emit_performance(timing)
+        emit(event)
+
     load_runtime_environment(initial.get("workflow_name"))
     missing = missing_environment()
     if missing:
@@ -380,6 +410,7 @@ async def run_client(initial: dict[str, Any]) -> None:
             receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
             disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
         )
+        startup.mark('configured')
     except BaseException:
         if tool_services is not None:
             tool_services.clear()
@@ -391,8 +422,10 @@ async def run_client(initial: dict[str, Any]) -> None:
     client_closed = False
     with isolated_sdk_environment():
         try:
+            startup.mark('connect_begin')
             await client.connect()
-            emit({"type": "client_ready", "state": client.state.value})
+            startup.mark('connected')
+            emit({"type": "client_ready", "state": client.state.value, 'performance': startup.event()})
             while True:
                 command = await command_queue.get()
                 command_type = command.get("type")
@@ -407,6 +440,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                     continue
 
                 run_id = _client_command_run_id(command)
+                # SDK 隔离区不携带诊断开关，沿用创建连接时冻结的选择。
+                timing = Timing('worker_run', active=startup.active)
                 chart_delivery.reset()
                 mcp_errors.clear()
                 prompt = command.get("prompt")
@@ -422,21 +457,25 @@ async def run_client(initial: dict[str, Any]) -> None:
                         if data_services:
                             await data_services.bind(command)
                             prompt = data_services.prepare_prompt(str(prompt or ""))
+                        timing.mark('bound')
+                        timing.mark('query_begin')
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
+                        timing.mark('query_sent')
                         session_id = await _receive_client_response(
                             client, command, streaming, command_queue, direct_workflow, deadline, chart_delivery, mcp_errors,
+                            timing,
                         )
-                    emit({"type": "client_run_completed", "run_id": run_id, "session_id": session_id})
+                    terminal({"type": "client_run_completed", "run_id": run_id, "session_id": session_id}, timing)
                 except ClientRunCancelled:
-                    emit({"type": "client_run_cancelled", "run_id": run_id})
+                    terminal({"type": "client_run_cancelled", "run_id": run_id}, timing)
                     return
                 except (asyncio.TimeoutError, SDKTimeoutError):
-                    emit({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"})
+                    terminal({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}, timing)
                     return
                 except asyncio.CancelledError:
                     raise
                 except Exception as error:
-                    emit({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)})
+                    terminal({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}, timing)
                     return
                 finally:
                     tool_services.clear()
@@ -474,6 +513,7 @@ def mcp_result_event(event, failures):
 
 async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
+    timing = Timing('worker_run')
     load_runtime_environment(payload.get("workflow_name"))
     missing = missing_environment()
     if missing:
@@ -495,12 +535,23 @@ async def run(payload: dict[str, Any]) -> None:
         options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
                                 mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
         direct_workflow = options.tools == [] and options.strict_mcp_config
+        timing.mark('bound')
         with isolated_sdk_environment():
+            timing.mark('query_begin')
             async for message in stream_query(prompt, options, timeout_ms=timeout_ms):
+                timing.mark('first_message')
                 for event in message_events(message, streaming):
+                    if event.get('type') in {'text', 'thinking'} and event.get('text'):
+                        stage = 'first_' + event['type']
+                        first = stage not in timing.elapsed
+                        timing.mark(stage)
+                        if first:
+                            emit_performance(timing)
                     event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
     finally:
+        timing.mark('completed')
+        emit_performance(timing)
         if tool_services is not None:
             tool_services.clear()
         if data_services:
@@ -509,7 +560,9 @@ async def run(payload: dict[str, Any]) -> None:
 
 async def main() -> None:
     """从标准输入读取 JSONL，按首条消息选择 Query 或 Client 模式，输出执行事件及完成或错误标记。"""
-    emit({"type": "worker_ready"})
+    boot = Timing('worker_boot', origin=_BOOT_ORIGIN)
+    boot.mark('imported')
+    emit({"type": "worker_ready", 'performance': boot.event()})
     first_line = await asyncio.to_thread(sys.stdin.readline)
     if not first_line.strip():
         return

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime.config import worker_environment
+from runtime.private_trace import performance_event
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +100,10 @@ async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]
             except (UnicodeDecodeError, json.JSONDecodeError):
                 continue
             if event.get("type") == "worker_ready":
+                raw = event.get('performance')
+                trace = performance_event(raw) if isinstance(raw, dict) else None
+                if trace:
+                    yield trace
                 continue
             if event.get("type") == "worker_done":
                 saw_done = True
@@ -163,6 +168,12 @@ class ClientWorkerProcess:
         self._prewarmed = False
         self._bound = False
         self._connected = False
+        self.startup_traces: list[dict[str, Any]] = []
+
+    @property
+    def prewarmed(self) -> bool:
+        """返回领取时 Python 是否已导入完成，供计时区分池命中和冷启动。"""
+        return self._prewarmed
 
     @property
     def process(self) -> asyncio.subprocess.Process | None:
@@ -193,6 +204,8 @@ class ClientWorkerProcess:
             if event.get('type') != 'worker_ready':
                 raise ClientWorkerError('Client worker 预热协议无效')
             self._prewarmed = True
+            if isinstance(event.get('performance'), dict):
+                self.startup_traces.append(event['performance'])
         except asyncio.TimeoutError as error:
             await self.terminate()
             raise ClientWorkerError('Client worker 预热超时') from error
@@ -219,6 +232,8 @@ class ClientWorkerProcess:
                 event = await asyncio.wait_for(self.next_event(), remaining)
                 if event.get("type") == "client_ready":
                     self._connected = True
+                    if isinstance(event.get('performance'), dict):
+                        self.startup_traces.append(event['performance'])
                     return event
                 if event.get("type") == "client_error":
                     raise ClientWorkerError("Client worker 连接失败")

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import unittest
 from unittest.mock import patch
 
@@ -59,6 +60,24 @@ class FakeProcess:
 
 
 class AgentProcessTests(unittest.TestCase):
+    def test_query_forwards_boot_timing_without_control_handshake(self):
+        async def exercise():
+            process = FakeProcess()
+            process.stdout = asyncio.StreamReader()
+            process.stderr = asyncio.StreamReader()
+            boot = {'type': 'performance', 'version': 1, 'scope': 'worker_boot',
+                    'elapsedMs': {'imported': 25}, 'cpuMs': {}, 'counts': {}}
+            for event in ({'type': 'worker_ready', 'performance': boot},
+                          {'type': 'text', 'text': 'answer'}, {'type': 'worker_done'}):
+                process.stdout.feed_data((json.dumps(event) + '\n').encode())
+            process.stdout.feed_eof()
+            process.stderr.feed_eof()
+            with patch('runtime.process._spawn_worker_process', return_value=process):
+                events = [event async for event in stream_agent({})]
+            self.assertEqual(events, [boot, {'type': 'text', 'text': 'answer'}])
+
+        asyncio.run(exercise())
+
     def test_worker_spawn_passes_trusted_payload_to_environment_selection(self):
         async def exercise():
             payload = {"workflow_name":"qa", "_data_identity":{"tenant_id":"tenant"}}

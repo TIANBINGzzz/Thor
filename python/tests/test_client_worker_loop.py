@@ -9,6 +9,94 @@ from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_performance_output_failure_preserves_result_and_cleanup(self):
+        for failure in (None, ValueError('query failed')):
+            with self.subTest(failure=type(failure).__name__):
+                events = []
+                tools = Mock()
+                data = SimpleNamespace(bind=AsyncMock(), close=AsyncMock(), prepare_prompt=lambda p: p)
+
+                async def query(*args, **kwargs):
+                    if failure:
+                        raise failure
+                    yield SDKMessage(kind='stream', data={'event': {'type': 'content_block_delta',
+                        'delta': {'type': 'text_delta', 'text': 'answer'}}})
+                    yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+
+                def emit(event):
+                    if event['type'] == 'performance':
+                        raise BrokenPipeError('diagnostic output unavailable')
+                    events.append(event)
+
+                with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
+                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                                    missing_environment=lambda: [], create_run_services=lambda _: data,
+                                    ToolServices=lambda *args: tools,
+                                    build_options=lambda _, **kw: SimpleNamespace(tools=[], strict_mcp_config=True),
+                                    stream_query=query, isolated_sdk_environment=nullcontext, emit=emit):
+                    if failure:
+                        with self.assertRaisesRegex(ValueError, 'query failed'):
+                            await agent_worker.run({'prompt': 'question'})
+                    else:
+                        await agent_worker.run({'prompt': 'question'})
+                        self.assertEqual([e['type'] for e in events], ['text', 'result'])
+                        self.assertTrue(events[-1]['ok'])
+                tools.clear.assert_called_once()
+                data.close.assert_awaited_once()
+
+    async def test_private_timings_are_per_turn_and_precede_terminal(self):
+        events = []
+        completed = asyncio.Event()
+
+        class Client:
+            state = ClientState.NEW
+
+            async def connect(self):
+                self.state = ClientState.READY
+
+            async def query(self, prompt, session_id):
+                pass
+
+            async def receive_response(self, **kwargs):
+                for text in ('O', 'K'):
+                    yield SDKMessage(kind='stream', data={'event': {'type': 'content_block_delta',
+                        'delta': {'type': 'text_delta', 'text': text}}})
+                yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+
+            async def disconnect(self):
+                self.state = ClientState.CLOSED
+
+        async def commands(queue):
+            for run_id in ('r1', 'r2'):
+                completed.clear()
+                await queue.put({'type': 'client_query', 'run_id': run_id, 'prompt': 'question', 'timeout_ms': 2000})
+                await completed.wait()
+            await queue.put({'type': 'client_close'})
+
+        def emit(event):
+            events.append(event)
+            if event['type'] == 'client_run_completed':
+                completed.set()
+
+        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
+             patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: None,
+                            build_options=lambda _, **kw: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            ClaudeSDKClient=lambda *a, **kw: Client(), isolated_sdk_environment=nullcontext,
+                            _read_client_commands=commands, emit=emit):
+            await asyncio.wait_for(agent_worker.run_client({}), 3)
+        terminals = [i for i, e in enumerate(events) if e['type'] == 'client_run_completed']
+        self.assertEqual(len(terminals), 2)
+        for index in terminals:
+            timing = events[index - 1]
+            self.assertEqual(timing['scope'], 'worker_run')
+            stages = timing['elapsedMs']
+            self.assertLessEqual(stages['query_begin'], stages['query_sent'])
+            self.assertLessEqual(stages['query_sent'], stages['first_message'])
+            self.assertLessEqual(stages['first_message'], stages['first_text'])
+            self.assertLessEqual(stages['first_text'], stages['completed'])
+        self.assertEqual(len([e for e in events if e['type'] == 'text']), 4)
+
     async def test_client_tool_service_setup_failure_closes_data_services(self):
         data = SimpleNamespace(close=AsyncMock())
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,

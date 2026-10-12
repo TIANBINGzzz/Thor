@@ -34,6 +34,7 @@ from runtime import private_trace
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOGGER = logging.getLogger("ccsdk.runtime")
 TRACE_SECRETS: dict[str, tuple[str, ...]] = {}
+RUN_TIMINGS: dict[str, private_trace.Timing] = {}
 
 
 load_runtime_environment()
@@ -343,6 +344,10 @@ async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[st
     """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
     clean = with_display_name({"protocolVersion": "agent-events/v1", **event})
     stored = RUN_STORE.append_event(run_id, clean)
+    if event.get('type') == 'message.delta' and event.get('payload', {}).get('textDelta'):
+        timing = RUN_TIMINGS.get(run_id)
+        if timing:
+            timing.mark('text_stored')
     await _notify_stored_event(stored)
     return stored
 
@@ -363,10 +368,33 @@ def _artifact_delivery() -> ArtifactDelivery:
     return ARTIFACT_DELIVERY
 
 
+def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
+    """私有观测尽力写入；诊断存储故障不能改变业务结果或阻断 Run 清理。"""
+    if not private_trace.enabled() or raw is None:
+        return
+    try:
+        event = None
+        if raw.get('type') == 'performance':
+            event = private_trace.performance_event(raw)
+        elif raw.get('type') in private_trace.TRACE_TYPES:
+            event = private_trace.sanitize(raw, TRACE_SECRETS.get(run_id, ()))
+        if event:
+            RUN_STORE.append_trace(run_id, event)
+    except Exception as error:
+        LOGGER.warning("私有观测写入失败：%s", type(error).__name__)
+
+
 async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
     """分流私有观测、产物和公共事件，暂存终态直到文件交付收尾。"""
-    if private_trace.enabled() and raw.get('type') in private_trace.TRACE_TYPES:
-        RUN_STORE.append_trace(run_id, private_trace.sanitize(raw, TRACE_SECRETS.get(run_id, ())))
+    if raw.get('type') == 'performance':
+        _record_trace(run_id, raw)
+        return
+    timing = RUN_TIMINGS.get(run_id)
+    if timing:
+        timing.mark('first_message')
+        if raw.get('type') in {'text', 'thinking'} and raw.get('text'):
+            timing.mark('first_' + raw['type'])
+    _record_trace(run_id, raw)
     if raw.get('type') == 'artifact.published':
         run = RUN_STORE.get_run(run_id)
         session_key = run.get('metadata', {}).get('sessionKey')
@@ -634,6 +662,9 @@ async def _execute_internal_run(
 ) -> None:
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
+    timing = RUN_TIMINGS.get(run_id)
+    if timing:
+        timing.mark('scheduled')
     TRACE_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
     input_workspace: Path | None = None
     runtime_mode: str | None = None
@@ -664,6 +695,8 @@ async def _execute_internal_run(
 
             async def prepare_client_run() -> dict[str, Any]:
                 """在 Actor 串行区准备本轮附件，并沿用入队时冻结的执行资产。"""
+                if timing:
+                    timing.mark('prepare_begin')
                 _clear_runtime_input(input_workspace)
                 if not run_request.input.attachment_refs:
                     prepared_files: tuple[FetchedFile, ...] = ()
@@ -678,6 +711,8 @@ async def _execute_internal_run(
                     attachment_files=prepared_files,
                     workflow_assets=worker_payload['_workflow_assets'],
                 )
+                if timing:
+                    timing.mark('prepared')
                 await _run_phase(run_id, {"name": "model_starting"})
                 return prepared_payload
 
@@ -703,6 +738,8 @@ async def _execute_internal_run(
             business = run_request.business_session_id or claims.get("businessSessionId")
             if business:
                 worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)
+        if timing:
+            timing.mark('assembled')
         async def consume_agent() -> None:
             """消费一次性 Worker 事件，保存 SDK 会话引用并交给统一分流入口。"""
             async for raw in stream_agent(worker_payload):
@@ -728,6 +765,8 @@ async def _execute_internal_run(
                 "queue_timeout_ms": CLIENT_QUEUE_TIMEOUT_MS,
             }
             await _run_phase(run_id, {"name": "queued"})
+            if timing:
+                timing.mark('enqueued')
             outcome = await manager.submit(
                 session_key or run_id,
                 worker_payload,
@@ -763,6 +802,10 @@ async def _execute_internal_run(
             code = getattr(error, "code", None) or "runtime_error"
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
+        if timing:
+            timing.mark('completed')
+            _record_trace(run_id, timing.event())
+            RUN_TIMINGS.pop(run_id, None)
         pending_terminals.pop(run_id, None)
         TRACE_SECRETS.pop(run_id, None)
         TOOL_DISPLAYS.clear(run_id)
@@ -779,6 +822,7 @@ async def _execute_internal_run(
 @app.post("/internal/v1/runs")
 async def internal_create_run(request: Request):
     """解析并鉴权创建请求，幂等登记和调度 Run，返回公开状态及 SSE 地址，错误时返回 HTTP 错误响应。"""
+    timing = private_trace.Timing('runtime')
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
@@ -815,6 +859,8 @@ async def internal_create_run(request: Request):
             # no asyncio task. Re-posting the same run from Java is the MVP
             # recovery handshake; it must not create a second task in-process.
             if run.get("status") not in TERMINAL_RUN_STATUSES and run_request.run_id not in internal_tasks:
+                if timing.active:
+                    RUN_TIMINGS[run_request.run_id] = timing
                 internal_tasks[run_request.run_id] = asyncio.create_task(
                     _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer, execution_entry=execution_entry),
                     name=f"ccsdk-run:{run_request.run_id}",
@@ -823,6 +869,7 @@ async def internal_create_run(request: Request):
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
     except RuntimeError:
         return _plain("execution_configuration_invalid", 503)
+    timing.mark('accepted')
     return JSONResponse(
         {
             "run": _public_run(run),
@@ -920,6 +967,10 @@ async def internal_run_events(
 
         def format_event(event: dict[str, Any]) -> str:
             """按可信显示字典规范事件并编码为含游标的 SSE 帧。"""
+            if event.get('type') == 'message.delta' and event.get('payload', {}).get('textDelta'):
+                timing = RUN_TIMINGS.get(run_id)
+                if timing:
+                    timing.mark('sse_yield')
             event = with_display_name(event)
             lines = [f"id: {event['sequence']}", f"event: {event['type']}"]
             lines.append(f"data: {json.dumps(event, ensure_ascii=False)}")

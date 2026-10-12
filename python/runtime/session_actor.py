@@ -12,6 +12,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
 from runtime.process import ClientWorkerError, ClientWorkerProcess
+from runtime.private_trace import Timing
 
 
 LOGGER = logging.getLogger("ccsdk.session_actor")
@@ -62,6 +63,7 @@ class _Command:
     cleanup: RunCleanup | None = None
     initial_payload: dict[str, Any] | None = None
     started: asyncio.Event = field(default_factory=asyncio.Event)
+    timing: Timing = field(default_factory=lambda: Timing('actor'))
 
 
 @dataclass(frozen=True)
@@ -129,6 +131,7 @@ class SessionActor:
         self._next_start_reason = 'history_restore' if self._last_session_id else 'new_session'
         self._last_start_reason: str | None = None
         self._last_worker_start_ms: int | None = None
+        self._last_pool_hit = False
 
     @property
     def config_fingerprint(self) -> str | None:
@@ -330,6 +333,7 @@ class SessionActor:
         self._active_run_started_at = int(time.time() * 1000)
         self._streaming_state = "waiting"
         self._last_error_code = None
+        command.timing.mark('queue_exit')
         try:
             payload = dict(command.payload or {})
             prepared: Mapping[str, Any] = {}
@@ -344,6 +348,7 @@ class SessionActor:
                 payload.update(prepared)
                 if command.run_id in self._cancel_requested:
                     raise asyncio.CancelledError
+            command.timing.mark('prepared')
             execution_ms = payload.get("timeout_ms")
             try:
                 async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
@@ -354,10 +359,17 @@ class SessionActor:
                         if self.config_fingerprint != (str(fingerprint) if fingerprint is not None else None):
                             await self._discard_worker('config_changed')
                         self._initial_payload = initial
+                    starts = self._worker_starts
                     await self._ensure_worker()
+                    created = int(starts != self._worker_starts)
+                    command.timing.count('worker_created', created)
+                    command.timing.count('worker_reused', 1 - created)
+                    command.timing.count('pool_hit', int(created and self._last_pool_hit))
+                    command.timing.count('rebuilt', int(created and self._last_start_reason not in {'new_session', 'history_restore'}))
+                    command.timing.mark('worker_ready')
                     self._state = ActorState.RUNNING
                     await self._notify_state()
-                    outcome = await self._run_worker_command(command.run_id, payload)
+                    outcome = await self._run_worker_command(command.run_id, payload, command.timing)
             except asyncio.TimeoutError as error:
                 raise SessionActorError("Claude Client 执行超时", code="sdk_timeout") from error
             if outcome.session_id:
@@ -402,6 +414,8 @@ class SessionActor:
             await self._cleanup_run(command)
             self._resolve_run_error(command, SessionActorError("SessionActor 执行失败", code=self._last_error_code))
         finally:
+            command.timing.mark('completed')
+            await self._emit_performance(command.run_id, command.timing.event())
             self._cancel_requested.discard(command.run_id)
             if self._active_run_started_at is not None:
                 self._last_run_duration_ms = max(0, int(time.time() * 1000) - self._active_run_started_at)
@@ -410,6 +424,15 @@ class SessionActor:
             await self._notify_state()
             if self._state == ActorState.READY and not self._pending_runs and self._commands.empty():
                 self._schedule_idle_close()
+
+    async def _emit_performance(self, run_id: str, event: dict[str, Any] | None) -> None:
+        """隔离性能回调的普通故障，取消信号仍按原执行链路传播。"""
+        if event is None:
+            return
+        try:
+            await self._on_public_event(run_id, event)
+        except Exception as error:
+            LOGGER.warning("SessionActor 性能观测失败：%s", type(error).__name__)
 
     async def _cleanup_run(self, command: _Command) -> None:
         """等待本轮清理回调，记录普通清理错误并继续传播取消信号。"""
@@ -444,11 +467,15 @@ class SessionActor:
             send_timeout_ms=self._worker_send_timeout_ms,
             close_timeout_ms=self._worker_close_timeout_ms,
         )
+        self._last_pool_hit = bool(getattr(self._worker, 'prewarmed', False))
         self._last_start_reason = self._next_start_reason
         self._worker_starts += 1
         started = time.monotonic()
         try:
             await self._worker.start(payload)
+            if self._active_run_id:
+                for trace in getattr(self._worker, 'startup_traces', []):
+                    await self._emit_performance(self._active_run_id, trace)
         except (ClientWorkerError, asyncio.TimeoutError) as error:
             self._worker = None
             self._state = ActorState.FAILED
@@ -461,13 +488,14 @@ class SessionActor:
         self._state = ActorState.READY
         await self._notify_state()
 
-    async def _run_worker_command(self, run_id: str, payload: dict[str, Any]) -> _RunOutcome:
+    async def _run_worker_command(self, run_id: str, payload: dict[str, Any], timing: Timing) -> _RunOutcome:
         """发送查询并同时消费 Worker 事件与控制命令，终态或超时时回收等待任务。"""
         worker = self._worker
         if worker is None or not worker.alive:
             raise SessionActorError("Client worker 不可用", code="sdk_connection_error")
         command = {"type": "client_query", "run_id": run_id, **payload}
         await worker.send(command)
+        timing.mark('query_sent')
         timeout_value = payload.get("timeout_ms", payload.get("timeoutMs"))
         deadline = (
             time.monotonic() + timeout_value / 1000
@@ -525,11 +553,16 @@ class SessionActor:
                         raise SessionActorError("Claude Client 执行失败", code=str(event.get("code") or "sdk_execution_error"))
                     if event_type == "worker_exit":
                         raise ClientWorkerError("Client worker 已退出")
-                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published"}:
+                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance'}:
+                        if event_type == 'text' and event.get('text'):
+                            timing.mark('first_text')
                         session_id = event.get("sessionId")
                         if session_id:
                             self._last_session_id = str(session_id)
-                        await self._on_public_event(run_id, event)
+                        if event_type == 'performance':
+                            await self._emit_performance(run_id, event)
+                        else:
+                            await self._on_public_event(run_id, event)
                         if event_type in {"text", "thinking", "tool_use", "tool_progress", "activity"}:
                             self._streaming_state = "streaming"
                         elif event_type in {"result", "error"}:

@@ -84,3 +84,17 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 ## 10. 开发观测
 
 启用 CCSDK_ENABLE_RUN_TRACE=1 且持有绑定原 Run 的 run.observe 才可读取 trace；默认关闭返回 404。分页序号独立于 SSE，响应 no-store，只采集启用后 SDK 实际返回的思考与工具事件，遮盖已知凭据、省略二进制及过长内容；不补录历史、不承诺完整内部推理。字段见 [观测参考](../python-api.html#run-trace)。
+
+性能观测基准 **v1**：首字指客户端收到第一条非空 `message.delta.textDelta`（含当前公开的子代理正文），从提交请求前开始计时；不把 HTTP 202、`started`、首个 SDK 消息或思考当成首字。每次比较须固定版本、依赖、模型、问题、工具、池容量、预热完成状态、并发数及首轮/续轮，交替重复并报告样本数、失败、分布和资源。
+
+| 链路 / 计时原点 | 里程碑和指标 | 采集边界 |
+| --- | --- | --- |
+| 浏览器 / 提交前 | 请求发出、首段 SSE 到达、正文渲染 | 浏览器探针；未采集标为未测 |
+| Java / 请求入口 | 鉴权结束、Python 请求/202、SSE 首字接收/转发 | Java 计时；本仓库不实现 |
+| Python / Run 路由入口 | `runtime`：accepted、scheduled、assembled、enqueued、prepare_begin、prepared、first_message、first_thinking、first_text、text_stored、sse_yield、completed | 现有私有 trace；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
+| Actor / 命令入队 | `actor`：queue_exit、prepared、worker_ready、query_sent、first_text、completed；worker_created/reused、pool_hit、rebuilt | 同会话串行；worker_ready − prepared 包含重建、领取、导入和连接，续轮不沿用上次启动值 |
+| Worker / 模块加载前、初始配置收到、本轮命令收到 | `worker_boot.imported`；`worker_start`：configured、connect_begin、connected；`worker_run`：bound、query_begin、query_sent、first_message、first_thinking、first_text、completed | boot 不含解释器启动；命中池时导入已在请求前完成；connect 包含 CLI 版本检查/启动及 SDK 初始化，部分 MCP 握手可延至首个 query；query_sent 只是写入 SDK |
+| 模型 HTTP / 每次请求发出前 | 请求次数/状态、响应头、首字节、首个流事件、首段思考/正文、结束；请求字节数/工具数量/Token 用量 | 测试透传探针或可信模型网关；不由 SDK init 推断，不记录 Header/正文/凭据 |
+| 工具与文件服务 / 每次调用 | MCP/HTTP 连接、鉴权、调用、首响应、结束；上传与 artifact.ready 分开 | trace 关联调用；需要下游计时才可继续细分 |
+
+`performance` 私有事件固定 `version=1`、`scope`、`elapsedMs`、`cpuMs`、`counts`，仅接受登记名称及有限非负数值，记录故障不阻断业务执行或清理。elapsedMs/cpuMs 是各进程相对各自原点的累计值，阶段用同 scope 两里程碑相减；缺失不等于零，不跨进程/机器直接相减，不相加嵌套或重叠耗时。Query 当前仅覆盖 Runtime、worker_boot 和 worker_run，未采集 Actor、准备及 Client connect/query_sent 的细分。CPU 是该进程 CPU 时间，Runtime 的并发 CPU 不可归给单 Run；CLI/MCP 需另采各 PID 的 CPU、RSS/PSS、可用内存与事件循环延迟。修改计时语义须升级版本；新增里程碑可保持同版。
