@@ -1,93 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1070" viewBox="0 0 1680 1070" role="img" aria-labelledby="title desc">
-<title id="title">请求与结果 · 血缘关系</title><desc id="desc">业务身份、会话、消息、执行与文件相互关联；SDK 会话引用留在 Python 内部。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">请求与结果血缘</title>
 <defs>
-<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#236AAB"/></marker>
-<marker id="teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#187A73"/></marker>
-<marker id="purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#725393"/></marker>
-<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#5A6C7D"/></marker>
-<marker id="orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#A26620"/></marker>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#245B96"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#667489"/></marker>
+<marker id="planned" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8492A4"/></marker>
 </defs>
-<style>text{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif} .mono{font-family:Consolas,"Microsoft YaHei",monospace}</style>
-<rect width="1680" height="1070" fill="#FFFFFF"/>
-<g transform="translate(0,-150)">
-<rect x="64" y="183" width="350" height="835" rx="12" fill="#ECF7F4" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="86" y="221" fill="#173148" font-size="25" font-weight="600" text-anchor="start">Java · 业务控制面</text>
-<rect x="526" y="183" width="610" height="835" rx="12" fill="#EDF5FC" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="548" y="221" fill="#236AAB" font-size="25" font-weight="600" text-anchor="start">Python · 自研执行面</text>
-<rect x="1248" y="183" width="368" height="835" rx="12" fill="#F5F7FA" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="1270" y="221" fill="#173148" font-size="25" font-weight="600" text-anchor="start">SDK 执行 / 外部资源</text>
-<rect x="84" y="249" width="310" height="126" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="104" y="283" fill="#173148" font-size="23" font-weight="600" text-anchor="start">身份与授权</text>
-<text x="104" y="315" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">tenant / user</text>
-<text x="104" y="342" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">能力、会话、附件 ACL</text>
-<rect x="84" y="419" width="310" height="150" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="104" y="453" fill="#173148" font-size="23" font-weight="600" text-anchor="start">业务请求</text>
-<text x="104" y="485" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">businessSessionId / messageId</text>
-<text x="104" y="512" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">runId / capabilityRef</text>
-<text x="104" y="539" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">text / payload / fileId</text>
-<path d="M239 375 L239 419" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<rect x="548" y="249" width="566" height="126" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="568" y="283" fill="#173148" font-size="23" font-weight="600" text-anchor="start">请求校验与 Run 登记</text>
-<text x="568" y="315" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">Run JWT → tenant / sub；绑定本轮请求</text>
-<text x="568" y="342" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">登记 runId → 消息、业务会话与能力</text>
-<path d="M394 312 L548 312" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<text x="471" y="292" fill="#187A73" font-size="17" font-weight="400" text-anchor="middle">Run JWT</text>
-<path d="M394 489 L465 489 L465 353 L548 353" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
-<text x="471" y="516" fill="#236AAB" font-size="17" font-weight="400" text-anchor="middle">业务输入</text>
-<rect x="548" y="419" width="566" height="150" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="568" y="453" fill="#173148" font-size="23" font-weight="600" text-anchor="start">会话与调度</text>
-<text x="568" y="485" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">tenant + user + businessSessionId → SessionActor</text>
-<text x="568" y="512" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">串行执行；配置 / 凭据指纹决定 Client 复用</text>
-<text x="568" y="539" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">指纹变化 → 重建 Client + resume SDK 历史</text>
-<path d="M831 375 L831 419" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
-<rect x="548" y="613" width="566" height="136" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="568" y="647" fill="#173148" font-size="23" font-weight="600" text-anchor="start">本轮执行装配</text>
-<text x="568" y="679" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">Capability → Workflow / Skill / Tool / 模板与来源</text>
-<text x="568" y="706" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">冻结配置；附件准备；按 MCP 绑定业务 Token</text>
-<text x="568" y="733" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">Worker → ClaudeAgentOptions → SDK</text>
-<path d="M831 569 L831 613" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
-<rect x="1270" y="263" width="324" height="118" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="1290" y="297" fill="#173148" font-size="23" font-weight="600" text-anchor="start">模型与 MCP</text>
-<text x="1290" y="329" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">模型供应商 / 已授权工具</text>
-<text x="1290" y="356" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">数据库 / 联网 / 文档编辑</text>
-<rect x="1270" y="447" width="324" height="122" rx="12" fill="#ECF7F4" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="1290" y="481" fill="#173148" font-size="23" font-weight="600" text-anchor="start">Claude Agent SDK</text>
-<text x="1290" y="513" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">模型交互 / 工具执行</text>
-<text x="1290" y="540" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">SDK session_id / resume</text>
-<path d="M1114 683 L1186 683 L1186 509 L1270 509" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
-<text x="1186" y="470" fill="#236AAB" font-size="18" font-weight="400" text-anchor="middle">调用</text>
-<path d="M1432 447 L1432 381" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<text x="1452" y="418" fill="#187A73" font-size="17" font-weight="400" text-anchor="start">模型 / 工具</text>
-<rect x="1270" y="819" width="324" height="152" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="1290" y="853" fill="#173148" font-size="23" font-weight="600" text-anchor="start">成果文件服务</text>
-<text x="1290" y="885" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">接收不可变成果快照</text>
-<text x="1290" y="912" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">上传就绪 → fileId</text>
-<text x="1290" y="939" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">下载授权由 Java 管理</text>
-<rect x="548" y="793" width="566" height="178" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="568" y="827" fill="#173148" font-size="23" font-weight="600" text-anchor="start">执行记录与成果归属</text>
-<text x="568" y="859" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">runId → toolCallId / 查询结果引用 / artifactId</text>
-<text x="568" y="886" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">SDK 会话关联：session_id（内部）</text>
-<text x="568" y="913" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">公共事件 → sequence；文件 ready → fileId</text>
-<path d="M831 749 L831 793" fill="none" stroke="#236AAB" stroke-width="2" marker-end="url(#blue)"/>
-<path d="M1432 569 L1432 595 L1220 595 L1220 837 L1114 837" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<text x="1208" y="810" fill="#187A73" font-size="17" font-weight="400" text-anchor="end">SDK 事件</text>
-<path d="M1114 874 L1270 874" fill="none" stroke="#5A6C7D" stroke-width="2" marker-end="url(#muted)"/>
-<text x="1192" y="860" fill="#5A6C7D" font-size="17" font-weight="400" text-anchor="middle">成果上传</text>
-<path d="M1270 935 L1114 935" fill="none" stroke="#5A6C7D" stroke-width="2" marker-end="url(#muted)"/>
-<text x="1192" y="920" fill="#5A6C7D" font-size="17" font-weight="400" text-anchor="middle">fileId</text>
-<rect x="84" y="793" width="310" height="178" rx="12" fill="#FFFFFF" stroke="#BCCBD6" stroke-width="1.5"/>
-<text x="104" y="827" fill="#173148" font-size="23" font-weight="600" text-anchor="start">消息与文件回写</text>
-<text x="104" y="859" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">runId → messageId</text>
-<text x="104" y="886" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">消费正文、状态与用量</text>
-<text x="104" y="913" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">artifactId → fileId</text>
-<text x="104" y="940" fill="#5A6C7D" font-size="18" font-weight="400" text-anchor="start">文件卡片 / 下载 ACL</text>
-<path d="M548 864 L394 864" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<text x="471" y="842" fill="#187A73" font-size="16" font-weight="400" text-anchor="middle">SSE / 文件状态</text>
-<path d="M239 793 L239 569" fill="none" stroke="#187A73" stroke-width="2" marker-end="url(#teal)"/>
-<text x="259" y="680" fill="#187A73" font-size="17" font-weight="400" text-anchor="start">关联原业务消息</text>
-<rect x="64" y="1055" width="1552" height="95" rx="12" fill="#F5F0FA" stroke="#725393" stroke-width="1.5"/>
-<text x="88" y="1096" fill="#725393" font-size="26" font-weight="600" text-anchor="start">外部观测平台</text>
-<text x="88" y="1133" fill="#173148" font-size="21" font-weight="400" text-anchor="start">runId 关联  ·  Trace / 工具 / 耗时 / 用量  ·  run.observe 授权</text>
-<path d="M831 971 L831 1055" fill="none" stroke="#725393" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#purple)"/>
-<text x="854" y="1038" fill="#725393" font-size="18" font-weight="400" text-anchor="start">授权观测 / 脱敏用量</text>
-</g></svg>
+<style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400} .heading{font-weight:600}</style>
+<rect width="1600" height="900" fill="white"/>
+<rect x="48" y="36" width="330" height="728" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="68" y="76" font-size="25" fill="#182B43" text-anchor="start" class="heading">Java · 业务控制面</text>
+<rect x="502" y="36" width="602" height="728" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="522" y="76" font-size="25" fill="#245B96" text-anchor="start" class="heading">Python · 自研执行面</text>
+<rect x="1240" y="36" width="312" height="728" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1260" y="76" font-size="25" fill="#182B43" text-anchor="start" class="heading">SDK 执行 / 外部资源</text>
+<rect x="68" y="107" width="290" height="112" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="86" y="137" font-size="21" fill="#182B43" text-anchor="start" class="heading">身份与授权</text>
+<text x="86" y="165" font-size="17" fill="#667489" text-anchor="start">tenant / user</text>
+<text x="86" y="192" font-size="17" fill="#667489" text-anchor="start">能力 / 会话 / 附件 ACL</text>
+<rect x="68" y="261" width="290" height="136" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="86" y="291" font-size="21" fill="#182B43" text-anchor="start" class="heading">业务请求</text>
+<text x="86" y="319" font-size="17" fill="#667489" text-anchor="start">businessSessionId / messageId</text>
+<text x="86" y="346" font-size="17" fill="#667489" text-anchor="start">runId / capabilityRef</text>
+<text x="86" y="373" font-size="17" fill="#667489" text-anchor="start">text / payload / fileId</text>
+<path d="M213 219 L213 261" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="522" y="107" width="562" height="112" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="540" y="137" font-size="21" fill="#182B43" text-anchor="start" class="heading">请求校验与 Run 登记</text>
+<text x="540" y="165" font-size="17" fill="#667489" text-anchor="start">Run JWT → tenant / sub；绑定本轮请求</text>
+<text x="540" y="192" font-size="17" fill="#667489" text-anchor="start">runId → 消息 / 业务会话 / 能力</text>
+<path d="M358 163 L522 163" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="440" y="151" font-size="16" fill="#245B96" text-anchor="middle">Run JWT</text>
+<path d="M358 327 L430 327 L430 201 L522 201" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="440" y="351" font-size="16" fill="#667489" text-anchor="middle">业务输入</text>
+<rect x="522" y="261" width="562" height="136" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="540" y="291" font-size="21" fill="#182B43" text-anchor="start" class="heading">会话与调度</text>
+<text x="540" y="319" font-size="17" fill="#667489" text-anchor="start">tenant + user + businessSessionId → SessionActor</text>
+<text x="540" y="346" font-size="17" fill="#667489" text-anchor="start">串行执行；配置 / 凭据指纹决定 Client 复用</text>
+<text x="540" y="373" font-size="17" fill="#667489" text-anchor="start">指纹变化 → 重建 Client + resume SDK 历史</text>
+<path d="M803 219 L803 261" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="522" y="439" width="562" height="128" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="540" y="469" font-size="21" fill="#182B43" text-anchor="start" class="heading">本轮执行装配</text>
+<text x="540" y="497" font-size="17" fill="#667489" text-anchor="start">Capability → Workflow / Skill / Tool / 模板与来源</text>
+<text x="540" y="524" font-size="17" fill="#667489" text-anchor="start">配置冻结 / 附件准备 / 按 MCP 绑定业务 Token</text>
+<text x="540" y="551" font-size="17" fill="#667489" text-anchor="start">Worker → ClaudeAgentOptions → SDK</text>
+<path d="M803 397 L803 439" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="1260" y="107" width="272" height="112" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1278" y="137" font-size="21" fill="#182B43" text-anchor="start" class="heading">模型与 MCP</text>
+<text x="1278" y="165" font-size="17" fill="#667489" text-anchor="start">模型供应商 / 已授权工具</text>
+<text x="1278" y="192" font-size="17" fill="#667489" text-anchor="start">数据库 / 联网 / 文档编辑</text>
+<rect x="1260" y="289" width="272" height="108" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1278" y="319" font-size="21" fill="#182B43" text-anchor="start" class="heading">Claude Agent SDK</text>
+<text x="1278" y="347" font-size="17" fill="#667489" text-anchor="start">模型交互 / 工具执行</text>
+<text x="1278" y="374" font-size="17" fill="#667489" text-anchor="start">SDK session_id / resume</text>
+<path d="M1084 503 L1160 503 L1160 343 L1260 343" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="1160" y="329" font-size="16" fill="#245B96" text-anchor="middle">调用</text>
+<path d="M1396 289 L1396 219" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="1412" y="260" font-size="15" fill="#667489" text-anchor="start">模型 / 工具</text>
+<rect x="522" y="610" width="562" height="132" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="540" y="640" font-size="21" fill="#182B43" text-anchor="start" class="heading">执行记录与成果归属</text>
+<text x="540" y="668" font-size="17" fill="#667489" text-anchor="start">runId → toolCallId / 查询结果引用 / artifactId</text>
+<text x="540" y="695" font-size="17" fill="#667489" text-anchor="start">SDK 会话关联：session_id（内部）</text>
+<text x="540" y="722" font-size="17" fill="#667489" text-anchor="start">公共事件 → sequence；文件 ready → fileId</text>
+<path d="M803 567 L803 610" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="1260" y="610" width="272" height="132" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1278" y="640" font-size="21" fill="#182B43" text-anchor="start" class="heading">成果文件服务</text>
+<text x="1278" y="668" font-size="17" fill="#667489" text-anchor="start">接收不可变成果快照</text>
+<text x="1278" y="695" font-size="17" fill="#667489" text-anchor="start">上传就绪 → fileId</text>
+<text x="1278" y="722" font-size="17" fill="#667489" text-anchor="start">下载授权由 Java 管理</text>
+<path d="M1396 397 L1396 420 L1190 420 L1190 640 L1084 640" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="1180" y="625" font-size="15" fill="#667489" text-anchor="end">SDK 事件</text>
+<path d="M1084 674 L1260 674" fill="none" stroke="#667489" stroke-width="1.6" marker-end="url(#muted)"/>
+<text x="1172" y="662" font-size="15" fill="#667489" text-anchor="middle">成果上传</text>
+<path d="M1260 722 L1084 722" fill="none" stroke="#667489" stroke-width="1.6" marker-end="url(#muted)"/>
+<text x="1172" y="711" font-size="15" fill="#667489" text-anchor="middle">fileId</text>
+<rect x="68" y="583" width="290" height="159" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="86" y="613" font-size="21" fill="#182B43" text-anchor="start" class="heading">消息与文件回写</text>
+<text x="86" y="641" font-size="17" fill="#667489" text-anchor="start">runId → messageId</text>
+<text x="86" y="668" font-size="17" fill="#667489" text-anchor="start">正文 / 状态 / 用量</text>
+<text x="86" y="695" font-size="17" fill="#667489" text-anchor="start">artifactId → fileId</text>
+<text x="86" y="722" font-size="17" fill="#667489" text-anchor="start">文件卡片 / 下载 ACL</text>
+<path d="M522 674 L358 674" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="440" y="660" font-size="15" fill="#667489" text-anchor="middle">SSE / 文件状态</text>
+<path d="M213 583 L213 397" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="230" y="492" font-size="16" fill="#667489" text-anchor="start">关联原业务消息</text>
+<rect x="48" y="812" width="1504" height="60" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1" stroke-dasharray="5 5"/>
+<text x="68" y="849" font-size="22" fill="#182B43" text-anchor="start" class="heading">外部观测平台</text>
+<text x="340" y="849" font-size="18" fill="#667489" text-anchor="start">runId 关联    ·    Trace / 工具 / 耗时 / 用量    ·    run.observe 授权</text>
+<path d="M803 742 L803 812" fill="none" stroke="#8492A4" stroke-width="1.6" marker-end="url(#planned)" stroke-dasharray="5 5"/>
+<text x="825" y="794" font-size="16" fill="#667489" text-anchor="start">授权观测 / 脱敏用量</text>
+</svg>
