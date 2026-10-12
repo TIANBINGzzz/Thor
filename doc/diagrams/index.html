@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CCSDK Scribe · 架构图</title>
+  <style>
+    :root{color-scheme:light;--ink:#173148;--muted:#5a6c7d;--blue:#236aab;--line:#d8e2e9;--bg:#f4f7fa}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+    header,main,footer{max-width:1728px;margin:auto;padding:24px 40px}header{padding-bottom:16px}h1{margin:6px 0 12px;font-size:30px;font-weight:650}
+    .eyebrow{font:12px Consolas,monospace;letter-spacing:2px;color:var(--blue)}p{margin:0;color:var(--muted);line-height:1.7;font-size:14px}
+    .toolbar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:22px}nav,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    button,.actions a{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:10px 16px;background:white;color:var(--ink);text-decoration:none}
+    button[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:white}button:focus-visible,a:focus-visible{outline:3px solid #70a6d1;outline-offset:3px}
+    main{padding-top:0}figure{margin:0;background:white;border:1px solid var(--line);overflow:auto}figure img{display:block;width:100%;height:auto}figure.actual img{width:1680px;max-width:none}
+    .caption{padding:12px 2px;font-size:13px;color:var(--muted)}footer{padding-top:0;font-size:13px;color:var(--muted)}footer a{color:var(--blue)}details{line-height:1.8}summary{cursor:pointer}table{border-collapse:collapse;margin-top:10px;width:100%}th,td{text-align:left;border-bottom:1px solid var(--line);padding:8px}th{white-space:nowrap}
+    [hidden]{display:none!important}@media(max-width:640px){header,main,footer{padding-left:16px;padding-right:16px}h1{font-size:24px}.actions,nav{gap:6px}button,.actions a{padding:9px 11px}td,th{font-size:12px}}
+    @media print{header,footer,.caption{display:none}body{background:white}main{padding:0;max-width:none}[role="tabpanel"][hidden]{display:block!important}figure{border:0;overflow:visible;break-after:page}figure img,figure.actual img{width:100%!important}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">CCSDK SCRIBE / SYSTEM MAP</div>
+  <h1>分层架构与请求血缘</h1>
+  <p>突出自研 Python、SDK 底座、Java 控制面与外部平台的连接。实线为当前执行关系或接入契约，虚线为规划或待接入关系。</p>
+  <div class="toolbar">
+    <nav role="tablist" aria-label="架构视图">
+      <button id="tab-system" role="tab" aria-selected="true" aria-controls="panel-system" data-name="system-architecture">分层总览</button>
+      <button id="tab-assets" role="tab" aria-selected="false" aria-controls="panel-assets" data-name="capability-assets">能力与执行资产</button>
+      <button id="tab-lineage" role="tab" aria-selected="false" aria-controls="panel-lineage" data-name="request-lineage">请求与结果血缘</button>
+    </nav>
+    <div class="actions"><button id="zoom" aria-pressed="false">原始尺寸</button><a id="svg-link" href="system-architecture.svg" download>下载 SVG</a><a id="png-link" href="system-architecture.png" download>下载 PNG</a></div>
+  </div>
+</header>
+<main>
+  <section id="panel-system" role="tabpanel" aria-labelledby="tab-system"><figure><img src="system-architecture.svg" alt="分层架构：Java 业务控制面之下是自研 Python Runtime，再下为 Claude Agent SDK；能力配置、观测、评测和 Dify 位于外部；沙箱和 MCP 网关标为规划。"></figure><p class="caption">多租户身份与归属控制已有；生产隔离仍须独立验收。Java 按职责契约展示，未核验其实际接入实现。</p></section>
+  <section id="panel-assets" role="tabpanel" aria-labelledby="tab-assets" hidden><figure><img src="capability-assets.svg" alt="Capability 组合可选 Workflow、Skill、Tool、模板和数据库知识，由 Python 装配后交给 SDK 执行。联网是共享工具。"></figure><p class="caption">SDK 提供 Skill 执行所需的工具与上下文；本项目由 Python 显式登记引用，正文按需读取。</p></section>
+  <section id="panel-lineage" role="tabpanel" aria-labelledby="tab-lineage" hidden><figure><img src="request-lineage.svg" alt="Java 传递授权身份和业务请求，Python 关联 Run、SessionActor、SDK 会话与工具结果，最终通过 SSE 和文件状态关联回业务消息。"></figure><p class="caption">SDK session_id 由 Python 内部管理。文件 ready 才携带远端 fileId；模型执行成功与文件交付状态分别处理。</p></section>
+</main>
+<footer>
+  <details><summary>核对范围与来源 · 2026-10-12</summary>
+    <p>以当前工作区源码和契约为依据，图示不代表已部署。外部平台、沙箱和 MCP 网关为规划连接。此页为架构视图，字段与规则以原契约为准。</p>
+    <p>来源：<code>ARCHITECTURE.md</code>、<code>doc/specs/ccsdk-runtime-interface.md</code>；实现：<code>python/server.py</code>、<code>python/runtime/</code> 下的 <code>config.py</code>、<code>session_actor.py</code>、<code>worker_pool.py</code>。</p>
+    <table><thead><tr><th>要求</th><th>状态</th><th>依据与差距</th></tr></thead><tbody>
+      <tr><td>REQ-001</td><td>部分满足</td><td>血缘图区分 Run JWT、业务 Token 和模型密钥；凭据按 MCP 注入。Java 真实透传与运行中撤销未验收。</td></tr>
+      <tr><td>REQ-002</td><td>部分满足</td><td>能力图保留 Capability 业务入口与内部执行资产边界。Java 授权、外部管理平台与生产隔离仍需联合验收。</td></tr>
+    </tbody></table>
+  </details>
+</footer>
+<script>
+  const tabs=[...document.querySelectorAll('[role="tab"]')];
+  const figures=[...document.querySelectorAll('figure')];
+  function select(tab){
+    tabs.forEach(item=>{const active=item===tab;item.setAttribute('aria-selected',String(active));document.getElementById(item.getAttribute('aria-controls')).hidden=!active;});
+    document.getElementById('svg-link').href=tab.dataset.name+'.svg';
+    document.getElementById('png-link').href=tab.dataset.name+'.png';
+  }
+  tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>select(tab));tab.addEventListener('keydown',event=>{let target;if(event.key==='ArrowRight')target=(index+1)%tabs.length;if(event.key==='ArrowLeft')target=(index+tabs.length-1)%tabs.length;if(event.key==='Home')target=0;if(event.key==='End')target=tabs.length-1;if(target!==undefined){event.preventDefault();select(tabs[target]);tabs[target].focus();}});});
+  document.getElementById('zoom').addEventListener('click',event=>{const button=event.currentTarget;const active=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(active));button.textContent=active?'适应宽度':'原始尺寸';figures.forEach(figure=>figure.classList.toggle('actual',active));});
+</script>
+</body>
+</html>
