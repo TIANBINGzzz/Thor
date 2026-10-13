@@ -185,7 +185,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         lambda _: file_response(b"x" * 262144, 2, gate=gate, started=started)))
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
-                                    MODELS=["test"], SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=500,
+                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=500,
                                     FILE_PREPARE_TIMEOUT_MS=3000, internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileBroker", side_effect=broker), patch.object(server, "stream_agent", query):
@@ -223,7 +223,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 async def query(payload):
                     calls.append(payload)
                     yield {"type": "result", "ok": True}
-                with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=Path(folder), MODELS=["test"],
+                with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=Path(folder), DEFAULT_MODEL="test",
                                     internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value="query"), \
                      patch.object(server, "FileBroker", side_effect=FileBrokerValidationError("bad")) as broker, \
@@ -259,7 +259,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         "capabilityRef": "conversation", "input": {"text": "read",
                         "attachmentRefs": [{"fileId": "file-1"}]}}
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
-                                    MODELS=["test"], SESSION_MANAGER=manager, RUNTIME_JWT_SECRET="test-secret",
+                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUNTIME_JWT_SECRET="test-secret",
                                     internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileBroker", side_effect=broker), \

@@ -12,6 +12,7 @@ from runtime.config import (
     build_system_prompt,
     create_run_services,
     agent_environment,
+    MODEL_SETTINGS,
     worker_environment,
     load_workflow_config,
     load_runtime_environment,
@@ -227,7 +228,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn("DB_PASSWORD", environment)
         self.assertNotIn("DB_HOST", environment)
         self.assertNotIn("DATABASE_URL", environment)
-        self.assertEqual(environment["ANTHROPIC_MODEL"], "qwen")
+        self.assertEqual(environment["ANTHROPIC_MODEL"], MODEL_SETTINGS.default)
 
     def test_provider_process_does_not_receive_runtime_or_ui_secrets(self):
         values = {

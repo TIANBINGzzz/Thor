@@ -87,7 +87,7 @@ class ExecutionEntryTests(unittest.TestCase):
         entry['supports_attachments'] = False
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'fresh-entry',
             'messageId': 'm1', 'input': {'text': 'hello'}})
-        with patch('runtime.config.capability_entry', return_value=entry), patch.object(server, 'MODELS', ['test']):
+        with patch('runtime.config.capability_entry', return_value=entry), patch.object(server, 'DEFAULT_MODEL', 'test'):
             self.assertEqual(server._runtime_mode_for_request(request), 'client')
             with tempfile.TemporaryDirectory() as temporary:
                 payload = server._internal_worker_payload(request, Path(temporary))

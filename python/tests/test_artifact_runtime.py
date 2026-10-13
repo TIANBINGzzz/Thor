@@ -91,7 +91,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 yield {'type': 'artifact.published', 'artifactId': item['artifactId']}
                 yield {'type': 'result', 'ok': True}
             with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, ARTIFACT_DELIVERY=delivery,
-                                internal_tasks={}, internal_subscribers={}, pending_terminals={}, MODELS=['test']), \
+                                internal_tasks={}, internal_subscribers={}, pending_terminals={}, DEFAULT_MODEL='test'), \
                  patch.object(server, '_runtime_mode_for_request', return_value='query'), \
                  patch.object(server, 'stream_agent', stream):
                 task = asyncio.create_task(server._execute_internal_run(request, {'tenant': 'tenant', 'sub': 'user'}))

@@ -25,13 +25,15 @@ from runtime.claude_sdk import build_agent_options
 from runtime.asset_registry import load_declared_asset, validate_refs
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import ConfigSnapshot
+from runtime.runtime_settings import load_model_settings
 from runtime.prompt_documents import MAX_DOCUMENT_TOTAL_BYTES
 from runtime.tool_services import ToolServices, load_tool_assets
 from runtime.tool_registry import build_registered_tools
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS_ROOT = PROJECT_ROOT / ".claude" / "workflows"
-REQUIRED_ENV = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL")
+MODEL_SETTINGS = load_model_settings()
+REQUIRED_ENV = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")
 WORKFLOW_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 BASE_PROCESS_ENV_KEYS = {
     "PATH",
@@ -62,11 +64,6 @@ SDK_ENV_KEYS = {
     "CCSDK_RENDER_IMAGE",
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_BASE_URL",
-    "ANTHROPIC_MODEL",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL",
-    "CLAUDE_CODE_SUBAGENT_MODEL",
     "CLAUDE_CONFIG_DIR",
 }
 WORKER_CONFIG_ENV_KEYS = {
@@ -157,6 +154,7 @@ def agent_environment() -> dict[str, str]:
     数据库凭据仅由受保护配置提供给进程内 data 执行器。
     """
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
+    environment.update(MODEL_SETTINGS.environment())
     office = os.environ.get('CCSDK_OFFICECLI_PATH')
     if office and Path(office).is_file():
         # Bash与原生MCP使用同一工具版本，避免系统PATH上的旧版本读取同一文件。
@@ -172,6 +170,7 @@ def worker_environment() -> dict[str, str]:
     """
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
                                       | WORKER_CONFIG_ENV_KEYS)
+    environment.update(MODEL_SETTINGS.environment())
     return environment
 
 
@@ -465,7 +464,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     capability_ref = str(
         payload.get("capability_ref") or payload.get("workflow_name") or "conversation"
     ).strip()
-    model = payload.get('model') or os.environ.get('ANTHROPIC_MODEL')
+    model = payload.get('model') or MODEL_SETTINGS.default
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
     registered_template = assets['template_revision'] is not None

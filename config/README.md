@@ -27,6 +27,19 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 `runtime/deployment_config.py` 的 `ConfigSnapshot` 是业务配置唯一取值入口：`get('fileService')` 读取节点，`resolve(资产配置)` 解析完整 `${节点.字段}` 引用，保留数字、布尔等原类型。只解析可信连接配置，不扫描用户输入、Prompt 或凭据，不支持表达式、字符串拼接、环境变量展开或远端值递归引用。缺失值直接失败。
 每个快照首次用到引用时读取一次 Nacos，后续引用复用同份 YAML；导出时只保留已引用的值。Runtime 按轮装配并将快照交给 Worker，Worker 不联网补值；文件传输按前述批次使用独立快照。新增连接只在可信资产中声明引用并使用公共解析器，不新增能力专用 Nacos 读取器；业务字段校验留在消费边界，Token 继续按 Run 独立注入。
 
+## Runtime 模型
+
+`application.yml` 的 `runtime.models` 是模型配置唯一来源；`application.local.yml` 按字段覆盖，`available` 列表整体替换，`sdk` 按映射项覆盖。启动时读取，更改后重启 Runtime；镜像内配置须重建镜像，挂载环境专属 YAML 时须保留该节点。
+
+| 字段 | 用途与约束 |
+| --- | --- |
+| `default` | HTTP 执行及未指定模型的内部调用使用的明确默认值，不取列表首项。 |
+| `available` | 非空、无重复的模型名称列表；默认模型和全部 SDK 映射必须在其中。配置有效不代表供应商已开通该模型。 |
+| `sdk.haiku` / `sdk.sonnet` / `sdk.opus` | Claude Code 内部模型别名映射，均须显式声明。 |
+| `sdk.subagent` | SDK 内部子代理默认模型；不因此注册或启用项目子代理。 |
+
+缺少模型节点、非法字段或映射在启动时失败，不回退环境变量。旧 `SCRIBE_MODELS`、`ANTHROPIC_MODEL`、`ANTHROPIC_DEFAULT_*_MODEL`、`CLAUDE_CODE_SUBAGENT_MODEL` 不再读取；清理部署 env 及云效密钥包中的旧字段。Runtime 仅向 SDK/Worker 环境副本生成所需模型变量；密钥 `ANTHROPIC_AUTH_TOKEN` 和端点 `ANTHROPIC_BASE_URL` 仍由环境注入。
+
 ## Runtime 预热进程池
 
 `application.yml` 的 `runtime.worker-pool` 在 Runtime 启动时读取；同目录 `application.local.yml` 按字段覆盖，无环境变量覆盖。更改后重启 Runtime；未配置该节点的已有部署不开启预热。

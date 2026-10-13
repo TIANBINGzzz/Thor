@@ -6,6 +6,17 @@ nacos:
   username: ""
   password: ""
 runtime:
+  models:
+    default: deepseek-v4.1-flash
+    available:
+      - deepseek-v4.1-flash
+      - qwen3.8-flash
+      - qwen3.8-max
+    sdk:
+      haiku: deepseek-v4.1-flash
+      sonnet: deepseek-v4.1-flash
+      opus: qwen3.8-max
+      subagent: deepseek-v4.1-flash
   worker-pool:
     max-idle: 6
     max-starting: 2

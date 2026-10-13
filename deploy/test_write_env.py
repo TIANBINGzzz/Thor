@@ -22,7 +22,7 @@ spec.loader.exec_module(writer)
 class DeploymentEnvironmentTests(unittest.TestCase):
     def environment(self):
         return {"ANTHROPIC_AUTH_TOKEN": "test '$() ` = # \\ token",
-                "ANTHROPIC_BASE_URL": "https://example.com", "ANTHROPIC_MODEL": "test",
+                "ANTHROPIC_BASE_URL": "https://example.com",
                 "CCSDK_RUNTIME_JWT_SECRET": "s" * 48, "UNRELATED_SECRET": "excluded"}
 
     def test_raw_runtime_round_trip_and_allowlist(self):

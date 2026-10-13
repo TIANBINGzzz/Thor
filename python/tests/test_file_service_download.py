@@ -203,7 +203,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=self.root,
                         CLIENT_SESSION_ROOT=self.root / 'sessions', SESSION_MANAGER=manager,
-                        MODELS=['test'], internal_tasks={}, internal_subscribers={}), \
+                        DEFAULT_MODEL='test', internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, '_runtime_mode_for_request', return_value=mode), \
                      patch.object(server, 'FileBroker', side_effect=broker), \
                      patch.object(server, 'stream_agent', query):

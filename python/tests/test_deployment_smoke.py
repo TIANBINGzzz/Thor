@@ -31,7 +31,7 @@ class DeploymentSmokeTests(unittest.TestCase):
         async def exercise():
             with tempfile.TemporaryDirectory() as directory, RunStore(':memory:') as store:
                 with patch.multiple(server, RUN_STORE=store, RUNTIME_JWT_SECRET='probe-secret',
-                                    PROJECT_ROOT=Path(directory), MODELS=['test-model'],
+                                    PROJECT_ROOT=Path(directory), DEFAULT_MODEL='test-model',
                                     internal_tasks={}, internal_subscribers={}):
                     with patch.object(server, 'stream_agent', sdk_output), \
                          patch.object(server, '_runtime_mode_for_request', return_value='query'), \

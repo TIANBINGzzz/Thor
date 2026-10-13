@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 
 def validate_environment():
-    required = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "CCSDK_RUNTIME_JWT_SECRET")
+    required = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CCSDK_RUNTIME_JWT_SECRET")
     invalid = [name for name in required if not os.environ.get(name, "").strip()]
     # JWT secret content is deployment-owned; only require a nonempty value.
     invalid.extend(name for name in required if name != "CCSDK_RUNTIME_JWT_SECRET"

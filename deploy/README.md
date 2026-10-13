@@ -36,6 +36,8 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 - CCSDK_BIND_IP 默认主机回环；跨机访问绑定内网并限制来源。SSE 反向代理关闭缓冲、配置长连接超时；JWT 时钟、issuer/audience 和共享密钥与 Java 一致。
 - 单副本、单 HTTP worker；命名卷保存 `.scribe-runs/` 的记录、SDK 历史和文件。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 `docker compose down -v`，改卷名不会迁移数据。
 
+模型统一配置在 `config/application.yml` 的 `runtime.models`，字段及本地覆盖见 [模型配置](../config/README.md#runtime-模型)。已有部署挂载的 `application.yml` 须补齐该节点，并清理 env/云效密钥包中的旧模型字段；缺失时启动失败，不读取旧 env 作为回退。
+
 ## 验证与回滚
 
 `build.sh` 运行镜像测试并导出校验和；部署校验 SHA-256 后 docker load，以 Compose `--pull never` 启动。CCSDK_SMOKE_TEST=1 增加健康、未认证拒绝、签名 Run、真实模型和 SSE 检查；关闭时不能宣称真实链路通过。

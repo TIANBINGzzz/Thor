@@ -238,7 +238,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assert_public_run(self.client.post('/internal/v1/runs', json=body,
                 headers=self.headers('run.execute', capabilityRef='chart-generation')), 202)
         # 构建镜像不携带 .env；测试显式提供模型，避免依赖开发机配置。
-        with patch.object(server, 'MODELS', ['test-model']):
+        with patch.object(server, 'DEFAULT_MODEL', 'test-model'):
             payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
         self.assertEqual(payload['model'], 'test-model')
         self.assertIsNone(payload['workflow_name'])
@@ -269,7 +269,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                 self.assertEqual(server._runtime_mode_for_request(stateless), 'query')
 
     def test_trusted_data_identity_does_not_enter_model_prompt(self):
-        with patch.object(server, 'MODELS', ['test-model']):
+        with patch.object(server, 'DEFAULT_MODEL', 'test-model'):
             payload=server._internal_worker_payload(AgentRunRequest.from_dict(self.body),Path(self.temp.name),
                 claims={'tenant':'trusted-secret-tenant','sub':'trusted-secret-user'})
         self.assertEqual(payload['_data_identity']['tenant_id'],'trusted-secret-tenant')
@@ -280,7 +280,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         body = {**self.body, "payload": {"reportTitle": "Annual report", "year": 2026,
                                        "sections": [{"name": "Budget", "amount": 120}]}}
         request = AgentRunRequest.from_dict(body)
-        with patch.object(server, "MODELS", ["test-model"]):
+        with patch.object(server, 'DEFAULT_MODEL', "test-model"):
             for mode in ("query", "client"):
                 result = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
                 self.assertIn(json.dumps(body["payload"], ensure_ascii=False), result["prompt"])
@@ -302,7 +302,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertNotEqual(expected_timeout, 500)
         request = AgentRunRequest.from_dict({**self.body, 'capabilityRef': 'document-writing',
                                             'payload': {'timeout_ms': 1}})
-        with patch.object(server, 'MODELS', ['test-model']), patch.object(server, 'RUN_EXECUTION_TIMEOUT_MS', 500):
+        with patch.object(server, 'DEFAULT_MODEL', 'test-model'), patch.object(server, 'RUN_EXECUTION_TIMEOUT_MS', 500):
             for mode in ('query', 'client'):
                 payload = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
                 self.assertEqual(payload['timeout_ms'], expected_timeout)

@@ -28,6 +28,7 @@ from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
 from runtime.worker_pool import WorkerPool, configure_worker_logging
 from runtime.runtime_settings import load_worker_pool_settings
+from runtime.config import MODEL_SETTINGS
 from runtime import private_trace
 
 
@@ -41,11 +42,7 @@ load_runtime_environment()
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
 MAX_PROMPT_BYTES = 32 * 1024
-MODELS = list(dict.fromkeys(
-    model.strip()
-    for model in (os.environ.get("SCRIBE_MODELS") or os.environ.get("ANTHROPIC_MODEL") or "").split(",")
-    if model.strip()
-))
+DEFAULT_MODEL = MODEL_SETTINGS.default
 RUNTIME_JWT_SECRET = os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").strip()
 RUNTIME_JWT_AUDIENCE = os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime").strip()
 # Keep an explicit default so ``iss`` is always checked against the Java
@@ -568,9 +565,7 @@ def _internal_worker_payload(
     execution_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
-    model = MODELS[0] if MODELS else ""
-    if not model or model not in MODELS:
-        raise ValueError("model 不在允许列表中")
+    model = DEFAULT_MODEL
     if runtime_mode == "client":
         # A persistent Client constructs its MCP servers only once.  Give it a
         # stable session root; each Run still receives a separate directory for
@@ -1159,5 +1154,5 @@ async def internal_cancel_run(run_id: str, request: Request):
 
 if __name__ == "__main__":
     print(f"Runtime API: http://{HOST}:{PORT}")
-    print(f"模型: {os.environ.get('ANTHROPIC_MODEL', '')}")
+    print(f"模型: {DEFAULT_MODEL}")
     uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
