@@ -29,6 +29,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 - 默认数据库配置随私有源码复制到容器 `/app/config/databases.json`；CCSDK_WITH_DATABASE=0 不挂载覆盖。修改内置配置须重建镜像，例外范围见 [ADR-028](../doc/ADR/028-bundled-database-config.md)，构建不验证内网数据库连通性。
 - 外置覆盖使用 CCSDK_WITH_DATABASE=1，配置目录只读挂到 `/app/deployment-config`，不遮住镜像内 Nacos 配置。云效生成模式用 CCSDK_GENERATE_ENV=1、私密 CCSDK_DEPLOY_ENV_B64，数据库另用 CCSDK_DATABASES_JSON，可选证书用 CCSDK_DATABASE_CERTIFICATES_JSON；示例分别见 secrets.example.json/data-access.example.json。
 - 主机自行维护配置时用 CCSDK_GENERATE_ENV=0，不与云效重复维护；CCSDK_CONFIG_DIRECTORY 指定目录，deploy.sh 按调用工作目录解析相对路径并转为绝对路径，直接使用 Compose 时相对路径按 Compose 项目目录解析。数据库/CA 的文件内字段与路径基准以配置说明为准。
+- 首次部署前确认 `.env` 必填凭据已配置、Nacos 目标配置存在，且所有文件挂载源确实是文件；缺失的宿主文件可能被 Docker 自动创建为空目录，导致挂载失败。
 - 使用 `python deploy/encode-secret.py <私有JSON> <输出文件>` 生成传输内容；Base64 不是加密，输入输出均按密钥保管，不提交 Git、不用在线编码、不打印环境。模型/JWT 由运行环境注入，禁止挂载根 `.env` 覆盖容器配置。
 - Compose raw env_file 写实际值，不加 dotenv 外层引号；配置变更须重新创建容器，docker restart 不刷新环境。容器配置只读且服务 UID 为 10001，文件权限须匹配，不能用 chmod 777。
 - Compose 路线需要 Docker、Compose >=2.30、flock、tar、sha256sum 及相应主机权限。镜像固定容器内端口 4310，外部访问通过映射配置；127.0.0.1 在容器中指容器自身，代理、数据库和文件服务地址须实际可达。
