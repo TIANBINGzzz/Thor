@@ -27,6 +27,7 @@
       <button id="tab-observability" role="tab" aria-selected="false" aria-controls="panel-observability" data-name="observability-platform">可观测</button>
       <button id="tab-evaluation" role="tab" aria-selected="false" aria-controls="panel-evaluation" data-name="evaluation-platform">评测</button>
       <button id="tab-assets" role="tab" aria-selected="false" aria-controls="panel-assets" data-name="ai-asset-platform">AI 资产管理</button>
+      <button id="tab-vision" role="tab" aria-selected="false" aria-controls="panel-vision" data-name="value-vision">价值与最终形态</button>
     </nav>
     <div class="actions"><button id="zoom" aria-pressed="false">原始尺寸</button><a id="svg-link" href="system-architecture.svg" download>下载 SVG</a><a id="png-link" href="system-architecture.png" download>下载 PNG</a></div>
   </div>
@@ -39,6 +40,7 @@
   <section id="panel-observability" role="tabpanel" aria-labelledby="tab-observability" hidden><figure><img src="observability-platform.svg" alt="可观测平台：Agent 全链路、参数、知识检索、文件交付、Token、费用和耗时追踪。"></figure></section>
   <section id="panel-evaluation" role="tabpanel" aria-labelledby="tab-evaluation" hidden><figure><img src="evaluation-platform.svg" alt="评测平台：以测试集、预期结果和评分指标进行 Workflow 与 Skill 质量验证。"></figure></section>
   <section id="panel-assets" role="tabpanel" aria-labelledby="tab-assets" hidden><figure><img src="ai-asset-platform.svg" alt="AI 资产管理平台：MCP 服务连通性、鉴权、工具清单、调用成功率、响应时间与超时监测；数据库配置增删改查、连接与凭据、来源授权、只读策略与配置一致性检查。"></figure></section>
+  <section id="panel-vision" role="tabpanel" aria-labelledby="tab-vision" hidden><figure><img src="value-vision.svg" alt="价值与最终形态：拓展业务 AI 能力、声明式构建 Agent、统一规范与环境配置；后续完善观测审计和评测驱动的持续进化，最终成为配置式的 AI Agent 能力服务提供者。"></figure></section>
 </main>
 <script>
   const tabs=[...document.querySelectorAll('[role="tab"]')];
