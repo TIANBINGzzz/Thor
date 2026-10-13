@@ -17,6 +17,7 @@
 ## 配置加载与注入
 
 每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，`fileService` 与 `campusMcp` 为并列节点；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
+业务地址按目标环境的网站 origin（协议、主机及非默认端口）配置：`fileService.baseUrl`、`fileService.remoteUrl` 使用该 origin；`fileService.domainName`、`campusMcp.domainName` 只填主机名；`campusMcp.url` 使用该 origin 加 `/string_campus_brain_service/mcp`。不要带前端 `/ai_center_web/#/ai` 路径，也不要把另一环境的域名一起复制过去。此为当前部署约定，代码不会根据网页地址自动替换；Nacos 自身的连接地址独立配置。各环境地址及实查状态见部署说明链接的私有环境交接。
 启动连接统一放在本目录 [application.yml](application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。固定读取仓库根目录下的 `config/application.yml`，不依赖启动工作目录，随镜像交付。
 本机可在同目录创建 `application.local.yml`，只写需要覆盖的字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。Nacos 字段优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
 镜像默认地址 `host.docker.internal:8848` 用于 Compose bridge 网络，Linux Compose 已配置 `host-gateway` 映射；Docker host 网络可在环境专属 YAML 中写 `127.0.0.1:8848`。各环境可挂载自己的 `application.yml` 到容器 `/app/config/application.yml`，复用同一镜像；宿主机 Nacos 须允许对应网络访问。
