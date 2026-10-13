@@ -2,6 +2,8 @@
 
 所有命令从仓库根目录执行，另有说明除外。环境字段见 `.env.example`、[runtime.env.example](runtime.env.example)；数据库及文件服务见 [配置字段](../config/README.md)。
 
+跨会话查找 59 连接、凭据、目录及云效信息，先读本机私有 [环境交接](environments.local.md)；该文件不提交、不进入镜像，新克隆需单独提供。
+
 ## 本地开发
 
 安装 `requirements.txt`，从 `.env.example` 准备 `.env` 并配置模型和 Runtime JWT；本机代理等差异写 `.env.local`，加载顺序为 `.env`、`.env.local`、所选 Workflow 的 `workflow.env`。前两者均不提交、不进入镜像，部署不携带本机覆盖。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。

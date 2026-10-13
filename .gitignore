@@ -4,6 +4,7 @@ node_modules/
 /config/application.local.yml
 **/workflow.env
 deploy/*.env
+deploy/environments.local.md
 *.secret.json
 *.secret
 *.pem

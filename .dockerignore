@@ -38,3 +38,4 @@ deploy/data-access.json
 **/*.log
 **/settings.local.json
 **/~$*.docx
+deploy/environments.local.md
