@@ -1,6 +1,6 @@
 # 配置说明
 
-本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务及校园 MCP 连接由 Nacos 提供。配置仅供服务端读取，不传给模型。
+本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务及校园 MCP 连接由 Nacos 提供。`databases.json` 中遗留的 `fileService` 不再读取，应删除，避免误以为修改它会生效。配置仅供服务端读取，不传给模型。
 
 默认读取本目录配置；可用 `CCSDK_DATABASES_FILE` 指定其他文件，相对路径以项目根目录为基准。修改配置后排空任务并重启服务；使用镜像内配置时须重建部署。
 
