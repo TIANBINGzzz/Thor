@@ -22,6 +22,12 @@
     <nav role="tablist" aria-label="架构视图">
       <button id="tab-system" role="tab" aria-selected="true" aria-controls="panel-system" data-name="system-architecture">分层总览</button>
       <button id="tab-lineage" role="tab" aria-selected="false" aria-controls="panel-lineage" data-name="request-lineage">请求与结果血缘</button>
+      <button id="tab-future" role="tab" aria-selected="false" aria-controls="panel-future" data-name="future-work">后续工作</button>
+      <button id="tab-capability" role="tab" aria-selected="false" aria-controls="panel-capability" data-name="capability-platform">能力配置</button>
+      <button id="tab-observability" role="tab" aria-selected="false" aria-controls="panel-observability" data-name="observability-platform">可观测</button>
+      <button id="tab-evaluation" role="tab" aria-selected="false" aria-controls="panel-evaluation" data-name="evaluation-platform">评测</button>
+      <button id="tab-mcp" role="tab" aria-selected="false" aria-controls="panel-mcp" data-name="mcp-monitoring">MCP 监测</button>
+      <button id="tab-database" role="tab" aria-selected="false" aria-controls="panel-database" data-name="database-monitoring">数据库配置与监测</button>
     </nav>
     <div class="actions"><button id="zoom" aria-pressed="false">原始尺寸</button><a id="svg-link" href="system-architecture.svg" download>下载 SVG</a><a id="png-link" href="system-architecture.png" download>下载 PNG</a></div>
   </div>
@@ -29,6 +35,12 @@
 <main>
   <section id="panel-system" role="tabpanel" aria-labelledby="tab-system"><figure><img src="system-architecture.svg" alt="Java 控制面、自研 Python Runtime、Claude Agent SDK 分层总览，包含业务能力小块及外部平台连接。"></figure></section>
   <section id="panel-lineage" role="tabpanel" aria-labelledby="tab-lineage" hidden><figure><img src="request-lineage.svg" alt="Java 业务请求经过 Python 会话调度和 SDK 执行，通过 SSE 和文件状态关联回业务消息。"></figure></section>
+  <section id="panel-future" role="tabpanel" aria-labelledby="tab-future" hidden><figure><img src="future-work.svg" alt="后续工作：能力配置平台、可观测平台、评测平台、MCP 监测、数据库配置与监测。"></figure></section>
+  <section id="panel-capability" role="tabpanel" aria-labelledby="tab-capability" hidden><figure><img src="capability-platform.svg" alt="能力配置平台：创建和维护 Skill，选择 Workflow 并组合 Tool、模型、知识库和参数创建 Agent，管理启停与使用权限。"></figure></section>
+  <section id="panel-observability" role="tabpanel" aria-labelledby="tab-observability" hidden><figure><img src="observability-platform.svg" alt="可观测平台：Agent 全链路、参数、知识检索、文件交付、Token、费用和耗时追踪。"></figure></section>
+  <section id="panel-evaluation" role="tabpanel" aria-labelledby="tab-evaluation" hidden><figure><img src="evaluation-platform.svg" alt="评测平台：以测试集、预期结果和评分指标进行 Workflow 与 Skill 质量验证。"></figure></section>
+  <section id="panel-mcp" role="tabpanel" aria-labelledby="tab-mcp" hidden><figure><img src="mcp-monitoring.svg" alt="MCP 监测：服务连通性、鉴权状态、工具清单变化、调用成功率、响应时间与超时异常。"></figure></section>
+  <section id="panel-database" role="tabpanel" aria-labelledby="tab-database" hidden><figure><img src="database-monitoring.svg" alt="数据库配置与监测：配置增删改查，检查连接、凭据、来源授权、只读策略和配置一致性。"></figure></section>
 </main>
 <script>
   const tabs=[...document.querySelectorAll('[role="tab"]')];
@@ -39,6 +51,9 @@
     document.getElementById('png-link').href=tab.dataset.name+'.png';
   }
   tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>select(tab));tab.addEventListener('keydown',event=>{let target;if(event.key==='ArrowRight')target=(index+1)%tabs.length;if(event.key==='ArrowLeft')target=(index+tabs.length-1)%tabs.length;if(event.key==='Home')target=0;if(event.key==='End')target=tabs.length-1;if(target!==undefined){event.preventDefault();select(tabs[target]);tabs[target].focus();}});});
+  function selectFromHash(){const tab=document.getElementById('tab-'+location.hash.slice(1));if(tabs.includes(tab))select(tab);}
+  window.addEventListener('hashchange',selectFromHash);
+  selectFromHash();
   document.getElementById('zoom').addEventListener('click',event=>{const button=event.currentTarget;const active=button.getAttribute('aria-pressed')!=='true';button.setAttribute('aria-pressed',String(active));button.textContent=active?'适应宽度':'原始尺寸';figures.forEach(figure=>figure.classList.toggle('actual',active));});
 </script>
 </body>

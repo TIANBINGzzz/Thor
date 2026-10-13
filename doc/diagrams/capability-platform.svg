@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">能力配置平台</title>
+<defs>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#245B96"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#667489"/></marker>
+<marker id="planned" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8492A4"/></marker>
+</defs>
+<style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400} .heading{font-weight:600}</style>
+<rect width="1600" height="900" fill="white"/>
+<text x="48" y="83" font-size="36" fill="#245B96" text-anchor="start" class="heading">能力配置平台</text>
+<text x="48" y="123" font-size="22" fill="#667489" text-anchor="start">创建和维护 Skill，组合已有执行资产，创建与管理 Agent</text>
+<rect x="48" y="174" width="432" height="374" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="76" y="218" font-size="26" fill="#245B96" text-anchor="start" class="heading">执行资产</text>
+<text x="76" y="263" font-size="22" fill="#667489" text-anchor="start">Skill：创建与维护</text>
+<text x="76" y="301" font-size="22" fill="#667489" text-anchor="start">Workflow：选择已有工作流</text>
+<text x="76" y="339" font-size="22" fill="#667489" text-anchor="start">Tool：配置工具组合</text>
+<text x="76" y="377" font-size="22" fill="#667489" text-anchor="start">模型：选择执行模型</text>
+<text x="76" y="415" font-size="22" fill="#667489" text-anchor="start">知识库：配置知识来源</text>
+<text x="76" y="453" font-size="22" fill="#667489" text-anchor="start">参数：配置执行参数</text>
+<path d="M480 361 L638 361" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="559" y="342" font-size="20" fill="#245B96" text-anchor="middle">组合配置</text>
+<rect x="638" y="174" width="432" height="374" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="666" y="218" font-size="26" fill="#245B96" text-anchor="start" class="heading">Agent</text>
+<text x="666" y="263" font-size="22" fill="#667489" text-anchor="start">封装 Workflow、Skill 与工具</text>
+<text x="666" y="301" font-size="22" fill="#667489" text-anchor="start">统一对外展示为业务能力</text>
+<text x="666" y="339" font-size="22" fill="#667489" text-anchor="start">组合模型、知识库与参数配置</text>
+<path d="M1070 361 L1208 361" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<text x="1139" y="342" font-size="20" fill="#245B96" text-anchor="middle">运行管理</text>
+<rect x="1208" y="174" width="344" height="374" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1236" y="218" font-size="26" fill="#245B96" text-anchor="start" class="heading">启停与权限</text>
+<text x="1236" y="263" font-size="22" fill="#667489" text-anchor="start">启用 / 停用 Agent</text>
+<text x="1236" y="301" font-size="22" fill="#667489" text-anchor="start">管理使用权限</text>
+<text x="1236" y="339" font-size="22" fill="#667489" text-anchor="start">控制能力使用范围</text>
+<rect x="48" y="604" width="1504" height="234" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="76" y="648" font-size="26" fill="#245B96" text-anchor="start" class="heading">管理流程</text>
+<text x="76" y="693" font-size="22" fill="#667489" text-anchor="start">创建与维护 Skill → 选择已有 Workflow → 组合执行资产 → 创建 Agent</text>
+<text x="76" y="731" font-size="22" fill="#667489" text-anchor="start">对创建的 Agent 进行启停控制与使用权限管理</text>
+</svg>

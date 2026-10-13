@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">MCP 监测</title>
+<defs>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#245B96"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#667489"/></marker>
+<marker id="planned" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8492A4"/></marker>
+</defs>
+<style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400} .heading{font-weight:600}</style>
+<rect width="1600" height="900" fill="white"/>
+<text x="48" y="83" font-size="36" fill="#245B96" text-anchor="start" class="heading">MCP 监测</text>
+<text x="48" y="123" font-size="22" fill="#667489" text-anchor="start">持续监测外部工具服务的可用性、调用表现与异常状态</text>
+<rect x="48" y="174" width="1504" height="113" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="80" y="218" font-size="27" fill="#245B96" text-anchor="start" class="heading">MCP 服务与工具</text>
+<text x="80" y="258" font-size="22" fill="#667489" text-anchor="start">围绕服务、鉴权、工具清单和调用结果进行运行监测</text>
+<path d="M288 287 L288 343" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="48" y="343" width="480" height="284" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="76" y="387" font-size="26" fill="#245B96" text-anchor="start" class="heading">服务与鉴权</text>
+<text x="76" y="432" font-size="22" fill="#667489" text-anchor="start">服务连通性</text>
+<text x="76" y="470" font-size="22" fill="#667489" text-anchor="start">鉴权状态</text>
+<path d="M800 287 L800 343" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="560" y="343" width="480" height="284" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="588" y="387" font-size="26" fill="#245B96" text-anchor="start" class="heading">工具与调用</text>
+<text x="588" y="432" font-size="22" fill="#667489" text-anchor="start">工具清单变化</text>
+<text x="588" y="470" font-size="22" fill="#667489" text-anchor="start">调用成功率</text>
+<path d="M1312 287 L1312 343" fill="none" stroke="#245B96" stroke-width="1.6" marker-end="url(#blue)"/>
+<rect x="1072" y="343" width="480" height="284" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="1100" y="387" font-size="26" fill="#245B96" text-anchor="start" class="heading">响应与异常</text>
+<text x="1100" y="432" font-size="22" fill="#667489" text-anchor="start">响应时间</text>
+<text x="1100" y="470" font-size="22" fill="#667489" text-anchor="start">超时异常</text>
+<rect x="48" y="683" width="1504" height="156" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="76" y="727" font-size="26" fill="#245B96" text-anchor="start" class="heading">监测结果</text>
+<text x="76" y="772" font-size="22" fill="#667489" text-anchor="start">汇总服务状态、调用指标与异常信息，定位不可用或异常的 MCP 服务</text>
+</svg>
