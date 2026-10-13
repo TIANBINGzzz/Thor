@@ -2,7 +2,7 @@
 
 所有命令从仓库根目录执行，另有说明除外。环境字段见 `.env.example`、[runtime.env.example](runtime.env.example)；数据库及文件服务见 [配置字段](../config/README.md)。
 
-跨会话查找 57、59 的连接、凭据、部署位置及云效信息，先读本机私有 [环境交接](environments.local.md)；该文件不提交、不进入镜像，新克隆需单独提供。
+跨会话查找 newtest（57，单租户测试）、cloud（59，单租户正式）、appai（多租户测试）的连接、凭据、部署位置及云效信息，先读本机私有 [环境交接](environments.local.md)；该文件不提交、不进入镜像，新克隆需单独提供。
 
 ## 本地开发
 
