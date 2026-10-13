@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title"><title id="title">AI 资产管理平台</title>
+<defs>
+<marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#245B96"/></marker>
+<marker id="muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#667489"/></marker>
+<marker id="planned" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#8492A4"/></marker>
+</defs>
+<style>text{font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400} .heading{font-weight:600}</style>
+<rect width="1600" height="900" fill="white"/>
+<text x="48" y="83" font-size="36" fill="#245B96" text-anchor="start" class="heading">AI 资产管理平台</text>
+<text x="48" y="123" font-size="22" fill="#667489" text-anchor="start">统一管理 MCP 服务与数据库连接资产，监测可用性、调用表现与配置有效性</text>
+<rect x="48" y="174" width="736" height="665" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="76" y="218" font-size="26" fill="#245B96" text-anchor="start" class="heading">MCP 监测</text>
+<text x="76" y="263" font-size="22" fill="#667489" text-anchor="start">外部工具服务的运行监测</text>
+<rect x="816" y="174" width="736" height="665" rx="4" fill="#F1F5FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="844" y="218" font-size="26" fill="#245B96" text-anchor="start" class="heading">数据库配置与监测</text>
+<text x="844" y="263" font-size="22" fill="#667489" text-anchor="start">数据连接管理与配置有效性检查</text>
+<rect x="76" y="296" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="104" y="340" font-size="26" fill="#245B96" text-anchor="start" class="heading">服务与鉴权</text>
+<text x="104" y="385" font-size="22" fill="#667489" text-anchor="start">检查服务连通性</text>
+<text x="104" y="423" font-size="22" fill="#667489" text-anchor="start">监测鉴权状态</text>
+<rect x="76" y="466" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="104" y="510" font-size="26" fill="#245B96" text-anchor="start" class="heading">工具与调用</text>
+<text x="104" y="555" font-size="22" fill="#667489" text-anchor="start">跟踪工具清单变化</text>
+<text x="104" y="593" font-size="22" fill="#667489" text-anchor="start">统计调用成功率</text>
+<rect x="76" y="636" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="104" y="680" font-size="26" fill="#245B96" text-anchor="start" class="heading">响应与异常</text>
+<text x="104" y="725" font-size="22" fill="#667489" text-anchor="start">监测响应时间</text>
+<text x="104" y="763" font-size="22" fill="#667489" text-anchor="start">追踪超时异常</text>
+<rect x="844" y="296" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="872" y="340" font-size="26" fill="#245B96" text-anchor="start" class="heading">配置管理</text>
+<text x="872" y="385" font-size="22" fill="#667489" text-anchor="start">数据库配置增删改查</text>
+<text x="872" y="423" font-size="22" fill="#667489" text-anchor="start">核对配置内容与实际生效状态</text>
+<rect x="844" y="466" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="872" y="510" font-size="26" fill="#245B96" text-anchor="start" class="heading">连接与凭据</text>
+<text x="872" y="555" font-size="22" fill="#667489" text-anchor="start">检查连接可用性</text>
+<text x="872" y="593" font-size="22" fill="#667489" text-anchor="start">检查凭据有效性</text>
+<rect x="844" y="636" width="680" height="166" rx="4" fill="#FFFFFF" stroke="#DCE3EB" stroke-width="1"/>
+<text x="872" y="680" font-size="26" fill="#245B96" text-anchor="start" class="heading">授权与策略</text>
+<text x="872" y="725" font-size="22" fill="#667489" text-anchor="start">检查来源授权与只读策略</text>
+<text x="872" y="763" font-size="22" fill="#667489" text-anchor="start">核对配置一致性，定位无效或不一致项</text>
+</svg>

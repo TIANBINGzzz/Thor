@@ -30,34 +30,25 @@
 <text x="976" y="369" font-size="18" fill="#182B43" text-anchor="start">文件生成 / 文件交付</text>
 <text x="840" y="420" font-size="20" fill="#245B96" text-anchor="start" class="heading">运行统计</text>
 <text x="976" y="420" font-size="18" fill="#182B43" text-anchor="start">Token / 费用 / 执行耗时 / 失败原因</text>
-<rect x="48" y="506" width="480" height="336" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<rect x="48" y="506" width="736" height="336" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
 <text x="72" y="549" font-size="27" fill="#182B43" text-anchor="start" class="heading">评测平台</text>
 <text x="72" y="583" font-size="18" fill="#667489" text-anchor="start">Workflow / Skill 的质量验证</text>
-<rect x="72" y="603" width="432" height="1" rx="0" fill="#DCE3EB" stroke="#DCE3EB" stroke-width="1"/>
-<rect x="560" y="506" width="480" height="336" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
-<text x="584" y="549" font-size="27" fill="#182B43" text-anchor="start" class="heading">MCP 监测</text>
-<text x="584" y="583" font-size="18" fill="#667489" text-anchor="start">外部工具服务的运行监测</text>
-<rect x="584" y="603" width="432" height="1" rx="0" fill="#DCE3EB" stroke="#DCE3EB" stroke-width="1"/>
-<rect x="1072" y="506" width="480" height="336" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
-<text x="1096" y="549" font-size="27" fill="#182B43" text-anchor="start" class="heading">数据库配置与监测</text>
-<text x="1096" y="583" font-size="18" fill="#667489" text-anchor="start">数据连接与配置有效性检查</text>
-<rect x="1096" y="603" width="432" height="1" rx="0" fill="#DCE3EB" stroke="#DCE3EB" stroke-width="1"/>
-<text x="72" y="643" font-size="20" fill="#245B96" text-anchor="start" class="heading">测试集</text>
-<text x="72" y="674" font-size="19" fill="#182B43" text-anchor="start">管理测试集</text>
-<text x="72" y="719" font-size="20" fill="#245B96" text-anchor="start" class="heading">预期结果</text>
-<text x="72" y="750" font-size="19" fill="#182B43" text-anchor="start">维护预期结果</text>
-<text x="72" y="795" font-size="20" fill="#245B96" text-anchor="start" class="heading">评分指标</text>
-<text x="72" y="826" font-size="19" fill="#182B43" text-anchor="start">设定评分指标</text>
-<text x="584" y="643" font-size="20" fill="#245B96" text-anchor="start" class="heading">服务状态</text>
-<text x="584" y="674" font-size="19" fill="#182B43" text-anchor="start">连通性 / 鉴权状态</text>
-<text x="584" y="719" font-size="20" fill="#245B96" text-anchor="start" class="heading">工具与调用</text>
-<text x="584" y="750" font-size="19" fill="#182B43" text-anchor="start">工具清单变化 / 调用成功率</text>
-<text x="584" y="795" font-size="20" fill="#245B96" text-anchor="start" class="heading">响应与异常</text>
-<text x="584" y="826" font-size="19" fill="#182B43" text-anchor="start">响应时间 / 超时异常</text>
-<text x="1096" y="643" font-size="20" fill="#245B96" text-anchor="start" class="heading">连接与凭据</text>
-<text x="1096" y="674" font-size="19" fill="#182B43" text-anchor="start">连接可用性 / 凭据有效性</text>
-<text x="1096" y="719" font-size="20" fill="#245B96" text-anchor="start" class="heading">授权与策略</text>
-<text x="1096" y="750" font-size="19" fill="#182B43" text-anchor="start">来源授权 / 只读策略 / 配置一致性</text>
-<text x="1096" y="795" font-size="20" fill="#245B96" text-anchor="start" class="heading">配置管理</text>
-<text x="1096" y="826" font-size="19" fill="#182B43" text-anchor="start">数据库配置增删改查</text>
+<rect x="72" y="603" width="688" height="1" rx="0" fill="#DCE3EB" stroke="#DCE3EB" stroke-width="1"/>
+<text x="72" y="647" font-size="20" fill="#245B96" text-anchor="start" class="heading">测试集</text>
+<text x="232" y="647" font-size="20" fill="#182B43" text-anchor="start">管理测试集</text>
+<text x="72" y="715" font-size="20" fill="#245B96" text-anchor="start" class="heading">预期结果</text>
+<text x="232" y="715" font-size="20" fill="#182B43" text-anchor="start">维护预期结果</text>
+<text x="72" y="783" font-size="20" fill="#245B96" text-anchor="start" class="heading">评分指标</text>
+<text x="232" y="783" font-size="20" fill="#182B43" text-anchor="start">设定评分指标</text>
+<rect x="816" y="506" width="736" height="336" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1"/>
+<text x="840" y="549" font-size="27" fill="#182B43" text-anchor="start" class="heading">AI 资产管理平台</text>
+<text x="840" y="583" font-size="18" fill="#667489" text-anchor="start">统一管理 MCP 服务与数据库连接资产</text>
+<rect x="840" y="603" width="688" height="1" rx="0" fill="#DCE3EB" stroke="#DCE3EB" stroke-width="1"/>
+<text x="840" y="643" font-size="20" fill="#245B96" text-anchor="start" class="heading">MCP 监测</text>
+<text x="996" y="643" font-size="19" fill="#182B43" text-anchor="start">连通性 / 鉴权 / 工具清单变化</text>
+<text x="996" y="674" font-size="19" fill="#182B43" text-anchor="start">调用成功率 / 响应时间 / 超时异常</text>
+<text x="840" y="727" font-size="20" fill="#245B96" text-anchor="start" class="heading">数据库配置</text>
+<text x="996" y="727" font-size="19" fill="#182B43" text-anchor="start">配置增删改查 / 连接与凭据有效性</text>
+<text x="840" y="795" font-size="20" fill="#245B96" text-anchor="start" class="heading">授权与策略</text>
+<text x="996" y="795" font-size="19" fill="#182B43" text-anchor="start">来源授权 / 只读策略 / 配置一致性</text>
 </svg>
