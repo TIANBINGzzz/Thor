@@ -455,9 +455,14 @@ def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) ->
 
 
 def _client_session_directory(session_key: str) -> Path:
-    """将会话键散列为受控目录名并创建持久会话工作目录。"""
+    """按已鉴权的会话键领取随机目录；已有工作区就地登记，保留工作稿与成果路径。"""
+    tenant, user, kind, session_id = json.loads(session_key)
     digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
-    directory = (CLIENT_SESSION_ROOT / digest).resolve()
+    workspace_id = RUN_STORE.get_or_create_workspace(
+        tenant, user, kind, session_id,
+        workspace_id=digest if (CLIENT_SESSION_ROOT / digest).is_dir() else None,
+    )
+    directory = (CLIENT_SESSION_ROOT / workspace_id).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 

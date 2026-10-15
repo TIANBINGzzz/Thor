@@ -127,6 +127,15 @@ class RunStore:
                 CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
                 CREATE INDEX IF NOT EXISTS idx_runs_session_created
                     ON runs(tenant_id, user_id, business_session_id, created_at DESC, run_id DESC);
+                CREATE TABLE IF NOT EXISTS session_workspaces (
+                    tenant_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    session_kind TEXT NOT NULL CHECK (session_kind IN ('session', 'run')),
+                    session_id TEXT NOT NULL,
+                    workspace_id TEXT NOT NULL UNIQUE,
+                    created_at INTEGER NOT NULL,
+                    PRIMARY KEY (tenant_id, user_id, session_kind, session_id)
+                );
                 """
             )
             columns = {
@@ -175,6 +184,40 @@ class RunStore:
             except BaseException:
                 self._connection.rollback()
                 raise
+
+    def get_or_create_workspace(
+        self, tenant_id: str, user_id: str, session_kind: str, session_id: str, *,
+        workspace_id: str | None = None,
+    ) -> str:
+        """按可信身份原子领取稳定工作区；已绑定会话不可换目录，能力不参与归属。
+
+        workspace_id 仅接受服务端分配的空白目录或已有目录登记，不接受业务输入。
+        唯一约束阻止同一工作区跨身份绑定；SDK 历史引用仍以 runs 表为准。
+        """
+        if any(not isinstance(value, str) or not value.strip() for value in (tenant_id, user_id, session_id)):
+            raise ValueError('session identity is required')
+        if session_kind not in ('session', 'run'):
+            raise ValueError('invalid session kind')
+        if workspace_id is not None and (not isinstance(workspace_id, str) or not re.fullmatch(r'[0-9a-f]{32}', workspace_id)):
+            raise ValueError('invalid workspace identifier')
+        scope = (tenant_id, user_id, session_kind, session_id)
+        with self._lock, self._connection:
+            row = self._connection.execute(
+                'SELECT workspace_id FROM session_workspaces '
+                'WHERE tenant_id=? AND user_id=? AND session_kind=? AND session_id=?', scope,
+            ).fetchone()
+            if row is not None:
+                return row['workspace_id']
+            self._connection.execute(
+                'INSERT INTO session_workspaces VALUES (?,?,?,?,?,?) '
+                'ON CONFLICT(tenant_id,user_id,session_kind,session_id) DO NOTHING',
+                (*scope, workspace_id if workspace_id is not None else uuid.uuid4().hex, _now_ms()),
+            )
+            row = self._connection.execute(
+                'SELECT workspace_id FROM session_workspaces '
+                'WHERE tenant_id=? AND user_id=? AND session_kind=? AND session_id=?', scope,
+            ).fetchone()
+        return row['workspace_id']
 
     def latest_runtime_session(self, tenant_id: str, user_id: str, business_session_id: str) -> str | None:
         """恢复同一身份和业务会话最近的 SDK 历史；能力变化不另开历史，旧 Run 状态更新不改顺序。"""

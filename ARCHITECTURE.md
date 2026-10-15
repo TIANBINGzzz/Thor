@@ -48,7 +48,7 @@
 ## 7. Important boundaries/interfaces
 
 - Java/Python 以 Run JWT、HTTP/SSE 及授权文件引用交互；字段与示例见 API 参考，跨系统语义见 Runtime 契约。
-- 同 tenant、user、businessSessionId 的全部能力串行共用 SDK 历史；工具、规则或凭据变化时重建 Client 并恢复历史。重启恢复依赖 RunStore 和 SDK transcript。
+- 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。工具、规则或凭据变化时重建 Client 并恢复历史；重启恢复依赖 RunStore 和 SDK transcript。
 - 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 预热未绑定 Python Worker，SessionActor 新建 Client 时独占领取；配置相同仍复用原 Client，指纹变化照常重建并续接历史。池耗尽按需启动，已绑定进程不跨会话归还；容量和创建并发见配置字段。

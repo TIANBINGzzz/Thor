@@ -71,7 +71,7 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 | 一次性 URL JSON | fileId 与请求一致；name、mimeType、size、sha256、downloadUrl、expiresAt、oneTime=true；URL 仅 HTTPS:443，TTL 不超过 5 分钟，主机在 CCSDK_FILE_BROKER_ALLOWED_HOSTS 内，所有 DNS 地址须为公网并固定已验证 IP；不转发鉴权头、不跟随重定向 |
 | 原始文件流 | X-File-Id、X-File-Name、X-File-Mime-Type、X-File-Size、X-File-Sha256；Python 不直连业务附件表或存储，按声明核验文件 ID、大小和摘要 |
 
-输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<scopeHash>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
+输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
 
 排队、全部文件准备、单次网络等待、SDK 执行分别计时；默认与限制见 [超时字段](../python-api.html#file-broker)。平台下载还与 fileService.maxFileBytes/timeoutSeconds 取较小限额，单文件限制不是磁盘总配额。
 
