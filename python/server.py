@@ -67,7 +67,7 @@ TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = max(1.0, float(os.environ.get("CCSDK_SSE_HEARTBEAT_SECONDS", "15")))
 CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
 FILE_PREPARE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_FILE_PREPARE_TIMEOUT_MS", str(DEFAULT_PREPARE_TIMEOUT_MS))))
-RUN_EXECUTION_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_RUN_EXECUTION_TIMEOUT_MS", "300000")))
+RUN_EXECUTION_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_RUN_EXECUTION_TIMEOUT_MS", "3600000")))
 CLIENT_QUEUE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_CLIENT_QUEUE_TIMEOUT_MS", "300000")))
 
 
