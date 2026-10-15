@@ -97,6 +97,34 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ready['type'], 'client_ready')
         self.assertEqual(self.spawn_mock.await_count, 1)
 
+    async def test_pool_capacity_includes_leased_worker_until_process_cleanup_finishes(self):
+        from runtime.worker_pool import WorkerPool
+        pool = WorkerPool(max_idle=0, max_starting=1, max_live=1)
+        worker = await pool.acquire()
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        await worker.start({})
+        termination_started = asyncio.Event()
+        allow_termination = asyncio.Event()
+
+        async def stop(process):
+            termination_started.set()
+            await allow_termination.wait()
+            process.stop()
+
+        with patch('runtime.process._terminate_process_tree', side_effect=stop):
+            termination = asyncio.create_task(worker.terminate())
+            try:
+                await termination_started.wait()
+                self.assertFalse(worker.alive)
+                self.assertIsNone(self.process.returncode)
+                with self.assertRaises(ClientWorkerError):
+                    await pool.acquire()
+            finally:
+                allow_termination.set()
+                await termination
+                await pool.close()
+        self.assertEqual(pool._live_count(), 0)
+
     async def test_pool_refills_after_connection_error_timeout_cancel_or_exit(self):
         from runtime.worker_pool import WorkerPool
         from tests.test_worker_pool import until
@@ -115,7 +143,7 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
                 try:
                     pool.start()
                     await until(lambda: pool.snapshot()['ready'] == 1)
-                    worker = pool.acquire()
+                    worker = await pool.acquire()
                     self.assertEqual(pool.snapshot()['leased_connecting'], 1)
                     self.assertEqual(len(spawned), 1)
                     process = spawned[0]

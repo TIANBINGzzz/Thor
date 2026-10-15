@@ -159,6 +159,42 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         await service.call('get_school_info', {'payload': {}})
         self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second-secret')
 
+    async def test_cached_server_uses_current_binding_and_replaces_changed_revision(self):
+        from runtime.tool_services import ToolServices
+        assets = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        services = ToolServices(assets, {'platformBearer': 'first'})
+        service = services.services['campus']
+        server = services.servers()['campus']
+        first_options = build_options({'capability_ref': 'campus-brain-query',
+            'credentials': {'platformBearer': 'first'}}, tool_services=services)
+        service._request = AsyncMock(return_value={'success': True, 'data': {'school_id': 'self', 'school_name': '本校'}})
+        try:
+            await service.call('get_school_info', {'payload': {}})
+            services.configure(assets, {'platformBearer': 'second'})
+            self.assertIs(services.services['campus'], service)
+            self.assertIs(services.servers()['campus'], server)
+            second_options = build_options({'capability_ref': 'campus-brain-query',
+                'credentials': {'platformBearer': 'second'}}, tool_services=services)
+            self.assertIs(first_options.mcp_servers['campus']['instance'], server['instance'])
+            self.assertIs(second_options.mcp_servers['campus']['instance'], server['instance'])
+            await service.call('get_school_info', {'payload': {}})
+            self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second')
+            services.configure(prepare_workflow_assets({'capability_ref': 'conversation'}), None)
+            self.assertEqual(services.servers(), {})
+            with self.assertRaises(MCPAuthError):
+                await service.call('get_school_info', {'payload': {}})
+            with self.assertRaises(MCPAuthError):
+                services.configure(assets, None)
+            self.connection['url'] = 'https://new.example.test/mcp'
+            changed = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+            services.configure(changed, {'platformBearer': 'third'})
+            self.assertIsNot(services.services['campus'], service)
+            self.assertIsNot(services.servers()['campus'], server)
+            with self.assertRaises(MCPAuthError):
+                await service.call('get_school_info', {'payload': {}})
+        finally:
+            services.clear()
+
     async def test_norm_validation_and_output_allowlist(self):
         service = self.service()
         service._request = AsyncMock(return_value={'success': True, 'data': {'school_id': '00312', 'school_name': '本校'}})

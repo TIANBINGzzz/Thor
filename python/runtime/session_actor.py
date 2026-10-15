@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -135,7 +136,7 @@ class SessionActor:
 
     @property
     def config_fingerprint(self) -> str | None:
-        """返回当前配置及凭据绑定指纹，用于判断是否重建 Worker。"""
+        """返回连接固定配置的指纹；本轮模型、工具和业务凭据可热更新。"""
         value = self._initial_payload.get("_credential_binding")
         return str(value) if value is not None else None
 
@@ -353,7 +354,7 @@ class SessionActor:
             try:
                 async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
                     if command.initial_payload is not None:
-                        # 能力/凭据切换随 Run 串行生效；重建工具和规则时保留 SDK 历史。
+                        # 每轮热装配工具、规则及凭据；只有连接固定项变化才重建。
                         initial = {**command.initial_payload, **prepared}
                         fingerprint = initial.get('_credential_binding')
                         if self.config_fingerprint != (str(fingerprint) if fingerprint is not None else None):
@@ -463,10 +464,13 @@ class SessionActor:
         self._state = ActorState.STARTING
         await self._notify_state()
         self._worker = self._worker_factory(
+            initial_payload=payload,
             start_timeout_ms=self._worker_start_timeout_ms,
             send_timeout_ms=self._worker_send_timeout_ms,
             close_timeout_ms=self._worker_close_timeout_ms,
         )
+        if inspect.isawaitable(self._worker):
+            self._worker = await self._worker
         self._last_pool_hit = bool(getattr(self._worker, 'prewarmed', False))
         self._last_start_reason = self._next_start_reason
         self._worker_starts += 1

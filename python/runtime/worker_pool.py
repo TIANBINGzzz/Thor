@@ -1,4 +1,4 @@
-"""预热未绑定的 Python 进程；领取后归 Actor 独占，永不跨会话归还。"""
+"""预连接未绑定身份的 Client；领取后归 Actor 独占，永不跨会话归还。"""
 import asyncio
 from collections import deque
 import logging
@@ -8,7 +8,7 @@ import weakref
 
 import psutil
 
-from runtime.process import ClientWorkerProcess
+from runtime.process import ClientWorkerProcess, ClientWorkerError
 
 LOGGER = logging.getLogger('ccsdk.worker_pool')
 
@@ -43,21 +43,28 @@ def available_memory_mib():
 
 class WorkerPool:
     def __init__(self, *, max_idle, max_starting, min_available_memory_mib=0,
-                 worker_factory=ClientWorkerProcess):
-        """容量只含未绑定进程；创建中的进程也占容量。"""
-        for value, minimum in ((max_idle, 0), (max_starting, 1), (min_available_memory_mib, 0)):
+                 max_live=0, payload_factory=None, cleanup_workspace=None, worker_factory=ClientWorkerProcess):
+        """空闲数与总存活数分开；创建中及已保留的连接也占容量。"""
+        for value, minimum in ((max_idle, 0), (max_starting, 1), (min_available_memory_mib, 0), (max_live, 0)):
             if type(value) is not int or value < minimum:
                 raise ValueError('Worker pool limits must be nonnegative integers; max_starting must be positive')
         self.max_idle = max_idle
         self.max_starting = max_starting
         self.min_available_memory_mib = min_available_memory_mib
         self._factory = worker_factory
+        self.max_live = max_live
+        self._payload_factory = payload_factory
+        self._cleanup_workspace = cleanup_workspace
+        self._reserved = {}
+        self._payloads = weakref.WeakKeyDictionary()
         self._ready = deque()
         self._starting = set()
         self._retiring = set()
+        self._retiring_workers = set()
         self._leased = weakref.WeakSet()
         self._task = None
         self._wake = asyncio.Event()
+        self._acquire_lock = asyncio.Lock()
         self._closed = False
         self._hits = self._misses = self._failures = 0
         self._backoff = 1.0
@@ -72,18 +79,70 @@ class WorkerPool:
         if self._task is None and self.max_idle:
             self._task = asyncio.create_task(self._maintain(), name='ccsdk-worker-pool')
 
-    def acquire(self, **kwargs):
+    def reserve_workspace(self):
+        """仅为新业务会话保留空白 Client；数据库完成归属绑定后按目录领取。"""
+        if self._closed or self._payload_factory is None:
+            return None
+        while self._ready:
+            worker = self._ready.popleft()
+            if not worker.alive:
+                self._retire(worker)
+                continue
+            directory = self._payloads[worker]['session_directory']
+            self._reserved[directory] = worker
+            self._wake.set()
+            return directory
+        return None
+
+    def release_workspace(self, directory):
+        """准备失败或尚未领取时销毁连接；已绑定目录不删除、不跨身份回池。"""
+        worker = self._reserved.pop(str(directory), None)
+        if worker is not None:
+            self._retire(worker)
+            self._wake.set()
+
+    def _live_count(self):
+        # 关闭标记先于进程树回收；释放进程引用前仍占容量，避免新旧 Client 重叠超限。
+        return (sum(w.alive or w.awaiting_connection or w.process is not None for w in self._leased)
+                + len(self._ready) + len(self._reserved) + len(self._starting) + len(self._retiring_workers))
+
+    async def acquire(self, initial_payload=None, **kwargs):
         """事件循环内原子领取；耗尽走现有冷启动，调用方立即拥有清理责任。"""
+        async with self._acquire_lock:
+            return await self._acquire(initial_payload, **kwargs)
+
+    async def _acquire(self, initial_payload, **kwargs):
         if self._closed:
             raise RuntimeError('Worker pool is closed')
         worker = None
-        while self._ready:
+        if self._payload_factory is not None and initial_payload:
+            candidate = self._reserved.pop(initial_payload.get('session_directory'), None)
+            if candidate is not None:
+                expected = self._payloads[candidate]
+                if (candidate.alive and not initial_payload.get('resume')
+                        and expected.get('_credential_binding') == initial_payload.get('_credential_binding')):
+                    worker = candidate
+                else:
+                    self._retire(candidate)
+        while self._payload_factory is None and self._ready:
             candidate = self._ready.popleft()
             if candidate.alive:
                 worker = candidate
                 break
             self._retire(candidate)
         if worker is None:
+            # 空白预热不能挤占历史恢复或固定配置变化后的业务连接。
+            if self.max_live and self._live_count() >= self.max_live and self._ready:
+                # 请求取消只结束等待；退出任务仍归池管理并继续占用容量。
+                await asyncio.shield(self._retire(self._ready.popleft()))
+            if self.max_live and self._live_count() >= self.max_live and self._starting:
+                task = next(iter(self._starting))
+                task.cancel()
+                await asyncio.shield(asyncio.gather(task, return_exceptions=True))
+            if self.max_live and self._live_count() >= self.max_live and self._retiring:
+                await asyncio.shield(asyncio.gather(*tuple(self._retiring), return_exceptions=True))
+            if self.max_live and self._live_count() >= self.max_live:
+                raise ClientWorkerError('Client 容量已满，请稍后重试')
             self._misses += 1
             worker = self._factory(**kwargs)
             source = 'cold'
@@ -100,6 +159,7 @@ class WorkerPool:
     def snapshot(self):
         """仅返回非秘密计数，命中率分母是需要新 Worker 的次数。"""
         return {'ready': sum(w.alive for w in self._ready), 'starting': len(self._starting),
+                'reserved': len(self._reserved), 'max_live': self.max_live,
                 'leased_alive': sum(w.alive for w in self._leased),
                 'leased_connecting': sum(w.awaiting_connection for w in self._leased),
                 'hits': self._hits, 'misses': self._misses, 'failures': self._failures,
@@ -109,6 +169,7 @@ class WorkerPool:
         """按 PID 采样进程树 RSS/PSS；不读取身份、命令行或凭据。"""
         roots = [(w.process.pid, 'idle') for w in self._ready if w.alive and w.process]
         roots += [(w.process.pid, 'leased') for w in self._leased if w.alive and w.process]
+        roots += [(w.process.pid, 'reserved') for w in self._reserved.values() if w.alive and w.process]
         return self._measure_memory(roots)
 
     @staticmethod
@@ -135,15 +196,22 @@ class WorkerPool:
         return records
 
     def _retire(self, worker):
+        self._retiring_workers.add(worker)
         task = asyncio.create_task(self._terminate(worker), name='ccsdk-pool-retire')
         self._retiring.add(task)
         task.add_done_callback(self._retiring.discard)
+        return task
 
     async def _terminate(self, worker):
         try:
             await worker.terminate()
+            payload = self._payloads.pop(worker, None)
+            if payload and self._cleanup_workspace:
+                self._cleanup_workspace(payload['session_directory'])
         except Exception as error:
             LOGGER.warning('Worker pool cleanup failed: %s', type(error).__name__)
+        finally:
+            self._retiring_workers.discard(worker)
 
     def _prepared(self, task):
         # 即使协程尚未执行第一行就被取消，也必须归还创建名额。
@@ -154,9 +222,14 @@ class WorkerPool:
         worker = None
         try:
             worker = self._factory()
-            await worker.prewarm()
+            if self._payload_factory is None:
+                await worker.prewarm()
+            else:
+                payload = self._payload_factory()
+                self._payloads[worker] = payload
+                await worker.preconnect(payload)
             if self._closed:
-                await worker.terminate()
+                await self._terminate(worker)
             else:
                 self._ready.append(worker)
                 self._backoff = 1.0
@@ -202,10 +275,13 @@ class WorkerPool:
                     if not task.cancelling():
                         task.cancel()
             elif (time.monotonic() >= self._retry_at and not self._retiring
+                  and not self._acquire_lock.locked()
                   and not any(w.awaiting_connection for w in self._leased)):
                 # SDK 初始化会创建 CLI/MCP 进程；业务连接期间不再发起后台导入争抢 CPU/I/O。
                 count = min(self.max_idle - len(self._ready) - len(self._starting),
                             self.max_starting - len(self._starting))
+                if self.max_live:
+                    count = min(count, self.max_live - self._live_count())
                 for _ in range(max(0, count)):
                     task = asyncio.create_task(self._prepare(), name='ccsdk-worker-prewarm')
                     self._starting.add(task)
@@ -214,6 +290,7 @@ class WorkerPool:
                 # 先在事件循环捕获根 PID，避免在线程中遍历变化的队列。
                 roots = [(w.process.pid, 'idle') for w in self._ready if w.alive and w.process]
                 roots += [(w.process.pid, 'leased') for w in self._leased if w.alive and w.process]
+                roots += [(w.process.pid, 'reserved') for w in self._reserved.values() if w.alive and w.process]
                 records = await asyncio.to_thread(self._measure_memory, roots)
                 LOGGER.info('Worker pool: %s processes=%s', self.snapshot(), records)
                 next_sample = time.monotonic() + 15
@@ -236,5 +313,7 @@ class WorkerPool:
         await asyncio.gather(*tasks, return_exceptions=True)
         self._starting.clear()
         workers = list(self._ready)
+        workers.extend(self._reserved.values())
+        self._reserved.clear()
         self._ready.clear()
-        await asyncio.gather(*(w.terminate() for w in workers), *self._retiring, return_exceptions=True)
+        await asyncio.gather(*(self._terminate(w) for w in workers), *self._retiring, return_exceptions=True)

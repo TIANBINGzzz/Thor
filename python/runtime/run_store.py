@@ -185,6 +185,22 @@ class RunStore:
                 self._connection.rollback()
                 raise
 
+    def find_workspace(self, tenant_id: str, user_id: str, session_kind: str, session_id: str) -> str | None:
+        """只查可信会话绑定，避免已有会话消耗空白池。"""
+        with self._lock:
+            row = self._connection.execute(
+                'SELECT workspace_id FROM session_workspaces '
+                'WHERE tenant_id=? AND user_id=? AND session_kind=? AND session_id=?',
+                (tenant_id, user_id, session_kind, session_id),
+            ).fetchone()
+        return row['workspace_id'] if row else None
+
+    def workspace_is_bound(self, workspace_id: str) -> bool:
+        with self._lock:
+            return self._connection.execute(
+                'SELECT 1 FROM session_workspaces WHERE workspace_id=?', (workspace_id,),
+            ).fetchone() is not None
+
     def get_or_create_workspace(
         self, tenant_id: str, user_id: str, session_kind: str, session_id: str, *,
         workspace_id: str | None = None,

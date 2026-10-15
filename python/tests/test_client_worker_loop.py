@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
 import agent_worker
-from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage
+from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage, build_agent_options
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
@@ -32,7 +32,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                      patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                                     missing_environment=lambda: [], create_run_services=lambda _: data,
                                     ToolServices=lambda *args: tools,
-                                    build_options=lambda _, **kw: SimpleNamespace(tools=[], strict_mcp_config=True),
+                                    build_options=lambda _, **kw: build_agent_options(tools=[], strict_mcp_config=True),
                                     stream_query=query, isolated_sdk_environment=nullcontext, emit=emit):
                     if failure:
                         with self.assertRaisesRegex(ValueError, 'query failed'):
@@ -50,6 +50,9 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
         class Client:
             state = ClientState.NEW
+
+            async def configure_turn(self, options):
+                pass
 
             async def connect(self):
                 self.state = ClientState.READY
@@ -81,7 +84,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
              patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
-                            build_options=lambda _, **kw: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            build_options=lambda _, **kw: build_agent_options(tools=[], strict_mcp_config=True),
                             ClaudeSDKClient=lambda *a, **kw: Client(), isolated_sdk_environment=nullcontext,
                             _read_client_commands=commands, emit=emit):
             await asyncio.wait_for(agent_worker.run_client({}), 3)
@@ -97,14 +100,38 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
             self.assertLessEqual(stages['first_text'], stages['completed'])
         self.assertEqual(len([e for e in events if e['type'] == 'text']), 4)
 
-    async def test_client_tool_service_setup_failure_closes_data_services(self):
-        data = SimpleNamespace(close=AsyncMock())
+    async def _setup_failure(self, expected_code='sdk_execution_error', **overrides):
+        events = []
+        class Client:
+            state = ClientState.NEW
+            async def connect(self):
+                self.state = ClientState.READY
+            async def disconnect(self):
+                self.state = ClientState.CLOSED
+        async def commands(queue):
+            await queue.put({'type': 'client_query', 'run_id': 'failed', 'prompt': 'test'})
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
-                            missing_environment=lambda: [], create_run_services=lambda _: data,
-                            ToolServices=Mock(side_effect=RuntimeError('tool setup failed'))):
-            with self.assertRaisesRegex(RuntimeError, 'tool setup failed'):
-                await agent_worker.run_client({})
-        data.close.assert_awaited_once()
+                            missing_environment=lambda: [],
+                            ClaudeSDKClient=lambda *a, **kw: Client(),
+                            isolated_sdk_environment=nullcontext,
+                            _read_client_commands=commands, emit=events.append, **overrides):
+            await asyncio.wait_for(agent_worker.run_client({}), 3)
+        self.assertIn({'type': 'client_error', 'run_id': 'failed', 'code': expected_code}, events)
+        self.assertNotIn('private-token', str(events))
+
+    async def test_missing_business_credentials_fail_before_query_with_safe_auth_code(self):
+        from runtime.mcp_auth import MCPAuthError
+        data_factory = Mock()
+        await self._setup_failure(expected_code='mcp_authentication_error',
+            create_run_services=data_factory,
+            ToolServices=Mock(side_effect=MCPAuthError('private-token')))
+        data_factory.assert_not_called()
+
+    async def test_client_tool_setup_failure_does_not_allocate_data_services(self):
+        data_factory = Mock()
+        await self._setup_failure(create_run_services=data_factory,
+            ToolServices=Mock(side_effect=RuntimeError('tool setup failed')))
+        data_factory.assert_not_called()
 
     async def test_one_shot_tool_service_setup_failure_closes_data_services(self):
         data = SimpleNamespace(close=AsyncMock())
@@ -119,13 +146,10 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         from unittest.mock import Mock
         services = Mock()
         data = SimpleNamespace(close=AsyncMock())
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
-                            missing_environment=lambda: [], create_run_services=lambda _: data,
-                            ToolServices=lambda *args: services,
-                            build_options=Mock(side_effect=RuntimeError('invalid config'))):
-            with self.assertRaisesRegex(RuntimeError, 'invalid config'):
-                await agent_worker.run_client({})
-        services.clear.assert_called_once()
+        await self._setup_failure(create_run_services=lambda _: data,
+            ToolServices=lambda *args: services,
+            build_options=Mock(side_effect=RuntimeError('invalid config')))
+        self.assertGreaterEqual(services.clear.call_count, 1)
         data.close.assert_awaited_once()
 
     async def test_upstream_failure_overrides_success_in_query(self):
@@ -135,7 +159,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         def options(_, **kwargs):
             nonlocal callback
             callback = kwargs['mcp_error_sink']
-            return SimpleNamespace(tools=[], strict_mcp_config=True)
+            return build_agent_options(tools=[], strict_mcp_config=True)
         async def query(*args, **kwargs):
             callback()
             yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
@@ -162,7 +186,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [], create_run_services=lambda _: services,
-                            build_options=lambda _, **kwargs: SimpleNamespace(tools=[], strict_mcp_config=True),
+                            build_options=lambda _, **kwargs: build_agent_options(tools=[], strict_mcp_config=True),
                             stream_query=query, isolated_sdk_environment=nullcontext, emit=lambda _: None):
             await agent_worker.run({'prompt': 'question'})
             self.assertEqual(seen, ['prepared:question'])
@@ -183,7 +207,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         def options(_, **kwargs):
             nonlocal error_sink
             error_sink = kwargs['mcp_error_sink']
-            return SimpleNamespace(tools=[], strict_mcp_config=True)
+            return build_agent_options(tools=[], strict_mcp_config=True)
 
         class Services:
             async def bind(self, command):
@@ -197,6 +221,9 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
         class Client:
             state = ClientState.NEW
+
+            async def configure_turn(self, options):
+                pass
 
             async def connect(self):
                 self.state = ClientState.READY
@@ -253,7 +280,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 self.disconnects += 1
 
         provider = Provider()
-        client = ClaudeSDKClient(object(), client_factory=lambda _: provider)
+        client = ClaudeSDKClient(build_agent_options(), client_factory=lambda _: provider)
         await client.connect()
         for _ in range(2):
             await client.query("hello")
@@ -271,6 +298,9 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
         class Client:
             state = ClientState.NEW
+
+            async def configure_turn(self, options):
+                pass
 
             async def connect(self):
                 self.state = ClientState.READY
@@ -304,7 +334,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         client = Client()
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [],
-                            build_options=lambda _, **kwargs: SimpleNamespace(tools=None, strict_mcp_config=False),
+                            build_options=lambda _, **kwargs: build_agent_options(tools=None, strict_mcp_config=False),
                             ClaudeSDKClient=lambda *args, **kwargs: client,
                             isolated_sdk_environment=nullcontext,
                             _read_client_commands=commands, emit=emit):

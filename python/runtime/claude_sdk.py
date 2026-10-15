@@ -11,11 +11,52 @@ import asyncio
 from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import inspect
+from fnmatch import fnmatchcase
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from typing import Any
 
 import claude_agent_sdk as _sdk
+from claude_agent_sdk._internal.query import SdkMcpBridge
+
+
+class ClientTurnPolicy:
+    """连接只预装基础工具；每轮可信装配决定规则与实际调用权限。"""
+
+    def __init__(self):
+        self.clear()
+
+    def bind(self, options):
+        prompt = options.system_prompt
+        self._context = prompt.get('append', '') if isinstance(prompt, dict) else str(prompt or '')
+        self._restricted = options.tools == []
+        self._allowed = tuple(options.allowed_tools or ())
+        self._denied = tuple(options.disallowed_tools or ())
+        self._active = True
+
+    def clear(self):
+        self._context = ''
+        self._allowed = self._denied = ()
+        self._restricted = True
+        self._active = False
+
+    async def context(self, input, tool_use_id, context):
+        return {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
+            'additionalContext': '以下为可信服务端选定的本轮执行规则，替代历史轮次的能力规则。\n' + self._context}}
+
+    async def authorize(self, input, tool_use_id, context):
+        name = str(input.get('tool_name') or '')
+        allowed = self._active and not any(fnmatchcase(name, item) for item in self._denied)
+        if self._restricted or name.startswith('mcp__'):
+            allowed = allowed and any(fnmatchcase(name, item) for item in self._allowed)
+        if allowed:
+            return {}
+        return {'hookSpecificOutput': {'hookEventName': 'PreToolUse',
+            'permissionDecision': 'deny', 'permissionDecisionReason': '本轮能力未授权此工具'}}
+
+    def hooks(self):
+        return {'UserPromptSubmit': [_sdk.HookMatcher(hooks=[self.context])],
+                'PreToolUse': [_sdk.HookMatcher(hooks=[self.authorize])]}
 
 
 def build_agent_options(**kwargs: Any) -> Any:
@@ -319,6 +360,8 @@ class ClaudeSDKClient:
         self._provider: Any | None = None
         self._owner_task: asyncio.Task[Any] | None = None
         self._state = ClientState.NEW
+        self._servers = dict(options.mcp_servers)
+        self._model = options.model
 
     @property
     def state(self) -> ClientState:
@@ -371,6 +414,59 @@ class ClaudeSDKClient:
             if provider is not None:
                 await _disconnect_provider(provider, self._disconnect_timeout_ms)
                 self._provider = None
+            raise _safe_sdk_error(error) from error
+
+    async def configure_turn(self, options: Any) -> None:
+        """READY 时更新模型和 MCP；同名新实例先卸载再挂载，失败后禁止复用。
+
+        Python SDK 0.2.143 尚无公开 set_mcp_servers；私有协议适配集中于此，升级须跑真实 CLI 探针。
+        """
+        self._claim_owner()
+        self._require_state({ClientState.READY})
+
+        async def configure():
+            provider = self._provider
+            if options.model != self._model:
+                await provider.set_model(options.model)
+                self._model = options.model
+            servers = dict(options.mcp_servers)
+            if servers == self._servers:
+                return
+            query = provider._query
+            retained = {name: config for name, config in self._servers.items()
+                        if name in servers and config == servers[name]}
+
+            def wire(configs):
+                return {name: {'type': 'sdk', 'name': name} if config.get('type') == 'sdk' else config
+                        for name, config in configs.items()}
+
+            async def send(configs):
+                result = await query._send_control_request({'subtype': 'mcp_set_servers', 'servers': wire(configs)})
+                if result.get('errors'):
+                    raise SDKExecutionError('本轮 MCP 配置更新失败')
+
+            # CLI 会保留同名 SDK MCP 的连接；必须显式删除变化的实例。
+            if len(retained) != len(self._servers):
+                await send(retained)
+            for name in tuple(query._sdk_mcp_bridges):
+                if name not in retained:
+                    await query._sdk_mcp_bridges.pop(name).aclose()
+                    query.sdk_mcp_servers.pop(name, None)
+            for name, config in servers.items():
+                if config.get('type') == 'sdk' and name not in query._sdk_mcp_bridges:
+                    query.sdk_mcp_servers[name] = config['instance']
+                    query._sdk_mcp_bridges[name] = SdkMcpBridge(name, config['instance'])
+            await send(servers)
+            self._servers = servers
+
+        try:
+            await _await_with_timeout(configure(), self._connect_timeout_ms)
+        except BaseException as error:
+            self._state = ClientState.FAILED
+            if isinstance(error, asyncio.CancelledError):
+                raise
+            if isinstance(error, asyncio.TimeoutError):
+                raise SDKTimeoutError('Claude SDK 配置更新超时') from error
             raise _safe_sdk_error(error) from error
 
     async def query(self, prompt: str, session_id: str = "default") -> None:

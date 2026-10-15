@@ -35,7 +35,7 @@
 ### 当前状态与待明确项
 
 - **部分实现，2026-09-07 源码核对**：`python/runtime/mcp_auth.py` 的 `MCP_AUTH_RULES` 已有选择性注入、缺凭据失败和配置复制；`python/runtime/config.py` 用 `CCSDK_BUSINESS_MCP_CAPABILITIES` 控制业务 MCP 挂载。当前是代码内规则表，不是外部配置中心。
-- `python/server.py` 与 `python/runtime/session_actor.py` 已用凭据相关指纹处理 Client 配置变化；协议、MCP 注入、Actor 更换存在对应测试。本文未执行这些测试，不据此声称真实链路已验收。
+- **本地实现核对，2026-10-15**：`tool_services.py` 按轮绑定和清理凭据，适配器版本不变时复用同一 MCP；`claude_sdk.py` 热更新目录并用 Hook 校验本轮工具授权。业务 Token 不参与连接固定指纹，SDK环境等不可热更新项仍触发重建。缓存适配器的换 Token、清理、缺 Token 拒绝和真实 CLI 同名替换/工具撤销已通过本地测试；不据此声称 Java 或生产撤销链路已验收。
 - Java 不在本仓库，本次未核对其真实透传链路；运行中 Token 到期/撤销、是否终止或要求重新授权，以及全部日志/持久化出口的泄漏回归仍需明确和验证。
 
 ## REQ-002：前端触发 Capability，执行资产保持内部化

@@ -40,7 +40,7 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 
 缺少模型节点、非法字段或映射在启动时失败，不回退环境变量。旧 `SCRIBE_MODELS`、`ANTHROPIC_MODEL`、`ANTHROPIC_DEFAULT_*_MODEL`、`CLAUDE_CODE_SUBAGENT_MODEL` 不再读取；清理部署 env 及云效密钥包中的旧字段。Runtime 仅向 SDK/Worker 环境副本生成所需模型变量；密钥 `ANTHROPIC_AUTH_TOKEN` 和端点 `ANTHROPIC_BASE_URL` 仍由环境注入。
 
-## Runtime 预热进程池
+## Runtime 预连接 Client 池
 
 `application.yml` 的 `runtime.worker-pool` 在 Runtime 启动时读取；同目录 `application.local.yml` 按字段覆盖，无环境变量覆盖。更改后重启 Runtime；未配置该节点的已有部署不开启预热。
 
@@ -48,9 +48,12 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 | --- | --- |
 | `max-idle` | 未绑定会话的预热库存上限，公共配置为6，0关闭；不是业务并发数或总进程上限。创建中的进程也占库存名额。 |
 | `max-starting` | 同时创建预热 Worker 的上限，公共配置为2，正整数；不限制按需冷启动或业务并发。 |
+| `max-live` | 全部空闲、保留、创建中及已领取 Client 的总上限，公共配置为24，0不限；不得小于 `max-idle`。达到上限先释放空白连接供业务冷启动，仍满则拒绝创建，已有连接继续执行。 |
 | `min-available-memory-mib` | 内存保留阈值，公共配置为1024；宿主机或可读取的 cgroup 剩余内存低于此值时暂停补充并释放待命进程；至少冷却30秒且恢复到阈值的2倍才补充，防止反复创建。0关闭该保护，不是业务进程硬限额。 |
 
-预热只完成 Python 导入，不装配用户凭据、不连接 SDK。已有会话先复用；新建或指纹变化时领取预热 Worker，耗尽则按需冷启动；绑定后不会归还给其他会话。业务 Worker 连接 SDK 期间暂停发起新的预热，减少 CPU/文件读取竞争，连接完成或失败后恢复补充。原 Client 空闲回收期限与指纹规则保持不变。
+预热完成 Python 导入和 SDK 连接，只加载基础工具及逐轮权限 Hook，不装配业务身份、MCP 或历史。新会话原子绑定 `tenant + sub + businessSessionId` 与随机工作区，再独占领取对应空白连接；已有会话优先复用，恢复历史或固定配置不匹配时冷启动，已绑定连接永不跨会话归还。业务连接期间暂停补池；低内存只回收空白连接。Windows 本地实测6个空闲 Client 的 Python、CLI及子进程合计约2.5 GiB RSS，部署容量须按完整进程树测量。
+
+模型名称、能力规则、MCP目录与 Token 按轮更新；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。目录、SDK环境、thinking、effort、最大轮数或流式选项变化仍重建并恢复历史，workflow.env 的有效覆盖也参与指纹。SDK 0.2.143 的 MCP 热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；随机目录及 Hook 不是租户沙箱。
 `ccsdk.worker_pool` 的 INFO 日志记录领取来源、库存/创建/失败计数，以及每15秒的各进程 RSS/PSS（平台不支持PSS时为空）；Actor 内部快照记录复用次数、重建原因与耗时。原始凭据不进入这些观测。内存采样不代表并发容量已验收。
 
 ## Nacos 文件服务：fileService
@@ -82,7 +85,7 @@ campusMcp:
   url: https://campus.example.internal/string_campus_brain_service/mcp
   domainName: campus.example.internal
 ```
-能力入口 `CAPABILITY.md` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。快照参与 Client 指纹，下一轮地址变化时重建 Client；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
+能力入口 `CAPABILITY.md` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。快照变化时替换适配器及 MCP 实例，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

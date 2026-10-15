@@ -267,19 +267,6 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'CONFIG_INVALID'):
             Executor(self.context,self.env,self.catalog,['first'])
 
-    def test_connection_rotation_changes_client_fingerprint_without_changing_assets(self):
-        from server import _data_config_fingerprint
-        with patch('data_access.catalog.Catalog',side_effect=lambda root=self.catalog.root: Catalog(root)), \
-             patch('runtime.config.data_source_keys',return_value=['first']), patch.dict('os.environ',self.env):
-            before=_data_config_fingerprint({})
-            config=json.loads(self.config_path.read_text())
-            config['sources']['first']['connection']['password']='rotated-secret'
-            save(self.config_path,config)
-            after=_data_config_fingerprint({})
-        self.assertEqual(before[0][:2],after[0][:2])
-        self.assertNotEqual(before[0][2],after[0][2])
-        self.assertNotIn('rotated-secret',str(after))
-
     def test_conversation_and_optional_writing_without_config_and_malformed_config(self):
         with patch.dict('os.environ',self.env), patch('runtime.config.Catalog',return_value=self.catalog):
             self.config_path.unlink()

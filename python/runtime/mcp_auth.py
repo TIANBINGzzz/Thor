@@ -72,7 +72,9 @@ def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = 
         raise MCPAuthError(f"MCP 未注册：{mcp_ref}")
     if not isinstance(server, Mapping):
         raise MCPAuthError("MCP server must be an object")
-    result = copy.deepcopy(dict(server))
+    # SDK Server 是持久适配器实例，凭据由其逐轮绑定；只复制配置，保留实例与桥接身份。
+    memo = {id(server['instance']): server['instance']} if server.get('type') == 'sdk' and 'instance' in server else {}
+    result = copy.deepcopy(dict(server), memo)
     if not bool(rule.get("required")):
         return result
 

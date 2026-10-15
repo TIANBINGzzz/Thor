@@ -324,14 +324,21 @@ class AgentWorkerTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=template)
 
     def test_selected_workflow_environment_is_loaded_after_root_defaults(self):
-        with tempfile.NamedTemporaryFile(suffix=".env") as env_file:
-            with patch.dict("os.environ", {}, clear=True):
-                with patch("runtime.config.load_dotenv") as load_dotenv:
-                    with patch("runtime.config.workflow_environment_path", return_value=Path(env_file.name)):
-                        load_runtime_environment("double-high-qa")
-        self.assertEqual(load_dotenv.call_count, 3)
-        self.assertEqual(load_dotenv.call_args_list[1].args[0].name, '.env.local')
-        self.assertEqual(load_dotenv.call_args_list[2].args[0], Path(env_file.name))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.env').write_text('FLOW_VALUE=root\n', encoding='utf-8')
+            (root / '.env.local').write_text('FLOW_VALUE=local\n', encoding='utf-8')
+            env_file = root / 'workflow.env'
+            env_file.write_text('FLOW_VALUE=workflow\n', encoding='utf-8')
+            with patch.dict('os.environ', {}, clear=True), patch('runtime.config.PROJECT_ROOT', root), \
+                 patch('runtime.config.workflow_environment_path', return_value=env_file):
+                try:
+                    load_runtime_environment('double-high-qa')
+                    self.assertEqual(os.environ['FLOW_VALUE'], 'workflow')
+                    load_runtime_environment()
+                    self.assertEqual(os.environ['FLOW_VALUE'], 'local')
+                finally:
+                    load_runtime_environment()
 
     def test_local_environment_overrides_defaults_and_is_optional(self):
         with tempfile.TemporaryDirectory() as directory:

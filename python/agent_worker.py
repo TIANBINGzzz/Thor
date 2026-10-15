@@ -19,6 +19,7 @@ _BOOT_ORIGIN = (time.perf_counter(), time.process_time())
 
 from runtime.config import (
     build_options,
+    build_client_options,
     create_run_services,
     isolated_sdk_environment,
     load_runtime_environment,
@@ -27,6 +28,7 @@ from runtime.config import (
 )
 from runtime.claude_sdk import (
     ClientState,
+    ClientTurnPolicy,
     ClaudeSDKClient,
     SDKError,
     SDKTimeoutError,
@@ -35,6 +37,7 @@ from runtime.claude_sdk import (
 )
 from runtime.chart_delivery import ChartDelivery
 from runtime.tool_services import ToolServices
+from runtime.mcp_auth import MCPAuthError
 from runtime.private_trace import Timing
 DEFAULT_TIMEOUT_MS = 300_000
 
@@ -280,6 +283,8 @@ def _client_command_run_id(command: dict[str, Any]) -> str:
 
 def _client_error_code(error: BaseException) -> str:
     """接收执行异常，返回稳定的 Client 错误码，不包含异常详情。"""
+    if isinstance(error, MCPAuthError):
+        return 'mcp_authentication_error'
     if isinstance(error, SDKError):
         return error.code
     if isinstance(error, asyncio.TimeoutError):
@@ -393,108 +398,114 @@ async def run_client(initial: dict[str, Any]) -> None:
     if missing:
         emit({"type": "client_error", "code": "configuration_error"})
         return
-    data_services = create_run_services(initial)
-    tool_services = None
-    try:
-        tool_services = ToolServices(prepare_workflow_assets(initial), initial.get('credentials'))
-        chart_delivery = ChartDelivery(emit)
-        mcp_errors = []
-        options = build_options(initial, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
-                                mcp_error_sink=lambda: mcp_errors.append(True),
-                                tool_services=tool_services)
-        direct_workflow = options.tools == [] and options.strict_mcp_config
-        client = ClaudeSDKClient(
-            options,
-            connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
-            query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
-            receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
-            disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
-        )
-        startup.mark('configured')
-    except BaseException:
-        if tool_services is not None:
-            tool_services.clear()
-        if data_services:
-            await data_services.close()
-        raise
+    policy = ClientTurnPolicy()
+    options = build_client_options(initial, policy)
+    client = ClaudeSDKClient(
+        options,
+        connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
+        query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
+        receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
+        disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
+    )
+    startup.mark('configured')
     command_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     reader_task = asyncio.create_task(_read_client_commands(command_queue), name="ccsdk-client-stdin")
+    tool_services = None
+    chart_delivery = ChartDelivery(emit)
+    mcp_errors = []
     client_closed = False
-    with isolated_sdk_environment():
-        try:
-            startup.mark('connect_begin')
+    try:
+        startup.mark('connect_begin')
+        with isolated_sdk_environment():
             await client.connect()
-            startup.mark('connected')
-            emit({"type": "client_ready", "state": client.state.value, 'performance': startup.event()})
-            while True:
-                command = await command_queue.get()
-                command_type = command.get("type")
-                if command_type == "client_close" or command_type == "worker_stdin_closed":
-                    if client.state not in {ClientState.CLOSED, ClientState.NEW, ClientState.FAILED}:
-                        await client.disconnect()
-                    client_closed = True
-                    emit({"type": "client_closed", "state": client.state.value})
-                    return
-                if command_type != "client_query":
-                    emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
-                    continue
+        startup.mark('connected')
+        emit({"type": "client_ready", "state": client.state.value, 'performance': startup.event()})
+        while True:
+            command = await command_queue.get()
+            command_type = command.get("type")
+            if command_type in {"client_close", "worker_stdin_closed"}:
+                await client.disconnect()
+                client_closed = True
+                emit({"type": "client_closed", "state": client.state.value})
+                return
+            if command_type != "client_query":
+                emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
+                continue
 
-                run_id = _client_command_run_id(command)
-                # SDK 隔离区不携带诊断开关，沿用创建连接时冻结的选择。
-                timing = Timing('worker_run', active=startup.active)
-                chart_delivery.reset()
-                mcp_errors.clear()
-                prompt = command.get("prompt")
-                streaming: dict[str, str] = {}
-                timeout_value = command.get("timeout_ms", command.get("timeoutMs", DEFAULT_TIMEOUT_MS))
-                if isinstance(timeout_value, bool) or not isinstance(timeout_value, int) or timeout_value <= 0:
-                    emit({"type": "client_error", "run_id": run_id, "code": "configuration_error"})
-                    continue
-                try:
-                    deadline = time.monotonic() + timeout_value / 1000
-                    async with asyncio.timeout(timeout_value / 1000):
-                        tool_services.bind(command.get('credentials'))
-                        if data_services:
-                            await data_services.bind(command)
-                            prompt = data_services.prepare_prompt(str(prompt or ""))
-                        timing.mark('bound')
+            run_id = _client_command_run_id(command)
+            timing = Timing('worker_run', active=startup.active)
+            chart_delivery.reset()
+            mcp_errors.clear()
+            prompt = command.get("prompt")
+            streaming: dict[str, str] = {}
+            timeout_value = command.get("timeout_ms", command.get("timeoutMs", DEFAULT_TIMEOUT_MS))
+            if isinstance(timeout_value, bool) or not isinstance(timeout_value, int) or timeout_value <= 0:
+                emit({"type": "client_error", "run_id": run_id, "code": "configuration_error"})
+                continue
+            data_services = None
+            try:
+                deadline = time.monotonic() + timeout_value / 1000
+                async with asyncio.timeout(timeout_value / 1000):
+                    # 工具工厂在私有 Worker 环境中取配置，连接/查询时才切换 SDK 白名单。
+                    load_runtime_environment(command.get('workflow_name'))
+                    assets = prepare_workflow_assets(command)
+                    if tool_services is None:
+                        tool_services = ToolServices(assets, command.get('credentials'))
+                    else:
+                        tool_services.configure(assets, command.get('credentials'))
+                    data_services = create_run_services(command)
+                    if data_services:
+                        await data_services.bind(command)
+                        prompt = data_services.prepare_prompt(str(prompt or ""))
+                    options = build_options(command, data_services=data_services, artifact_sink=emit,
+                        chart_sink=chart_delivery.record, mcp_error_sink=lambda: mcp_errors.append(True),
+                        tool_services=tool_services)
+                    direct_workflow = options.tools == [] and options.strict_mcp_config
+                    policy.bind(options)
+                    timing.mark('bound')
+                    with isolated_sdk_environment():
+                        await client.configure_turn(options)
+                        timing.mark('configured')
                         timing.mark('query_begin')
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
                         timing.mark('query_sent')
                         session_id = await _receive_client_response(
-                            client, command, streaming, command_queue, direct_workflow, deadline, chart_delivery, mcp_errors,
-                            timing,
+                            client, command, streaming, command_queue, direct_workflow, deadline,
+                            chart_delivery, mcp_errors, timing,
                         )
-                    terminal({"type": "client_run_completed", "run_id": run_id, "session_id": session_id}, timing)
-                except ClientRunCancelled:
-                    terminal({"type": "client_run_cancelled", "run_id": run_id}, timing)
-                    return
-                except (asyncio.TimeoutError, SDKTimeoutError):
-                    terminal({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}, timing)
-                    return
-                except asyncio.CancelledError:
-                    raise
-                except Exception as error:
-                    terminal({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}, timing)
-                    return
-                finally:
+                terminal({"type": "client_run_completed", "run_id": run_id, "session_id": session_id}, timing)
+            except ClientRunCancelled:
+                terminal({"type": "client_run_cancelled", "run_id": run_id}, timing)
+                return
+            except (asyncio.TimeoutError, SDKTimeoutError):
+                terminal({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}, timing)
+                return
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                terminal({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}, timing)
+                return
+            finally:
+                policy.clear()
+                if tool_services is not None:
                     tool_services.clear()
-                    if data_services:
-                        await data_services.close()
-        except asyncio.CancelledError:
-            raise
-        except Exception as error:
-            emit({"type": "client_error", "code": _client_error_code(error)})
-        finally:
-            if tool_services is not None:
-                tool_services.clear()
-            if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW, ClientState.FAILED}:
-                try:
-                    await client.disconnect()
-                except Exception:
-                    emit({"type": "client_error", "code": "sdk_cleanup_error"})
-            reader_task.cancel()
-            await asyncio.gather(reader_task, return_exceptions=True)
+                if data_services:
+                    await data_services.close()
+    except asyncio.CancelledError:
+        raise
+    except Exception as error:
+        emit({"type": "client_error", "code": _client_error_code(error)})
+    finally:
+        policy.clear()
+        if tool_services is not None:
+            tool_services.clear()
+        if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW}:
+            try:
+                await client.disconnect()
+            except Exception:
+                emit({"type": "client_error", "code": "sdk_cleanup_error"})
+        reader_task.cancel()
+        await asyncio.gather(reader_task, return_exceptions=True)
 
 
 def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:

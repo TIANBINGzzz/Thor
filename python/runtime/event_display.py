@@ -86,6 +86,7 @@ FAILURE_MESSAGES = {
     'timeout': '本次处理超时，请稍后重试。',
     'sdk_timeout': '本次处理超时，请稍后重试。',
     'nacos_unavailable': '服务暂时不可用，请稍后重试。',
+    'mcp_authentication_error': '业务服务授权不可用，请重新登录；仍失败时请联系管理员。',
 }
 
 

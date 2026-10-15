@@ -70,6 +70,7 @@ class WorkerPoolSettings:
     max_idle: int = 0
     max_starting: int = 2
     min_available_memory_mib: int = 1024
+    max_live: int = 24
 
 
 def load_worker_pool_settings(path=None):
@@ -77,7 +78,7 @@ def load_worker_pool_settings(path=None):
     path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
     values = {}
     fields = {'max-idle': 'max_idle', 'max-starting': 'max_starting',
-              'min-available-memory-mib': 'min_available_memory_mib'}
+              'min-available-memory-mib': 'min_available_memory_mib', 'max-live': 'max_live'}
     try:
         for candidate in (path, path.with_name('application.local.yml')):
             try:
@@ -99,6 +100,9 @@ def load_worker_pool_settings(path=None):
                 if type(value) is not int or value < minimum:
                     raise ValueError()
                 values[fields[key]] = value
-        return WorkerPoolSettings(**values)
+        settings = WorkerPoolSettings(**values)
+        if settings.max_live and settings.max_idle > settings.max_live:
+            raise ValueError()
+        return settings
     except (OSError, TypeError, ValueError, yaml.YAMLError):
         raise ValueError('runtime.worker-pool 配置无效') from None

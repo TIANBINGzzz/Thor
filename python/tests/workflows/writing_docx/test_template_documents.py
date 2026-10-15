@@ -104,19 +104,23 @@ class TemplateDocumentTests(unittest.TestCase):
         payload['_template_key']='beta'
         self.assertIn('BETA_GUIDE',prepare_workflow_assets(payload)['prompt'])
 
-    def test_common_rule_mutation_changes_client_fingerprint_and_payload_stays_serializable(self):
+    def test_rules_refresh_per_turn_without_rebuilding_connection(self):
         from server import _client_config_fingerprint
         request=AgentRunRequest.from_dict({'protocol':'agent-run/v1','runId':'run-test',
             'messageId':'msg-test','businessSessionId':'session-test','capabilityRef':'document-writing',
             'input':{'text':'write'}})
-        with patch('server._data_config_fingerprint',return_value=[]):
-            old=self.payload('alpha')
-            before=_client_config_fingerprint(request,old)
-            json.dumps(old)
-            self.workflow['_body'] = 'CHANGED_COMMON'
-            self.assertEqual(before,_client_config_fingerprint(request,old))
-            self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('alpha')))
-            self.assertNotEqual(before,_client_config_fingerprint(request,self.payload('beta')))
+        old=self.payload('alpha')
+        before=_client_config_fingerprint(request,old)
+        json.dumps(old)
+        self.workflow['_body'] = 'CHANGED_COMMON'
+        self.assertEqual(before,_client_config_fingerprint(request,old))
+        new=self.payload('alpha')
+        self.assertEqual(before,_client_config_fingerprint(request,new))
+        self.assertIn('CHANGED_COMMON',prepare_workflow_assets(new)['prompt'])
+        self.assertNotIn('CHANGED_COMMON',prepare_workflow_assets(old)['prompt'])
+        beta=self.payload('beta')
+        self.assertEqual(before,_client_config_fingerprint(request,beta))
+        self.assertIn('BETA_GUIDE',prepare_workflow_assets(beta)['prompt'])
 
     def test_invalid_guides_are_rejected_before_agent_start(self):
         directory=self.directory/'templates/alpha'

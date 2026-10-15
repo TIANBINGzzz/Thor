@@ -61,7 +61,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         FakeWorker.gate.set()
         await until(lambda: self.pool.snapshot()['ready'] == 6)
         self.assertEqual(FakeWorker.peak, 2)
-        leased = [self.pool.acquire() for _ in range(7)]
+        leased = [await self.pool.acquire() for _ in range(7)]
         self.assertEqual(len({id(w) for w in leased}), 7)
         self.assertTrue(all(w.alive for w in leased[:6]))
         self.assertFalse(leased[6].alive)
@@ -78,7 +78,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         await until(lambda: self.pool.snapshot()['ready'] == 6)
         dead = FakeWorker.created[0]
         dead.alive = False
-        acquired = self.pool.acquire()
+        acquired = await self.pool.acquire()
         self.assertIsNot(acquired, dead)
         await until(lambda: dead.terminated)
         await until(lambda: self.pool.snapshot()['ready'] == 6)
@@ -87,7 +87,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.pool.start()
         FakeWorker.gate.set()
         await until(lambda: self.pool.snapshot()['ready'] == 6)
-        leases = [self.pool.acquire() for _ in range(7)]
+        leases = [await self.pool.acquire() for _ in range(7)]
         for worker in leases:
             worker.awaiting_connection = True
         await asyncio.sleep(.6)
@@ -107,7 +107,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(FakeWorker.running, 0)
         self.assertTrue(all(w.terminated for w in FakeWorker.created))
         with self.assertRaises(RuntimeError):
-            self.pool.acquire()
+            await self.pool.acquire()
         await self.pool.close()
 
     async def test_prewarm_failure_is_cleaned_and_does_not_spin(self):
@@ -125,7 +125,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         pool.start()
         await asyncio.sleep(.02)
         self.assertEqual(len(FakeWorker.created), 0)
-        self.assertFalse(pool.acquire().alive)
+        self.assertFalse((await pool.acquire()).alive)
 
     async def test_memory_pressure_releases_idle_and_recovers_without_touching_lease(self):
         self.pool.min_available_memory_mib = 1024
@@ -133,7 +133,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
             self.pool.start()
             FakeWorker.gate.set()
             await until(lambda: self.pool.snapshot()['ready'] == 6)
-            leased = self.pool.acquire()
+            leased = await self.pool.acquire()
             memory.return_value = 512
             await until(lambda: self.pool.snapshot()['memory_paused'])
             await until(lambda: all(w.terminated for w in FakeWorker.created if w is not leased))
@@ -170,6 +170,75 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.pool.snapshot()['starting'], 0)
         self.assertTrue(all(w.terminated for w in FakeWorker.created))
 
+    async def test_cancelled_acquire_keeps_evicted_client_owned_until_terminated(self):
+        termination_started = asyncio.Event()
+        allow_termination = asyncio.Event()
+
+        class Worker(FakeWorker):
+            async def preconnect(self, payload):
+                await self.prewarm()
+
+            async def terminate(self):
+                termination_started.set()
+                await allow_termination.wait()
+                await super().terminate()
+
+        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1,
+                          payload_factory=lambda: {'session_directory': 'blank'},
+                          worker_factory=Worker)
+        self.addAsyncCleanup(pool.close)
+        pool.start()
+        FakeWorker.gate.set()
+        try:
+            await until(lambda: pool.snapshot()['ready'] == 1)
+            worker = FakeWorker.created[0]
+            acquisition = asyncio.create_task(pool.acquire({'resume': 'existing-session'}))
+            await until(termination_started.is_set)
+            acquisition.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await acquisition
+            self.assertEqual(pool._live_count(), 1)
+            next_acquisition = asyncio.create_task(pool.acquire({'resume': 'another-session'}))
+            await asyncio.sleep(0)
+            next_acquisition.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await next_acquisition
+            self.assertEqual(pool._live_count(), 1)
+            allow_termination.set()
+            await pool.close()
+            self.assertTrue(worker.terminated)
+            self.assertFalse(worker.alive)
+        finally:
+            allow_termination.set()
+
+    async def test_cancelled_acquire_does_not_interrupt_cancelled_prewarm_cleanup(self):
+        termination_started = asyncio.Event()
+        allow_termination = asyncio.Event()
+
+        class Worker(FakeWorker):
+            async def terminate(self):
+                termination_started.set()
+                await allow_termination.wait()
+                await super().terminate()
+
+        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=Worker)
+        self.addAsyncCleanup(pool.close)
+        pool.start()
+        try:
+            await until(lambda: Worker.running == 1)
+            worker = FakeWorker.created[0]
+            acquisition = asyncio.create_task(pool.acquire())
+            await until(termination_started.is_set)
+            acquisition.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await acquisition
+            self.assertEqual(pool._live_count(), 1)
+            allow_termination.set()
+            await pool.close()
+            self.assertTrue(worker.terminated)
+        finally:
+            allow_termination.set()
+
 
 class WorkerPoolConfigTests(unittest.TestCase):
     def test_yaml_partial_local_override_and_disable(self):
@@ -194,7 +263,7 @@ class WorkerPoolConfigTests(unittest.TestCase):
 
 
 class WorkerPoolActorTests(unittest.IsolatedAsyncioTestCase):
-    async def test_hot_reuse_and_token_change_keep_history_but_allocate_fresh_worker(self):
+    async def test_hot_reuse_and_fixed_config_change_keep_history_but_allocate_fresh_worker(self):
         from runtime.session_actor import SessionManager
         from tests.test_session_actor import FakeClientWorker, complete_script
         workers = []

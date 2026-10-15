@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import shutil
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets
+from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets, client_connection_fingerprint
 from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
@@ -77,7 +78,9 @@ async def lifespan(_: FastAPI):
     settings = load_worker_pool_settings()
     configure_worker_logging()
     WORKER_POOL = WorkerPool(max_idle=settings.max_idle, max_starting=settings.max_starting,
-                            min_available_memory_mib=settings.min_available_memory_mib)
+                            min_available_memory_mib=settings.min_available_memory_mib,
+                            max_live=settings.max_live, payload_factory=_blank_client_payload,
+                            cleanup_workspace=_remove_unbound_workspace)
     WORKER_POOL.start()
     try:
         SESSION_MANAGER = _create_session_manager()
@@ -458,13 +461,53 @@ def _client_session_directory(session_key: str) -> Path:
     """按已鉴权的会话键领取随机目录；已有工作区就地登记，保留工作稿与成果路径。"""
     tenant, user, kind, session_id = json.loads(session_key)
     digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
-    workspace_id = RUN_STORE.get_or_create_workspace(
-        tenant, user, kind, session_id,
-        workspace_id=digest if (CLIENT_SESSION_ROOT / digest).is_dir() else None,
-    )
+    workspace_id = RUN_STORE.find_workspace(tenant, user, kind, session_id)
+    if workspace_id is None:
+        reserved = None
+        if (CLIENT_SESSION_ROOT / digest).is_dir():
+            candidate = digest
+        else:
+            reserved = WORKER_POOL.reserve_workspace() if WORKER_POOL else None
+            candidate = Path(reserved).name if reserved else None
+        try:
+            workspace_id = RUN_STORE.get_or_create_workspace(
+                tenant, user, kind, session_id, workspace_id=candidate)
+        finally:
+            if reserved and workspace_id != candidate:
+                WORKER_POOL.release_workspace(reserved)
     directory = (CLIENT_SESSION_ROOT / workspace_id).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     return directory
+
+
+def _blank_client_payload():
+    """提前分配随机空白目录，SDK 连接不携带业务身份、凭据或能力。"""
+    directory = (CLIENT_SESSION_ROOT / uuid.uuid4().hex).resolve()
+    directories = [directory / name for name in ('.current-input', '.work', '.deliverables')]
+    for path in directories:
+        path.mkdir(parents=True, exist_ok=True)
+    payload = {'cwd': str(PROJECT_ROOT), 'session_directory': str(directory),
+               'additional_directories': [str(path) for path in directories],
+               'include_partial_messages': True, 'model': DEFAULT_MODEL}
+    payload['_credential_binding'] = client_connection_fingerprint(payload)
+    return payload
+
+
+def _remove_unbound_workspace(directory):
+    """仅回收本池未绑定且为空的目录；已绑定会话与任何业务文件均保留。"""
+    path = Path(directory)
+    if path.parent != CLIENT_SESSION_ROOT.resolve() or RUN_STORE.workspace_is_bound(path.name):
+        return
+    for child in path.iterdir() if path.exists() else ():
+        if child.name in {'.work', '.deliverables', '.current-input'} and not child.is_symlink():
+            try:
+                child.rmdir()
+            except OSError:
+                pass
+    try:
+        path.rmdir()
+    except OSError:
+        pass
 
 
 def _runtime_input_directory(
@@ -495,33 +538,9 @@ def _clear_runtime_input(directory: Path) -> None:
             LOGGER.warning("Runtime 临时输入清理失败：%s", child.name)
 
 
-def _data_config_fingerprint(payload):
-    """仅为所选来源计算资产及部署配置指纹，不向模型暴露连接内容。"""
-    from data_access.catalog import Catalog
-    from data_access.connections import config_path
-    from runtime.config import data_source_keys
-    catalog = Catalog()
-    sources = data_source_keys(payload)
-    if not sources:
-        return []
-    revision = hashlib.sha256(config_path(os.environ).read_bytes()).hexdigest()
-    return [(source, catalog.revision(source), revision) for source in sources]
-
-
 def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
-    """根据请求凭据及执行配置生成哈希指纹，返回供会话管理器判断 Client 是否可复用的字符串。"""
-    credentials = run_request.credentials.platform_bearer
-    credential_digest = hashlib.sha256(credentials.encode("utf-8")).hexdigest() if credentials else ""
-    stable = {
-        "capabilityRef": run_request.capability_ref or "conversation",
-        "workflow": payload.get("workflow_name"),
-        "model": payload.get("model"),
-        "credentialDigest": credential_digest,
-        "templateKey": payload.get("_template_key"),
-        "workflowAssets": prepare_workflow_assets(payload)['revision'],
-        "dataConfiguration": _data_config_fingerprint(payload),
-    }
-    return hashlib.sha256(json.dumps(stable, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    """只因连接固定配置变化而重建；本轮能力、模型与凭据在 Worker 内更新。"""
+    return client_connection_fingerprint(payload)
 
 
 def _runtime_mode_for_request(run_request: AgentRunRequest, execution_entry=None) -> str:
@@ -572,9 +591,7 @@ def _internal_worker_payload(
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
     model = DEFAULT_MODEL
     if runtime_mode == "client":
-        # A persistent Client constructs its MCP servers only once.  Give it a
-        # stable session root; each Run still receives a separate directory for
-        # input/metadata and the root is the only path exposed to the Client.
+        # 跨能力热更新 MCP 时保持会话目录稳定；Run 元数据仍按轮单独保存。
         session_directory = session_directory or run_directory
         work_directory = session_directory / ".work"
         deliverables_directory = session_directory / ".deliverables"
@@ -667,6 +684,7 @@ async def _execute_internal_run(
         timing.mark('scheduled')
     TRACE_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
     input_workspace: Path | None = None
+    session_directory: Path | None = None
     runtime_mode: str | None = None
     try:
         execution_entry = execution_entry or load_execution_entry(run_request.capability_ref)
@@ -802,6 +820,8 @@ async def _execute_internal_run(
             code = getattr(error, "code", None) or "runtime_error"
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
+        if session_directory is not None and WORKER_POOL is not None:
+            WORKER_POOL.release_workspace(str(session_directory))
         if timing:
             timing.mark('completed')
             _record_trace(run_id, timing.event())

@@ -23,6 +23,14 @@ class ToolServices:
 
     def __init__(self, assets, credentials):
         """校验冻结版本并创建本 Client 的独立服务实例。"""
+        self.services = {}
+        self._cache = {}
+        self._servers = {}
+        self.configure(assets, credentials)
+
+    def configure(self, assets, credentials):
+        """只替换版本变化的适配器；未选中的服务不持有身份，也不挂载工具。"""
+        self.clear()
         loaded = load_tool_assets(assets['capability'], ConfigSnapshot(values=assets['config_values']))
         self.services = {}
         try:
@@ -32,7 +40,13 @@ class ToolServices:
                 provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
                 if provider.create_service is None:
                     raise RuntimeError(f'有状态工具缺少服务工厂：{name}')
-                self.services[name] = provider.create_service(value, credentials)
+                cached = self._cache.get(name)
+                if cached is None or cached[0] != value['revision']:
+                    cached = (value['revision'], provider.create_service(value, credentials))
+                    self._cache[name] = cached
+                    self._servers.pop(name, None)
+                self.services[name] = cached[1]
+            self.bind(credentials)
         except Exception:
             self.clear()
             raise
@@ -49,7 +63,7 @@ class ToolServices:
 
     def clear(self):
         """释放每轮身份、预算与结果状态，不缓存业务 Token。"""
-        for service in self.services.values():
+        for _, service in self._cache.values():
             service.clear()
 
     def servers(self, on_error=None):
@@ -59,5 +73,7 @@ class ToolServices:
             provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
             if provider.create_server is None:
                 raise RuntimeError(f'有状态工具缺少 MCP 工厂：{name}')
-            servers[name] = provider.create_server(service, on_error=on_error)
+            if name not in self._servers:
+                self._servers[name] = provider.create_server(service, on_error=on_error)
+            servers[name] = self._servers[name]
         return servers

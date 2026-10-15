@@ -147,6 +147,7 @@ class ClientWorkerProcess:
         start_timeout_ms: int = 60_000,
         send_timeout_ms: int = 5_000,
         close_timeout_ms: int = 5_000,
+        initial_payload: dict[str, Any] | None = None,
     ) -> None:
         """校验各阶段超时并初始化持久 Worker 通道，此时不启动进程。"""
         for value, name in (
@@ -168,6 +169,7 @@ class ClientWorkerProcess:
         self._prewarmed = False
         self._bound = False
         self._connected = False
+        self._preconnected_payload: dict[str, Any] | None = None
         self.startup_traces: list[dict[str, Any]] = []
 
     @property
@@ -217,6 +219,15 @@ class ClientWorkerProcess:
         """给全新或预热 Worker 绑定一次配置，在同一启动预算内等待 SDK 就绪。"""
         if self._bound or self._closed:
             raise ClientWorkerError("Client worker 已经绑定或关闭")
+        if self._connected:
+            expected = self._preconnected_payload or {}
+            if (payload.get('resume') or any(payload.get(key) != expected.get(key)
+                    for key in ('session_directory', '_credential_binding'))):
+                raise ClientWorkerError('预连接 Client 的工作区或固定配置不匹配')
+            self._bound = True
+            # 预连接阶段的耗时不属于本轮请求。
+            self.startup_traces.clear()
+            return {'type': 'client_ready', 'state': 'ready'}
         deadline = time.monotonic() + self.start_timeout_ms / 1000
         try:
             if not self._prewarmed:
@@ -246,6 +257,14 @@ class ClientWorkerProcess:
         except Exception:
             await self.terminate()
             raise
+
+    async def preconnect(self, payload: dict[str, Any]) -> None:
+        """预连接没有业务身份的 Client；领取只绑定一次，不能用于恢复已有历史。"""
+        if payload.get('credentials') or payload.get('resume'):
+            raise ClientWorkerError('预连接不得携带业务凭据或历史')
+        await self.start(payload)
+        self._preconnected_payload = dict(payload)
+        self._bound = False
 
     async def send(self, message: dict[str, Any]) -> None:
         """将命令字典以 UTF-8 JSONL 写入 Worker，串行保护写入；无返回值，通道故障时抛出异常。"""

@@ -178,8 +178,8 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         for index, capability in enumerate(('chart-generation', 'image-generation', 'document-writing',
                                                            'national-excellence-data-qa', 'campus-brain-query', 'conversation'), 1):
                             self.assertEqual(original, await execute(index, capability, token=f'token-{index}'))
-                            self.assertEqual(workers[-1].start_payload['credentials']['platformBearer'], f'token-{index}')
-                            self.assertEqual(workers[-1].start_payload['resume'], 'sdk-history')
+                            self.assertEqual(workers[-1].sent[-1]['credentials']['platformBearer'], f'token-{index}')
+                            self.assertEqual(workers[-1].sent[-1]['capability_ref'], capability)
                         self.assertNotEqual(original, await execute('tenant', tenant='other'))
                         self.assertIsNone(workers[-1].start_payload['resume'])
                         self.assertNotEqual(original, await execute('user', user='other'))

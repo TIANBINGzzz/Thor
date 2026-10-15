@@ -7,6 +7,7 @@ process environment and are never copied into prompts or workflow files.
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 from datetime import date
@@ -15,7 +16,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
+from dotenv.variables import parse_variables
 
 from tools.web_search import WEB_INSTRUCTIONS
 from data_access.catalog import Catalog
@@ -127,14 +129,25 @@ DIRECT_WORKFLOW_APPEND = (
 )
 
 
+_workflow_environment_original = {}
+
+
 def load_runtime_environment(workflow_name: str | None = None) -> None:
     """依次加载根配置、本机覆盖及所选流程环境；本机文件不随部署交付。"""
+    # 持久 Worker 切换能力时先撤销上轮流程覆盖，避免把私有配置带到下一能力。
+    for key, value in _workflow_environment_original.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    _workflow_environment_original.clear()
     load_dotenv(PROJECT_ROOT / ".env", override=True)
     load_dotenv(PROJECT_ROOT / ".env.local", override=True)
     workflow_config = load_workflow_config(workflow_name)
     if workflow_config:
         env_path = workflow_environment_path(workflow_config)
         if env_path.is_file():
+            _workflow_environment_original.update({key: os.environ.get(key) for key in dotenv_values(env_path)})
             load_dotenv(env_path, override=True)
 
 
@@ -148,14 +161,15 @@ def missing_environment() -> list[str]:
     ]
 
 
-def agent_environment() -> dict[str, str]:
+def agent_environment(environ=None) -> dict[str, str]:
     """从当前进程环境返回 SDK 所需变量的白名单字典，不包含 Runtime、UI 和数据库凭据。
 
     数据库凭据仅由受保护配置提供给进程内 data 执行器。
     """
-    environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS)
+    environ = os.environ if environ is None else environ
+    environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS, environ)
     environment.update(MODEL_SETTINGS.environment())
-    office = os.environ.get('CCSDK_OFFICECLI_PATH')
+    office = environ.get('CCSDK_OFFICECLI_PATH')
     if office and Path(office).is_file():
         # Bash与原生MCP使用同一工具版本，避免系统PATH上的旧版本读取同一文件。
         path_key = next((key for key in environment if key.upper() == 'PATH'), 'PATH')
@@ -191,14 +205,14 @@ def isolated_sdk_environment() -> Iterator[None]:
         os.environ.update(original)
 
 
-def _select_environment(allowed: set[str]) -> dict[str, str]:
+def _select_environment(allowed: set[str], environ=None) -> dict[str, str]:
     """大小写无关地筛选跨平台进程变量，避免扩散凭据。"""
     allowed_upper = {item.upper() for item in allowed}
     # Windows preserves the spelling used by the parent process (for example
     # ``SystemRoot``), so compare names case-insensitively.
     return {
         key: value
-        for key, value in os.environ.items()
+        for key, value in (os.environ if environ is None else environ).items()
         if key.upper() in allowed_upper
     }
 
@@ -546,3 +560,53 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         add_dirs=payload.get("additional_directories") or [],
         env=sdk_env,
     )
+
+
+def _connection_environment(workflow_name):
+    """在副本中重放 Worker 的 dotenv 覆盖与插值，父进程不加载流程私有环境。"""
+    environment = dict(os.environ)
+    for key, value in _workflow_environment_original.items():
+        if value is None:
+            environment.pop(key, None)
+        else:
+            environment[key] = value
+    paths = [PROJECT_ROOT / '.env', PROJECT_ROOT / '.env.local']
+    workflow = load_workflow_config(workflow_name)
+    if workflow:
+        paths.append(workflow_environment_path(workflow))
+    for path in paths:
+        values = {}
+        for key, value in dotenv_values(path, interpolate=False).items():
+            values[key] = None if value is None else ''.join(
+                atom.resolve(environment | values) for atom in parse_variables(value))
+        environment.update({key: value for key, value in values.items() if value is not None})
+    return environment
+
+
+def _client_connection_values(payload):
+    """仅包含 SDK 连接后无法可靠热更新的选项。秘密值只参与内存哈希。"""
+    runtime = prepare_workflow_assets(payload)['runtime']
+    effective = _connection_environment(payload.get('workflow_name'))
+    environment = agent_environment(effective)
+    if (runtime.get('thinking') or {}).get('type') == 'disabled':
+        environment['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
+    return dict(cwd=str(payload.get('cwd') or Path.cwd()),
+                add_dirs=payload.get('additional_directories') or [], env=environment,
+                thinking=runtime.get('thinking'), effort=runtime.get('effort'),
+                max_turns=payload.get('max_turns') or runtime.get('max_turns', int(effective.get('SCRIBE_MAX_TURNS', '30'))),
+                include_partial_messages=bool(payload.get('include_partial_messages')))
+
+
+def client_connection_fingerprint(payload):
+    values = _client_connection_values(payload)
+    return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def build_client_options(payload, policy):
+    """空白 Client 不加载业务 MCP、数据连接或凭据，领取后的首轮才装配。"""
+    return build_agent_options(**_client_connection_values(payload),
+        model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
+        system_prompt='按可信服务端提供的本轮执行规则处理请求，历史能力规则不授予本轮权限。',
+        tools={'type': 'preset', 'preset': 'claude_code'}, skills=[], setting_sources=[],
+        strict_mcp_config=True, mcp_servers={}, disallowed_tools=['WebSearch'],
+        permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=16 * 1024 * 1024)

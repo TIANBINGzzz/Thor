@@ -20,4 +20,5 @@ runtime:
   worker-pool:
     max-idle: 6
     max-starting: 2
+    max-live: 24
     min-available-memory-mib: 1024

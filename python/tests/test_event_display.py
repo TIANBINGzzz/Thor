@@ -11,6 +11,12 @@ from runtime.event_display import ToolCallDisplays, with_display_name, TOOL_DISP
 
 
 class EventDisplayTests(unittest.TestCase):
+    def test_missing_mcp_credentials_have_safe_actionable_message(self):
+        event = with_display_name({'type': 'run.failed', 'payload': {
+            'code': 'mcp_authentication_error', 'message': 'private-credential-details'}})
+        self.assertEqual(event['payload']['message'], '业务服务授权不可用，请重新登录；仍失败时请联系管理员。')
+        self.assertNotIn('private-credential-details', json.dumps(event))
+
     def test_failure_message_is_server_owned_even_on_replay(self):
         for code in ('sdk_execution_error', 'upstream_service_error', 'private-provider-error'):
             event = with_display_name({'type': 'run.failed', 'payload': {
