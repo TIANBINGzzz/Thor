@@ -27,12 +27,11 @@ import httpx
 
 from runtime.file_service import FileServiceError, file_service_config
 from runtime.protocol import SAFE_ID
+from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 LOGGER = logging.getLogger("ccsdk.file_broker")
-DEFAULT_GRANT_TIMEOUT_MS = 15_000
-DEFAULT_MAX_FILE_BYTES = 256 * 1024 * 1024
-DEFAULT_PREPARE_TIMEOUT_MS = 600_000
+DEFAULT_MAX_FILE_BYTES = RUNTIME_SETTINGS.limits.file_max_bytes
 DOWNLOAD_CHUNK_BYTES = 256 * 1024
 MAX_GRANT_BYTES = 256 * 1024
 MAX_GRANT_TTL_MS = 5 * 60 * 1000
@@ -127,18 +126,6 @@ def _positive_int(value: Any, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         raise FileBrokerConfigurationError(f"{name} 必须是正整数")
     return value
-
-
-def _env_int(name: str, default: int) -> int:
-    """读取正整数环境配置，未设置时使用既定默认值。"""
-    value = os.environ.get(name, "").strip()
-    if not value:
-        return default
-    try:
-        parsed = int(value)
-    except ValueError:
-        raise FileBrokerConfigurationError(f"{name} 必须是正整数")
-    return _positive_int(parsed, name)
 
 
 def _split_csv(name: str) -> set[str]:
@@ -348,12 +335,12 @@ class FileBroker:
         self.max_bytes = (
             _positive_int(max_bytes, "max_bytes")
             if max_bytes is not None
-            else _env_int("CCSDK_FILE_MAX_BYTES", DEFAULT_MAX_FILE_BYTES)
+            else RUNTIME_SETTINGS.limits.file_max_bytes
         )
         self.timeout_ms = (
             _positive_int(timeout_ms, "timeout_ms")
             if timeout_ms is not None
-            else _env_int("CCSDK_FILE_BROKER_TIMEOUT_MS", DEFAULT_GRANT_TIMEOUT_MS)
+            else RUNTIME_SETTINGS.timeouts.file_broker_ms
         )
         if self.file_service:
             self.max_bytes = min(self.max_bytes, self.file_service['maxFileBytes'])
@@ -422,7 +409,7 @@ class FileBroker:
         effective_timeout_ms = (
             _positive_int(timeout_ms, "timeout_ms")
             if timeout_ms is not None
-            else _env_int("CCSDK_FILE_PREPARE_TIMEOUT_MS", DEFAULT_PREPARE_TIMEOUT_MS)
+            else RUNTIME_SETTINGS.timeouts.file_prepare_ms
         )
         if self.file_service:
             effective_timeout_ms = min(effective_timeout_ms, self.file_service['timeoutSeconds'] * 1000)

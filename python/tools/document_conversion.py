@@ -130,12 +130,12 @@ def _prepare_fonts(source: Path, work: Path) -> tuple[Path, list[str]]:
         return prepared, sorted(replaced)
 
 
-def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str, Any]:
+def _run_script(executable: str, script: str, arguments: list[str], *, timeout_ms: int) -> dict[str, Any]:
     """限时执行独立解释器脚本并解析 JSON 结果，转换进程失败异常。"""
     try:
         completed = subprocess.run(
             [executable, "-c", script, *arguments], capture_output=True,
-            encoding="utf-8", errors="replace", timeout=180, check=True,
+            encoding="utf-8", errors="replace", timeout=timeout_ms / 1000, check=True,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         )
     except subprocess.TimeoutExpired as error:
@@ -145,10 +145,26 @@ def _run_script(executable: str, script: str, arguments: list[str]) -> dict[str,
     return json.loads(completed.stdout)
 
 
-def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+def _render_budgets(timeout_ms, start_timeout_ms):
+    """独立渲染镜像由调用方传入预算，不依赖 Runtime 配置模块或 YAML 库。"""
+    if timeout_ms is None or start_timeout_ms is None:
+        from runtime.runtime_settings import RUNTIME_SETTINGS
+        if timeout_ms is None:
+            timeout_ms = RUNTIME_SETTINGS.timeouts.document_render_ms
+        if start_timeout_ms is None:
+            start_timeout_ms = RUNTIME_SETTINGS.timeouts.document_start_ms
+    if any(type(value) is not int or value <= 0 for value in (timeout_ms, start_timeout_ms)):
+        raise ValueError("文档渲染预算必须为正整数毫秒")
+    return timeout_ms, start_timeout_ms
+
+
+def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path,
+                *, timeout_ms: int | None = None, start_timeout_ms: int | None = None) -> dict[str, Any]:
     """选择本机或容器渲染；本机 LibreOffice 使用独立配置和 UNO 管道。"""
+    timeout_ms, start_timeout_ms = _render_budgets(timeout_ms, start_timeout_ms)
     if os.name == "nt":
-        return _run_container(source, docx_path, pdf_path, work)
+        return _run_container(source, docx_path, pdf_path, work,
+                              timeout_ms=timeout_ms, start_timeout_ms=start_timeout_ms)
     soffice = os.environ.get("CCSDK_LIBREOFFICE_PATH") or shutil.which("soffice") or shutil.which("libreoffice")
     if not soffice:
         raise RuntimeError("未找到 LibreOffice；安装 libreoffice-writer 与 python3-uno 后重试")
@@ -162,7 +178,9 @@ def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> di
     ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         interpreter = os.environ.get("CCSDK_UNO_PYTHON") or "/usr/bin/python3"
-        return _run_script(interpreter, _UNO_SCRIPT, [pipe, str(source), str(docx_path), str(pdf_path)])
+        return _run_script(interpreter, _UNO_SCRIPT,
+                           [pipe, str(source), str(docx_path), str(pdf_path), str(start_timeout_ms)],
+                           timeout_ms=timeout_ms)
     finally:
         if process.poll() is None:
             process.terminate()
@@ -173,8 +191,10 @@ def _run_office(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> di
                 process.wait(timeout=10)
 
 
-def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path) -> dict[str, Any]:
+def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path,
+                   *, timeout_ms: int | None = None, start_timeout_ms: int | None = None) -> dict[str, Any]:
     """在禁网容器中渲染本次文档，结束后强制清理指定容器。"""
+    timeout_ms, start_timeout_ms = _render_budgets(timeout_ms, start_timeout_ms)
     image = os.environ.get("CCSDK_RENDER_IMAGE", "ccsdkscribe-renderer:local")
     docker = shutil.which("docker")
     if not docker:
@@ -185,9 +205,10 @@ def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path) ->
                "--network=none", "--cap-drop=ALL", "--security-opt=no-new-privileges",
                "--mount", f"type=bind,source={source},target=/input.docx,readonly",
                "--mount", f"type=bind,source={work},target=/output", image,
-               "/input.docx", "/output/" + docx_path.name, "/output/" + pdf_path.name, "/output"]
+               "/input.docx", "/output/" + docx_path.name, "/output/" + pdf_path.name, "/output",
+               str(timeout_ms), str(start_timeout_ms)]
     try:
-        completed = subprocess.run(command, capture_output=True, encoding="utf-8", errors="replace", timeout=180)
+        completed = subprocess.run(command, capture_output=True, encoding="utf-8", errors="replace", timeout=timeout_ms / 1000)
         if completed.returncode:
             raise RuntimeError(f"文档渲染容器失败（镜像{image}）：{completed.stderr[-2000:]}")
         return json.loads(completed.stdout)
@@ -213,7 +234,7 @@ def properties(**values):
 
 local = uno.getComponentContext()
 resolver = local.ServiceManager.createInstanceWithContext("com.sun.star.bridge.UnoUrlResolver", local)
-deadline = time.monotonic() + 30
+deadline = time.monotonic() + int(sys.argv[5]) / 1000
 while True:
     try:
         context = resolver.resolve("uno:pipe,name=" + sys.argv[1] + ";urp;StarOffice.ComponentContext")
@@ -306,4 +327,6 @@ def _read_pdf_pages(source: Path, roots: list[Path], directory: Path | None, sta
 
 
 if __name__ == "__main__":
-    print(json.dumps(_run_office(*(Path(value) for value in sys.argv[1:5])), ensure_ascii=False))
+    print(json.dumps(_run_office(*(Path(value) for value in sys.argv[1:5]),
+                                timeout_ms=int(sys.argv[5]), start_timeout_ms=int(sys.argv[6])),
+                     ensure_ascii=False))

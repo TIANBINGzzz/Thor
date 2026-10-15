@@ -14,6 +14,7 @@ from typing import Any
 
 from runtime.process import ClientWorkerError, ClientWorkerProcess
 from runtime.private_trace import Timing
+from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 LOGGER = logging.getLogger("ccsdk.session_actor")
@@ -83,11 +84,11 @@ class SessionActor:
         *,
         on_public_event: PublicEventCallback | None = None,
         on_state: StateCallback | None = None,
-        idle_ttl_ms: int = 300_000,
-        worker_start_timeout_ms: int = 60_000,
-        worker_send_timeout_ms: int = 5_000,
-        worker_close_timeout_ms: int = 5_000,
-        control_timeout_ms: int = 5_000,
+        idle_ttl_ms: int = RUNTIME_SETTINGS.timeouts.client_idle_ms,
+        worker_start_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_start_ms,
+        worker_send_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_send_ms,
+        worker_close_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms,
+        control_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_control_ms,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
     ) -> None:
         """初始化单会话命令队列、回调与生命周期状态，此时不启动 Worker。"""
@@ -744,7 +745,7 @@ class SessionManager:
         *,
         on_public_event: PublicEventCallback | None = None,
         on_state: StateCallback | None = None,
-        idle_ttl_ms: int = 300_000,
+        idle_ttl_ms: int = RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
     ) -> None:
         """初始化会话及 Run 路由表，并保存创建 Actor 所需的公共配置。"""

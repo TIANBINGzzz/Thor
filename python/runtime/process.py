@@ -14,6 +14,7 @@ from typing import Any
 
 from runtime.config import worker_environment
 from runtime.private_trace import performance_event
+from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -144,9 +145,9 @@ class ClientWorkerProcess:
     def __init__(
         self,
         *,
-        start_timeout_ms: int = 60_000,
-        send_timeout_ms: int = 5_000,
-        close_timeout_ms: int = 5_000,
+        start_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_start_ms,
+        send_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_send_ms,
+        close_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms,
         initial_payload: dict[str, Any] | None = None,
     ) -> None:
         """校验各阶段超时并初始化持久 Worker 通道，此时不启动进程。"""

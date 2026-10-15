@@ -21,11 +21,19 @@
 本机可在同目录创建 `application.local.yml`，只写需要覆盖的字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。Nacos 字段优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
 镜像默认地址 `host.docker.internal:8848` 用于 Compose bridge 网络，Linux Compose 已配置 `host-gateway` 映射；Docker host 网络可在环境专属 YAML 中写 `127.0.0.1:8848`。各环境可挂载自己的 `application.yml` 到容器 `/app/config/application.yml`，复用同一镜像；宿主机 Nacos 须允许对应网络访问。
 Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；真实凭据只保存在部署文件或被忽略的本地覆盖文件，不提交 Git 或打进镜像。`CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD` 及连接字段环境变量仍可显式覆盖 YAML，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
-每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用10秒预算，每个响应分块检查，单次网络阻塞最多5秒，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
+每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用 `runtime.timeouts.nacos-ms` 预算，单次网络阻塞受 `nacos-request-ms` 约束，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
 没有本地文件回退或磁盘缓存；未配置、认证失败、不可达或内容无效时文件操作失败，不影响无文件的对话。更改 Nacos 启动参数须重启 Runtime。使用已有 httpx/PyYAML，无需额外 SDK 或 gRPC 端口。
 
 `runtime/deployment_config.py` 的 `ConfigSnapshot` 是业务配置唯一取值入口：`get('fileService')` 读取节点，`resolve(资产配置)` 解析完整 `${节点.字段}` 引用，保留数字、布尔等原类型。只解析可信连接配置，不扫描用户输入、Prompt 或凭据，不支持表达式、字符串拼接、环境变量展开或远端值递归引用。缺失值直接失败。
 每个快照首次用到引用时读取一次 Nacos，后续引用复用同份 YAML；导出时只保留已引用的值。Runtime 按轮装配并将快照交给 Worker，Worker 不联网补值；文件传输按前述批次使用独立快照。新增连接只在可信资产中声明引用并使用公共解析器，不新增能力专用 Nacos 读取器；业务字段校验留在消费边界，Token 继续按 Run 独立注入。
+
+## Runtime 预算与限制
+
+`application.yml` 的 `runtime.timeouts`（正整数毫秒）、`runtime.limits`（正整数，`*-bytes` 为字节）及 `sse-heartbeat-ms` 必须完整声明；`application.local.yml` 按字段覆盖。启动时固定，缺失、非法或未知预算字段直接失败，修改后重启；挂载环境 YAML 时须同步新增节点。对应旧超时、大小、轮数和心跳环境变量不再读取，部署 env 及云效密钥包应删除旧字段。
+
+`execution-ms` 默认一小时，从附件准备完成后开始；Workflow 显式 `runtime.timeout_ms` / `max_turns` 优先于部署默认值。`client-idle-ms` 仅回收空闲 Client，不中断执行。`worker-start-ms` / `worker-close-ms` 同时用于 SDK 连接 / 断开，SDK 收发受执行预算约束；排队、附件准备、单次网络等待各自计时。HTTP 工具预算限制网络等待，不能保证整个多工具任务在同一时长内结束。
+
+协议/凭据安全上限、重试策略及内部清理宽限保留为代码约束；数据库访问策略仍在 `databases.json`，平台文件服务传输预算仍在 Nacos，避免两个来源同时管理同一参数。
 
 ## Runtime 模型
 
@@ -75,7 +83,7 @@ fileService:
 | `remoteUrl` | 请求头remote-url的值，供平台路由识别来源；只填HTTP(S)来源地址，不带业务路径。 |
 | `downloadPath` | 文件下载GET路径；{fileId}由本轮授权附件引用替换，使用存文件接口返回的data.id，不是模板业务ID或会话附件ID。 |
 | `timeoutSeconds` | 默认600，范围1–3600秒；上传的全部尝试和等待共用预算，下载还受Runtime全部附件准备预算约束。 |
-| `maxFileBytes` | 默认1 GiB，范围1字节–10 GiB；单文件上传限制，下载与CCSDK_FILE_MAX_BYTES取较小值，不代表磁盘总配额。 |
+| `maxFileBytes` | 默认1 GiB，范围1字节–10 GiB；单文件上传限制，下载与 `runtime.limits.file-max-bytes` 取较小值，不代表磁盘总配额。 |
 
 ## Nacos 校园 MCP：campusMcp
 

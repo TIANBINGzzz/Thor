@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 import httpx
 import yaml
+from runtime.runtime_settings import RUNTIME_SETTINGS
 
 APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
 
@@ -22,7 +23,7 @@ def _response(client, method, url, deadline, **kwargs):
     remaining = deadline - time.monotonic()
     if remaining <= 0:
         raise NacosConfigError('nacos_unavailable')
-    with client.stream(method, url, timeout=min(5, remaining), **kwargs) as response:
+    with client.stream(method, url, timeout=min(RUNTIME_SETTINGS.timeouts.nacos_request_ms / 1000, remaining), **kwargs) as response:
         body = bytearray()
         for chunk in response.iter_bytes():
             if time.monotonic() >= deadline or len(body) + len(chunk) > 128 * 1024:
@@ -76,7 +77,7 @@ def fetch_config(env, *, transport=None):
     if not address:
         raise NacosConfigError('nacos_not_configured')
     try:
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + RUNTIME_SETTINGS.timeouts.nacos_ms / 1000
         url = urlsplit(address)
         if (url.scheme not in ('http', 'https') or not url.hostname or url.username
                 or url.password or url.query or url.fragment or url.port == 0
@@ -100,7 +101,8 @@ def fetch_config(env, *, transport=None):
         params['tenant'] = namespace
     try:
         # 内网配置中心直连；不继承模型服务的工作站代理，不跟随认证重定向。
-        with httpx.Client(timeout=5, trust_env=False, follow_redirects=False, transport=transport) as client:
+        with httpx.Client(timeout=RUNTIME_SETTINGS.timeouts.nacos_request_ms / 1000,
+                          trust_env=False, follow_redirects=False, transport=transport) as client:
             headers = {}
             if username:
                 response = _response(client, 'POST', address + '/v1/auth/login', deadline,

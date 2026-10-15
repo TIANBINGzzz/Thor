@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from runtime.runtime_settings import RUNTIME_SETTINGS
 from tools.declarations import operation
 
 
@@ -33,7 +34,7 @@ async def search_web(query, *, base_url, api_key, model):
         'tools': [{'type': 'web_search_20250305', 'name': 'web_search', 'max_uses': 3}],
     }
     try:
-        async with httpx.AsyncClient(timeout=90) as client:
+        async with httpx.AsyncClient(timeout=RUNTIME_SETTINGS.timeouts.web_search_ms / 1000) as client:
             response = await client.post(base_url.rstrip('/') + '/v1/messages', json=body,
                 headers={'Authorization': 'Bearer ' + api_key, 'anthropic-version': '2023-06-01'})
         response.raise_for_status()

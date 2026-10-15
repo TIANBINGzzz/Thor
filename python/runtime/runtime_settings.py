@@ -1,5 +1,5 @@
 """部署侧 Runtime 启动参数；不读取 Nacos 或装配业务能力。"""
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from types import MappingProxyType
 from collections.abc import Mapping
@@ -8,6 +8,82 @@ import yaml
 
 
 APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
+
+
+@dataclass(frozen=True)
+class TimeoutSettings:
+    execution_ms: int
+    client_queue_ms: int
+    client_idle_ms: int
+    file_prepare_ms: int
+    file_broker_ms: int
+    file_upload_connect_ms: int
+    worker_start_ms: int
+    worker_send_ms: int
+    worker_close_ms: int
+    worker_control_ms: int
+    document_render_ms: int
+    document_start_ms: int
+    image_ms: int
+    web_search_ms: int
+    mcp_http_ms: int
+    nacos_ms: int
+    nacos_request_ms: int
+
+
+@dataclass(frozen=True)
+class LimitSettings:
+    max_turns: int
+    file_max_bytes: int
+    sdk_buffer_bytes: int
+    http_body_bytes: int
+    prompt_bytes: int
+
+
+@dataclass(frozen=True)
+class RuntimeSettings:
+    timeouts: TimeoutSettings
+    limits: LimitSettings
+    sse_heartbeat_ms: int
+
+
+def load_runtime_settings(path=None):
+    """从公共与本地 YAML 读取完整部署预算；缺失、拼错或非法值在启动时失败。"""
+    path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
+    sections = {'timeouts': TimeoutSettings, 'limits': LimitSettings}
+    values = {name: {} for name in sections}
+    heartbeat = None
+    try:
+        for candidate in (path, path.with_name('application.local.yml')):
+            try:
+                document = yaml.safe_load(candidate.read_text(encoding='utf-8'))
+            except FileNotFoundError:
+                if candidate == path:
+                    raise
+                continue
+            if not isinstance(document, dict) or not isinstance(document.get('runtime', {}), dict):
+                raise ValueError()
+            runtime = document.get('runtime', {})
+            for name, kind in sections.items():
+                section = runtime.get(name, {})
+                allowed = {field.name.replace('_', '-') for field in fields(kind)}
+                if (not isinstance(section, dict) or set(section) - allowed
+                        or any(type(v) is not int or v <= 0 for v in section.values())):
+                    raise ValueError()
+                values[name].update({k.replace('-', '_'): v for k, v in section.items()})
+            if 'sse-heartbeat-ms' in runtime:
+                heartbeat = runtime['sse-heartbeat-ms']
+                if type(heartbeat) is not int or heartbeat <= 0:
+                    raise ValueError()
+        if heartbeat is None:
+            raise ValueError()
+        return RuntimeSettings(**{name: kind(**values[name]) for name, kind in sections.items()},
+                               sse_heartbeat_ms=heartbeat)
+    except (OSError, TypeError, ValueError, yaml.YAMLError):
+        raise ValueError('runtime.timeouts / limits / sse-heartbeat-ms 配置无效：须完整声明正整数预算') from None
+
+
+RUNTIME_SETTINGS = load_runtime_settings()
 
 
 @dataclass(frozen=True)

@@ -39,7 +39,8 @@ from runtime.chart_delivery import ChartDelivery
 from runtime.tool_services import ToolServices
 from runtime.mcp_auth import MCPAuthError
 from runtime.private_trace import Timing
-DEFAULT_TIMEOUT_MS = 300_000
+from runtime.runtime_settings import RUNTIME_SETTINGS
+DEFAULT_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
 
 # 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
 if hasattr(sys.stdin, "reconfigure"):
@@ -402,10 +403,10 @@ async def run_client(initial: dict[str, Any]) -> None:
     options = build_client_options(initial, policy)
     client = ClaudeSDKClient(
         options,
-        connect_timeout_ms=initial.get("connect_timeout_ms", 60_000),
+        connect_timeout_ms=initial.get("connect_timeout_ms", RUNTIME_SETTINGS.timeouts.worker_start_ms),
         query_timeout_ms=initial.get("query_timeout_ms", DEFAULT_TIMEOUT_MS),
         receive_timeout_ms=initial.get("receive_timeout_ms", DEFAULT_TIMEOUT_MS),
-        disconnect_timeout_ms=initial.get("disconnect_timeout_ms", 5_000),
+        disconnect_timeout_ms=initial.get("disconnect_timeout_ms", RUNTIME_SETTINGS.timeouts.worker_close_ms),
     )
     startup.mark('configured')
     command_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()

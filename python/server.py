@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 
 from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets, client_connection_fingerprint
 from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
-from runtime.file_broker import DEFAULT_PREPARE_TIMEOUT_MS, FileBroker, FetchedFile
+from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent
@@ -28,7 +28,7 @@ from runtime.artifact_delivery import ArtifactDelivery
 from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
 from runtime.worker_pool import WorkerPool, configure_worker_logging
-from runtime.runtime_settings import load_worker_pool_settings
+from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
 from runtime import private_trace
 
@@ -42,7 +42,7 @@ RUN_TIMINGS: dict[str, private_trace.Timing] = {}
 load_runtime_environment()
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
-MAX_PROMPT_BYTES = 32 * 1024
+MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
 DEFAULT_MODEL = MODEL_SETTINGS.default
 RUNTIME_JWT_SECRET = os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").strip()
 RUNTIME_JWT_AUDIENCE = os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime").strip()
@@ -62,13 +62,13 @@ internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
 WORKER_POOL: WorkerPool | None = None
 actor_snapshots: dict[str, dict[str, Any]] = {}
-INTERNAL_BODY_BYTES = 2 * 1024 * 1024
+INTERNAL_BODY_BYTES = RUNTIME_SETTINGS.limits.http_body_bytes
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
-SSE_HEARTBEAT_SECONDS = max(1.0, float(os.environ.get("CCSDK_SSE_HEARTBEAT_SECONDS", "15")))
+SSE_HEARTBEAT_SECONDS = RUNTIME_SETTINGS.sse_heartbeat_ms / 1000
 CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
-FILE_PREPARE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_FILE_PREPARE_TIMEOUT_MS", str(DEFAULT_PREPARE_TIMEOUT_MS))))
-RUN_EXECUTION_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_RUN_EXECUTION_TIMEOUT_MS", "3600000")))
-CLIENT_QUEUE_TIMEOUT_MS = max(1, int(os.environ.get("CCSDK_CLIENT_QUEUE_TIMEOUT_MS", "300000")))
+FILE_PREPARE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.file_prepare_ms
+RUN_EXECUTION_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
+CLIENT_QUEUE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.client_queue_ms
 
 
 @asynccontextmanager
@@ -427,7 +427,7 @@ def _create_session_manager() -> SessionManager:
     return SessionManager(
         on_public_event=_handle_client_public_event,
         on_state=_handle_actor_state,
-        idle_ttl_ms=max(1_000, int(os.environ.get("CCSDK_CLIENT_IDLE_TTL_MS", "300000"))),
+        idle_ttl_ms=RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
     )
 
@@ -1109,7 +1109,7 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         was_queued = actor.active_run_id != run_id
         try:
             command = manager.interrupt(run_id) if option == "interrupt" else manager.cancel(run_id)
-            await asyncio.wait_for(command, timeout=max(1, int(os.environ.get("CCSDK_CONTROL_TIMEOUT_MS", "5000"))) / 1000)
+            await asyncio.wait_for(command, timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
         except SessionActorError as error:
             return _plain(error.code, 409)
         except asyncio.TimeoutError:
@@ -1123,7 +1123,7 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         task = internal_tasks.get(run_id)
         if task is not None and not task.done():
             try:
-                await asyncio.wait_for(asyncio.shield(task), timeout=5)
+                await asyncio.wait_for(asyncio.shield(task), timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
             except asyncio.TimeoutError:
                 LOGGER.warning("Client cancel 后 Run 仍在收敛：%s", run_id)
         return {"run": _public_run(RUN_STORE.get_run(run_id))}
@@ -1131,9 +1131,9 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         task = internal_tasks.get(run_id)
     if task is not None and not task.done():
         task.cancel()
-        # 已提交的上传继续收尾，控制请求最多等待5秒，不阻塞到上传超时。
+        # 已提交的上传继续收尾；控制请求只等控制预算，不阻塞到上传超时。
         try:
-            await asyncio.wait_for(asyncio.shield(task), timeout=5)
+            await asyncio.wait_for(asyncio.shield(task), timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
     else:

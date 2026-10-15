@@ -12,6 +12,7 @@ import httpx
 from PIL import Image
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from runtime.runtime_settings import RUNTIME_SETTINGS
 from tools.declarations import operation
 from tools.document_conversion import _resolve, _roots, _new_output
 
@@ -42,7 +43,7 @@ async def generate_image(prompt, output_path, *, base_dir, base_url, api_key,
             images.append(f'data:{mime};base64,' + base64.b64encode(source.read_bytes()).decode('ascii'))
         body['image'] = images
     started = time.monotonic()
-    async with httpx.AsyncClient(timeout=600) as client:
+    async with httpx.AsyncClient(timeout=RUNTIME_SETTINGS.timeouts.image_ms / 1000) as client:
         try:
             response = await client.post(base_url.rstrip('/') + '/images/generations', json=body,
                                          headers={'Authorization': 'Bearer ' + api_key})

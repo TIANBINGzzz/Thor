@@ -27,7 +27,7 @@ from runtime.claude_sdk import build_agent_options
 from runtime.asset_registry import load_declared_asset, validate_refs
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import ConfigSnapshot
-from runtime.runtime_settings import load_model_settings
+from runtime.runtime_settings import RUNTIME_SETTINGS, load_model_settings
 from runtime.prompt_documents import MAX_DOCUMENT_TOTAL_BYTES
 from runtime.tool_services import ToolServices, load_tool_assets
 from runtime.tool_registry import build_registered_tools
@@ -76,7 +76,6 @@ WORKER_CONFIG_ENV_KEYS = {
     "CCSDK_LIBREOFFICE_PATH",
     "CCSDK_UNO_PYTHON",
     "CCSDK_RENDER_IMAGE",
-    "SCRIBE_MAX_TURNS",
     "CCSDK_DATABASES_FILE",
     "BUSINESS_MCP_URL",
     "CCSDK_BUSINESS_MCP_CAPABILITIES",
@@ -538,10 +537,10 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
         max_turns=payload.get("max_turns") or runtime.get(
-            "max_turns", int(os.environ.get("SCRIBE_MAX_TURNS", "30"))),
+            "max_turns", RUNTIME_SETTINGS.limits.max_turns),
         include_partial_messages=bool(payload.get("include_partial_messages")),
         # 文档核验读取页面图片会产生较大的JSONL消息，默认1MiB会在发布前中断。
-        max_buffer_size=16 * 1024 * 1024,
+        max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes,
         setting_sources=[] if restricted_tools else ["project", "local"],
         system_prompt=(assets["prompt"] + "\n" + prompt_append) if runtime.get("prompt_mode") == "custom" else build_system_prompt(
             prompt_append,
@@ -593,7 +592,7 @@ def _client_connection_values(payload):
     return dict(cwd=str(payload.get('cwd') or Path.cwd()),
                 add_dirs=payload.get('additional_directories') or [], env=environment,
                 thinking=runtime.get('thinking'), effort=runtime.get('effort'),
-                max_turns=payload.get('max_turns') or runtime.get('max_turns', int(effective.get('SCRIBE_MAX_TURNS', '30'))),
+                max_turns=payload.get('max_turns') or runtime.get('max_turns', RUNTIME_SETTINGS.limits.max_turns),
                 include_partial_messages=bool(payload.get('include_partial_messages')))
 
 
@@ -609,4 +608,4 @@ def build_client_options(payload, policy):
         system_prompt='按可信服务端提供的本轮执行规则处理请求，历史能力规则不授予本轮权限。',
         tools={'type': 'preset', 'preset': 'claude_code'}, skills=[], setting_sources=[],
         strict_mcp_config=True, mcp_servers={}, disallowed_tools=['WebSearch'],
-        permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=16 * 1024 * 1024)
+        permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes)

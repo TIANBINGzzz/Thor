@@ -75,15 +75,22 @@ class DocumentConversionTests(unittest.TestCase):
                     self.assertEqual(archive.read(name), content)
 
     def test_container_timeout_removes_only_its_own_instance(self):
+        from dataclasses import replace
+        from runtime import runtime_settings
+        configured = replace(runtime_settings.RUNTIME_SETTINGS, timeouts=replace(
+            runtime_settings.RUNTIME_SETTINGS.timeouts, document_render_ms=3250, document_start_ms=1400))
         def run(command, **kwargs):
             if command[1] == "run":
                 raise subprocess.TimeoutExpired(command, 180)
             return subprocess.CompletedProcess(command, 0)
-        with patch("tools.document_conversion.shutil.which", return_value="docker"), \
+        with patch.object(runtime_settings, 'RUNTIME_SETTINGS', configured), \
+                patch("tools.document_conversion.shutil.which", return_value="docker"), \
                 patch("tools.document_conversion.subprocess.run", side_effect=run) as process:
             with self.assertRaisesRegex(RuntimeError, "超时"):
                 _run_container(self.source, self.root / "updated.docx", self.root / "rendered.pdf", self.root)
         command = process.call_args_list[0].args[0]
+        self.assertEqual(process.call_args_list[0].kwargs['timeout'], 3.25)
+        self.assertEqual(command[-2:], ['3250', '1400'])
         self.assertIn("--network=none", command)
         self.assertIn(f"type=bind,source={self.source},target=/input.docx,readonly", command)
         self.assertEqual(process.call_args_list[1].args[0],
@@ -102,6 +109,19 @@ asyncio.run(main())
         result = subprocess.run([sys.executable, "-c", script, str(self.root / "sample.pdf"), str(self.root)],
                                 cwd=Path(__file__).resolve().parents[1],
                                 capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_standalone_renderer_accepts_budgets_without_runtime_dependencies(self):
+        renderer = self.root / 'document_conversion.py'
+        renderer.write_bytes((Path(__file__).resolve().parents[1] / 'tools' / 'document_conversion.py').read_bytes())
+        script = '''import runpy, sys
+renderer = runpy.run_path(sys.argv[1])
+assert renderer['_render_budgets'](3250, 1400) == (3250, 1400)
+assert 'runtime.runtime_settings' not in sys.modules
+assert 'yaml' not in sys.modules
+'''
+        result = subprocess.run([sys.executable, '-I', '-c', script, str(renderer)],
+                                cwd=self.root, capture_output=True, text=True, encoding='utf-8', timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_read_pdf_paginates_text_and_renders_only_selected_page(self):

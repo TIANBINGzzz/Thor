@@ -18,6 +18,7 @@ from typing import Any
 
 import claude_agent_sdk as _sdk
 from claude_agent_sdk._internal.query import SdkMcpBridge
+from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 class ClientTurnPolicy:
@@ -280,7 +281,7 @@ def _safe_sdk_error(error: BaseException) -> SDKError:
     return SDKExecutionError("Claude SDK 执行失败")
 
 
-async def _close_iterator(iterator: Any, timeout_ms: int = 5_000) -> None:
+async def _close_iterator(iterator: Any, timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms) -> None:
     """接收迭代器和关闭时限，调用其可用的 aclose；无返回值，超时或关闭失败向上抛出。"""
     close = getattr(iterator, "aclose", None)
     if close is None:
@@ -338,10 +339,10 @@ class ClaudeSDKClient:
         options: Any,
         *,
         client_factory: Callable[[Any], Any] | None = None,
-        connect_timeout_ms: int | None = 60_000,
-        query_timeout_ms: int | None = 120_000,
-        receive_timeout_ms: int | None = 120_000,
-        disconnect_timeout_ms: int = 5_000,
+        connect_timeout_ms: int | None = RUNTIME_SETTINGS.timeouts.worker_start_ms,
+        query_timeout_ms: int | None = RUNTIME_SETTINGS.timeouts.execution_ms,
+        receive_timeout_ms: int | None = RUNTIME_SETTINGS.timeouts.execution_ms,
+        disconnect_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms,
     ) -> None:
         """接收 SDK 选项、可选 Client 工厂和各阶段时限，初始化客户端状态；此时尚未连接。"""
         for value, name in (

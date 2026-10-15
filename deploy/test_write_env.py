@@ -46,6 +46,17 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         rendered = dict(line.split('=', 1) for line in writer.render(decoded).splitlines())
         self.assertEqual({key: rendered[key] for key in nacos}, nacos)
 
+    def test_obsolete_runtime_budgets_are_not_written_or_accepted_in_bundle(self):
+        for key in ('CCSDK_RUN_EXECUTION_TIMEOUT_MS', 'CCSDK_CLIENT_QUEUE_TIMEOUT_MS',
+                    'CCSDK_FILE_MAX_BYTES', 'SCRIBE_MAX_TURNS'):
+            with self.subTest(key=key):
+                environment = {key: value for key, value in self.environment().items()
+                               if key in writer.RUNTIME_KEYS}
+                environment[key] = '1'
+                self.assertNotIn(key, writer.render(environment))
+                with self.assertRaisesRegex(ValueError, 'allowed variable'):
+                    writer.parse_bundle(json.dumps(environment))
+
     def test_custom_jwt_secret_survives_bundle_and_container_check(self):
         entrypoint = Path(__file__).with_name("entrypoint.py")
         for secret in ("short", "your_custom_key", "replace-with-is-allowed", "test-jwt-" * 8):

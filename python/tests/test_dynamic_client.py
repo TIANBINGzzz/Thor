@@ -255,7 +255,7 @@ class WorkflowEnvironmentTests(unittest.TestCase):
                     config.load_runtime_environment('flow')
                     values = config._client_connection_values({'workflow_name': 'flow'})
                     self.assertEqual(values['env'], config.agent_environment())
-                    self.assertEqual(values['max_turns'], 8)
+                    self.assertEqual(values['max_turns'], config.RUNTIME_SETTINGS.limits.max_turns)
                     self.assertEqual(values['env']['ANTHROPIC_AUTH_TOKEN'], 'synthetic-flow')
                     self.assertEqual(selected, config.client_connection_fingerprint({'workflow_name': 'flow'}))
                     self.assertEqual(base, config.client_connection_fingerprint({}))

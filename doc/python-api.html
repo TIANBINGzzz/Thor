@@ -713,7 +713,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 }</pre></div>
 <p>失败事件没有 fileId，也不提供下载地址；Java 按 runId 和 artifactId 关联结果。文件失败不改变模型执行结果：SDK 成功时仍可随后收到 run.completed；全部已提交文件处理完毕后才结束 Run 事件流。GET 列表/详情返回相同文件结果（不含事件专用 displayName），用于断线补查，不触发上传。</p>
 <h3>部署侧文件服务配置</h3>
-<p>在 <code>config/databases.json</code> 顶层增加 <code>fileService</code>，与 version、sources 并列。仍由 CCSDK_DATABASES_FILE 指定配置文件，默认项目根目录下该文件；下面是新增字段片段，合并时保留现有数据源配置。修改后重启服务；镜像内配置需重建镜像。</p>
+<p>在当前环境 Nacos 的 <code>ai-center-agent-service</code> 中配置 <code>fileService</code>，文件传输开始前读取；连接与字段说明见 <a href="../config/README.md">配置参考</a>。不再读取 databases.json 中的 fileService。</p>
 <div class="code-wrap"><div class="code-label">配置片段 · fileService</div><button class="copy" type="button">复制</button><pre>{
   "fileService": {
     "baseUrl": "https://newtest.stringedu.com",
@@ -724,7 +724,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
     "maxFileBytes": 1073741824
   }
 }</pre></div>
-<p>Python 向 baseUrl 下固定路径 <code>/fwk_manage_service/sys_attachment/ai/upload/</code> 发 POST，multipart 字段名为 <code>file</code>，请求头 domain-name / remote-url 分别取对应配置；HTTP 客户端自动生成 multipart boundary。三个地址字段必填；baseUrl、remoteUrl 只接受 http(s) 来源地址，不带业务路径、查询或账号密码。timeoutSeconds 默认 600（1–3600），限制一个文件全部上传尝试及等待的总时间；maxFileBytes 默认 1 GiB（1 字节至 10 GiB），为单文件上传上限；下载与CCSDK_FILE_MAX_BYTES取较小值。downloadPath是含{fileId}的站内路径，仅下载必填。配置不代表总磁盘配额。</p>
+<p>Python 向 baseUrl 下固定路径 <code>/fwk_manage_service/sys_attachment/ai/upload/</code> 发 POST，multipart 字段名为 <code>file</code>，请求头 domain-name / remote-url 分别取对应配置；HTTP 客户端自动生成 multipart boundary。三个地址字段必填；baseUrl、remoteUrl 只接受 http(s) 来源地址，不带业务路径、查询或账号密码。timeoutSeconds 限制一个文件全部上传尝试及等待的总时间；maxFileBytes 为单文件上传上限，下载还受 Runtime 文件上限约束。downloadPath是含{fileId}的站内路径，仅下载必填。配置不代表总磁盘配额，字段范围见 <a href="../config/README.md">配置参考</a>。</p>
 <p>只有 HTTP 2xx 且业务 state=200、success=true、data 中 ID 与文件大小等字段合法，才记录 ready。data.id 映射 fileId；data.url 只在内部保存，当前是存储路径，<strong>不能拼成已确认可下载的 URL</strong>。上传在 Runtime 父进程完成，不把服务配置主动注入模型，不转发 Run JWT 或业务 Token，不跟随重定向。domain-name、remote-url 不是鉴权凭据；文件服务未提供租户 ACL，Java 仍须做消息归属和下载授权。当前 Agent 具有进程文件权限，这不构成生产凭据沙箱。</p>
 <p>常用错误码：file_service_not_configured、file_service_config_invalid、artifact_snapshot_missing、artifact_too_large、file_service_unreachable、file_upload_server_error、file_upload_rejected（failed）；file_upload_response_invalid、file_upload_http_error、file_upload_uncertain（unknown）。file_upload_interrupted、file_upload_error 需结合 status 判断。unknown 需与文件服务核对结果。</p></section>
 
@@ -804,7 +804,7 @@ Python 按 fileService 配置 GET 下载 → 安全文件名和长度检查 → 
 Run 结束清理临时输入；续轮仍需文件时由 Java 重新提交授权引用</pre></div>
 <p>fileId 是存文件接口的 data.id，不是模板业务 ID 或会话附件 ID。自定义模板与普通资料共用本链路，Python 不需要登记本地模板；payload 中出现 fileId 不触发下载。现有 purpose 仍为 input/reference。</p>
 <h3>Python → 文件服务</h3>
-<p>下载与成果上传共用数据源配置文件顶层 fileService 的 baseUrl、domainName、remoteUrl；downloadPath 配为 /fwk_manage_service/sys_attachment/{fileId}/ai/download/。下载目标仅由部署配置确定，不接收用户 URL；不再从 backendService 拼接 Broker 地址。</p>
+<p>下载与成果上传共用 Nacos 的 fileService 节点中的 baseUrl、domainName、remoteUrl；downloadPath 配为 /fwk_manage_service/sys_attachment/{fileId}/ai/download/。下载目标仅由部署配置确定，不接收用户 URL；不再从 backendService 拼接 Broker 地址。</p>
 <div class="code-wrap"><div class="code-label">请求 · GET</div><button class="copy" type="button">复制</button><pre>GET &lt;fileService.baseUrl&gt;&lt;downloadPath，替换 fileId&gt;
 domain-name: &lt;fileService.domainName&gt;
 remote-url: &lt;fileService.remoteUrl&gt;
@@ -814,13 +814,7 @@ Accept: application/octet-stream</pre></div>
 <p>Client 输入位于 .scribe-runs/client-sessions/&lt;scopeHash&gt;/.current-input/，Query 输入位于 .scribe-runs/work/&lt;runId&gt;/input/。文件全部准备完成后才查询 SDK；失败、取消及终态清理输入，不删除远端原件。工作稿另存 .work/，交付快照按发布生命周期保留。</p>
 <p>独立部署可显式配置 CCSDK_FILE_BROKER_URL 使用 POST Broker，保留代理流/一次性 URL 校验；平台下载失败不自动切换。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-file-broker-模块">Runtime 文件规范</a>。</p>
 <h3>大小和独立超时</h3>
-<table><thead><tr><th>配置</th><th>默认值</th><th>含义</th></tr></thead><tbody>
-<tr><td>CCSDK_FILE_MAX_BYTES</td><td>268435456</td><td>单文件 256 MiB。</td></tr>
-<tr><td>CCSDK_FILE_PREPARE_TIMEOUT_MS</td><td>600000</td><td>本次全部附件准备 10 分钟。</td></tr>
-<tr><td>CCSDK_FILE_BROKER_TIMEOUT_MS</td><td>15000</td><td>连接和等待数据等单次网络操作 15 秒，不是整份文件下载时长。</td></tr>
-<tr><td>CCSDK_RUN_EXECUTION_TIMEOUT_MS</td><td>300000</td><td>文件就绪后单独计时，模型执行 5 分钟。</td></tr>
-<tr><td>CCSDK_CLIENT_QUEUE_TIMEOUT_MS</td><td>300000</td><td>Client 排队等待 5 分钟。</td></tr>
-</tbody></table>
+<p>部署预算统一由 <code>config/application.yml</code> 的 <code>runtime.timeouts</code>、<code>runtime.limits</code> 配置；默认执行一小时，Workflow 显式预算优先。旧超时与文件大小环境变量不再读取；单位、覆盖及重启要求见 <a href="../config/README.md">配置参考</a>。</p>
 <p>文件准备超时通过 run.failed 返回 file_broker_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。平台下载还受 fileService.maxFileBytes 和 timeoutSeconds 约束，分别与 Runtime 对应上限取较小值。显式 Broker 的授权 Token 由接入方保证有效，Python 不自动刷新。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
