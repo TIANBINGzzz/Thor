@@ -149,7 +149,12 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
             settings = dict(RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / 'sessions',
                 DEFAULT_MODEL='test', RUNTIME_JWT_SECRET='workspace-test', SESSION_MANAGER=current_manager,
                 internal_tasks={}, internal_subscribers={}, pending_terminals={}, RUN_TIMINGS={}, TRACE_SECRETS={})
-            with patch.multiple(server, **settings):
+            # 此处验证会话生命周期；部署配置使用固定数据，禁止依赖真实外部服务。
+            with patch.multiple(server, **settings), \
+                 patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
+                     'url': 'https://campus.example.test/string_campus_brain_service/mcp',
+                     'domainName': 'campus.example.test'}}), \
+                 patch.object(httpx.Client, 'send', side_effect=AssertionError('unexpected external HTTP request')):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://runtime') as client:
                     async def execute(index, capability='conversation', tenant='t', user='u', token='token-a'):
                         run_id = f'run-{index}'
