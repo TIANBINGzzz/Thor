@@ -1,0 +1,9 @@
+services:
+  runtime:
+    volumes:
+      - type: bind
+        source: ${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/observability.local.yml
+        target: /app/config/observability.local.yml
+        read_only: true
+        bind:
+          create_host_path: false

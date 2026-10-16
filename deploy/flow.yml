@@ -22,6 +22,8 @@ variables:
     value: "127.0.0.1"
   - key: CCSDK_WITH_DATABASE
     value: "0"
+  - key: CCSDK_WITH_OBSERVABILITY
+    value: "0"
   - key: CCSDK_SMOKE_TEST
     value: "0"
 stages:
@@ -88,6 +90,7 @@ stages:
             export CCSDK_DEPLOY_ENV_B64='${CCSDK_DEPLOY_ENV_B64}'
             export CCSDK_BIND_IP='${CCSDK_BIND_IP}'
             export CCSDK_WITH_DATABASE='${CCSDK_WITH_DATABASE}'
+            export CCSDK_WITH_OBSERVABILITY='${CCSDK_WITH_OBSERVABILITY}'
             export CCSDK_CONFIG_DIRECTORY="${CCSDK_DEPLOY_ROOT}/config"
             export CCSDK_RELEASE_DIRECTORY=..
             export CCSDK_GENERATE_ENV='${CCSDK_GENERATE_ENV}'

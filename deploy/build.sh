@@ -45,7 +45,7 @@ started=$(date +%s)
 docker build --pull=false --progress=plain "$@" --target runtime --tag "$CCSDK_IMAGE" .
 echo "Runtime image build completed in $(($(date +%s) - started))s"
 mkdir -p "$release_directory/deploy"
-cp deploy/deploy.sh deploy/compose.yaml deploy/compose.database.yaml "$release_directory/deploy/"
+cp deploy/deploy.sh deploy/compose*.yaml "$release_directory/deploy/"
 printf '%s\n' "$CCSDK_IMAGE" > "$release_directory/image.ref"
 docker image inspect --format '{{.Id}}' "$CCSDK_IMAGE" > "$release_directory/image.id"
 started=$(date +%s)

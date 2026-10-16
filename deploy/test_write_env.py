@@ -46,6 +46,17 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         rendered = dict(line.split('=', 1) for line in writer.render(decoded).splitlines())
         self.assertEqual({key: rendered[key] for key in nacos}, nacos)
 
+    def test_observation_credentials_survive_release_bundle(self):
+        environment = {key: value for key, value in self.environment().items()
+                       if key in writer.RUNTIME_KEYS}
+        observation = {'CCSDK_OBSERVABILITY_ENABLED': '1',
+                       'CCSDK_OBSERVATION_TOKEN': 'independent-observation-secret'}
+        environment.update(observation)
+        rendered = dict(line.split('=', 1) for line in writer.render(environment).splitlines())
+        self.assertEqual({key: rendered.get(key) for key in observation}, observation)
+        decoded = writer.parse_bundle(json.dumps(environment))
+        self.assertEqual({key: decoded[key] for key in observation}, observation)
+
     def test_obsolete_runtime_budgets_are_not_written_or_accepted_in_bundle(self):
         for key in ('CCSDK_RUN_EXECUTION_TIMEOUT_MS', 'CCSDK_CLIENT_QUEUE_TIMEOUT_MS',
                     'CCSDK_FILE_MAX_BYTES', 'SCRIBE_MAX_TURNS'):
@@ -179,6 +190,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             environment = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
                            "CCSDK_IMAGE": "test:paths", "CCSDK_GENERATE_ENV": "0",
                            "CCSDK_WITH_DATABASE": "1", "CCSDK_PULL_IMAGE": "0",
+                           "CCSDK_WITH_OBSERVABILITY": "1",
                            "CCSDK_CONFIG_DIRECTORY": os.path.relpath(config, script.parent), "TEST_DOCKER_LOG": str(log)}
             for key in ("CCSDK_ENV_FILE", "CCSDK_DEPLOY_LOCK_FILE"):
                 environment.pop(key, None)
@@ -186,7 +198,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text().splitlines()
             self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}|") for line in calls))
-            self.assertIn("-f compose.database.yaml config --quiet", calls[0])
+            self.assertIn("-f compose.database.yaml -f compose.observability.yaml config --quiet", calls[0])
             self.assertIn("up -d --force-recreate --wait", calls[-1])
             with (config / "deploy.lock").open("w") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

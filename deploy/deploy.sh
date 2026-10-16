@@ -53,6 +53,7 @@ if [ "${CCSDK_GENERATE_ENV:-0}" = 1 ]; then
 fi
 set -- -f compose.yaml
 if [ "${CCSDK_WITH_DATABASE:-0}" = 1 ]; then set -- "$@" -f compose.database.yaml; fi
+if [ "${CCSDK_WITH_OBSERVABILITY:-0}" = 1 ]; then set -- "$@" -f compose.observability.yaml; fi
 docker compose "$@" config --quiet
 docker compose "$@" run --rm --no-deps --pull never runtime --check
 docker compose "$@" up -d --force-recreate --wait --wait-timeout 120 --pull never runtime

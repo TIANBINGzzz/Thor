@@ -45,6 +45,7 @@ COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./
 COPY --chown=10001:10001 --chmod=0400 config/application.yml ./config/application.yml
+COPY --chown=10001:10001 --chmod=0400 config/observability.yml ./config/observability.yml
 # 本版本将数据库配置随镜像交付；/app/config 是容器内目录。
 COPY --chown=10001:10001 --chmod=0400 config/databases.json ./config/databases.json
 # Fixed /app paths are container-scoped; deployment helpers run from this image.
