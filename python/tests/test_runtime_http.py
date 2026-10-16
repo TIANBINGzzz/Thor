@@ -38,7 +38,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
             "RUN_TIMINGS": {}, "TRACE_SECRETS": {},
-            "OBSERVATION": Observer(Path(self.temp.name)/'unused',instance_id='test'),
+            "OBSERVATION": Observer(Path(self.temp.name)/'unused'),
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
                 server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
         }.items():
@@ -78,21 +78,28 @@ class RuntimeHTTPTests(unittest.TestCase):
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
 
-    def test_observation_credentials_are_read_only_and_run_reports_stay_identity_bound(self):
+    def test_observation_needs_no_token_and_business_reports_stay_identity_bound(self):
         self.seed()
-        observer=Observer(Path(self.temp.name)/'observe.db',instance_id='test',enabled=True,token='collection-secret')
+        observer=Observer(Path(self.temp.name)/'observe.db',enabled=True)
         self.addCleanup(observer.close)
         with patch.object(server,'OBSERVATION',observer):
-            collection={'Authorization':'Bearer collection-secret'}
-            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,401)
+            collection={}
+            for endpoint in ('info', 'records', 'snapshot', 'metrics'):
+                self.assertEqual(self.client.get('/internal/observability/v1/'+endpoint).status_code, 200)
+            self.assertEqual(self.client.get('/internal/observability/v1/metrics').headers.get('x-ccsdk-instance-id'), observer.instance_id)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,200)
             self.assertEqual(self.client.get('/internal/observability/v1/info',headers=collection).status_code,200)
-            self.assertEqual(self.client.get('/internal/observability/v1/info',headers={**collection,'Origin':'http://browser.example'}).status_code,401)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers={'Origin':'http://browser.example'}).status_code,403)
             url='/internal/v1/runs/run-test/observations'
             event={'name':'first_body','elapsedMs':50,'nonempty':True}
             self.assertEqual(self.client.post(url,headers=collection,json=event).status_code,401)
             self.assertEqual(self.client.post(url,headers=self.headers(tenant='other'),json=event).status_code,401)
             self.assertTrue(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
             self.assertFalse(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
+
+    def test_disabled_observation_returns_not_found_without_affecting_health(self):
+        self.assertEqual(self.client.get('/internal/observability/v1/info').status_code, 404)
+        self.assertEqual(self.client.get('/health').status_code, 200)
 
     def test_observation_conversion_failure_cannot_change_public_output(self):
         self.seed()

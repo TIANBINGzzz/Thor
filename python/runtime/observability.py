@@ -1,7 +1,6 @@
-"""独立观测出口：有界队列、持久游标和部署级只读凭据，不参与业务决策。"""
+"""独立观测出口：有界队列、持久游标和自动实例标识，不参与业务决策。"""
 from __future__ import annotations
 import hashlib
-import hmac
 import json
 import math
 import os
@@ -51,11 +50,12 @@ class ObservationStore:
 
 
 class Observer:
-    def __init__(self, path, *, instance_id, enabled=False, token="", max_records=20000,
-                 retention_seconds=86400, queue_size=2048, details=False, capabilities=()):
-        self.instance_id, self.enabled, self.token=instance_id,enabled,token
-        self.details, self.capabilities=details,set(capabilities)
+    def __init__(self, path, *, enabled=False, max_records=20000,
+                 retention_seconds=86400, queue_size=2048):
+        self.enabled=enabled
         self.store=ObservationStore(path,max_records=max_records,retention_seconds=retention_seconds) if enabled else None
+        # 标识随观测库持久化；新库使用新标识，避免地址复用或游标重置时混入旧实例。
+        self.instance_id=self.store.epoch if self.store else ""
         self.queue=queue.Queue(maxsize=queue_size)
         self.dropped=0
         self.browser_seen=set()
@@ -68,14 +68,11 @@ class Observer:
             self.thread=threading.Thread(target=self._write,daemon=True,name="observation-spool")
             self.thread.start()
 
-    def authorized(self, header):
-        return self.enabled and bool(self.token) and hmac.compare_digest(header or "", "Bearer "+self.token)
-
-    def emit(self, kind, run_id, data, *, secrets=(), capability=None):
-        if not self.enabled or (kind=="evidence" and (not self.details or capability not in self.capabilities)):
+    def emit(self, kind, run_id, data, *, secrets=()):
+        if not self.enabled:
             return
         try:
-            value=sanitize(data, (*secrets,self.token))
+            value=sanitize(data, secrets)
             record={"kind":kind,"runId":run_id,"traceId":trace_id(self.instance_id,run_id),
                     "timestamp":time.time_ns()//1000000,"data":value}
             # 限制单条记录；丢弃只影响观测完整度。
@@ -102,6 +99,7 @@ class Observer:
         return hashlib.sha256((self.instance_id+':'+run_id+':'+identity).encode()).hexdigest()[:16]
 
     def span(self, run_id, name, start_ms, duration_ms, *, parent=None, attributes=None, links=(), identity=None):
+        if not self.enabled: return
         try:
             self.emit("span",run_id,{"traceId":trace_id(self.instance_id,run_id),
                 "spanId":self.span_id(run_id,identity or name),
@@ -225,11 +223,9 @@ def create_observer(root):
             if type(config.get(key,default)) is not int or config.get(key,default)<=0:
                 raise ValueError('invalid observation limit')
         return Observer(root/config.get("storage",".scribe-runs/observation.sqlite"),
-            instance_id=config.get("instance-id","runtime-local"),enabled=enabled,
-            token=os.environ.get(config.get("token-env","CCSDK_OBSERVATION_TOKEN"),""),
+            enabled=enabled,
             max_records=config.get("max-records",20000),retention_seconds=config.get("retention-seconds",86400),
-            queue_size=config.get("queue-size",2048),details=config.get("details",False),
-            capabilities=config.get("detail-capabilities",[]))
+            queue_size=config.get("queue-size",2048))
     except (OSError,sqlite3.Error,ValueError,TypeError,yaml.YAMLError):
         # 配置损坏或观测磁盘不可用时停采，业务进程仍能启动。
-        return Observer(root/'unused',instance_id='disabled')
+        return Observer(root/'unused')

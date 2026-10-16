@@ -41,14 +41,13 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 ## 独立观测接入
 
-镜像携带 `config/observability.yml`，默认关闭。每个部署在主机配置目录创建 `observability.local.yml`，至少填写 `enabled: true`、唯一的 `instance-id`（例如 `cloud-59`），保持 `details: false`；其余保留策略继承镜像默认值。文件不含密钥，须允许容器 UID 10001 读取。
+镜像携带 `config/observability.yml`，默认关闭。每个部署在主机配置目录创建 `observability.local.yml`，填写 `enabled: true` 即可；其余保留策略继承镜像默认值。文件须允许容器 UID 10001 读取。实例标识自动持久化到观测库，开启后采集所有会话及能力的脱敏详细事件。
 
-用 `python -c "import secrets; print(secrets.token_urlsafe(32))"` 独立生成采集密钥，写入主机 env-file 的 `CCSDK_OBSERVATION_TOKEN`，文件权限 0600；不要复用业务 Token、Run JWT 或模型密钥。`CCSDK_OBSERVABILITY_ENABLED=0` 可覆盖 YAML 紧急停采，修改后须重新创建容器。
-
-- 外部 ACR 路线：在主机发布脚本的 `docker run` 参数增加 `--mount "type=bind,source=${配置目录}/observability.local.yml,target=/app/config/observability.local.yml,readonly"`，启动前检查源文件存在；继续使用现有 `--env-file`。只修改仓库 Compose 不会改变这条路线。
-- Compose 路线：设置 `CCSDK_WITH_OBSERVABILITY=1`，`deploy.sh` 加载 `compose.observability.yaml`，从 `CCSDK_CONFIG_DIRECTORY` 只读挂载该文件；缺文件拒绝启动。直接调用 Compose 时须显式追加 `-f deploy/compose.observability.yaml`。云效生成器支持上述两个观测环境变量。
-- Hawkeye 的私有 `.env` 添加独立变量（例如 `CLOUD59_OBSERVATION_TOKEN`）并填入同一密钥，重启 Hawkeye 后登记接入源：服务 URL 填 Runtime 根地址，实例 ID 与 YAML 完全一致，`tokenEnv` 填该变量名。采集密钥不交给业务浏览器；远程链路使用受控内网、TLS 或 SSH 隧道。
-- 验证 `/internal/observability/v1/info`：未带或带错 Token 为 401，正确凭据为 200 且 `instanceId` 匹配；404 通常表示仍运行没有该路由的旧版本。再检查 records、snapshot、metrics 和 Hawkeye 采集状态。停采仍返回 401，不等同于 404。
+- 外部 ACR 路线：在主机发布脚本的 `docker run` 参数增加 `--mount "type=bind,source=${配置目录}/observability.local.yml,target=/app/config/observability.local.yml,readonly"`，启动前检查源文件存在。
+- Compose 路线：设置 `CCSDK_WITH_OBSERVABILITY=1`，`deploy.sh` 加载 `compose.observability.yaml`，从 `CCSDK_CONFIG_DIRECTORY` 只读挂载该文件；缺文件拒绝启动。直接调用 Compose 时须显式追加 `-f deploy/compose.observability.yaml`。
+- 当前观测接口不校验 Token，不需配置采集密钥。Hawkeye 接入源只填写名称与 Runtime 根地址，连接时自动取得实例标识；连通性或标识校验失败时保留原配置。替换观测库后须重新保存接入源。
+- 验证 `/internal/observability/v1/info` 无凭据返回 200 且含 `instanceId`，再检查 records、snapshot、metrics 和 Hawkeye 采集状态。关闭观测返回 404；跨源浏览器请求返回 403。业务 Run JWT 及按 Run 授权的遥测接口继续保持原协议。
+- `CCSDK_OBSERVABILITY_ENABLED=0` 可覆盖 YAML 停采，云效环境生成器支持该变量；修改部署配置后须重新创建容器。
 
 ## 验证与回滚
 

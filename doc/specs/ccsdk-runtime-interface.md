@@ -2,7 +2,7 @@
 
 本文维护 Java/Python 的执行语义及文件边界；HTTP 路径、字段表、状态、错误码和可解析示例统一维护在 [API 参考](../python-api.html)，业务映射见 [Java 职责](java-control-plane.md)。接口变化同步参考页和协议测试，职责变化才更新 Java 文档；不复制实现教程或未实现接口。
 
-观测出口由 `config/observability.yml` 独立配置，通过部署凭据主动采集，接口见 [API 参考](../python-api.html#observation)。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，结束后的 Span 导入 Phoenix。浏览器首次非空正文与首次渲染分别上报，回放不重算首字；Java/CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
+观测出口由 `config/observability.yml` 独立配置，由 Hawkeye 主动采集，接口见 [API 参考](../python-api.html#observation)。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，结束后的 Span 导入 Phoenix。浏览器首次非空正文与首次渲染分别上报，回放不重算首字；Java/CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
 
 ## 1. 职责边界
 
@@ -84,6 +84,8 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 同步业务错误通常为 text/plain，查询参数校验 422 返回 JSON detail；状态映射见 [错误参考](../python-api.html#errors)。创建后发生的附件/模板/模型错误通过 run.failed 和 Run.error 表达，上传错误通过文件事件表达，不能只按 HTTP 202 或 SDK 成功判断交付。
 
 ## 10. 开发观测
+
+独立平台读取 `/internal/observability/v1/`：由 `config/observability.yml` 控制启用，当前不做 Token 认证；启用后收集所有会话及能力的脱敏事件。实例标识自动生成并随观测库持久化，数据源登记时发现；库重建后须重新登记，采集指标也须校验相同实例。该出口与下述按 Run 授权的开发接口分别管理，业务创建、浏览器遥测和文件访问仍校验原 Run 身份。
 
 启用 CCSDK_ENABLE_RUN_TRACE=1 且持有绑定原 Run 的 run.observe 才可读取 trace；默认关闭返回 404。分页序号独立于 SSE，响应 no-store，只采集启用后 SDK 实际返回的思考与工具事件，遮盖已知凭据、省略二进制及过长内容；不补录历史、不承诺完整内部推理。字段见 [观测参考](../python-api.html#run-trace)。
 

@@ -59,7 +59,7 @@
 
 - 安全：bypassPermissions 和单容器不构成租户沙箱；生产授权、撤销及文件/进程/网络隔离仍需独立验收。
 - 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果和成果；终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
-- 观测：`runtime/observability.py` 将本地 Timing、里程碑和预热关联送入有界独立 SQLite 出口；Hawkeye 使用部署级只读凭据采集，故障不阻断业务。配置见 `config/observability.yml`，浏览器上报仍按 Run 身份授权。
+- 观测：`runtime/observability.py` 将本地 Timing、里程碑和预热关联送入有界独立 SQLite 出口；Hawkeye 按地址发现持久实例标识并读取全部会话的脱敏事件，现阶段观测出口不校验 Token，故障不阻断业务。配置见 `config/observability.yml`，浏览器上报仍按 Run 身份授权。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
 - 部署：单副本、单 HTTP worker；默认数据库配置随私有源码及镜像交付，模型/JWT 密钥由运行环境注入；数据卷保留。操作与回滚见部署说明。
 

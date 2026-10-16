@@ -8,9 +8,9 @@
 
 ## 独立观测出口
 
-[observability.yml](observability.yml) 为默认配置，`observability.local.yml` 覆盖本机值；相对存储路径以项目根目录为基准。`CCSDK_OBSERVABILITY_ENABLED=0/1` 可覆盖启用状态；测试回归使用 `0`，避免测试事件进入本机观测库。采集凭据从 `token-env` 指定的环境变量读取，独立于 Run JWT。`details` 与 `detail-capabilities` 同时允许时才保存脱敏原始证据。
+[observability.yml](observability.yml) 为默认配置，`observability.local.yml` 覆盖本机值；相对存储路径以项目根目录为基准。`CCSDK_OBSERVABILITY_ENABLED=0/1` 可覆盖启用状态；测试回归使用 `0`，避免测试事件进入本机观测库。开启后采集所有会话、所有能力的 Timing、生命周期及脱敏详细事件，不补录历史。现阶段独立观测出口不校验 Token；实例标识自动从观测库生成并持久保存，由 Hawkeye 连接时读取。保留数据卷可维持标识和游标；替换观测库后重新保存接入源，避免新旧实例混淆。
 
-镜像挂载、密钥交付及 Hawkeye 接入见 [部署说明](../deploy/README.md#独立观测接入)。
+镜像挂载及 Hawkeye 接入见 [部署说明](../deploy/README.md#独立观测接入)。
 
 ## 顶层结构
 

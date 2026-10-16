@@ -1,11 +1,6 @@
-# 独立部署级观测出口；不替代按 Run 授权的 run.observe。
+# 独立观测出口，无 Token 校验；采集所有会话和能力并保留凭据脱敏。
 enabled: false
-instance-id: runtime-local
-token-env: CCSDK_OBSERVATION_TOKEN
 storage: .scribe-runs/observation.sqlite
 max-records: 20000
 retention-seconds: 86400
 queue-size: 2048
-# 工具输入输出单独授权并按能力启用；默认仅数值和生命周期。
-details: false
-detail-capabilities: []

@@ -132,8 +132,10 @@ async def secure_runtime_api(request: Request, call_next):
     if request.url.path == "/health":
         return await call_next(request)
     if request.url.path.startswith("/internal/observability/v1/"):
-        if request.headers.get("origin") or not OBSERVATION.authorized(request.headers.get("authorization")):
-            return _plain("观测授权失败", 401)
+        if not OBSERVATION.enabled:
+            return _plain("观测未启用", 404)
+        if request.headers.get("origin"):
+            return _plain("不接受跨源浏览器请求", 403)
         return await call_next(request)
     if not request.url.path.startswith("/internal/v1/"):
         return _plain("接口不存在", 404)
@@ -430,8 +432,7 @@ def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
             if raw.get('type') == 'performance':
                 OBSERVATION.performance(run_id, private_trace.performance_event(raw) or {})
             elif raw.get('type') in private_trace.TRACE_TYPES:
-                run=RUN_STORE.get_run(run_id) or {}
-                OBSERVATION.emit('evidence',run_id,raw,secrets=TRACE_SECRETS.get(run_id,()),capability=run.get('capabilityRef'))
+                OBSERVATION.emit('evidence',run_id,raw,secrets=TRACE_SECRETS.get(run_id,()))
     except Exception as error:
         LOGGER.warning("观测转换失败：%s", type(error).__name__)
     if not private_trace.enabled():
@@ -1258,7 +1259,7 @@ async def internal_cancel_run(run_id: str, request: Request):
 
 
 
-# 部署级采集授权与原 run.observe 分离；浏览器遥测仍须绑定原 Run 身份。
+# 独立观测出口无 Token 校验；浏览器遥测仍须绑定原 Run 身份。
 def _observe_run(run):
     if not run: return
     OBSERVATION.emit('run',run['runId'],{k:run.get(k) for k in
@@ -1270,7 +1271,7 @@ async def observation_info():
     return JSONResponse({'version':1,'epoch':OBSERVATION.store.epoch,'instanceId':OBSERVATION.instance_id,'python':platform.python_version(),
         'sdk':importlib.metadata.version('claude-agent-sdk'), 'clock':'local monotonic durations; wall anchors only',
         'signals':{'runtime':True,'actor':True,'pool':True,'worker':True,'browser':'client_reports',
-                   'java':'uninstrumented','modelHttp':'uninstrumented','details':OBSERVATION.details}},headers={'cache-control':'no-store'})
+                   'java':'uninstrumented','modelHttp':'uninstrumented','details':True}},headers={'cache-control':'no-store'})
 
 
 @app.get('/internal/observability/v1/records')
@@ -1293,7 +1294,8 @@ async def observation_metrics():
         for key,value in WORKER_POOL.snapshot().items():
             if type(value) in (bool,int,float): extra+=f'ccsdk_pool_{key} {int(value) if isinstance(value,bool) else value}\n'
     extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actor_snapshots.values())}\n'
-    return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4')
+    return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4',
+                             headers={'x-ccsdk-instance-id':OBSERVATION.instance_id})
 
 
 @app.post('/internal/v1/runs/{run_id}/observations')
