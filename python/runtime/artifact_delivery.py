@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import uuid
+import time
 from pathlib import Path
 
 import httpx
@@ -30,13 +31,22 @@ def public_artifact(record):
 
 
 class ArtifactDelivery:
-    def __init__(self, store, root, notify, *, env=None, transport=None):
+    def __init__(self, store, root, notify, *, env=None, transport=None, on_observation=None):
         """绑定可信存储与环境副本，初始化上传任务和接收锁。"""
         self.store, self.root, self.notify = store, Path(root), notify
         self.env = dict(os.environ if env is None else env)
         self.transport = transport
         self.tasks = {}
         self.lock = asyncio.Lock()
+        self.on_observation = on_observation
+
+    def _observe(self, record, name, **fields):
+        """独立数值回调；观测失败不改变上传结果或触发重试。"""
+        if self.on_observation:
+            try:
+                self.on_observation(record['runId'], {'name': name, 'artifactId': record['artifactId'], **fields})
+            except Exception:
+                pass
 
     def list(self, run_id):
         """列出指定 Run 的公开交付物状态。"""
@@ -133,6 +143,7 @@ class ArtifactDelivery:
                 await asyncio.gather(task, return_exceptions=True)
                 raise
             await self._state(record, 'pending')
+            self._observe(record, 'artifact.generated')
             self._start(record)
 
     def _start(self, record):
@@ -205,11 +216,15 @@ class ArtifactDelivery:
         in_flight = False
         last_failure = None
         try:
+            configured = time.perf_counter()
             config = await asyncio.to_thread(file_service_config, self.env)
+            self._observe(record, 'artifact.configured', elapsedMs=(time.perf_counter()-configured)*1000)
             await self._state(record, 'uploading')
             async with asyncio.timeout(config['timeoutSeconds']):
                 for attempt in range(len(RETRY_DELAYS) + 1):
                     in_flight = True
+                    started, wall = time.perf_counter(), time.time_ns()/1000000
+                    self._observe(record, 'artifact.upload_started', attempt=attempt+1)
                     try:
                         fields = await self._send(record, config)
                     except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout):
@@ -220,7 +235,11 @@ class ArtifactDelivery:
                         last_failure = error
                     else:
                         in_flight = False
+                        self._observe(record, 'artifact.file_id', fileId=fields['fileId'])
                         break
+                    finally:
+                        self._observe(record, 'artifact.upload_finished', attempt=attempt+1,
+                            elapsedMs=(time.perf_counter()-started)*1000, originUnixMs=wall)
                     # 收到明确失败才等待重试；等待中取消或超时不误报为远端结果不确定。
                     in_flight = False
                     if attempt == len(RETRY_DELAYS):

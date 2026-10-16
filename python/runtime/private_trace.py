@@ -29,7 +29,11 @@ def performance_event(raw):
         return {k: v for k, v in value.items() if k in names and type(v) in (int, float)
                 and math.isfinite(v) and v >= 0}
 
-    return {'type': 'performance', 'version': 1, 'scope': scope,
+    anchors = {}
+    wall = raw.get('originUnixMs')
+    if type(wall) in (int, float) and math.isfinite(wall) and wall > 0:
+        anchors = {'originUnixMs': wall, 'clockId': str(raw.get('clockId', ''))[:128]}
+    return {**anchors, 'type': 'performance', 'version': 1, 'scope': scope,
             'elapsedMs': numbers(raw.get('elapsedMs'), TIMING_STAGES[scope]),
             'cpuMs': numbers(raw.get('cpuMs'), TIMING_STAGES[scope]),
             'counts': numbers(raw.get('counts'), TIMING_COUNTS)}
@@ -38,10 +42,15 @@ def performance_event(raw):
 class Timing:
     """同进程单调时钟的首次里程碑；开关在创建时冻结，避免 SDK 隔离环境影响采集。"""
 
-    def __init__(self, scope, *, origin=None, active=None):
+    def __init__(self, scope, *, origin=None, active=None, on_mark=None):
         self.scope = scope
-        self.active = enabled() if active is None else active
+        self.active = (enabled() or os.environ.get('CCSDK_ENABLE_TIMING') == '1') if active is None else active
         self.origin = (origin or (time.perf_counter(), time.process_time())) if self.active else None
+        self.origin_unix_ms = time.time_ns() / 1000000 if self.active else None
+        if self.active and origin:
+            self.origin_unix_ms -= (time.perf_counter()-origin[0])*1000
+        self.clock_id = str(os.getpid())
+        self.on_mark = on_mark
         self.elapsed = {}
         self.cpu = {}
         self.counts = {}
@@ -50,6 +59,11 @@ class Timing:
         if self.active and stage in TIMING_STAGES[self.scope] and stage not in self.elapsed:
             self.elapsed[stage] = round(max(0, time.perf_counter() - self.origin[0]) * 1000, 3)
             self.cpu[stage] = round(max(0, time.process_time() - self.origin[1]) * 1000, 3)
+            if self.on_mark:
+                try:
+                    self.on_mark(stage, self.elapsed[stage])
+                except Exception:
+                    pass
 
     def count(self, name, value):
         if self.active and name in TIMING_COUNTS:
@@ -59,6 +73,7 @@ class Timing:
         if not self.active:
             return None
         return performance_event({'type': 'performance', 'version': 1, 'scope': self.scope,
+                                  'originUnixMs': self.origin_unix_ms, 'clockId': self.clock_id,
                                   'elapsedMs': dict(self.elapsed), 'cpuMs': dict(self.cpu),
                                   'counts': dict(self.counts)})
 

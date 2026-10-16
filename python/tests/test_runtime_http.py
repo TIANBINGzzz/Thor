@@ -17,6 +17,7 @@ from runtime.protocol import AgentRunRequest
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from tools.artifacts import publish_artifact
+from runtime.observability import Observer
 
 
 class RuntimeHTTPTests(unittest.TestCase):
@@ -37,6 +38,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
             "RUN_TIMINGS": {}, "TRACE_SECRETS": {},
+            "OBSERVATION": Observer(Path(self.temp.name)/'unused',instance_id='test'),
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
                 server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
         }.items():
@@ -75,6 +77,28 @@ class RuntimeHTTPTests(unittest.TestCase):
             await server.ARTIFACT_DELIVERY.wait('run-test')
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
+
+    def test_observation_credentials_are_read_only_and_run_reports_stay_identity_bound(self):
+        self.seed()
+        observer=Observer(Path(self.temp.name)/'observe.db',instance_id='test',enabled=True,token='collection-secret')
+        self.addCleanup(observer.close)
+        with patch.object(server,'OBSERVATION',observer):
+            collection={'Authorization':'Bearer collection-secret'}
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,401)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=collection).status_code,200)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers={**collection,'Origin':'http://browser.example'}).status_code,401)
+            url='/internal/v1/runs/run-test/observations'
+            event={'name':'first_body','elapsedMs':50,'nonempty':True}
+            self.assertEqual(self.client.post(url,headers=collection,json=event).status_code,401)
+            self.assertEqual(self.client.post(url,headers=self.headers(tenant='other'),json=event).status_code,401)
+            self.assertTrue(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
+            self.assertFalse(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
+
+    def test_observation_conversion_failure_cannot_change_public_output(self):
+        self.seed()
+        with patch.object(server.OBSERVATION,'enabled',True), patch.object(server.OBSERVATION,'sdk',side_effect=OSError('disk unavailable')):
+            asyncio.run(server._handle_agent_event('run-test',{'type':'text','text':'answer'}))
+        self.assertEqual(self.store.events_after('run-test')[-1]['payload']['textDelta'],'answer')
 
     def test_performance_is_private_even_when_trace_is_disabled(self):
         self.seed()
@@ -120,7 +144,7 @@ class RuntimeHTTPTests(unittest.TestCase):
     def test_only_runtime_and_health_routes_are_exposed(self):
         """内部服务不暴露浏览器 API，也不接受浏览器直接发起 Run。"""
         paths = {route.path for route in server.app.routes}
-        self.assertTrue(all(path == "/health" or path.startswith("/internal/v1/") for path in paths), paths)
+        self.assertTrue(all(path == "/health" or path.startswith(("/internal/v1/", "/internal/observability/v1/")) for path in paths), paths)
         self.assertEqual(self.client.get("/health").status_code, 200)
         for path in ("/api/sessions", "/api/capabilities", "/api/models", "/api/files/test"):
             self.assertEqual(self.client.get(path).status_code, 404)

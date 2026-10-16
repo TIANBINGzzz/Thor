@@ -9,7 +9,11 @@ import logging
 import os
 import shutil
 import uuid
+import time
+import platform
+import importlib.metadata
 from contextlib import asynccontextmanager
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +26,7 @@ from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.protocol import AgentRunRequest, ProtocolError
-from runtime.process import stream_agent
+from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from runtime.event_display import ToolCallDisplays, with_display_name
@@ -31,6 +35,7 @@ from runtime.worker_pool import WorkerPool, configure_worker_logging
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
 from runtime import private_trace
+from runtime.observability import create_observer, trace_id
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +45,7 @@ RUN_TIMINGS: dict[str, private_trace.Timing] = {}
 
 
 load_runtime_environment()
+OBSERVATION = create_observer(PROJECT_ROOT)
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
 MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
@@ -80,7 +86,8 @@ async def lifespan(_: FastAPI):
     WORKER_POOL = WorkerPool(max_idle=settings.max_idle, max_starting=settings.max_starting,
                             min_available_memory_mib=settings.min_available_memory_mib,
                             max_live=settings.max_live, payload_factory=_blank_client_payload,
-                            cleanup_workspace=_remove_unbound_workspace)
+                            cleanup_workspace=_remove_unbound_workspace, observer=OBSERVATION,
+                            worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
     try:
         SESSION_MANAGER = _create_session_manager()
@@ -88,6 +95,7 @@ async def lifespan(_: FastAPI):
         yield
     finally:
         await _shutdown_runtime()
+        await asyncio.to_thread(OBSERVATION.close)
 
 
 async def _shutdown_runtime():
@@ -123,11 +131,22 @@ async def secure_runtime_api(request: Request, call_next):
     """检查请求路径及 Origin，返回拒绝响应或交给下一处理器；具体 Run 鉴权由路由执行。"""
     if request.url.path == "/health":
         return await call_next(request)
+    if request.url.path.startswith("/internal/observability/v1/"):
+        if request.headers.get("origin") or not OBSERVATION.authorized(request.headers.get("authorization")):
+            return _plain("观测授权失败", 401)
+        return await call_next(request)
     if not request.url.path.startswith("/internal/v1/"):
         return _plain("接口不存在", 404)
     if request.headers.get("origin"):
         return _plain("校验失败", 403)
-    return await call_next(request)
+    started = time.perf_counter()
+    wall = time.time_ns() / 1000000
+    response = await call_next(request)
+    run_id = getattr(request.state, "observation_run", None)
+    if run_id and OBSERVATION.enabled:
+        OBSERVATION.span("http:"+run_id, "HTTP create", wall, (time.perf_counter()-started)*1000,
+                         attributes={"http.response.status_code":response.status_code,"run.id":run_id})
+    return response
 
 
 def _plain(message: str, status: int) -> PlainTextResponse:
@@ -354,6 +373,23 @@ async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[st
 
 async def _notify_stored_event(stored: dict[str, Any]) -> None:
     """产物状态与事件已在同一事务提交，这里只通知订阅者，不重复写事件。"""
+    run_id = stored['runId']
+    try:
+        if OBSERVATION.enabled:
+            event_type=stored.get('type','')
+            payload=stored.get('payload',{})
+            if event_type in {'artifact.ready','artifact.failed'}:
+                OBSERVATION.count('ccsdk_artifact_'+event_type.split('.')[1]+'_total')
+            # 正文与公共业务内容不复制到数值观测出口。
+            OBSERVATION.emit('milestone',run_id,{'name':event_type, 'sequence':stored.get('sequence'),
+                'phase':payload.get('name'), 'artifact':payload if event_type.startswith('artifact.') else None})
+            if event_type in {'run.started','run.completed','run.failed','run.cancelled'}:
+                current=RUN_STORE.get_run(run_id)
+                _observe_run(current)
+                if event_type!='run.started':
+                    OBSERVATION.count('ccsdk_runs_completed_total','{status="'+current['status']+'"}')
+    except Exception as error:
+        LOGGER.warning("观测转换失败：%s", type(error).__name__)
     async with internal_runs_lock:
         queues = list(internal_subscribers.get(stored['runId'], set()))
     for queue in queues:
@@ -364,13 +400,41 @@ def _artifact_delivery() -> ArtifactDelivery:
     """按当前 RunStore 延迟创建并复用产物交付服务。"""
     global ARTIFACT_DELIVERY
     if ARTIFACT_DELIVERY is None or ARTIFACT_DELIVERY.store is not RUN_STORE:
-        ARTIFACT_DELIVERY = ArtifactDelivery(RUN_STORE, PROJECT_ROOT / '.scribe-runs' / 'artifacts', _notify_stored_event)
+        ARTIFACT_DELIVERY = ArtifactDelivery(RUN_STORE, PROJECT_ROOT / '.scribe-runs' / 'artifacts', _notify_stored_event,
+            on_observation=_observe_artifact)
     return ARTIFACT_DELIVERY
+
+
+def _observe_artifact(run_id, event):
+    OBSERVATION.emit('milestone',run_id,{**event,'artifact':{'artifactId':event['artifactId'],'fileId':event.get('fileId')}})
+    if event['name']=='artifact.upload_finished':
+        OBSERVATION.span(run_id,'artifact.upload',event['originUnixMs'],event['elapsedMs'],
+            parent=OBSERVATION.span_id(run_id,'run'),identity=event['artifactId']+':'+str(event['attempt']),
+            attributes={'artifact.id':event['artifactId'],'upload.attempt':event['attempt'],'measurement.boundary':'runtime_http_client'})
 
 
 def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
     """私有观测尽力写入；诊断存储故障不能改变业务结果或阻断 Run 清理。"""
-    if not private_trace.enabled() or raw is None:
+    if raw is None:
+        return
+    try:
+        if OBSERVATION.enabled:
+            OBSERVATION.sdk(run_id,raw)
+            if raw.get('type') == 'client_acquired':
+                warm=raw.get('warmRunId')
+                OBSERVATION.emit('milestone',run_id,{'name':'client_acquired',**raw})
+                OBSERVATION.span(run_id,'client_acquisition',time.time_ns()/1000000-raw['elapsedMs'],raw['elapsedMs'],
+                        parent=OBSERVATION.span_id(run_id,'run'),
+                        attributes={'pool.source':raw.get('source'),'pool.miss_reason':raw.get('missReason')},
+                        links=[{'traceId':trace_id(OBSERVATION.instance_id,warm),'spanId':OBSERVATION.span_id(warm,'prewarm')}] if warm else [])
+            if raw.get('type') == 'performance':
+                OBSERVATION.performance(run_id, private_trace.performance_event(raw) or {})
+            elif raw.get('type') in private_trace.TRACE_TYPES:
+                run=RUN_STORE.get_run(run_id) or {}
+                OBSERVATION.emit('evidence',run_id,raw,secrets=TRACE_SECRETS.get(run_id,()),capability=run.get('capabilityRef'))
+    except Exception as error:
+        LOGGER.warning("观测转换失败：%s", type(error).__name__)
+    if not private_trace.enabled():
         return
     try:
         event = None
@@ -427,6 +491,7 @@ def _create_session_manager() -> SessionManager:
     return SessionManager(
         on_public_event=_handle_client_public_event,
         on_state=_handle_actor_state,
+        on_observation=_record_trace if OBSERVATION.enabled else None,
         idle_ttl_ms=RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
     )
@@ -758,6 +823,11 @@ async def _execute_internal_run(
                 worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)
         if timing:
             timing.mark('assembled')
+        if OBSERVATION.enabled:
+            try:
+                OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(private_trace.sanitize(worker_payload.get('_workflow_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
+            except Exception as error:
+                LOGGER.warning("观测配置摘要失败：%s", type(error).__name__)
         async def consume_agent() -> None:
             """消费一次性 Worker 事件，保存 SDK 会话引用并交给统一分流入口。"""
             async for raw in stream_agent(worker_payload):
@@ -825,6 +895,9 @@ async def _execute_internal_run(
         if timing:
             timing.mark('completed')
             _record_trace(run_id, timing.event())
+            OBSERVATION.span(run_id,'run',timing.origin_unix_ms,timing.elapsed.get('completed',0),
+                attributes={'run.id':run_id,'run.status':(RUN_STORE.get_run(run_id) or {}).get('status','unknown')},
+                links=[{'traceId':trace_id(OBSERVATION.instance_id,'http:'+run_id),'spanId':OBSERVATION.span_id('http:'+run_id,'HTTP create')}])
             RUN_TIMINGS.pop(run_id, None)
         pending_terminals.pop(run_id, None)
         TRACE_SECRETS.pop(run_id, None)
@@ -842,7 +915,7 @@ async def _execute_internal_run(
 @app.post("/internal/v1/runs")
 async def internal_create_run(request: Request):
     """解析并鉴权创建请求，幂等登记和调度 Run，返回公开状态及 SSE 地址，错误时返回 HTTP 错误响应。"""
-    timing = private_trace.Timing('runtime')
+    timing = private_trace.Timing('runtime', active=private_trace.enabled() or OBSERVATION.enabled)
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
@@ -889,6 +962,12 @@ async def internal_create_run(request: Request):
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
     except RuntimeError:
         return _plain("execution_configuration_invalid", 503)
+    if OBSERVATION.enabled:
+        request.state.observation_run=run_request.run_id
+        timing.on_mark=lambda name,elapsed: OBSERVATION.emit('milestone',run_request.run_id,{'name':'runtime.'+name,'elapsedMs':elapsed,'clock':'runtime.monotonic'})
+        if existing is None:
+            OBSERVATION.count('ccsdk_runs_created_total')
+            _observe_run(run)
     timing.mark('accepted')
     return JSONResponse(
         {
@@ -1175,6 +1254,59 @@ async def internal_cancel_run(run_id: str, request: Request):
 
 
 
+
+
+
+
+# 部署级采集授权与原 run.observe 分离；浏览器遥测仍须绑定原 Run 身份。
+def _observe_run(run):
+    if not run: return
+    OBSERVATION.emit('run',run['runId'],{k:run.get(k) for k in
+        ('status','createdAt','updatedAt','capabilityRef','businessSessionId','runtimeSessionRef')})
+
+
+@app.get('/internal/observability/v1/info')
+async def observation_info():
+    return JSONResponse({'version':1,'epoch':OBSERVATION.store.epoch,'instanceId':OBSERVATION.instance_id,'python':platform.python_version(),
+        'sdk':importlib.metadata.version('claude-agent-sdk'), 'clock':'local monotonic durations; wall anchors only',
+        'signals':{'runtime':True,'actor':True,'pool':True,'worker':True,'browser':'client_reports',
+                   'java':'uninstrumented','modelHttp':'uninstrumented','details':OBSERVATION.details}},headers={'cache-control':'no-store'})
+
+
+@app.get('/internal/observability/v1/records')
+async def observation_records(cursor:int=Query(0,ge=0),limit:int=Query(200,ge=1,le=500)):
+    return JSONResponse(await asyncio.to_thread(OBSERVATION.read,cursor,limit),headers={'cache-control':'no-store'})
+
+
+@app.get('/internal/observability/v1/snapshot')
+async def observation_snapshot():
+    return JSONResponse({'timestamp':time.time_ns()//1000000,'actors':list(actor_snapshots.values()),
+        'pool':WORKER_POOL.snapshot() if WORKER_POOL else None,
+        'processes':await asyncio.to_thread(WORKER_POOL.memory_snapshot) if WORKER_POOL else [],
+        'dropped':OBSERVATION.dropped},headers={'cache-control':'no-store'})
+
+
+@app.get('/internal/observability/v1/metrics')
+async def observation_metrics():
+    extra=''
+    if WORKER_POOL:
+        for key,value in WORKER_POOL.snapshot().items():
+            if type(value) in (bool,int,float): extra+=f'ccsdk_pool_{key} {int(value) if isinstance(value,bool) else value}\n'
+    extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actor_snapshots.values())}\n'
+    return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4')
+
+
+@app.post('/internal/v1/runs/{run_id}/observations')
+async def browser_observation(run_id:str,request:Request):
+    run=RUN_STORE.get_run(run_id)
+    if run is None: return _plain('Run 不存在',404)
+    try:
+        _authorize_internal(request,run,allowed_scopes={'run.read','run.execute'},consume_jti=False)
+        data=await _small_json(request,4096)
+    except (_InternalAuthError,ValueError) as error:
+        return _plain(str(error),401 if isinstance(error,_InternalAuthError) else 400)
+    if not OBSERVATION.enabled: return _plain('观测未启用',404)
+    return {'accepted':OBSERVATION.browser(run_id,data)}
 
 
 if __name__ == "__main__":

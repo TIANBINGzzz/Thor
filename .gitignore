@@ -30,3 +30,5 @@ __pycache__/
 .sdk-extract-*/
 *.incomplete/
 ~$*.docx
+
+!/config/observability.yml

@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import time
 import weakref
+import uuid
 
 import psutil
 
@@ -43,7 +44,7 @@ def available_memory_mib():
 
 class WorkerPool:
     def __init__(self, *, max_idle, max_starting, min_available_memory_mib=0,
-                 max_live=0, payload_factory=None, cleanup_workspace=None, worker_factory=ClientWorkerProcess):
+                 max_live=0, payload_factory=None, cleanup_workspace=None, worker_factory=ClientWorkerProcess, observer=None):
         """空闲数与总存活数分开；创建中及已保留的连接也占容量。"""
         for value, minimum in ((max_idle, 0), (max_starting, 1), (min_available_memory_mib, 0), (max_live, 0)):
             if type(value) is not int or value < minimum:
@@ -71,6 +72,14 @@ class WorkerPool:
         self._retry_at = 0.0
         self._memory_paused = False
         self._memory_resume_at = 0.0
+        self._observer = observer
+
+    def _observe(self, worker, name, **values):
+        if self._observer:
+            try:
+                self._observer.emit('pool',getattr(worker,'observation_warm_id','pool'),{'name':name,**values})
+            except Exception:
+                pass
 
     def start(self):
         """后台预热，不让模型服务或预热失败阻塞 HTTP 启动。"""
@@ -115,6 +124,8 @@ class WorkerPool:
         if self._closed:
             raise RuntimeError('Worker pool is closed')
         worker = None
+        started=time.perf_counter()
+        reason='history_restore' if (initial_payload or {}).get('resume') else 'no_reserved_client'
         if self._payload_factory is not None and initial_payload:
             candidate = self._reserved.pop(initial_payload.get('session_directory'), None)
             if candidate is not None:
@@ -123,6 +134,7 @@ class WorkerPool:
                         and expected.get('_credential_binding') == initial_payload.get('_credential_binding')):
                     worker = candidate
                 else:
+                    reason='dead_client' if not candidate.alive else 'binding_changed'
                     self._retire(candidate)
         while self._payload_factory is None and self._ready:
             candidate = self._ready.popleft()
@@ -152,6 +164,10 @@ class WorkerPool:
             for key, value in kwargs.items():
                 setattr(worker, key, value)
         self._leased.add(worker)
+        worker.observation_acquisition={'source':source,'missReason':reason if source=='cold' else None,
+            'elapsedMs':round((time.perf_counter()-started)*1000,3),
+            'warmRunId':getattr(worker,'observation_warm_id',None)}
+        self._observe(worker,'acquired',**worker.observation_acquisition)
         LOGGER.info('Worker acquired: source=%s pool=%s', source, self.snapshot())
         self._wake.set()
         return worker
@@ -204,6 +220,7 @@ class WorkerPool:
 
     async def _terminate(self, worker):
         try:
+            self._observe(worker,'retiring')
             await worker.terminate()
             payload = self._payloads.pop(worker, None)
             if payload and self._cleanup_workspace:
@@ -220,8 +237,13 @@ class WorkerPool:
 
     async def _prepare(self):
         worker = None
+        started=time.perf_counter()
+        wall=time.time_ns()/1000000
+        outcome='failed'
         try:
             worker = self._factory()
+            worker.observation_warm_id='warm:'+uuid.uuid4().hex
+            self._observe(worker,'prewarm_started')
             if self._payload_factory is None:
                 await worker.prewarm()
             else:
@@ -233,6 +255,8 @@ class WorkerPool:
             else:
                 self._ready.append(worker)
                 self._backoff = 1.0
+                outcome='ready'
+                self._observe(worker,'prewarm_ready')
         except asyncio.CancelledError:
             if worker is not None:
                 await self._terminate(worker)
@@ -245,6 +269,14 @@ class WorkerPool:
             self._backoff = min(30.0, self._backoff * 2)
             LOGGER.warning('Worker prewarm failed: %s', type(error).__name__)
         finally:
+            if worker is not None and self._observer:
+                try:
+                    self._observer.span(worker.observation_warm_id,'prewarm',wall,(time.perf_counter()-started)*1000,
+                        attributes={'pool.outcome':outcome},identity='prewarm')
+                    for event in getattr(worker, 'startup_traces', ()):
+                        self._observer.performance(worker.observation_warm_id,event,parent=self._observer.span_id(worker.observation_warm_id,'prewarm'))
+                except Exception:
+                    pass
             self._starting.discard(asyncio.current_task())
             self._wake.set()
 

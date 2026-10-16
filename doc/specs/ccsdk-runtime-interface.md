@@ -2,6 +2,8 @@
 
 本文维护 Java/Python 的执行语义及文件边界；HTTP 路径、字段表、状态、错误码和可解析示例统一维护在 [API 参考](../python-api.html)，业务映射见 [Java 职责](java-control-plane.md)。接口变化同步参考页和协议测试，职责变化才更新 Java 文档；不复制实现教程或未实现接口。
 
+观测出口由 `config/observability.yml` 独立配置，通过部署凭据主动采集，接口见 [API 参考](../python-api.html#observation)。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，结束后的 Span 导入 Phoenix。浏览器首次非空正文与首次渲染分别上报，回放不重算首字；Java/CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
+
 ## 1. 职责边界
 
 Java 授权业务身份、Capability、会话和文件；Python 解析可信执行资产、准备输入、管理 SDK 历史并交付结果。Workflow、Skill、模型、MCP 地址、工具权限及工作目录不能由浏览器覆盖；持续约束见 [工程要求](engineering-requirements.md)。

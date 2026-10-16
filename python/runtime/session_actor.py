@@ -84,6 +84,7 @@ class SessionActor:
         *,
         on_public_event: PublicEventCallback | None = None,
         on_state: StateCallback | None = None,
+        on_observation: Callable | None = None,
         idle_ttl_ms: int = RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_start_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_start_ms,
         worker_send_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_send_ms,
@@ -100,6 +101,7 @@ class SessionActor:
         self._initial_payload = dict(initial_payload)
         self._on_public_event = on_public_event or _noop_public
         self._on_state = on_state or _noop_state
+        self._on_observation = on_observation
         self._idle_ttl_ms = idle_ttl_ms
         self._worker_start_timeout_ms = worker_start_timeout_ms
         self._worker_send_timeout_ms = worker_send_timeout_ms
@@ -280,6 +282,8 @@ class SessionActor:
         loop = asyncio.get_running_loop()
         command = _Command(kind, run_id, payload, loop.create_future(), prepare, cleanup,
                            dict(initial_payload) if initial_payload is not None else None)
+        if self._on_observation is not None:
+            command.timing = Timing('actor', active=True)
         if kind == "run" and run_id is not None:
             if run_id in self._run_commands:
                 raise SessionActorError("Run 已提交", code="run_already_submitted")
@@ -363,6 +367,13 @@ class SessionActor:
                         self._initial_payload = initial
                     starts = self._worker_starts
                     await self._ensure_worker()
+                    acquisition = getattr(self._worker, 'observation_acquisition', {}) if starts != self._worker_starts else {'source':'session_reuse','elapsedMs':0}
+                    if self._on_observation:
+                        try:
+                            self._on_observation(command.run_id, {'type':'client_acquired',**acquisition,
+                                'startReason':self._last_start_reason})
+                        except Exception:
+                            pass
                     created = int(starts != self._worker_starts)
                     command.timing.count('worker_created', created)
                     command.timing.count('worker_reused', 1 - created)
@@ -745,12 +756,14 @@ class SessionManager:
         *,
         on_public_event: PublicEventCallback | None = None,
         on_state: StateCallback | None = None,
+        on_observation: Callable | None = None,
         idle_ttl_ms: int = RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
     ) -> None:
         """初始化会话及 Run 路由表，并保存创建 Actor 所需的公共配置。"""
         self._on_public_event = on_public_event
         self._on_state = on_state
+        self._on_observation = on_observation
         self._idle_ttl_ms = idle_ttl_ms
         self._worker_factory = worker_factory
         self._actors: dict[str, SessionActor] = {}
@@ -781,6 +794,7 @@ class SessionManager:
                     restored,
                     on_public_event=self._on_public_event,
                     on_state=self._on_state,
+                    on_observation=self._on_observation,
                     idle_ttl_ms=self._idle_ttl_ms,
                     worker_factory=self._worker_factory,
                 )

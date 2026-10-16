@@ -6,6 +6,10 @@
 
 本文集中维护配置字段，不复制实际地址、账号、密码或业务租户值。资产职责与查询边界见 [数据契约](../doc/specs/data-source-connections.md)。
 
+## 独立观测出口
+
+[observability.yml](observability.yml) 为默认配置，`observability.local.yml` 覆盖本机值；相对存储路径以项目根目录为基准。`CCSDK_OBSERVABILITY_ENABLED=0/1` 可覆盖启用状态；测试回归使用 `0`，避免测试事件进入本机观测库。采集凭据从 `token-env` 指定的环境变量读取，独立于 Run JWT。`details` 与 `detail-capabilities` 同时允许时才保存脱敏原始证据。
+
 ## 顶层结构
 
 | 字段 | 用途与约束 |

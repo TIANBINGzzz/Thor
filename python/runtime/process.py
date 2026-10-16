@@ -51,7 +51,7 @@ async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
             await process.wait()
 
 
-async def _spawn_worker_process(payload: dict[str, Any]) -> asyncio.subprocess.Process:
+async def _spawn_worker_process(payload: dict[str, Any], *, timing_enabled: bool = False) -> asyncio.subprocess.Process:
     """以受控环境启动 agent_worker.py，返回带标准输入、输出和错误管道的子进程。"""
     creation_flags = 0
     kwargs: dict[str, Any] = {}
@@ -59,11 +59,14 @@ async def _spawn_worker_process(payload: dict[str, Any]) -> asyncio.subprocess.P
         creation_flags = getattr(__import__("subprocess"), "CREATE_NO_WINDOW", 0)
     else:
         kwargs["start_new_session"] = True
+    child_env = worker_environment()
+    if timing_enabled:
+        child_env['CCSDK_ENABLE_TIMING'] = '1'
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         str(WORKER),
         cwd=str(PROJECT_ROOT),
-        env=worker_environment(),
+        env=child_env,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -149,6 +152,7 @@ class ClientWorkerProcess:
         send_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_send_ms,
         close_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms,
         initial_payload: dict[str, Any] | None = None,
+        timing_enabled: bool = False,
     ) -> None:
         """校验各阶段超时并初始化持久 Worker 通道，此时不启动进程。"""
         for value, name in (
@@ -167,6 +171,7 @@ class ClientWorkerProcess:
         self._stderr_task: asyncio.Task[Any] | None = None
         self._write_lock = asyncio.Lock()
         self._closed = False
+        self._timing_enabled = timing_enabled
         self._prewarmed = False
         self._bound = False
         self._connected = False
@@ -200,7 +205,7 @@ class ClientWorkerProcess:
         if self._process is not None or self._closed or self._bound:
             raise ClientWorkerError("Client worker 已经启动")
         try:
-            self._process = await _spawn_worker_process({})
+            self._process = await _spawn_worker_process({}, timing_enabled=True) if self._timing_enabled else await _spawn_worker_process({})
             self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
             self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
             event = await asyncio.wait_for(self.next_event(), self.start_timeout_ms / 1000)
