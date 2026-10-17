@@ -332,7 +332,7 @@ class SessionActorTests(unittest.TestCase):
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
-    def test_cancel_retires_worker_and_next_run_rebuilds_it(self):
+    def test_cancel_keeps_worker_and_next_run_reuses_it(self):
         async def exercise():
             workers = []
 
@@ -340,7 +340,7 @@ class SessionActorTests(unittest.TestCase):
                 return [{"type": "text", "run_id": message["run_id"], "text": "waiting"}]
 
             def factory(**_kwargs):
-                scripts = [[hanging_script], [complete_script("session-2")]][len(workers)]
+                scripts = [hanging_script, complete_script("session-2")]
                 worker = FakeClientWorker(scripts, worker_id=len(workers))
                 workers.append(worker)
                 return worker
@@ -351,14 +351,83 @@ class SessionActorTests(unittest.TestCase):
             await actor.cancel("run-cancel")
             cancelled = await asyncio.wait_for(pending, timeout=1)
             self.assertEqual(cancelled["status"], "cancelled")
-            self.assertTrue(workers[0].terminated)
+            self.assertFalse(workers[0].terminated)
+            self.assertEqual(actor.state, ActorState.READY)
 
             completed = await actor.submit("run-after-cancel", {"prompt": "recover"})
             self.assertEqual(completed["status"], "succeeded")
-            self.assertEqual(len(workers), 2)
+            self.assertEqual(len(workers), 1)
             await actor.close()
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
+
+    def test_cancel_without_worker_terminal_times_out_and_rebuilds(self):
+        async def exercise():
+            workers = []
+
+            def factory(**kwargs):
+                worker = FakeClientWorker([lambda _: []] if not workers else [complete_script()],
+                                          worker_id=len(workers))
+                original_send = worker.send
+
+                async def send(message):
+                    if message['type'] != 'client_cancel':
+                        await original_send(message)
+                worker.send = send
+                workers.append(worker)
+                return worker
+
+            actor = SessionActor('session', {}, worker_factory=factory, control_timeout_ms=20)
+            try:
+                pending = asyncio.create_task(actor.submit('r1', {'timeout_ms': 2000}))
+                await _wait_until(lambda: bool(workers and workers[0].sent))
+                await actor.cancel('r1')
+                with self.assertRaises(SessionActorError) as failure:
+                    await asyncio.wait_for(pending, .5)
+                self.assertEqual(failure.exception.code, 'sdk_timeout')
+                self.assertTrue(workers[0].terminated)
+                self.assertEqual((await actor.submit('r2', {}))['status'], 'succeeded')
+                self.assertEqual(len(workers), 2)
+            finally:
+                await actor.close()
+
+        asyncio.run(asyncio.wait_for(exercise(), 3))
+
+    def test_next_run_waits_for_cancelled_run_cleanup_and_reuses_worker(self):
+        async def exercise():
+            cleaning, release, prepared = (asyncio.Event() for _ in range(3))
+            worker = FakeClientWorker([lambda _: [], complete_script()], worker_id=0)
+            factory = unittest.mock.Mock(return_value=worker)
+            actor = SessionActor('session', {}, worker_factory=factory)
+
+            async def cleanup():
+                cleaning.set()
+                await release.wait()
+
+            async def prepare():
+                prepared.set()
+                return {}
+
+            try:
+                first = asyncio.create_task(actor.submit('r1', {}, cleanup=cleanup))
+                await _wait_until(lambda: bool(worker.sent))
+                second = asyncio.create_task(actor.submit('r2', {}, prepare=prepare))
+                await _wait_until(lambda: 'r2' in actor._run_commands)
+                await actor.cancel('r1')
+                await cleaning.wait()
+                self.assertFalse(prepared.is_set())
+                self.assertFalse(first.done())
+                self.assertEqual([m['run_id'] for m in worker.sent if m['type'] == 'client_query'], ['r1'])
+                release.set()
+                self.assertEqual((await first)['status'], 'cancelled')
+                self.assertEqual((await second)['status'], 'succeeded')
+                factory.assert_called_once()
+                self.assertFalse(worker.terminated)
+            finally:
+                release.set()
+                await actor.close()
+
+        asyncio.run(asyncio.wait_for(exercise(), 3))
 
     def test_cancelled_queued_run_never_prepares_or_reaches_worker(self):
         async def exercise():

@@ -17,7 +17,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - 创建接口收到合法请求即返回 202，不等待文件或模型；同 runId 的同形请求返回 200，输入或归属冲突返回 409。传输重试保留原请求快照并使用新 JWT jti；重新执行使用新 runId。
 - 省略或 null capabilityRef 归一为 conversation，JWT 仍须绑定该能力；空字符串拒绝。能力选择只作用于本轮，Python 不恢复前端选中值。
 - 能力目录无需鉴权，只说明已登记能力，不代表用户授权、模型/MCP 健康或模板可用；Java 按业务权限筛选。
-- 同 tenant、sub、businessSessionId 的 Run 串行续接 SDK 历史，跨能力也连续；配置/凭据变化重建 Client 并恢复历史。无业务会话不保证连续上下文，重启须保留 RunStore 和 SDK transcript。历史续接不回滚工具副作用。
+- 同 tenant、sub、businessSessionId 的 Run 串行续接 SDK 历史，跨能力也连续；模型、工具和凭据逐轮热装配，连接固定项变化或 Client 故障时重建并恢复历史。无业务会话不保证连续上下文，重启须保留 RunStore 和 SDK transcript。历史续接不回滚工具副作用。
 
 ### 3.4 业务 payload
 
@@ -35,6 +35,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - Run 查询返回公开状态、最大事件序号及稳定错误码，不返回身份和 SDK 元数据；业务会话检索只返回公开执行摘要，不代替 Java 的会话/消息存储。
 - 会话检索按 JWT 的 tenant、sub、businessSessionId 过滤，独立使用 session.read。按 createdAt/runId 倒序分页，cursor 原样传回，不能作为权限依据；分页不是数据库快照。无记录不证明 Java 会话不存在。
 - cancel 按 runId 幂等取消排队或活动 Run，两种取消入口合并在途请求；重复取消不重复发送 SDK 命令，已结束 Run 不变。HTTP 断开或控制超时不撤销已接受的取消，504 后查询状态或重试；取消不抢先宣告活动执行终态。interrupt 不是暂停/恢复，文件准备期取消准备，持久 Client 模型期请求 SDK 中断、独立执行期停止任务。
+- 持久 Client 正常取消后读至 SDK Result，等待进程内工具收尾并清理本轮凭据，再复用于同业务会话的下一 Run；收尾超时或异常则销毁 Worker，后续 Run 重建。取消确认不表示新 Run 已可执行，同会话仍串行。
 - 控制不删除业务会话、已有文件或已完成工具副作用；断开 SSE 不取消执行，继续对话创建新 Run。
 
 ## 5. SSE 事件模块

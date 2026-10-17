@@ -395,10 +395,8 @@ class SessionActor:
             if self._close_requested:
                 await self._close_worker()
             elif outcome.status == "cancelled":
-                await self._discard_worker('cancelled')
-                self._state = ActorState.FAILED
+                self._state = ActorState.READY
                 self._streaming_state = "cancelled"
-                self._last_error_code = "cancelled"
             else:
                 self._state = ActorState.READY
                 self._streaming_state = "idle"
@@ -525,6 +523,13 @@ class SessionActor:
         )
         next_task: asyncio.Task[Any] | None = asyncio.create_task(worker.next_event(), name="ccsdk-actor-event")
         command_task: asyncio.Task[Any] | None = asyncio.create_task(self._commands.get(), name="ccsdk-actor-command")
+
+        async def handle_control(value):
+            nonlocal deadline
+            if value.kind == 'close' or (value.kind == 'cancel' and value.run_id == run_id):
+                deadline = min(deadline or float('inf'), time.monotonic() + self._control_timeout_ms / 1000)
+            await self._handle_active_command(value, run_id, worker)
+
         try:
             while True:
                 assert next_task is not None and command_task is not None
@@ -554,7 +559,7 @@ class SessionActor:
                     self._updated_at = self._last_event_at
                     if event_type in {"client_ready", "client_control_ack"}:
                         if simultaneous_command is not None:
-                            await self._handle_active_command(simultaneous_command, run_id, worker)
+                            await handle_control(simultaneous_command)
                         continue
                     if event_type in {"client_run_completed", "client_run_cancelled", "client_error"}:
                         session_id = event.get("session_id") or event.get("sessionId")
@@ -589,12 +594,12 @@ class SessionActor:
                         elif event_type in {"result", "error"}:
                             self._streaming_state = "idle" if event_type == "result" else "failed"
                     if simultaneous_command is not None:
-                        await self._handle_active_command(simultaneous_command, run_id, worker)
+                        await handle_control(simultaneous_command)
                     continue
 
                 command_value = command_task.result()
                 command_task = asyncio.create_task(self._commands.get(), name="ccsdk-actor-command")
-                await self._handle_active_command(command_value, run_id, worker)
+                await handle_control(command_value)
         finally:
             for task in (next_task, command_task):
                 if task is not None and not task.done():

@@ -4,17 +4,19 @@ import json
 import shutil
 import socket
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
+from unittest.mock import patch
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from runtime.claude_sdk import (
-    ClientTurnPolicy, ClaudeSDKClient, build_agent_options, create_sdk_mcp_server, sdk_tool,
+    ClientState, ClientTurnPolicy, ClaudeSDKClient, SDKToolScope, build_agent_options, create_sdk_mcp_server, sdk_tool,
 )
 from runtime.config import agent_environment, isolated_sdk_environment
 
@@ -24,6 +26,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
         app = FastAPI()
         stage = {'name': '', 'tool': None, 'requests': []}
         hits = []
+        model_started, tool_started, tool_cleaned = (asyncio.Event() for _ in range(3))
+        tool_scope = SDKToolScope()
         with tempfile.TemporaryDirectory() as directory:
             side_effect = Path(directory) / 'forbidden.txt'
 
@@ -37,6 +41,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     'tools': [item['name'] for item in data['tools']],
                     'context': 'CONTEXT_' + stage['name'] in json.dumps(data)})
                 tool = stage['tool'] if len(stage['requests']) == 1 else None
+                hang = stage['name'] == 'CANCEL_MODEL'
                 arguments = {'command': f'echo forbidden > "{side_effect.as_posix()}"'} if tool == 'Bash' else {}
                 blocks = [{'type': 'tool_use', 'id': 'toolu_' + uuid4().hex,
                            'name': tool, 'input': arguments}] if tool else [{'type': 'text', 'text': 'OK.'}]
@@ -62,6 +67,9 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                         {'type': 'message_stop'}])
                     for event in events:
                         yield 'event: ' + event['type'] + '\ndata: ' + json.dumps(event) + '\n\n'
+                        if hang and event['type'] == 'content_block_delta':
+                            model_started.set()
+                            await asyncio.Event().wait()
                 return StreamingResponse(stream(), media_type='text/event-stream')
 
             sock = socket.socket()
@@ -80,11 +88,19 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
             client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
 
             def server(label):
-                @sdk_tool('probe', 'local probe', {})
-                async def probe(arguments):
-                    hits.append(label)
-                    return {'content': [{'type': 'text', 'text': label}]}
-                return create_sdk_mcp_server(name='probe', tools=[probe])
+                with tool_scope.capture():
+                    @sdk_tool('probe', 'local probe', {})
+                    async def probe(arguments):
+                        hits.append(label)
+                        if stage['name'] == 'CANCEL_TOOL':
+                            tool_started.set()
+                            try:
+                                await asyncio.Event().wait()
+                            finally:
+                                await asyncio.sleep(.01)
+                                tool_cleaned.set()
+                        return {'content': [{'type': 'text', 'text': label}]}
+                    return create_sdk_mcp_server(name='probe', tools=[probe])
 
             try:
                 async with asyncio.timeout(10):
@@ -104,6 +120,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                         system_prompt='CONTEXT_' + name,
                         allowed_tools=['mcp__probe__probe'] if servers else [], disallowed_tools=[])
                     policy.bind(turn)
+                    tool_scope.start()
                     with isolated_sdk_environment():
                         await client.configure_turn(turn)
                         await client.query('Perform the probe for ' + name)
@@ -118,7 +135,57 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                         self.assertFalse(any(tool.startswith('mcp__probe__') for tool in stage['requests'][0]['tools']))
                         self.assertIn('本轮能力未授权此工具', json.dumps(messages, ensure_ascii=False))
                     policy.clear()
+                    tool_scope.stop()
+                    await tool_scope.drain(timeout_ms=1000)
                 self.assertEqual(hits, ['A', 'B'])
+
+                # 真实 CLI 的模型流中断、MCP 工具中断，均须能在原连接继续下一轮。
+                import agent_worker
+                cached = server('C')
+                for name, began in [('CANCEL_MODEL', model_started), ('CANCEL_TOOL', tool_started)]:
+                    stage.update(name=name, tool='mcp__probe__probe' if name == 'CANCEL_TOOL' else None, requests=[])
+                    turn.mcp_servers = {'probe': cached}
+                    turn.allowed_tools = ['mcp__probe__probe']
+                    turn.system_prompt = 'CONTEXT_' + name
+                    policy.bind(turn)
+                    tool_scope.start()
+                    queue, output = asyncio.Queue(), []
+
+                    async def cancel():
+                        await began.wait()
+                        await queue.put({'type': 'client_cancel', 'run_id': name})
+                    controller = asyncio.create_task(cancel())
+                    try:
+                        with isolated_sdk_environment(), patch.object(agent_worker, 'emit', output.append):
+                            await client.configure_turn(turn)
+                            await client.query('Perform the probe for ' + name)
+                            response = await agent_worker._receive_client_response(
+                                client, {'run_id': name}, {}, queue, False, time.monotonic() + 30,
+                                tool_scope=tool_scope)
+                        tool_scope.stop()
+                        await tool_scope.drain(timeout_ms=1000)
+                        self.assertTrue(response.cancelled)
+                        self.assertEqual(client.state, ClientState.READY)
+                        self.assertIs(client._provider, provider)
+                        if name == 'CANCEL_TOOL':
+                            self.assertTrue(tool_cleaned.is_set())
+                        self.assertFalse(any(e['type'] == 'result' for e in output))
+
+                        stage.update(name='AFTER_CANCEL', tool='mcp__probe__probe', requests=[])
+                        policy.bind(turn)
+                        tool_scope.start()
+                        with isolated_sdk_environment():
+                            await client.query('Perform the probe after cancellation')
+                            messages = [message async for message in client.receive_response()]
+                        tool_scope.stop()
+                        await tool_scope.drain(timeout_ms=1000)
+                        self.assertEqual(messages[-1].kind, 'result')
+                        self.assertFalse(messages[-1].data['is_error'])
+                        self.assertEqual(hits[-1], 'C')
+                        self.assertIs(client._provider, provider)
+                    finally:
+                        controller.cancel()
+                        await asyncio.gather(controller, return_exceptions=True)
             finally:
                 await client.disconnect()
                 service.should_exit = True

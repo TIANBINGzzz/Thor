@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from runtime.claude_sdk import create_sdk_mcp_server, run_tool_thread, sdk_tool
 from tools.declarations import operation
 
 
@@ -132,20 +132,9 @@ def create_artifact_server(
     @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def publish_file(args: dict[str, Any]) -> dict[str, Any]:
         """接收 source_path 和 file_name 工具参数，发布文件并返回 MCP 文本结果。"""
-        import asyncio
-        # 等待快照线程收尾再处理取消，避免下一轮复用目录时仍在复制。
-        task = asyncio.create_task(asyncio.to_thread(publish_artifact,
-            args.get("source_path", ""),
-            args.get("file_name", ""),
-            work,
-            deliverables,
-            session,
-        ))
         try:
-            result = await asyncio.shield(task)
-        except asyncio.CancelledError:
-            await asyncio.gather(task, return_exceptions=True)
-            raise
+            result = await run_tool_thread(publish_artifact,
+                args.get("source_path", ""), args.get("file_name", ""), work, deliverables, session)
         except (ValueError, FileNotFoundError) as error:
             return {**_text_result({'error': str(error)}), 'isError': True}
         if on_published is not None:

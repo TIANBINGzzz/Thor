@@ -13,6 +13,7 @@ import asyncio
 import json
 import sys
 import time
+from dataclasses import dataclass
 from typing import Any
 
 _BOOT_ORIGIN = (time.perf_counter(), time.process_time())
@@ -32,6 +33,7 @@ from runtime.claude_sdk import (
     ClaudeSDKClient,
     SDKError,
     SDKTimeoutError,
+    SDKToolScope,
     normalize_message,
     stream_query,
 )
@@ -253,8 +255,13 @@ def message_events(message: Any, streaming: dict[str, str]) -> list[dict[str, An
     return []
 
 
-class ClientRunCancelled(Exception):
-    """Internal signal used to retire a Client after an explicit cancellation."""
+@dataclass
+class ClientResponse:
+    """取消仍须读到 Result；此结果只在响应安全结束后返回。"""
+    session_id: str | None = None
+    cancelled: bool = False
+    close_requested: bool = False
+    stop_deadline: float | None = None
 
 
 async def _read_client_commands(queue: asyncio.Queue[dict[str, Any]]) -> None:
@@ -303,7 +310,8 @@ async def _receive_client_response(
     chart_delivery: ChartDelivery | None = None,
     mcp_errors: list | None = None,
     timing: Timing | None = None,
-) -> str | None:
+    tool_scope: SDKToolScope | None = None,
+) -> ClientResponse:
     """接收 Client、当前命令、流状态、控制队列及执行策略，输出回复事件并返回最后的 SDK 会话标识。
 
     子 Task 仅读取下一条回复；interrupt 等生命周期操作始终由本协程的所属 Task 执行。
@@ -313,17 +321,43 @@ async def _receive_client_response(
     next_task: asyncio.Task[Any] | None = None
     command_task: asyncio.Task[Any] | None = None
     completed = False
-    last_session_id: str | None = None
+    response = ClientResponse()
     try:
         next_task = asyncio.create_task(iterator.__anext__(), name="ccsdk-client-response")
         command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
         while True:
-            wait_set = {next_task, command_task}
-            done, _ = await asyncio.wait(wait_set, return_when=asyncio.FIRST_COMPLETED)
-            if next_task in done:
-                command_task.cancel()
-                await asyncio.gather(command_task, return_exceptions=True)
+            if command_task is None:
                 command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
+            wait_set = {next_task, command_task}
+            remaining = None if response.stop_deadline is None else max(0, response.stop_deadline - time.monotonic())
+            done, _ = await asyncio.wait(wait_set, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+            if not done:
+                raise SDKTimeoutError('Claude SDK 中断收尾超时')
+            # 响应和控制可能同时就绪；不能因读取正文而丢弃已出队的取消命令。
+            if command_task in done:
+                command_value = command_task.result()
+                command_task = None
+                command_type = command_value.get('type')
+                current_run = _client_command_run_id(command_value) == _client_command_run_id(command)
+                if (command_type == 'client_cancel' and current_run) or command_type in {'client_close', 'worker_stdin_closed'}:
+                    response.close_requested |= command_type in {'client_close', 'worker_stdin_closed'}
+                    if not response.cancelled:
+                        response.cancelled = True
+                        response.stop_deadline = min(deadline or float('inf'),
+                            time.monotonic() + RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+                        if tool_scope is not None:
+                            tool_scope.stop(cancel=True)
+                        # Result 与取消同时到达时，包装层可能已进入 READY，无须再中断。
+                        if client.state == ClientState.RUNNING:
+                            async with asyncio.timeout_at(response.stop_deadline):
+                                await client.interrupt()
+                elif command_type == 'client_interrupt' and current_run:
+                    if not response.cancelled and client.state == ClientState.RUNNING:
+                        await client.interrupt()
+                    emit({'type': 'client_control_ack', 'run_id': _client_command_run_id(command), 'op': 'interrupt'})
+                elif command_type in {'client_query', 'client_interrupt', 'client_cancel'}:
+                    emit({'type': 'client_error', 'run_id': _client_command_run_id(command_value), 'code': 'client_busy'})
+            if next_task in done:
                 try:
                     message = next_task.result()
                 except StopAsyncIteration as error:
@@ -332,8 +366,8 @@ async def _receive_client_response(
                 if timing is not None:
                     timing.mark('first_message')
                 if normalized.session_id:
-                    last_session_id = normalized.session_id
-                for event in message_events(normalized, streaming):
+                    response.session_id = normalized.session_id
+                for event in ([] if response.cancelled else message_events(normalized, streaming)):
                     if timing is not None and event.get('type') in {'text', 'thinking'} and event.get('text'):
                         stage = 'first_' + event['type']
                         first = stage not in timing.elapsed
@@ -344,29 +378,11 @@ async def _receive_client_response(
                     (chart_delivery.emit if chart_delivery else emit)(direct_workflow_event(event) if direct_workflow else event)
                 if normalized.kind == "result":
                     completed = True
-                    return last_session_id
+                    return response
                 next_task = asyncio.create_task(iterator.__anext__(), name="ccsdk-client-response")
-                continue
-
-            command_value = command_task.result()
-            command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
-            command_type = command_value.get("type")
-            if command_type == "client_interrupt" and _client_command_run_id(command_value) == _client_command_run_id(command):
-                await client.interrupt()
-                emit({"type": "client_control_ack", "run_id": _client_command_run_id(command), "op": "interrupt"})
-            elif command_type == "client_cancel" and _client_command_run_id(command_value) == _client_command_run_id(command):
-                await client.interrupt()
-                raise ClientRunCancelled
-            elif command_type == "client_close":
-                await client.interrupt()
-                raise ClientRunCancelled
-            elif command_type in {"client_query", "client_interrupt", "client_cancel"}:
-                emit({
-                    "type": "client_error",
-                    "run_id": _client_command_run_id(command_value),
-                    "code": "client_busy",
-                })
     finally:
+        if command_task is not None and command_task.done() and not command_task.cancelled():
+            command_queue.put_nowait(command_task.result())
         if command_task is not None and not command_task.done():
             command_task.cancel()
         if next_task is not None and not next_task.done():
@@ -412,6 +428,7 @@ async def run_client(initial: dict[str, Any]) -> None:
     command_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
     reader_task = asyncio.create_task(_read_client_commands(command_queue), name="ccsdk-client-stdin")
     tool_services = None
+    tool_scope = SDKToolScope()
     chart_delivery = ChartDelivery(emit)
     mcp_errors = []
     client_closed = False
@@ -444,6 +461,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                 emit({"type": "client_error", "run_id": run_id, "code": "configuration_error"})
                 continue
             data_services = None
+            response = ClientResponse()
+            failed = False
             try:
                 deadline = time.monotonic() + timeout_value / 1000
                 async with asyncio.timeout(timeout_value / 1000):
@@ -458,9 +477,12 @@ async def run_client(initial: dict[str, Any]) -> None:
                     if data_services:
                         await data_services.bind(command)
                         prompt = data_services.prepare_prompt(str(prompt or ""))
-                    options = build_options(command, data_services=data_services, artifact_sink=emit,
-                        chart_sink=chart_delivery.record, mcp_error_sink=lambda: mcp_errors.append(True),
-                        tool_services=tool_services)
+                    tool_scope.start()
+                    with tool_scope.capture():
+                        options = build_options(command, data_services=data_services,
+                            artifact_sink=lambda event: emit(event) if tool_scope.active else None,
+                            chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
+                            mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
                     direct_workflow = options.tools == [] and options.strict_mcp_config
                     policy.bind(options)
                     timing.mark('bound')
@@ -470,34 +492,49 @@ async def run_client(initial: dict[str, Any]) -> None:
                         timing.mark('query_begin')
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
                         timing.mark('query_sent')
-                        session_id = await _receive_client_response(
+                        response = await _receive_client_response(
                             client, command, streaming, command_queue, direct_workflow, deadline,
-                            chart_delivery, mcp_errors, timing,
+                            chart_delivery, mcp_errors, timing, tool_scope,
                         )
-                terminal({"type": "client_run_completed", "run_id": run_id, "session_id": session_id}, timing)
-            except ClientRunCancelled:
-                terminal({"type": "client_run_cancelled", "run_id": run_id}, timing)
-                return
+                outcome = {"type": "client_run_cancelled" if response.cancelled else "client_run_completed",
+                           "run_id": run_id, "session_id": response.session_id}
             except (asyncio.TimeoutError, SDKTimeoutError):
-                terminal({"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}, timing)
-                return
+                outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
+                failed = True
             except asyncio.CancelledError:
                 raise
             except Exception as error:
-                terminal({"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}, timing)
-                return
+                outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
+                failed = True
             finally:
                 policy.clear()
-                if tool_services is not None:
-                    tool_services.clear()
-                if data_services:
-                    await data_services.close()
+                tool_scope.stop(cancel=failed)
+                cleanup_deadline = response.stop_deadline or (time.monotonic() + RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+                try:
+                    async with asyncio.timeout_at(cleanup_deadline):
+                        await tool_scope.drain(timeout_ms=max(0, (cleanup_deadline - time.monotonic()) * 1000))
+                        if data_services:
+                            await data_services.close()
+                except (asyncio.TimeoutError, SDKTimeoutError):
+                    outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
+                    failed = True
+                except Exception as error:
+                    outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
+                    failed = True
+                finally:
+                    if tool_services is not None:
+                        tool_services.clear()
+            # 终态是下一轮的放行屏障，必须排在工具、凭据清理之后。
+            terminal(outcome, timing)
+            if failed or response.close_requested:
+                return
     except asyncio.CancelledError:
         raise
     except Exception as error:
         emit({"type": "client_error", "code": _client_error_code(error)})
     finally:
         policy.clear()
+        tool_scope.stop(cancel=True)
         if tool_services is not None:
             tool_services.clear()
         if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW}:

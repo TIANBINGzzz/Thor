@@ -14,6 +14,9 @@ import inspect
 from fnmatch import fnmatchcase
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
 from typing import Any
 
 import claude_agent_sdk as _sdk
@@ -73,9 +76,94 @@ def create_sdk_mcp_server(*args: Any, **kwargs: Any) -> Any:
 
 
 def sdk_tool(*args: Any, **kwargs: Any) -> Any:
-    """接收工具名称、描述和输入 schema，返回 SDK 工具装饰器。"""
+    """注册工具时捕获所属 Client 的调用边界，缓存的 MCP 跨轮沿用该边界。"""
+    decorate = _sdk.tool(*args, **kwargs)
+    scope = _tool_scope.get()
+    if scope is None:
+        return decorate
 
-    return _sdk.tool(*args, **kwargs)
+    def register(handler):
+        @wraps(handler)
+        async def invoke(*args, **kwargs):
+            return await scope.call(handler, *args, **kwargs)
+        return decorate(invoke)
+    return register
+
+
+_tool_scope: ContextVar[SDKToolScope | None] = ContextVar('ccsdk_tool_scope', default=None)
+
+
+class SDKToolScope:
+    """跟踪单 Client 的进程内工具，拒绝轮外调用，收尾后才允许绑定下一轮。"""
+
+    def __init__(self):
+        self.active = False
+        self._handlers = set()
+        self._calls = set()
+
+    @contextmanager
+    def capture(self):
+        """仅在本 Client 装配工具时使用，不保存身份或修改全局环境。"""
+        token = _tool_scope.set(self)
+        try:
+            yield
+        finally:
+            _tool_scope.reset(token)
+
+    def start(self):
+        if self._handlers or self._calls:
+            raise SDKExecutionError('上一轮工具尚未结束')
+        self.active = True
+
+    async def call(self, handler, *args, **kwargs):
+        if not self.active:
+            return {'isError': True, 'content': [{'type': 'text', 'text': '本轮执行已结束'}]}
+        caller = asyncio.current_task()
+        self._calls.add(caller)
+        # 独立持有实际处理器，SDK 取消等待不能让尚未退出的线程/工具脱离追踪。
+        task = asyncio.create_task(handler(*args, **kwargs))
+        self._handlers.add(task)
+        def finished(task):
+            self._handlers.discard(task)
+            if not task.cancelled():
+                task.exception()  # SDK 先取消等待时也须取走处理器异常。
+        task.add_done_callback(finished)
+        try:
+            return await asyncio.shield(task)
+        except asyncio.CancelledError:
+            if not task.cancelling():
+                task.cancel()
+            if caller.cancelling():
+                raise
+            # Runtime 取消实际处理器不应把整个 MCP 会话一并取消。
+            return {'isError': True, 'content': [{'type': 'text', 'text': '本轮执行已取消'}]}
+        finally:
+            self._calls.discard(caller)
+
+    def stop(self, *, cancel=False):
+        self.active = False
+        if cancel:
+            for task in self._handlers:
+                if not task.cancelling():
+                    task.cancel()
+
+    async def drain(self, *, timeout_ms):
+        """等待真实调用退出；超时保留追踪，由 Worker 退役，绝不放行下一轮。"""
+        pending = self._handlers | self._calls
+        if pending:
+            _, pending = await asyncio.wait(pending, timeout=max(0, timeout_ms) / 1000)
+            if pending:
+                raise SDKTimeoutError('Claude SDK 工具收尾超时')
+
+
+async def run_tool_thread(function, *args, **kwargs):
+    """线程无法由 asyncio 强停；取消处理器时仍等待线程退出，交由收尾预算约束复用。"""
+    task = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        await asyncio.gather(task, return_exceptions=True)
+        raise
 
 
 class SDKError(RuntimeError):

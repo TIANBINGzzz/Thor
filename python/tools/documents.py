@@ -1,10 +1,9 @@
 """OfficeCLI 处理原生 Office 编辑；本工具补充真实分页渲染和 PDF 阅读。"""
 
-import asyncio
 import json
 from pathlib import Path
 
-from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from runtime.claude_sdk import create_sdk_mcp_server, run_tool_thread, sdk_tool
 from tools.declarations import operation
 from tools.document_conversion import render_document, read_pdf
 
@@ -21,7 +20,7 @@ def create_document_server(base_dir, additional_dirs=None):
         async def invoke(args, _handler=handler):
             """在线程中执行已绑定的文档处理器，将结果或错误编码为 MCP 文本。"""
             try:
-                result = await asyncio.to_thread(_handler, base_dir=base_dir, additional_dirs=additional_dirs, **args)
+                result = await run_tool_thread(_handler, base_dir=base_dir, additional_dirs=additional_dirs, **args)
                 return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
             except Exception as error:
                 return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}

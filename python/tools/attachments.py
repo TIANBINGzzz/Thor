@@ -1,11 +1,10 @@
 """按页只读当前输入目录；不授予通用文件、进程或网络工具权限。"""
 
-import asyncio
 import base64
 import json
 from pathlib import Path
 
-from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
+from runtime.claude_sdk import create_sdk_mcp_server, run_tool_thread, sdk_tool
 from tools.declarations import operation
 from tools.document_conversion import _resolve, read_pdf
 
@@ -47,7 +46,7 @@ def create_attachment_server(root):
     async def read(arguments):
         """在线程中读取附件，将读取异常转换为统一可公开提示。"""
         try:
-            return await asyncio.to_thread(read_attachment, root, **arguments)
+            return await run_tool_thread(read_attachment, root, **arguments)
         except Exception:
             return {'isError': True, 'content': [{'type': 'text', 'text':
                 '附件无法读取，请核对本轮附件路径、格式与读取位置；支持UTF-8文字、DOCX、PDF和PNG/JPEG/WebP图片（最多20MB）。'}]}

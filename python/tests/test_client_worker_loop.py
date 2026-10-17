@@ -5,10 +5,176 @@ import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
 import agent_worker
-from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage, build_agent_options
+from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKMessage, SDKTimeoutError, build_agent_options
 
 
 class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_cancel_drains_result_cleans_credentials_and_reuses_connection(self):
+        events, terminal_cleanup = [], []
+        text_seen, interrupted, result_allowed, completed = (asyncio.Event() for _ in range(4))
+        cleanup_started, cleanup_allowed = asyncio.Event(), asyncio.Event()
+        tools = SimpleNamespace(token=None)
+        tools.configure = lambda assets, credentials: setattr(tools, 'token', credentials['platformBearer'])
+        tools.clear = lambda: setattr(tools, 'token', None)
+
+        def services(assets, credentials):
+            tools.configure(assets, credentials)
+            return tools
+
+        class Data:
+            active = False
+
+            async def bind(self, command):
+                self.active = True
+
+            def prepare_prompt(self, prompt):
+                return prompt
+
+            async def close(self):
+                cleanup_started.set()
+                await cleanup_allowed.wait()
+                self.active = False
+
+        class Provider:
+            queries, tokens = [], []
+            interrupts = disconnects = 0
+
+            async def connect(self, prompt=None):
+                pass
+
+            async def query(self, prompt, session_id):
+                self.queries.append(prompt)
+                self.tokens.append(tools.token)
+
+            async def interrupt(self):
+                self.interrupts += 1
+                interrupted.set()
+
+            async def receive_response(self):
+                if len(self.queries) == 1:
+                    yield SDKMessage(kind='assistant', data={'message_id': 'before', 'content': [{'type': 'text', 'text': 'before'}]})
+                    await interrupted.wait()
+                    yield SDKMessage(kind='assistant', data={'message_id': 'late', 'content': [{'type': 'text', 'text': 'late'}]})
+                    await result_allowed.wait()
+                else:
+                    yield SDKMessage(kind='assistant', data={'message_id': 'next', 'content': [{'type': 'text', 'text': 'next'}]})
+                yield SDKMessage(kind='result', data={'subtype': 'success'}, session_id='same-session')
+
+            async def disconnect(self):
+                self.disconnects += 1
+
+        async def commands(queue):
+            await queue.put({'type': 'client_query', 'run_id': 'r1', 'prompt': 'first',
+                             'credentials': {'platformBearer': 'token-one'}})
+            await text_seen.wait()
+            for _ in range(2):
+                await queue.put({'type': 'client_cancel', 'run_id': 'r1'})
+            await interrupted.wait()
+            await asyncio.sleep(0)
+            self.assertFalse(completed.is_set(), 'interrupt acknowledgement is not a completed response')
+            result_allowed.set()
+            await cleanup_started.wait()
+            self.assertFalse(completed.is_set(), 'terminal must wait for cleanup')
+            cleanup_allowed.set()
+            await completed.wait()
+            completed.clear()
+            await queue.put({'type': 'client_query', 'run_id': 'r2', 'prompt': 'second',
+                             'credentials': {'platformBearer': 'token-two'}})
+            await completed.wait()
+            await queue.put({'type': 'client_close'})
+
+        def emit(event):
+            events.append(event)
+            if event.get('text') == 'before':
+                text_seen.set()
+            if event['type'] in {'client_run_completed', 'client_run_cancelled'}:
+                terminal_cleanup.append((tools.token, data.active))
+                completed.set()
+
+        provider, data = Provider(), Data()
+        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None, missing_environment=lambda: [],
+                            prepare_workflow_assets=lambda _: {}, ToolServices=services,
+                            create_run_services=lambda _: data,
+                            build_client_options=lambda *a: build_agent_options(),
+                            build_options=lambda *a, **kw: build_agent_options(),
+                            ClaudeSDKClient=lambda *a, **kw: ClaudeSDKClient(*a, **kw, client_factory=lambda _: provider),
+                            isolated_sdk_environment=nullcontext, _read_client_commands=commands, emit=emit):
+            try:
+                await asyncio.wait_for(agent_worker.run_client({}), 3)
+            except TimeoutError:
+                self.fail(f'Worker did not finish: {events}; queries={provider.queries}')
+        self.assertEqual(provider.queries, ['first', 'second'])
+        self.assertEqual(provider.tokens, ['token-one', 'token-two'])
+        self.assertEqual(provider.interrupts, 1)
+        self.assertEqual(provider.disconnects, 1)  # 最后显式关闭，取消时未断开。
+        self.assertEqual(terminal_cleanup, [(None, False), (None, False)])
+        self.assertEqual([e['text'] for e in events if e['type'] == 'text'], ['before', 'next'])
+        self.assertIn({'type': 'client_run_cancelled', 'run_id': 'r1', 'session_id': 'same-session'}, events)
+        self.assertFalse(any(e['type'] == 'client_error' for e in events))
+
+    async def test_result_and_cancel_arriving_together_do_not_interrupt_ready_client(self):
+        for control in ('client_cancel', 'client_close', 'worker_stdin_closed'):
+            with self.subTest(control=control):
+                class Provider:
+                    async def connect(self, prompt=None):
+                        pass
+
+                    async def query(self, prompt, session_id):
+                        pass
+
+                    async def receive_response(self):
+                        yield SDKMessage(kind='result', data={'subtype': 'success'}, session_id='session')
+
+                    interrupt = AsyncMock()
+                    disconnect = AsyncMock()
+
+                provider = Provider()
+                client = ClaudeSDKClient(build_agent_options(), client_factory=lambda _: provider)
+                await client.connect()
+                await client.query('question')
+                queue = asyncio.Queue()
+                queue.put_nowait({'type': control, 'run_id': 'r1'})
+                with patch.object(agent_worker, 'emit') as output:
+                    response = await agent_worker._receive_client_response(
+                        client, {'run_id': 'r1'}, {}, queue, False, None)
+                self.assertTrue(response.cancelled)
+                self.assertEqual(response.close_requested, control != 'client_cancel')
+                self.assertEqual(response.session_id, 'session')
+                self.assertEqual(client.state, ClientState.READY)
+                provider.interrupt.assert_not_awaited()
+                output.assert_not_called()
+                await client.disconnect()
+
+    async def test_cancel_without_result_fails_connection_within_control_budget(self):
+        class Provider:
+            async def connect(self, prompt=None):
+                pass
+
+            async def query(self, prompt, session_id):
+                pass
+
+            async def receive_response(self):
+                await asyncio.Event().wait()
+                yield
+
+            interrupt = AsyncMock()
+            disconnect = AsyncMock()
+
+        provider = Provider()
+        client = ClaudeSDKClient(build_agent_options(), client_factory=lambda _: provider)
+        await client.connect()
+        await client.query('question')
+        queue = asyncio.Queue()
+        queue.put_nowait({'type': 'client_cancel', 'run_id': 'r1'})
+        settings = SimpleNamespace(timeouts=SimpleNamespace(worker_control_ms=20))
+        with patch.object(agent_worker, 'RUNTIME_SETTINGS', settings):
+            with self.assertRaises(SDKTimeoutError):
+                async with asyncio.timeout(1):
+                    await agent_worker._receive_client_response(client, {'run_id': 'r1'}, {}, queue, False, None)
+        self.assertEqual(client.state, ClientState.FAILED)
+        provider.interrupt.assert_awaited_once()
+        provider.disconnect.assert_awaited_once()
+
     async def test_performance_output_failure_preserves_result_and_cleanup(self):
         for failure in (None, ValueError('query failed')):
             with self.subTest(failure=type(failure).__name__):
