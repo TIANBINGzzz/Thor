@@ -1,4 +1,4 @@
-"""独立观测出口：有界队列、持久游标和自动实例标识，不参与业务决策。"""
+"""通用拉取出口：有界待采日志、持久游标和自动实例标识，不依赖观测平台。"""
 from __future__ import annotations
 import hashlib
 import json
@@ -208,13 +208,20 @@ class Observer:
 
 
 def create_observer(root):
+    """观测总开关与缓冲预算来自主配置，不读取平台地址或独立配置文件。"""
+    root=Path(root)
     config={}
     try:
-        for path in (root/"config"/"observability.yml",root/"config"/"observability.local.yml"):
+        for path in (root/"config"/"application.yml",root/"config"/"application.local.yml"):
             if path.exists():
                 value=yaml.safe_load(path.read_text(encoding="utf-8")) or {}
                 if not isinstance(value,dict): raise ValueError('invalid observation configuration')
-                config.update(value)
+                runtime=value.get('runtime',{})
+                if not isinstance(runtime,dict): raise ValueError('invalid runtime configuration')
+                section=runtime.get('observability',{})
+                if not isinstance(section,dict) or set(section)-{'enabled','storage','max-records','retention-seconds','queue-size'}:
+                    raise ValueError('invalid observation configuration')
+                config.update(section)
         enabled=config.get("enabled",False)
         if type(enabled) is not bool: raise ValueError('invalid enabled')
         if os.environ.get('CCSDK_OBSERVABILITY_ENABLED') in {'0','1'}:

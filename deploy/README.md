@@ -41,11 +41,11 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 ## 独立观测接入
 
-镜像携带 `config/observability.yml`，默认关闭。每个部署在主机配置目录创建 `observability.local.yml`，填写 `enabled: true` 即可；其余保留策略继承镜像默认值。文件须允许容器 UID 10001 读取。实例标识自动持久化到观测库，开启后采集所有会话及能力的脱敏详细事件。
+观测总开关在主配置 `config/application.yml` 的 `runtime.observability.enabled`，默认关闭。主机配置目录的 `application.local.yml` 可仅填写 `runtime: {observability: {enabled: true}}`；其余预算继承镜像默认值，也可与 Nacos 等覆盖合并在该文件中。文件须允许容器 UID 10001 读取。旧独立观测 YAML 不再读取。
 
-- 外部 ACR 路线：在主机发布脚本的 `docker run` 参数增加 `--mount "type=bind,source=${配置目录}/observability.local.yml,target=/app/config/observability.local.yml,readonly"`，启动前检查源文件存在。
-- Compose 路线：设置 `CCSDK_WITH_OBSERVABILITY=1`，`deploy.sh` 加载 `compose.observability.yaml`，从 `CCSDK_CONFIG_DIRECTORY` 只读挂载该文件；缺文件拒绝启动。直接调用 Compose 时须显式追加 `-f deploy/compose.observability.yaml`。
-- 当前观测接口不校验 Token，不需配置采集密钥。Hawkeye 接入源只填写名称与 Runtime 根地址，连接时自动取得实例标识；连通性或标识校验失败时保留原配置。替换观测库后须重新保存接入源。
+- 外部 ACR 路线：在主机发布脚本的 `docker run` 参数增加 `--mount "type=bind,source=${配置目录}/application.local.yml,target=/app/config/application.local.yml,readonly"`，启动前检查源文件存在；已挂载主配置的部署直接修改同一配置。
+- Compose 路线：设置 `CCSDK_WITH_APPLICATION=1`，`deploy.sh` 加载通用 `compose.application.yaml`，从 `CCSDK_CONFIG_DIRECTORY` 只读挂载该文件；缺文件拒绝启动。直接调用 Compose 时显式追加 `-f deploy/compose.application.yaml`。
+- 当前观测接口不校验 Token，不需配置采集密钥。Hawkeye 接入源只填写名称与 Runtime 根地址，连接时自动取得持久实例标识；替换待采库后须重新保存接入源。其他平台可按同一版本的拉取协议接入，自行维护游标与长期观测库；Phoenix 和 Prometheus 部署在平台侧。
 - 验证 `/internal/observability/v1/info` 无凭据返回 200 且含 `instanceId`，再检查 records、snapshot、metrics 和 Hawkeye 采集状态。关闭观测返回 404；跨源浏览器请求返回 403。业务 Run JWT 及按 Run 授权的遥测接口继续保持原协议。
 - `CCSDK_OBSERVABILITY_ENABLED=0` 可覆盖 YAML 停采，云效环境生成器支持该变量；修改部署配置后须重新创建容器。
 

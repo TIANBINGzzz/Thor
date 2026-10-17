@@ -21,13 +21,11 @@
 !config/
 !config/databases.json
 !config/application.yml
-!config/observability.yml
 **/__pycache__/
 **/*.pyc
 **/node_modules/
 **/.env
 config/application.local.yml
-config/observability.local.yml
 **/.env.*
 **/*.env
 **/*.env.*

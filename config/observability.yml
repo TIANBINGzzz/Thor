@@ -1,6 +1,0 @@
-# 独立观测出口，无 Token 校验；采集所有会话和能力并保留凭据脱敏。
-enabled: false
-storage: .scribe-runs/observation.sqlite
-max-records: 20000
-retention-seconds: 86400
-queue-size: 2048

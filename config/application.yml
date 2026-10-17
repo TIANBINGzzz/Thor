@@ -6,6 +6,12 @@ nacos:
   username: ""
   password: ""
 runtime:
+  observability:
+    enabled: false # 总开关；开启后保留所有会话的脱敏待采事件，供独立平台拉取。
+    storage: .scribe-runs/observation.sqlite # 有界待采日志，相对项目根目录。
+    max-records: 20000
+    retention-seconds: 86400
+    queue-size: 2048
   timeouts: # 毫秒；按职责分别计时，执行预算从附件准备完成后开始。
     execution-ms: 3600000
     client-queue-ms: 300000

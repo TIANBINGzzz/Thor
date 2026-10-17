@@ -189,7 +189,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             environment = {**os.environ, "PATH": str(binary) + os.pathsep + os.environ["PATH"],
                            "CCSDK_IMAGE": "test:paths", "CCSDK_GENERATE_ENV": "0",
                            "CCSDK_WITH_DATABASE": "1", "CCSDK_PULL_IMAGE": "0",
-                           "CCSDK_WITH_OBSERVABILITY": "1",
+                           "CCSDK_WITH_APPLICATION": "1",
                            "CCSDK_CONFIG_DIRECTORY": os.path.relpath(config, script.parent), "TEST_DOCKER_LOG": str(log)}
             for key in ("CCSDK_ENV_FILE", "CCSDK_DEPLOY_LOCK_FILE"):
                 environment.pop(key, None)
@@ -197,7 +197,7 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             calls = log.read_text().splitlines()
             self.assertTrue(all(line.startswith(f"{config}/runtime.env|{config}|") for line in calls))
-            self.assertIn("-f compose.database.yaml -f compose.observability.yaml config --quiet", calls[0])
+            self.assertIn("-f compose.database.yaml -f compose.application.yaml config --quiet", calls[0])
             self.assertIn("up -d --force-recreate --wait", calls[-1])
             with (config / "deploy.lock").open("w") as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

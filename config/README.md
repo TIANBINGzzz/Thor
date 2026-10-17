@@ -8,7 +8,9 @@
 
 ## 独立观测出口
 
-[observability.yml](observability.yml) 为默认配置，`observability.local.yml` 覆盖本机值；相对存储路径以项目根目录为基准。`CCSDK_OBSERVABILITY_ENABLED=0/1` 可覆盖启用状态；测试回归使用 `0`，避免测试事件进入本机观测库。开启后采集所有会话、所有能力的 Timing、生命周期及脱敏详细事件，不补录历史。现阶段独立观测出口不校验 Token；实例标识自动从观测库生成并持久保存，由 Hawkeye 连接时读取。保留数据卷可维持标识和游标；替换观测库后重新保存接入源，避免新旧实例混淆。
+[application.yml](application.yml) 的 `runtime.observability.enabled` 为总开关，默认关闭；`application.local.yml` 同路径覆盖本机值，不再读取独立观测 YAML。开启后采集所有会话、所有能力的 Timing、生命周期及脱敏详细事件，不补录历史；关闭时不创建待采库和写入线程，采集接口返回 404，业务记录仍按原流程保存。`CCSDK_OBSERVABILITY_ENABLED=0/1` 为部署与测试覆盖；测试使用 `0`，避免污染本机待采记录。
+
+同节点的 `storage`、`max-records`、`retention-seconds`、`queue-size` 只管理 Runtime 有界待采日志；相对存储路径以项目根目录为基准，长期观测库由平台维护。当前出口不校验 Token；实例标识自动持久保存并由接入方发现。保留数据卷可维持标识和游标；替换待采库后重新登记接入源，避免新旧实例混淆。
 
 镜像挂载及 Hawkeye 接入见 [部署说明](../deploy/README.md#独立观测接入)。
 

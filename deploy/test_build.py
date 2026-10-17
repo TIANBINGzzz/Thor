@@ -15,7 +15,7 @@ class BuildTests(unittest.TestCase):
             root = Path(directory)
             (root / "deploy").mkdir()
             (root / "bin").mkdir()
-            for name in ("build.sh", "deploy.sh", "compose.yaml", "compose.database.yaml", "compose.observability.yaml"):
+            for name in ("build.sh", "deploy.sh", "compose.yaml", "compose.database.yaml", "compose.application.yaml"):
                 shutil.copyfile(Path(__file__).with_name(name), root / "deploy" / name)
             docker = root / "bin/docker"
             docker.write_text('''#!/bin/sh

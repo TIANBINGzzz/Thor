@@ -7,15 +7,58 @@ from pathlib import Path
 from runtime.observability import ObservationStore, Observer, trace_id, create_observer
 
 class ObservationTests(unittest.TestCase):
-    def test_broken_observation_config_does_not_prevent_runtime_startup(self):
+    @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''})
+    def test_invalid_observability_section_disables_collection(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
             (root/'config').mkdir()
-            for value in ('[broken', 'queue-size: 0', '- invalid'):
-                (root/'config'/'observability.yml').write_text(value,encoding='utf-8')
+            for value in ('enabled: yes\n    queue-size: 0', 'enabled: "yes"', '[invalid]'):
+                (root/'config'/'application.yml').write_text(
+                    'runtime:\n  observability:\n    '+value,encoding='utf-8')
                 observer=create_observer(root)
                 self.assertFalse(observer.enabled)
                 observer.close()
+
+    @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''})
+    def test_main_config_enables_pull_journal_and_local_switch_stops_recording(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            (root/'config').mkdir()
+            (root/'config/application.yml').write_text(
+                'runtime:\n  observability:\n    enabled: true\n    storage: journal/events.db\n    max-records: 3\n',
+                encoding='utf-8')
+            observer=create_observer(root)
+            self.addCleanup(observer.close)
+            self.assertTrue(observer.enabled)
+            for n in range(5): observer.emit('milestone','prewarm-1',{'step':n})
+            observer.flush()
+            page=observer.read(0,10)
+            self.assertTrue(page['gap'])
+            self.assertEqual([r['data']['step'] for r in page['records']],[2,3,4])
+            self.assertTrue((root/'journal/events.db').is_file())
+            observer.close()
+
+            (root/'config/application.local.yml').write_text(
+                'runtime:\n  observability:\n    enabled: false\n    storage: unused/events.db\n',encoding='utf-8')
+            observer=create_observer(root)
+            self.assertFalse(observer.enabled)
+            self.assertIsNone(observer.thread)
+            self.assertIsNone(observer.store)
+            observer.emit('milestone','r',{'step':1})
+            observer.close()
+            self.assertFalse((root/'unused').exists())
+
+    @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': '0'})
+    def test_emergency_stop_overrides_main_and_local_enabled(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            (root/'config').mkdir()
+            for name in ('application.yml','application.local.yml'):
+                (root/'config'/name).write_text('runtime:\n  observability:\n    enabled: true\n',encoding='utf-8')
+            observer=create_observer(root)
+            self.assertFalse(observer.enabled)
+            self.assertFalse((root/'.scribe-runs').exists())
+            observer.close()
 
     def test_cursor_survives_restart_and_reports_expired_range(self):
         with tempfile.TemporaryDirectory() as d:
@@ -44,12 +87,12 @@ class ObservationTests(unittest.TestCase):
             self.assertNotIn("abcdefgh",json.dumps(records))
             self.assertNotIn("business-secret",json.dumps(records))
 
-    @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': '1'})
+    @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''})
     def test_instance_identity_is_discovered_and_persists_with_storage(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root/'config').mkdir()
-            (root/'config/observability.yml').write_text('enabled: true', encoding='utf-8')
+            (root/'config/application.yml').write_text('runtime:\n  observability:\n    enabled: true', encoding='utf-8')
             first = create_observer(root)
             identity = first.instance_id
             first.close()
@@ -59,7 +102,7 @@ class ObservationTests(unittest.TestCase):
             self.assertEqual(second_identity, identity)
             other = root/'other'
             (other/'config').mkdir(parents=True)
-            (other/'config/observability.yml').write_text('enabled: true', encoding='utf-8')
+            (other/'config/application.yml').write_text('runtime:\n  observability:\n    enabled: true', encoding='utf-8')
             third = create_observer(other)
             third_identity = third.instance_id
             third.close()
