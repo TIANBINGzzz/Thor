@@ -108,16 +108,23 @@ class ObservationTests(unittest.TestCase):
             third.close()
             self.assertNotEqual(third_identity, identity)
 
-    def test_browser_replay_cannot_replace_first_body_and_missing_is_not_zero(self):
+    def test_runtime_first_text_metric_counts_once_and_never_uses_browser_series(self):
         with tempfile.TemporaryDirectory() as d:
             observer=Observer(Path(d)/"o.db", enabled=True, max_records=100)
-            self.assertFalse(observer.browser("r", {"name":"first_body", "elapsedMs":12,"nonempty":False}))
-            self.assertFalse(observer.browser("r", {"name":"first_body", "elapsedMs":20,"nonempty":True,"replay":True}))
-            self.assertTrue(observer.browser("r", {"name":"first_body", "elapsedMs":120,"nonempty":True}))
-            self.assertFalse(observer.browser("r", {"name":"first_body", "elapsedMs":999,"nonempty":True}))
+            from runtime.private_trace import Timing
+            timing=Timing('runtime',active=True)
+            timing.on_mark=lambda stage,elapsed: observer.timing_mark('r',timing,stage)
+            timing.mark('first_message')
+            timing.mark('first_thinking')
+            self.assertNotIn('ccsdk_runtime_first_text_seconds_count',observer.metrics())
+            timing.mark('first_text')
+            timing.mark('first_text')
+            observer.performance('r',timing.event())
             observer.flush()
-            self.assertEqual(observer.read(0,100)["records"][0]["data"]["elapsedMs"],120)
+            metrics=observer.metrics()
             observer.close()
+            self.assertIn("ccsdk_runtime_first_text_seconds_count 1",metrics)
+            self.assertNotIn("ccsdk_browser_ttft",metrics)
 
     def test_trace_identity_is_instance_scoped_and_stable(self):
         self.assertEqual(trace_id("a","r"), trace_id("a","r"))
@@ -153,14 +160,6 @@ class ObservationTests(unittest.TestCase):
             observer.close()
             self.assertEqual(data['usage'],{'input':12,'output':7})
             self.assertEqual(data['costUsd'],.01)
-
-    def test_browser_first_is_deduplicated_after_restart(self):
-        with tempfile.TemporaryDirectory() as d:
-            path=Path(d)/"o.db"
-            for expected in (True,False):
-                observer=Observer(path,enabled=True)
-                self.assertEqual(observer.browser("r",{"name":"first_body","elapsedMs":50,"nonempty":True}),expected)
-                observer.close()
 
     def test_performance_keeps_wall_anchor_without_cross_clock_subtraction(self):
         from runtime.private_trace import performance_event

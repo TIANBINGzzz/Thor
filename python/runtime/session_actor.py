@@ -289,6 +289,7 @@ class SessionActor:
                            dict(initial_payload) if initial_payload is not None else None)
         if self._on_observation is not None:
             command.timing = Timing('actor', active=True)
+            command.timing.on_mark = lambda stage, elapsed: self._emit_live_performance(command)
         if kind == "run" and run_id is not None:
             if run_id in self._run_commands:
                 raise SessionActorError("Run 已提交", code="run_already_submitted")
@@ -450,6 +451,17 @@ class SessionActor:
         except Exception as error:
             LOGGER.warning("SessionActor 性能观测失败：%s", type(error).__name__)
 
+    def _emit_live_performance(self, command: _Command) -> None:
+        """Timing 回调不能阻塞 Actor；主进程观测队列提供非阻塞写入。"""
+        if self._on_observation is None or command.run_id is None:
+            return
+        try:
+            result = self._on_observation(command.run_id, {**(command.timing.event() or {}), 'live': True})
+            if inspect.isawaitable(result):
+                asyncio.get_running_loop().create_task(result)
+        except Exception as error:
+            LOGGER.warning("SessionActor 实时性能观测失败：%s", type(error).__name__)
+
     async def _cleanup_run(self, command: _Command) -> None:
         """等待本轮清理回调，记录普通清理错误并继续传播取消信号。"""
         if command.cleanup is None:
@@ -486,6 +498,8 @@ class SessionActor:
         )
         if inspect.isawaitable(self._worker):
             self._worker = await self._worker
+        if self._on_observation is not None and hasattr(self._worker, 'set_observation_callback'):
+            self._worker.set_observation_callback(self._on_observation, run_id=self._active_run_id)
         self._last_pool_hit = bool(getattr(self._worker, 'prewarmed', False))
         self._last_start_reason = self._next_start_reason
         self._worker_starts += 1
@@ -494,6 +508,8 @@ class SessionActor:
             await self._worker.start(payload)
             if self._active_run_id:
                 for trace in getattr(self._worker, 'startup_traces', []):
+                    if self._last_pool_hit and trace.get('scope') == 'worker_boot':
+                        continue
                     await self._emit_performance(self._active_run_id, trace)
         except (ClientWorkerError, asyncio.TimeoutError) as error:
             self._worker = None
@@ -580,7 +596,7 @@ class SessionActor:
                     if event_type == "worker_exit":
                         raise ClientWorkerError("Client worker 已退出")
                     if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance'}:
-                        if event_type == 'text' and event.get('text'):
+                        if event_type == 'text' and isinstance(event.get('text'), str) and event['text'].strip():
                             timing.mark('first_text')
                         session_id = event.get("sessionId")
                         if session_id:

@@ -179,7 +179,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(len(paths), 1)
                     self.assertEqual(Document(paths[0]).paragraphs[0].text, '会议纪要模板')
 
-                async def query(payload):
+                async def query(payload, **kwargs):
                     assert_ready(payload)
                     yield {'type': 'result', 'ok': True}
 

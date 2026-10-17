@@ -79,9 +79,9 @@ async def _spawn_worker_process(payload: dict[str, Any], *, timing_enabled: bool
     return process
 
 
-async def stream_agent(payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
+async def stream_agent(payload: dict[str, Any], *, timing_enabled: bool = False) -> AsyncIterator[dict[str, Any]]:
     """将执行 payload 发送给一次性 Worker，逐条产出事件字典，结束或取消时回收进程。"""
-    process = await _spawn_worker_process(payload)
+    process = await _spawn_worker_process(payload, timing_enabled=timing_enabled)
     saw_done = False
     worker_error: str | None = None
     stderr_task: asyncio.Task[Any] | None = None
@@ -177,6 +177,13 @@ class ClientWorkerProcess:
         self._connected = False
         self._preconnected_payload: dict[str, Any] | None = None
         self.startup_traces: list[dict[str, Any]] = []
+        self._on_observation = None
+        self._observation_run_id: str | None = None
+
+    def set_observation_callback(self, callback, *, run_id: str | None = None) -> None:
+        """绑定当前 Run 的运行中 SDK 启动里程碑。"""
+        self._on_observation = callback
+        self._observation_run_id = run_id
 
     @property
     def prewarmed(self) -> bool:
@@ -233,6 +240,7 @@ class ClientWorkerProcess:
             self._bound = True
             # 预连接阶段的耗时不属于本轮请求。
             self.startup_traces.clear()
+            self.set_observation_callback(None)
             return {'type': 'client_ready', 'state': 'ready'}
         deadline = time.monotonic() + self.start_timeout_ms / 1000
         try:
@@ -252,6 +260,17 @@ class ClientWorkerProcess:
                     if isinstance(event.get('performance'), dict):
                         self.startup_traces.append(event['performance'])
                     return event
+                if event.get("type") == "performance":
+                    trace = performance_event(event)
+                    if trace:
+                        if not trace.get('live'):
+                            self.startup_traces.append(trace)
+                        if trace.get('live') and self._on_observation is not None:
+                            try:
+                                self._on_observation(self._observation_run_id or str(payload.get('run_id', '')), trace)
+                            except Exception:
+                                pass
+                    continue
                 if event.get("type") == "client_error":
                     raise ClientWorkerError("Client worker 连接失败")
         except asyncio.TimeoutError as error:
@@ -263,6 +282,8 @@ class ClientWorkerProcess:
         except Exception:
             await self.terminate()
             raise
+        finally:
+            self.set_observation_callback(None)
 
     async def preconnect(self, payload: dict[str, Any]) -> None:
         """预连接没有业务身份的 Client；领取只绑定一次，不能用于恢复已有历史。"""

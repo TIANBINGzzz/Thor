@@ -95,6 +95,16 @@ def emit_performance(timing: Timing) -> None:
             pass
 
 
+def emit_live_performance(timing: Timing) -> None:
+    """每次首次里程碑仅发送快照，不在同一进程的计时区间结束前造 Span。"""
+    event = timing.event()
+    if event is not None:
+        try:
+            emit({**event, 'live': True})
+        except Exception:
+            pass
+
+
 def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
     """接收增量消息和流状态，更新各作用域的消息标识，返回文本或思考增量事件列表。"""
     normalized = normalize_message(message)
@@ -368,12 +378,9 @@ async def _receive_client_response(
                 if normalized.session_id:
                     response.session_id = normalized.session_id
                 for event in ([] if response.cancelled else message_events(normalized, streaming)):
-                    if timing is not None and event.get('type') in {'text', 'thinking'} and event.get('text'):
+                    if timing is not None and event.get('type') in {'text', 'thinking'} and isinstance(event.get('text'), str) and event['text'].strip():
                         stage = 'first_' + event['type']
-                        first = stage not in timing.elapsed
                         timing.mark(stage)
-                        if first:
-                            emit_performance(timing)
                     event = mcp_result_event(event, mcp_errors)
                     (chart_delivery.emit if chart_delivery else emit)(direct_workflow_event(event) if direct_workflow else event)
                 if normalized.kind == "result":
@@ -403,6 +410,7 @@ async def run_client(initial: dict[str, Any]) -> None:
     """接收初始配置并持有一个 SDK Client，串行处理标准输入命令，将回复和控制结果写入 JSONL；无返回值。"""
 
     startup = Timing('worker_start')
+    startup.on_mark = lambda _stage, _elapsed: emit_live_performance(startup)
 
     def terminal(event, timing):
         """先输出本轮计时再输出终态，防止剩余事件被下一 Run 错领。"""
@@ -452,6 +460,7 @@ async def run_client(initial: dict[str, Any]) -> None:
 
             run_id = _client_command_run_id(command)
             timing = Timing('worker_run', active=startup.active)
+            timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
             chart_delivery.reset()
             mcp_errors.clear()
             prompt = command.get("prompt")
@@ -563,6 +572,7 @@ def mcp_result_event(event, failures):
 async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
     timing = Timing('worker_run')
+    timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
     load_runtime_environment(payload.get("workflow_name"))
     missing = missing_environment()
     if missing:
@@ -590,12 +600,9 @@ async def run(payload: dict[str, Any]) -> None:
             async for message in stream_query(prompt, options, timeout_ms=timeout_ms):
                 timing.mark('first_message')
                 for event in message_events(message, streaming):
-                    if event.get('type') in {'text', 'thinking'} and event.get('text'):
+                    if event.get('type') in {'text', 'thinking'} and isinstance(event.get('text'), str) and event['text'].strip():
                         stage = 'first_' + event['type']
-                        first = stage not in timing.elapsed
                         timing.mark(stage)
-                        if first:
-                            emit_performance(timing)
                     event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
     finally:

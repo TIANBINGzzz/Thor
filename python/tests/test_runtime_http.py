@@ -114,13 +114,30 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assertEqual(self.client.get('/internal/observability/v1/metrics',headers=self.observation_headers()).headers.get('x-ccsdk-instance-id'), observer.instance_id)
             self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,401)
             self.assertEqual(self.client.get('/internal/observability/v1/info',headers={**self.observation_headers(),'Origin':'http://browser.example'}).status_code,403)
-            url='/internal/v1/runs/run-test/observations'
-            event={'name':'first_body','elapsedMs':50,'nonempty':True}
-            self.assertEqual(self.client.post(url,headers=self.observation_headers(),json=event).status_code,401)
             self.assertEqual(self.client.get('/internal/v1/runs/run-test',headers=self.observation_headers()).status_code,401)
-            self.assertEqual(self.client.post(url,headers=self.headers(tenant='other'),json=event).status_code,401)
-            self.assertTrue(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
-            self.assertFalse(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
+
+    def test_runtime_first_text_excludes_whitespace_only_sdk_chunks(self):
+        self.seed()
+        timing=server.private_trace.Timing('runtime',active=True)
+        server.RUN_TIMINGS['run-test']=timing
+        async def exercise():
+            await server._handle_agent_event('run-test',{'type':'text','text':'  \n '})
+            self.assertNotIn('first_text',timing.elapsed)
+            await server._handle_agent_event('run-test',{'type':'text','text':'hello'})
+        asyncio.run(exercise())
+        self.assertIn('first_text',timing.elapsed)
+
+    def test_runtime_first_message_ignores_worker_timing_events(self):
+        self.seed()
+        timing=server.private_trace.Timing('runtime',active=True)
+        server.RUN_TIMINGS['run-test']=timing
+        asyncio.run(server._handle_agent_event('run-test',{
+            'type':'performance','version':1,'scope':'worker_boot',
+            'elapsedMs':{'imported':10},'cpuMs':{},'counts':{},
+        }))
+        self.assertNotIn('first_message',timing.elapsed)
+        asyncio.run(server._handle_agent_event('run-test',{'type':'init'}))
+        self.assertIn('first_message',timing.elapsed)
 
     def test_observation_requires_configured_secret(self):
         observer=Observer(Path(self.temp.name)/'observe-enabled.db',enabled=True)
@@ -187,10 +204,47 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertNotIn('run-test', server.internal_tasks)
         clear.assert_called_once()
 
+    def test_query_runtime_enables_worker_timing_from_observation_switch(self):
+        self.seed()
+        timing_values = []
+
+        def stream(payload, *, timing_enabled=False):
+            timing_values.append(timing_enabled)
+
+            async def events():
+                yield {'type': 'text', 'text': 'answer'}
+                yield {'type': 'result', 'ok': True}
+
+            return events()
+
+        observer = SimpleNamespace(
+            enabled=True,
+            instance_id='instance-test',
+            timing_mark=lambda *args: None,
+            emit=lambda *args, **kwargs: None,
+            span=lambda *args, **kwargs: None,
+            span_id=lambda *args, **kwargs: '1' * 16,
+            count=lambda *args, **kwargs: None,
+        )
+        with patch.object(server, 'OBSERVATION', observer), \
+             patch.object(server, 'stream_agent', stream), \
+             patch.object(server, '_record_trace'), \
+             patch.object(server, '_runtime_mode_for_request', return_value='query'), \
+             patch.object(server, '_internal_worker_payload', return_value={'prompt': 'hello', 'timeout_ms': 2000}), \
+             patch.object(server, '_clear_runtime_input'):
+            asyncio.run(server._execute_internal_run(
+                AgentRunRequest.from_dict(self.body),
+                {'tenant': 'tenant-test', 'sub': 'user-test'},
+                runtime_bearer='test-runtime-token',
+            ))
+        self.assertEqual(timing_values, [True])
+        self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
+
     def test_only_runtime_and_health_routes_are_exposed(self):
         """内部服务不暴露浏览器 API，也不接受浏览器直接发起 Run。"""
         paths = {route.path for route in server.app.routes}
         self.assertTrue(all(path == "/health" or path.startswith(("/internal/v1/", "/internal/observability/v1/")) for path in paths), paths)
+        self.assertNotIn('/internal/v1/runs/{run_id}/observations', paths)
         self.assertEqual(self.client.get("/health").status_code, 200)
         for path in ("/api/sessions", "/api/capabilities", "/api/models", "/api/files/test"):
             self.assertEqual(self.client.get(path).status_code, 404)

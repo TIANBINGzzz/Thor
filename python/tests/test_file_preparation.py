@@ -169,7 +169,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(payload["timeout_ms"], 500)
                     sdk_calls.append(payload)
 
-                async def query(payload):
+                async def query(payload, **kwargs):
                     assert_ready(payload)
                     yield {"type": "result", "ok": True}
 
@@ -220,7 +220,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     "input": {"text": "hello", "attachmentRefs": attachments}})
                 store.create_run("run-1", request=request, tenant_id="t", user_id="u")
                 calls = []
-                async def query(payload):
+                async def query(payload, **kwargs):
                     calls.append(payload)
                     yield {"type": "result", "ok": True}
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=Path(folder), DEFAULT_MODEL="test",

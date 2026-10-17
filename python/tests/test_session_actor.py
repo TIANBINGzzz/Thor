@@ -137,6 +137,33 @@ class SessionActorTests(unittest.TestCase):
         with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
             asyncio.run(asyncio.wait_for(exercise(), 2))
 
+    def test_actor_observation_publishes_live_milestones_with_run_identity(self):
+        async def exercise():
+            observations = []
+
+            def observe(run_id, event):
+                observations.append((run_id, event))
+
+            actor = SessionActor(
+                'session', {}, on_public_event=lambda *_: asyncio.sleep(0),
+                on_observation=observe,
+                worker_factory=lambda **kw: FakeClientWorker([complete_script()], worker_id=0),
+            )
+            try:
+                await actor.submit('run-live', {})
+            finally:
+                await actor.close()
+
+            actor_events = [(run_id, event) for run_id, event in observations
+                            if event.get('scope') == 'actor']
+            live = [(run_id, event) for run_id, event in actor_events
+                    if event.get('live') is True]
+            self.assertTrue(live)
+            self.assertIn('queue_exit', live[0][1]['elapsedMs'])
+            self.assertEqual({run_id for run_id, _ in actor_events}, {'run-live'})
+
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
     def test_timing_distinguishes_new_worker_and_reuse_with_fresh_origin(self):
         async def exercise():
             events = []

@@ -58,7 +58,6 @@ class Observer:
         self.instance_id=self.store.epoch if self.store else ""
         self.queue=queue.Queue(maxsize=queue_size)
         self.dropped=0
-        self.browser_seen=set()
         self.counters={(name,''):0 for name in ('ccsdk_runs_created_total','ccsdk_artifact_ready_total','ccsdk_artifact_failed_total')}
         self.counters[('ccsdk_runs_completed_total','{status="failed"}')]=0
         self.histograms={}
@@ -109,6 +108,13 @@ class Observer:
         except Exception:
             self.dropped+=1
 
+    def timing_mark(self, run_id, timing, stage):
+        """Timing 只回调首次 mark；运行中只发快照，终态再转换为 Span。"""
+        if not self.enabled: return
+        self.emit('milestone',run_id,timing.event())
+        if timing.scope == 'runtime' and stage == 'first_text':
+            self.observe('ccsdk_runtime_first_text_seconds',timing.elapsed[stage]/1000)
+
     def performance(self, run_id, event, *, parent=None):
         self.emit("milestone",run_id,event)
         elapsed=event.get("elapsedMs",{})
@@ -122,7 +128,7 @@ class Observer:
         for stage, end in sorted(elapsed.items(),key=lambda item:item[1]):
             self.span(run_id,scope+".until_"+stage,origin+previous,end-previous,parent=root,
                       attributes={"timing.scope":scope,"timing.local_duration_ms":end-previous,"timing.clock_id":event.get("clockId",""),"timing.cumulative_ms":end},
-                      identity=scope+"."+stage)
+                      identity=scope+"."+str(event.get('clockId',''))+"."+str(origin)+"."+stage)
             previous=end
 
     def count(self, name, labels="", amount=1):
@@ -135,11 +141,17 @@ class Observer:
         key=(run_id,str(raw.get('id','')))
         if kind=='tool_use' and key[1]:
             if len(self.tool_starts)>=self.queue.maxsize: self.tool_starts.pop(next(iter(self.tool_starts)))
-            self.tool_starts.setdefault(key,(time.perf_counter(),time.time_ns()/1000000,str(raw.get('name','tool'))))
+            if key not in self.tool_starts:
+                self.tool_starts[key]=(time.perf_counter(),time.time_ns()/1000000,str(raw.get('name','tool')))
+                self.emit('milestone',run_id,{'name':'tool.started','callId':key[1],
+                    'toolName':self.tool_starts[key][2], 'originUnixMs':self.tool_starts[key][1],
+                    'measurement.boundary':'sdk_outer'})
         elif kind=='tool_result' and key in self.tool_starts:
             started,wall,name=self.tool_starts.pop(key)
-            self.span(run_id,name,wall,(time.perf_counter()-started)*1000,parent=self.span_id(run_id,'run'),
+            duration=(time.perf_counter()-started)*1000
+            self.span(run_id,name,wall,duration,parent=self.span_id(run_id,'run'),
                 identity='tool:'+key[1],attributes={'openinference.span.kind':'TOOL','tool.call.id':key[1],
+                    'timing.local_duration_ms':duration,
                     'measurement.boundary':'sdk_outer','tool.is_error':bool(raw.get('isError'))})
         elif kind=='result':
             # 数值用量与凭据字段分开命名，继续保持通用脱敏规则严格。
@@ -154,33 +166,6 @@ class Observer:
         for bound in limits:
             if value<=bound: buckets[bound]=buckets.get(bound,0)+1
         self.histograms[name]=[count+1,total+value,buckets]
-
-    def browser(self, run_id, data):
-        if not self.enabled or not isinstance(data,dict): return False
-        name=data.get("name")
-        duration=data.get("elapsedMs")
-        if (name not in {"request_started","response_headers","first_sse","first_body","first_render","artifact_received","artifact_displayed","subscription"}
-            or type(duration) not in (int,float) or not math.isfinite(duration) or not 0<=duration<=86400000):
-            return False
-        if name in {"first_body","first_render"}:
-            key=(run_id,name)
-            if data.get("replay") or not data.get("nonempty") or key in self.browser_seen: return False
-            # 去重与数值持久化，重启或回放不会重新计首字。
-            if self.store:
-                with self.store.lock, self.store.db:
-                    self.store.db.execute("CREATE TABLE IF NOT EXISTS browser_first(run TEXT,name TEXT,at REAL,PRIMARY KEY(run,name))")
-                    try: self.store.db.execute("INSERT INTO browser_first VALUES(?,?,?)",(run_id,name,time.time()))
-                    except sqlite3.IntegrityError: return False
-                    self.store.db.execute("DELETE FROM browser_first WHERE at<?",(time.time()-self.store.retention_seconds,))
-                    self.store.db.execute("DELETE FROM browser_first WHERE rowid NOT IN (SELECT rowid FROM browser_first ORDER BY at DESC LIMIT ?)",(self.store.max_records,))
-            self.browser_seen.add(key)
-            if len(self.browser_seen)>self.store.max_records: self.browser_seen.clear()
-            if name=="first_body": self.observe("ccsdk_browser_ttft_seconds",duration/1000)
-        origin=data.get('originUnixMs')
-        anchor={'originUnixMs':origin} if type(origin) in (int,float) and math.isfinite(origin) and 0<origin<1e16 else {}
-        self.emit("browser",run_id,{**anchor,"name":name,"elapsedMs":duration,"artifactId":str(data.get("artifactId",""))[:256],
-                  "clock":"browser.performance.now","trust":"client_reported"})
-        return True
 
     def metrics(self):
         lines=["# TYPE ccsdk_observation_dropped_total counter",f"ccsdk_observation_dropped_total {self.dropped}"]

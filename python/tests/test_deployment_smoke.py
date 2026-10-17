@@ -24,7 +24,7 @@ class DeploymentSmokeTests(unittest.TestCase):
         def client(**kwargs):
             return client_type(**kwargs, transport=httpx.ASGITransport(app=server.app))
 
-        async def sdk_output(_):
+        async def sdk_output(_, **kwargs):
             yield {'type': 'text', 'text': '391'}
             yield {'type': 'result', 'ok': True}
 

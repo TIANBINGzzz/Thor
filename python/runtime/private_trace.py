@@ -12,7 +12,7 @@ TIMING_STAGES = {
     'actor': {'queue_exit', 'prepared', 'worker_ready', 'query_sent', 'first_text', 'completed'},
     'worker_boot': {'imported'},
     'worker_start': {'configured', 'connect_begin', 'connected'},
-    'worker_run': {'bound', 'query_begin', 'query_sent', 'first_message', 'first_thinking', 'first_text', 'completed'},
+    'worker_run': {'bound', 'configured', 'query_begin', 'query_sent', 'first_message', 'first_thinking', 'first_text', 'completed'},
 }
 TIMING_COUNTS = {'worker_created', 'worker_reused', 'pool_hit', 'rebuilt'}
 
@@ -36,7 +36,8 @@ def performance_event(raw):
     return {**anchors, 'type': 'performance', 'version': 1, 'scope': scope,
             'elapsedMs': numbers(raw.get('elapsedMs'), TIMING_STAGES[scope]),
             'cpuMs': numbers(raw.get('cpuMs'), TIMING_STAGES[scope]),
-            'counts': numbers(raw.get('counts'), TIMING_COUNTS)}
+            'counts': numbers(raw.get('counts'), TIMING_COUNTS),
+            **({'live': True} if raw.get('live') is True else {})}
 
 
 class Timing:

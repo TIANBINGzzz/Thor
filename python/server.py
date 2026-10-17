@@ -438,7 +438,8 @@ def _observe_artifact(run_id, event):
     if event['name']=='artifact.upload_finished':
         OBSERVATION.span(run_id,'artifact.upload',event['originUnixMs'],event['elapsedMs'],
             parent=OBSERVATION.span_id(run_id,'run'),identity=event['artifactId']+':'+str(event['attempt']),
-            attributes={'artifact.id':event['artifactId'],'upload.attempt':event['attempt'],'measurement.boundary':'runtime_http_client'})
+            attributes={'artifact.id':event['artifactId'],'upload.attempt':event['attempt'],
+                'timing.local_duration_ms':event['elapsedMs'],'measurement.boundary':'runtime_http_client'})
 
 
 def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
@@ -453,10 +454,14 @@ def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
                 OBSERVATION.emit('milestone',run_id,{'name':'client_acquired',**raw})
                 OBSERVATION.span(run_id,'client_acquisition',time.time_ns()/1000000-raw['elapsedMs'],raw['elapsedMs'],
                         parent=OBSERVATION.span_id(run_id,'run'),
-                        attributes={'pool.source':raw.get('source'),'pool.miss_reason':raw.get('missReason')},
+                        attributes={'pool.source':raw.get('source'),'pool.miss_reason':raw.get('missReason'),
+                            'timing.local_duration_ms':raw['elapsedMs'],'measurement.boundary':'runtime_client_acquisition'},
                         links=[{'traceId':trace_id(OBSERVATION.instance_id,warm),'spanId':OBSERVATION.span_id(warm,'prewarm')}] if warm else [])
             if raw.get('type') == 'performance':
-                OBSERVATION.performance(run_id, private_trace.performance_event(raw) or {})
+                event=private_trace.performance_event(raw)
+                if event:
+                    if raw.get('live'): OBSERVATION.emit('milestone',run_id,event)
+                    else: OBSERVATION.performance(run_id,event)
             elif raw.get('type') in private_trace.TRACE_TYPES:
                 OBSERVATION.emit('evidence',run_id,raw,secrets=TRACE_SECRETS.get(run_id,()))
     except Exception as error:
@@ -483,7 +488,7 @@ async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
     timing = RUN_TIMINGS.get(run_id)
     if timing:
         timing.mark('first_message')
-        if raw.get('type') in {'text', 'thinking'} and raw.get('text'):
+        if raw.get('type') in {'text', 'thinking'} and isinstance(raw.get('text'), str) and raw['text'].strip():
             timing.mark('first_' + raw['type'])
     _record_trace(run_id, raw)
     if raw.get('type') == 'artifact.published':
@@ -772,8 +777,14 @@ async def _execute_internal_run(
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
     timing = RUN_TIMINGS.get(run_id)
-    if timing:
-        timing.mark('scheduled')
+    if timing is None:
+        timing = private_trace.Timing('runtime', active=private_trace.enabled() or OBSERVATION.enabled)
+        if timing.active:
+            RUN_TIMINGS[run_id] = timing
+    if OBSERVATION.enabled:
+        timing.on_mark = lambda name, elapsed: OBSERVATION.timing_mark(run_id, timing, name)
+    timing.mark('accepted')
+    timing.mark('scheduled')
     TRACE_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
     input_workspace: Path | None = None
     session_directory: Path | None = None
@@ -857,7 +868,9 @@ async def _execute_internal_run(
                 LOGGER.warning("观测配置摘要失败：%s", type(error).__name__)
         async def consume_agent() -> None:
             """消费一次性 Worker 事件，保存 SDK 会话引用并交给统一分流入口。"""
-            async for raw in stream_agent(worker_payload):
+            stream = (stream_agent(worker_payload, timing_enabled=True)
+                      if OBSERVATION.enabled else stream_agent(worker_payload))
+            async for raw in stream:
                 provider_session = raw.get("sessionId")
                 if provider_session:
                     try:
@@ -991,11 +1004,13 @@ async def internal_create_run(request: Request):
         return _plain("execution_configuration_invalid", 503)
     if OBSERVATION.enabled:
         request.state.observation_run=run_request.run_id
-        timing.on_mark=lambda name,elapsed: OBSERVATION.emit('milestone',run_request.run_id,{'name':'runtime.'+name,'elapsedMs':elapsed,'clock':'runtime.monotonic'})
         if existing is None:
             OBSERVATION.count('ccsdk_runs_created_total')
             _observe_run(run)
-    timing.mark('accepted')
+    if RUN_TIMINGS.get(run_request.run_id) is timing:
+        if OBSERVATION.enabled:
+            timing.on_mark = lambda name, elapsed: OBSERVATION.timing_mark(run_request.run_id, timing, name)
+        timing.mark('accepted')
     return JSONResponse(
         {
             "run": _public_run(run),
@@ -1324,7 +1339,7 @@ async def internal_cancel_run(run_id: str, request: Request):
 
 
 
-# 独立观测出口使用服务间 JWT；浏览器遥测仍须绑定原 Run 身份。
+# 独立观测出口仅提供 Python Runtime 执行侧数据。
 def _observe_run(run):
     if not run: return
     OBSERVATION.emit('run',run['runId'],{k:run.get(k) for k in
@@ -1335,7 +1350,7 @@ def _observe_run(run):
 async def observation_info():
     return JSONResponse({'version':1,'epoch':OBSERVATION.store.epoch,'instanceId':OBSERVATION.instance_id,'python':platform.python_version(),
         'sdk':importlib.metadata.version('claude-agent-sdk'), 'clock':'local monotonic durations; wall anchors only',
-        'signals':{'runtime':True,'actor':True,'pool':True,'worker':True,'browser':'client_reports',
+        'signals':{'runtime':True,'actor':True,'pool':True,'worker':True,
                    'java':'uninstrumented','modelHttp':'uninstrumented','details':True}},headers={'cache-control':'no-store'})
 
 
@@ -1361,19 +1376,6 @@ async def observation_metrics():
     extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actor_snapshots.values())}\n'
     return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4',
                              headers={'x-ccsdk-instance-id':OBSERVATION.instance_id})
-
-
-@app.post('/internal/v1/runs/{run_id}/observations')
-async def browser_observation(run_id:str,request:Request):
-    run=RUN_STORE.get_run(run_id)
-    if run is None: return _plain('Run 不存在',404)
-    try:
-        _authorize_internal(request,run,allowed_scopes={'run.read','run.execute'},consume_jti=False)
-        data=await _small_json(request,4096)
-    except (_InternalAuthError,ValueError) as error:
-        return _plain(str(error),401 if isinstance(error,_InternalAuthError) else 400)
-    if not OBSERVATION.enabled: return _plain('观测未启用',404)
-    return {'accepted':OBSERVATION.browser(run_id,data)}
 
 
 if __name__ == "__main__":

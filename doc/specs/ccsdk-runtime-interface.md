@@ -2,7 +2,7 @@
 
 本文维护 Java/Python 的执行语义及文件边界；HTTP 路径、字段表、状态、错误码和可解析示例统一维护在 [API 参考](../python-api.html)，业务映射见 [Java 职责](java-control-plane.md)。接口变化同步参考页和协议测试，职责变化才更新 Java 文档；不复制实现教程或未实现接口。
 
-观测出口由主配置 `runtime.observability.enabled` 控制，供独立平台主动拉取，接口见 [API 参考](../python-api.html#observation)。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，结束后的 Span 可由平台导入 Phoenix。浏览器首次非空正文与首次渲染分别上报，回放不重算首字；Java/CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
+观测出口由主配置 `runtime.observability.enabled` 控制，供独立平台主动拉取，接口见 [API 参考](../python-api.html#observation)。当前采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；浏览器收字/渲染与 Java 阶段不由本出口采集。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，已结束的区间转换为 Span 并导入 Phoenix，完整 Trace 在 Run 结束后收齐。Python `first_text` 表示 SDK 首次返回非空正文，不等同于用户首字。CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
 
 ## 1. 职责边界
 
@@ -86,20 +86,20 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 
 ## 10. 开发观测
 
-独立平台读取 `/internal/observability/v1/`：由主配置 `runtime.observability.enabled` 控制，当前不做 Token 认证；启用后收集所有会话及能力的脱敏事件。Runtime 只保存有界待采日志，长期事件、Trace、时序指标和分析索引由观测平台维护。读取不消费或删除记录，各采集方独立维护游标；断连超过保留窗口或队列溢出时不能保证完整补采，须报告缺口。实例标识自动生成并随待采库持久化，数据源登记时发现；库重建后须重新登记，采集指标也须校验相同实例。该出口与下述按 Run 授权的开发接口分别管理，业务创建、浏览器遥测和文件访问仍校验原 Run 身份。
+独立平台读取 `/internal/observability/v1/`：由主配置 `runtime.observability.enabled` 控制，使用独立于 Run JWT 的 `CCSDK_OBSERVATION_JWT_SECRET` 校验只读采集 JWT；启用后收集所有会话及能力的脱敏事件。Runtime 只保存有界待采日志，长期事件、Trace、时序指标和分析索引由观测平台维护。读取不消费或删除记录，各采集方独立维护游标；断连超过保留窗口或队列溢出时不能保证完整补采，须报告缺口。实例标识自动生成并随待采库持久化，数据源登记时发现；库重建后须重新登记，采集指标也须校验相同实例。该出口只读取 Python Runtime 观测，不提供浏览器遥测写入接口。
 
 启用 CCSDK_ENABLE_RUN_TRACE=1 且持有绑定原 Run 的 run.observe 才可读取 trace；默认关闭返回 404。分页序号独立于 SSE，响应 no-store，只采集启用后 SDK 实际返回的思考与工具事件，遮盖已知凭据、省略二进制及过长内容；不补录历史、不承诺完整内部推理。字段见 [观测参考](../python-api.html#run-trace)。
 
-性能观测基准 **v1**：首字指客户端收到第一条非空 `message.delta.textDelta`（含当前公开的子代理正文），从提交请求前开始计时；不把 HTTP 202、`started`、首个 SDK 消息或思考当成首字。每次比较须固定版本、依赖、模型、问题、工具、池容量、预热完成状态、并发数及首轮/续轮，交替重复并报告样本数、失败、分布和资源。
+性能观测基准 **v1**：面向用户的首字仍指浏览器收到第一条非空正文，从请求提交前计时；HTTP 202、SDK 首消息、thinking、Python `first_text`、SSE yield 均不能替代。当前独立平台不采集浏览器网络/渲染时间，因此其 `runtime.first_text` 只用于诊断 Python SDK 到 Runtime 的阶段耗时，不能称为端到端首字。每次比较须固定版本、依赖、模型、问题、工具、池容量、预热完成状态、并发数及首轮/续轮，交替重复并报告样本数、失败、分布和资源。
 
 | 链路 / 计时原点 | 里程碑和指标 | 采集边界 |
 | --- | --- | --- |
-| 浏览器 / 提交前 | 请求发出、首段 SSE 到达、正文渲染 | 浏览器探针；未采集标为未测 |
+| 浏览器 / 提交前 | 请求发出、首段 SSE 到达、正文渲染 | 本平台不采集；端到端首字指标保持缺失 |
 | Java / 请求入口 | 鉴权结束、Python 请求/202、SSE 首字接收/转发 | Java 计时；本仓库不实现 |
 | Python / Run 路由入口 | `runtime`：accepted、scheduled、assembled、enqueued、prepare_begin、prepared、first_message、first_thinking、first_text、text_stored、sse_yield、completed | 现有私有 trace；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
-| Actor / 命令入队 | `actor`：queue_exit、prepared、worker_ready、query_sent、first_text、completed；worker_created/reused、pool_hit、rebuilt | 同会话串行；worker_ready − prepared 包含重建、领取、导入和连接，续轮不沿用上次启动值 |
-| Worker / 模块加载前、初始配置收到、本轮命令收到 | `worker_boot.imported`；`worker_start`：configured、connect_begin、connected；`worker_run`：bound、query_begin、query_sent、first_message、first_thinking、first_text、completed | boot 不含解释器启动；命中池时导入已在请求前完成；connect 包含 CLI 版本检查/启动及 SDK 初始化，部分 MCP 握手可延至首个 query；query_sent 只是写入 SDK |
+| Actor / 命令入队 | `actor`：queue_exit、prepared、worker_ready、query_sent、first_text、completed；worker_created/reused、pool_hit、rebuilt | 同会话串行；冷启动的 worker_ready − prepared 包含领取、导入和连接；预热创建单独记录，预热完成时间不计入本轮；续轮复用不沿用上次启动值 |
+| Worker / 模块加载前、初始配置收到、本轮命令收到 | `worker_boot.imported`；`worker_start`：configured、connect_begin、connected；`worker_run`：bound、configured、query_begin、query_sent、first_message、first_thinking、first_text、completed | boot 不含解释器启动；命中池时导入已在请求前完成；connect 包含 CLI 版本检查/启动及 SDK 初始化，部分 MCP 握手可延至首个 query；query_sent 只是写入 SDK |
 | 模型 HTTP / 每次请求发出前 | 请求次数/状态、响应头、首字节、首个流事件、首段思考/正文、结束；请求字节数/工具数量/Token 用量 | 测试透传探针或可信模型网关；不由 SDK init 推断，不记录 Header/正文/凭据 |
 | 工具与文件服务 / 每次调用 | MCP/HTTP 连接、鉴权、调用、首响应、结束；上传与 artifact.ready 分开 | trace 关联调用；需要下游计时才可继续细分 |
 
-`performance` 私有事件固定 `version=1`、`scope`、`elapsedMs`、`cpuMs`、`counts`，仅接受登记名称及有限非负数值，记录故障不阻断业务执行或清理。elapsedMs/cpuMs 是各进程相对各自原点的累计值，阶段用同 scope 两里程碑相减；缺失不等于零，不跨进程/机器直接相减，不相加嵌套或重叠耗时。Query 当前仅覆盖 Runtime、worker_boot 和 worker_run，未采集 Actor、准备及 Client connect/query_sent 的细分。CPU 是该进程 CPU 时间，Runtime 的并发 CPU 不可归给单 Run；CLI/MCP 需另采各 PID 的 CPU、RSS/PSS、可用内存与事件循环延迟。修改计时语义须升级版本；新增里程碑可保持同版。
+`performance` 私有事件固定 `version=1`、`scope`、`elapsedMs`、`cpuMs`、`counts`，仅接受登记名称及有限非负数值，记录故障不阻断业务执行或清理。elapsedMs/cpuMs 是各进程相对各自原点的累计值，阶段用同 scope 两里程碑相减；缺失不等于零，不跨进程/机器直接相减，不相加嵌套或重叠耗时。Query 覆盖 Runtime、worker_boot 和 worker_run；持久 Client 另覆盖 Actor、worker_start 和 worker_run，准备阶段仍归 Runtime，预热启动保留在独立 Trace。CPU 是该进程 CPU 时间，Runtime 的并发 CPU 不可归给单 Run；CLI/MCP 需另采各 PID 的 CPU、RSS/PSS、可用内存与事件循环延迟。修改计时语义须升级版本；新增里程碑可保持同版。

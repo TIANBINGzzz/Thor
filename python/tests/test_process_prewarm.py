@@ -26,7 +26,9 @@ class Process:
             if self.exit_on_bind:
                 self.stop()
             elif self.client_event is not None:
-                self.stdout.feed_data((json.dumps(self.client_event) + '\n').encode())
+                events = self.client_event if isinstance(self.client_event, list) else [self.client_event]
+                for event in events:
+                    self.stdout.feed_data((json.dumps(event) + '\n').encode())
 
     async def drain(self):
         pass
@@ -96,6 +98,22 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         ready = await self.worker.start({})
         self.assertEqual(ready['type'], 'client_ready')
         self.assertEqual(self.spawn_mock.await_count, 1)
+
+    async def test_worker_start_milestones_are_forwarded_with_startup_trace(self):
+        event = {
+            'type': 'performance', 'version': 1, 'scope': 'worker_start',
+            'originUnixMs': 1000, 'clockId': 'worker-1',
+            'elapsedMs': {'connect_begin': 5}, 'cpuMs': {}, 'counts': {}, 'live': True,
+        }
+        self.process.client_event = [event, {'type': 'client_ready', 'state': 'ready'}]
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        received = []
+        self.worker.set_observation_callback(lambda run_id, timing: received.append((run_id, timing)), run_id='run-1')
+        ready = await self.worker.start({})
+        self.assertEqual(ready['type'], 'client_ready')
+        self.assertEqual(received, [('run-1', event)])
+        self.assertTrue(all(not trace.get('live') for trace in self.worker.startup_traces))
+        self.assertIsNone(self.worker._on_observation)
 
     async def test_pool_capacity_includes_leased_worker_until_process_cleanup_finishes(self):
         from runtime.worker_pool import WorkerPool

@@ -256,6 +256,12 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.wait_for(agent_worker.run_client({}), 3)
         terminals = [i for i, e in enumerate(events) if e['type'] == 'client_run_completed']
         self.assertEqual(len(terminals), 2)
+        live_startup = [e for e in events if e.get('scope') == 'worker_start' and e.get('live')]
+        self.assertEqual([list(e['elapsedMs'])[-1] for e in live_startup],
+                         ['configured', 'connect_begin', 'connected'])
+        final_timings = [e for e in events if e.get('scope') == 'worker_run' and not e.get('live')]
+        self.assertEqual(len(final_timings), 2)
+        self.assertTrue(all('completed' in e['elapsedMs'] for e in final_timings))
         for index in terminals:
             timing = events[index - 1]
             self.assertEqual(timing['scope'], 'worker_run')

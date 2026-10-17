@@ -82,7 +82,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
             request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run_01',
                 'messageId': 'msg_01', 'businessSessionId': 'session_01', 'input': {'text': 'write'}})
             store.create_run('run_01', request=request, tenant_id='tenant', user_id='user')
-            async def stream(payload):
+            async def stream(payload, **kwargs):
                 work = Path(payload['work_directory'])
                 work.mkdir(parents=True, exist_ok=True)
                 (work / 'result.txt').write_bytes(b'hello')

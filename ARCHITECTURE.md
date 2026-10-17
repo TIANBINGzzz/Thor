@@ -59,7 +59,7 @@
 
 - 安全：bypassPermissions 和单容器不构成租户沙箱；生产授权、撤销及文件/进程/网络隔离仍需独立验收。
 - 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果和成果；终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
-- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。拉取接口用独立观测 JWT，浏览器上报仍按 Run 身份授权。
+- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；不采集浏览器接收/渲染或 Java 阶段。拉取接口用独立观测 JWT。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
 - 部署：单副本、单 HTTP worker；默认数据库配置随私有源码及镜像交付，模型/JWT 密钥由运行环境注入；数据卷保留。操作与回滚见部署说明。
 

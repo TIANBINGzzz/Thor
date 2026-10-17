@@ -72,8 +72,9 @@ class AgentProcessTests(unittest.TestCase):
                 process.stdout.feed_data((json.dumps(event) + '\n').encode())
             process.stdout.feed_eof()
             process.stderr.feed_eof()
-            with patch('runtime.process._spawn_worker_process', return_value=process):
-                events = [event async for event in stream_agent({})]
+            with patch('runtime.process._spawn_worker_process', return_value=process) as spawn:
+                events = [event async for event in stream_agent({}, timing_enabled=True)]
+                spawn.assert_awaited_once_with({}, timing_enabled=True)
             self.assertEqual(events, [boot, {'type': 'text', 'text': 'answer'}])
 
         asyncio.run(exercise())
@@ -86,6 +87,16 @@ class AgentProcessTests(unittest.TestCase):
                 await _spawn_worker_process(payload)
                 select.assert_called_once_with()
                 self.assertEqual(spawn.call_args.kwargs["env"], {"SELECTED_SECRET":"test"})
+        asyncio.run(exercise())
+
+    def test_worker_spawn_enables_timing_only_when_requested_by_runtime(self):
+        async def exercise():
+            with patch("runtime.process.worker_environment", return_value={"SELECTED_SECRET":"test"}), \
+                 patch("runtime.process.asyncio.create_subprocess_exec", return_value=FakeProcess()) as spawn:
+                await _spawn_worker_process({}, timing_enabled=True)
+                self.assertEqual(spawn.call_args.kwargs["env"], {
+                    "SELECTED_SECRET": "test", "CCSDK_ENABLE_TIMING": "1"
+                })
         asyncio.run(exercise())
 
     def test_stream_agent_cancellation_terminates_worker_process(self):
