@@ -45,8 +45,9 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 - 外部 ACR 路线：在主机发布脚本的 `docker run` 参数增加 `--mount "type=bind,source=${配置目录}/application.local.yml,target=/app/config/application.local.yml,readonly"`，启动前检查源文件存在；已挂载主配置的部署直接修改同一配置。
 - Compose 路线：设置 `CCSDK_WITH_APPLICATION=1`，`deploy.sh` 加载通用 `compose.application.yaml`，从 `CCSDK_CONFIG_DIRECTORY` 只读挂载该文件；缺文件拒绝启动。直接调用 Compose 时显式追加 `-f deploy/compose.application.yaml`。
-- 当前观测接口不校验 Token，不需配置采集密钥。Hawkeye 接入源只填写名称与 Runtime 根地址，连接时自动取得持久实例标识；替换待采库后须重新保存接入源。其他平台可按同一版本的拉取协议接入，自行维护游标与长期观测库；Phoenix 和 Prometheus 部署在平台侧。
-- 验证 `/internal/observability/v1/info` 无凭据返回 200 且含 `instanceId`，再检查 records、snapshot、metrics 和 Hawkeye 采集状态。关闭观测返回 404；跨源浏览器请求返回 403。业务 Run JWT 及按 Run 授权的遥测接口继续保持原协议。
+- Hawkeye 和每个 Runtime 实例都配置相同的 `CCSDK_OBSERVATION_JWT_SECRET`；它只签发短时 `observation.read` JWT，不能代替 Run JWT。该环境变量可随部署环境注入，独立于 Java 的 `CCSDK_RUNTIME_JWT_SECRET`。当前本机 `.env` 使用的临时值仅用于开发验证，生产必须改成高强度随机值。Runtime 观测接口缺少密钥返回 503，无效授权返回 401；观测关闭仍返回 404，浏览器跨源请求返回 403。
+- Hawkeye 接入源填写名称与 Runtime 根地址，平台自动签发观测 JWT 并发现持久实例标识；替换待采库后须重新保存接入源。其他平台也可按同一拉取协议实现专用授权，并自行维护游标与长期观测库；Phoenix 和 Prometheus 部署在平台侧。
+- 验证时带观测 JWT 请求 `/internal/observability/v1/info` 并确认含 `instanceId`，再检查 records、snapshot、metrics 和 Hawkeye 采集状态。业务 Run JWT 及按 Run 授权的浏览器遥测接口保持原协议。
 - `CCSDK_OBSERVABILITY_ENABLED=0` 可覆盖 YAML 停采，云效环境生成器支持该变量；修改部署配置后须重新创建容器。
 
 ## 验证与回滚

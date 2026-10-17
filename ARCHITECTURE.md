@@ -52,14 +52,14 @@
 - 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 为随机空白工作区预连接无业务身份及 MCP 的 SDK Client，首轮绑定会话后独占领取；恢复历史或固定配置不匹配时冷启动。已绑定进程不跨会话归还；空闲、创建并发、总存活上限及内存保护见配置字段。
-- Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有观测另需部署开关及 run.observe，不进入公共 SSE。
+- Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有 Run Trace 另需 run.observe，不进入公共 SSE。独立观测读取由专用短时 JWT 和单独环境密钥授权。
 - 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 显式管理指令、按需知识和 MCP 参数，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，`tools/campus.py` 校验业务参数并过滤响应，见 [ADR-035](doc/ADR/035-campus-query-adapter.md)。
 
 ## 8. Cross-cutting concerns
 
 - 安全：bypassPermissions 和单容器不构成租户沙箱；生产授权、撤销及文件/进程/网络隔离仍需独立验收。
 - 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果和成果；终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
-- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。独立出口不校验 Token，浏览器上报仍按 Run 身份授权。
+- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。拉取接口用独立观测 JWT，浏览器上报仍按 Run 身份授权。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
 - 部署：单副本、单 HTTP worker；默认数据库配置随私有源码及镜像交付，模型/JWT 密钥由运行环境注入；数据卷保留。操作与回滚见部署说明。
 

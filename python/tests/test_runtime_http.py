@@ -35,6 +35,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         }
         for name, value in {
             "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
+            "OBSERVATION_JWT_SECRET": "test-observation-secret",
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
@@ -61,6 +62,16 @@ class RuntimeHTTPTests(unittest.TestCase):
         claims.update(overrides)
         return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-runtime-secret")}
 
+    def observation_headers(self, scope="observation.read", secret="test-observation-secret", **overrides):
+        now = int(time.time())
+        claims = {
+            "iss": "ccsdk-hawkeye", "aud": "ccsdk-runtime-observability",
+            "iat": now, "exp": now + 60, "jti": uuid.uuid4().hex,
+            "sub": "hawkeye-collector", "scope": scope,
+        }
+        claims.update(overrides)
+        return {"Authorization": "Bearer " + encode_hs256_jwt(claims, secret)}
+
     def seed(self, status="running"):
         self.store.create_run(
             "run-test", request=AgentRunRequest.from_dict(self.body), status=status,
@@ -80,24 +91,50 @@ class RuntimeHTTPTests(unittest.TestCase):
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
 
-    def test_observation_needs_no_token_and_business_reports_stay_identity_bound(self):
+    def test_observation_requires_observation_jwt_and_business_reports_stay_identity_bound(self):
         self.seed()
         observer=Observer(Path(self.temp.name)/'observe.db',enabled=True)
         self.addCleanup(observer.close)
         with patch.object(server,'OBSERVATION',observer):
-            collection={}
             for endpoint in ('info', 'records', 'snapshot', 'metrics'):
-                self.assertEqual(self.client.get('/internal/observability/v1/'+endpoint).status_code, 200)
-            self.assertEqual(self.client.get('/internal/observability/v1/metrics').headers.get('x-ccsdk-instance-id'), observer.instance_id)
-            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,200)
-            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=collection).status_code,200)
-            self.assertEqual(self.client.get('/internal/observability/v1/info',headers={'Origin':'http://browser.example'}).status_code,403)
+                path='/internal/observability/v1/'+endpoint
+                self.assertEqual(self.client.get(path).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.headers()).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(scope='run.read')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(scope=['observation.read','run.execute'])).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(runId='run-test')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(sub='other-service')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(aud='ccsdk-runtime')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(aud=['ccsdk-runtime-observability','ccsdk-runtime'])).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(iss='string-ai-center-service')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(secret='wrong-secret')).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(exp=int(time.time())-1)).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers(exp=int(time.time())+3600)).status_code, 401)
+                self.assertEqual(self.client.get(path,headers=self.observation_headers()).status_code, 200)
+            self.assertEqual(self.client.get('/internal/observability/v1/metrics',headers=self.observation_headers()).headers.get('x-ccsdk-instance-id'), observer.instance_id)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers=self.headers()).status_code,401)
+            self.assertEqual(self.client.get('/internal/observability/v1/info',headers={**self.observation_headers(),'Origin':'http://browser.example'}).status_code,403)
             url='/internal/v1/runs/run-test/observations'
             event={'name':'first_body','elapsedMs':50,'nonempty':True}
-            self.assertEqual(self.client.post(url,headers=collection,json=event).status_code,401)
+            self.assertEqual(self.client.post(url,headers=self.observation_headers(),json=event).status_code,401)
+            self.assertEqual(self.client.get('/internal/v1/runs/run-test',headers=self.observation_headers()).status_code,401)
             self.assertEqual(self.client.post(url,headers=self.headers(tenant='other'),json=event).status_code,401)
             self.assertTrue(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
             self.assertFalse(self.client.post(url,headers=self.headers(),json=event).json()['accepted'])
+
+    def test_observation_requires_configured_secret(self):
+        observer=Observer(Path(self.temp.name)/'observe-enabled.db',enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer), patch.object(server, 'OBSERVATION_JWT_SECRET', ''):
+            response=self.client.get('/internal/observability/v1/info',headers=self.observation_headers())
+        self.assertEqual(response.status_code,503)
+
+    def test_observation_refuses_the_business_run_secret(self):
+        observer=Observer(Path(self.temp.name)/'observe-shared-secret.db',enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer), patch.object(server, 'OBSERVATION_JWT_SECRET', 'test-runtime-secret'):
+            response=self.client.get('/internal/observability/v1/info',headers=self.observation_headers(secret='test-runtime-secret'))
+        self.assertEqual(response.status_code,503)
 
     def test_disabled_observation_returns_not_found_without_affecting_health(self):
         self.assertEqual(self.client.get('/internal/observability/v1/info').status_code, 404)

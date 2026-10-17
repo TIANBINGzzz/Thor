@@ -191,6 +191,39 @@ def verify_session_read_jwt(
     return claims
 
 
+def verify_observation_jwt(
+    token: str,
+    secret: str | bytes,
+    *,
+    now: float | None = None,
+    leeway_seconds: float = 5.0,
+) -> dict[str, Any]:
+    """校验 Hawkeye 的短时只读观测授权，并拒绝扩展权限。"""
+    claims = _verify_signed_claims(
+        token,
+        secret,
+        audience="ccsdk-runtime-observability",
+        issuer="ccsdk-hawkeye",
+        expected_scope="observation.read",
+        required_claims=("sub", "jti"),
+        now=now,
+        leeway_seconds=leeway_seconds,
+    )
+    if set(claims) != {"iss", "aud", "iat", "exp", "jti", "sub", "scope"}:
+        raise JWTError("invalid observation JWT claims")
+    if claims["aud"] != "ccsdk-runtime-observability":
+        raise JWTError("invalid observation JWT audience")
+    if claims["sub"] != "hawkeye-collector":
+        raise JWTError("invalid observation JWT subject")
+    scope = claims.get("scope")
+    scopes = {scope} if isinstance(scope, str) else set(scope)
+    if scopes != {"observation.read"}:
+        raise JWTError("observation JWT scope is not exclusive")
+    if float(claims["exp"]) - float(claims["iat"]) > 300:
+        raise JWTError("observation JWT lifetime is too long")
+    return claims
+
+
 def verify_run_jwt(
     token: str,
     secret: str | bytes,

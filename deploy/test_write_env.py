@@ -49,7 +49,8 @@ class DeploymentEnvironmentTests(unittest.TestCase):
     def test_observation_switch_survives_release_bundle(self):
         environment = {key: value for key, value in self.environment().items()
                        if key in writer.RUNTIME_KEYS}
-        observation = {'CCSDK_OBSERVABILITY_ENABLED': '1'}
+        observation = {'CCSDK_OBSERVABILITY_ENABLED': '1',
+                       'CCSDK_OBSERVATION_JWT_SECRET': 'test-observation-secret'}
         environment.update(observation)
         rendered = dict(line.split('=', 1) for line in writer.render(environment).splitlines())
         self.assertEqual({key: rendered.get(key) for key in observation}, observation)

@@ -22,7 +22,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
 from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets, client_connection_fingerprint
-from runtime.auth import JWTError, verify_run_jwt, verify_session_read_jwt
+from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.protocol import AgentRunRequest, ProtocolError
@@ -51,6 +51,7 @@ PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
 MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
 DEFAULT_MODEL = MODEL_SETTINGS.default
 RUNTIME_JWT_SECRET = os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").strip()
+OBSERVATION_JWT_SECRET = os.environ.get("CCSDK_OBSERVATION_JWT_SECRET", "").strip()
 RUNTIME_JWT_AUDIENCE = os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime").strip()
 # Keep an explicit default so ``iss`` is always checked against the Java
 # control-plane identity.  Deployments may override it, but an omitted issuer
@@ -142,6 +143,12 @@ async def secure_runtime_api(request: Request, call_next):
             return _plain("观测未启用", 404)
         if request.headers.get("origin"):
             return _plain("不接受跨源浏览器请求", 403)
+        if not OBSERVATION_JWT_SECRET or OBSERVATION_JWT_SECRET == RUNTIME_JWT_SECRET:
+            return _plain("观测鉴权未配置", 503)
+        try:
+            _authorize_observation(request)
+        except _InternalAuthError:
+            return _plain("观测鉴权失败", 401)
         return await call_next(request)
     if not request.url.path.startswith("/internal/v1/"):
         return _plain("接口不存在", 404)
@@ -218,6 +225,19 @@ def _bearer_from_request(request: Request) -> str:
     if scheme.lower() != "bearer" or not token.strip():
         raise _InternalAuthError("缺少 Runtime Bearer JWT")
     return token.strip()
+
+
+def _authorize_observation(request: Request) -> dict[str, Any]:
+    """Validate the dedicated Hawkeye read grant without accepting Run JWTs."""
+    if not OBSERVATION_JWT_SECRET or OBSERVATION_JWT_SECRET == RUNTIME_JWT_SECRET:
+        raise _InternalAuthError("观测鉴权未配置")
+    try:
+        claims = verify_observation_jwt(
+            _bearer_from_request(request), OBSERVATION_JWT_SECRET
+        )
+    except JWTError as error:
+        raise _InternalAuthError("观测鉴权失败") from error
+    return claims
 
 
 def _claim_scope(claims: dict[str, Any]) -> set[str]:
@@ -1304,7 +1324,7 @@ async def internal_cancel_run(run_id: str, request: Request):
 
 
 
-# 独立观测出口无 Token 校验；浏览器遥测仍须绑定原 Run 身份。
+# 独立观测出口使用服务间 JWT；浏览器遥测仍须绑定原 Run 身份。
 def _observe_run(run):
     if not run: return
     OBSERVATION.emit('run',run['runId'],{k:run.get(k) for k in
