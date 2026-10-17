@@ -730,7 +730,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
-<p>使用 <code>run.control</code> 或 <code>run.cancel</code> scope。控制请求消耗 JWT 的 <code>jti</code>。</p>
+<p>使用 <code>run.control</code> 或 <code>run.cancel</code> scope。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，但每次仍校验签名、有效期、权限及身份/Run 绑定。</p>
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
   "option": "interrupt"
 }</pre></div>
@@ -741,7 +741,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 </tbody></table>
 <p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
-<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。</p>
+<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。两种入口按 runId 合并在途取消，允许复用有效且含取消权限的创建 JWT；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -781,7 +781,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <table><thead><tr><th>Claim</th><th>用途</th><th>校验规则</th></tr></thead><tbody>
 <tr><td>iss / aud</td><td>签发方和目标 Runtime</td><td>必须匹配部署配置。</td></tr>
 <tr><td>iat / exp</td><td>有效期</td><td>必须为数字，不能过期，<code>exp</code> 必须晚于 <code>iat</code>。</td></tr>
-<tr><td>jti</td><td>一次性请求标识</td><td>创建和控制请求防重放；查询、SSE 和 Artifact GET 不消费。</td></tr>
+<tr><td>jti</td><td>JWT 唯一标识</td><td>创建和 interrupt 请求防重放；幂等 cancel、查询、SSE 和 Artifact GET 不消费。</td></tr>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
 <tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话，不再校验 <code>messageId</code>。</td></tr>
@@ -790,7 +790,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
 <tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
 <tr><td>查询、SSE、Artifact GET</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
-<tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>消费</td></tr>
+<tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>interrupt 消费；cancel 不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
 <div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>

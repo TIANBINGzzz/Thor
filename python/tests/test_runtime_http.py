@@ -5,6 +5,7 @@ import tempfile
 import time
 import unittest
 import uuid
+import httpx
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -38,6 +39,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
             "RUN_TIMINGS": {}, "TRACE_SECRETS": {},
+            "internal_cancellations": {},
             "OBSERVATION": Observer(Path(self.temp.name)/'unused'),
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
                 server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
@@ -407,6 +409,106 @@ class RuntimeHTTPTests(unittest.TestCase):
                                             headers=self.headers("run.control"))
                 self.assertEqual(response.status_code, 400, response.text)
         self.assertEqual(self.store.get_run("run-test")["status"], "running")
+
+    def test_cancel_reuses_creation_jwt_but_interrupt_still_rejects_replay(self):
+        headers = self.headers(["run.execute", "run.read", "run.cancel"])
+        with patch.object(server, "_execute_internal_run", new_callable=AsyncMock):
+            created = self.client.post('/internal/v1/runs', json=self.body, headers=headers)
+        self.assertEqual(created.status_code, 202)
+        for suffix in ('/cancel', '/control', '/cancel'):
+            response = self.client.post('/internal/v1/runs/run-test' + suffix,
+                                        headers=headers, json={'option': 'cancel'})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()['run']['status'], 'cancelled')
+        terminals = [e for e in self.store.events_after('run-test') if e['type'] == 'run.cancelled']
+        self.assertEqual(len(terminals), 1)
+        response = self.client.post('/internal/v1/runs/run-test/control', headers=headers,
+                                    json={'option': 'interrupt'})
+        self.assertEqual(response.status_code, 401)
+
+    def test_cancel_coalesces_concurrent_requests_and_survives_caller_disconnect(self):
+        self.seed()
+        async def exercise():
+            entered, release = asyncio.Event(), asyncio.Event()
+            commands = []
+            async def cancel(run_id):
+                commands.append(run_id)
+                entered.set()
+                await release.wait()
+            async def execute():
+                await release.wait()
+                await server._finish_run('run-test', {'runId': 'run-test', 'type': 'run.cancelled', 'payload': {}})
+            task = asyncio.create_task(execute())
+            manager = SimpleNamespace(actor_for_run=lambda _: SimpleNamespace(active_run_id='run-test'), cancel=cancel)
+            with patch.object(server, 'SESSION_MANAGER', manager), patch.object(server, 'internal_tasks', {'run-test': task}):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://runtime') as client:
+                    headers = self.headers('run.cancel')
+                    first = asyncio.create_task(client.post('/internal/v1/runs/run-test/cancel', headers=headers))
+                    await entered.wait()
+                    second = asyncio.create_task(client.post('/internal/v1/runs/run-test/control', headers=headers, json={'option': 'cancel'}))
+                    await asyncio.sleep(0.02)
+                    first.cancel()
+                    await asyncio.gather(first, return_exceptions=True)
+                    release.set()
+                    response = await second
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()['run']['status'], 'cancelled')
+                    self.assertEqual(commands, ['run-test'])
+                    await task
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_cancel_completion_race_returns_existing_terminal_state(self):
+        for status in ('succeeded', 'failed', 'cancelled'):
+            with self.subTest(status=status):
+                if self.store.get_run('run-test') is None:
+                    self.seed()
+                self.store.update_status('run-test', 'running')
+                async def cancel(_):
+                    self.store.update_status('run-test', status)
+                    raise server.SessionActorError('Run ended', code='run_not_active')
+                manager = SimpleNamespace(actor_for_run=lambda _: SimpleNamespace(active_run_id='run-test'), cancel=cancel)
+                with patch.object(server, 'SESSION_MANAGER', manager):
+                    response = self.client.post('/internal/v1/runs/run-test/cancel', headers=self.headers('run.cancel'))
+                self.assertEqual(response.status_code, 200, response.text)
+                self.assertEqual(response.json()['run']['status'], status)
+
+    def test_cancel_timeout_keeps_shared_operation_alive_until_terminal(self):
+        self.seed()
+        async def exercise():
+            release = asyncio.Event()
+            commands = []
+            async def cancel(run_id):
+                commands.append(run_id)
+                await release.wait()
+                await server._finish_run(run_id, {'runId': run_id, 'type': 'run.cancelled', 'payload': {}})
+            manager = SimpleNamespace(actor_for_run=lambda _: SimpleNamespace(active_run_id='run-test'), cancel=cancel)
+            settings = SimpleNamespace(timeouts=SimpleNamespace(worker_control_ms=10))
+            with patch.object(server, 'SESSION_MANAGER', manager), patch.object(server, 'RUNTIME_SETTINGS', settings):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://runtime') as client:
+                    headers = self.headers('run.cancel')
+                    for retry_headers in (headers, self.headers('run.cancel')):
+                        response = await client.post('/internal/v1/runs/run-test/cancel', headers=retry_headers)
+                        self.assertEqual(response.status_code, 504, response.text)
+                        self.assertEqual(self.store.get_run('run-test')['status'], 'running')
+                    release.set()
+                    response = await client.post('/internal/v1/runs/run-test/cancel', headers=headers)
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertEqual(response.json()['run']['status'], 'cancelled')
+                    self.assertEqual(commands, ['run-test'])
+                    await asyncio.sleep(0)
+                    self.assertEqual(server.internal_cancellations, {})
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_repeated_cancel_still_requires_valid_resource_bound_authorization(self):
+        self.seed('succeeded')
+        for overrides in ({'scope': 'run.read'}, {'sub': 'other'}, {'tenant': 'other'},
+                          {'runId': 'other'}, {'businessSessionId': 'other'},
+                          {'iat': int(time.time()) - 120, 'exp': int(time.time()) - 60}):
+            with self.subTest(overrides=overrides):
+                response = self.client.post('/internal/v1/runs/run-test/cancel',
+                    headers=self.headers(**{'scope': 'run.cancel', **overrides}))
+                self.assertEqual(response.status_code, 401, response.text)
+        self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
 
     def test_control_and_cancel_hide_internal_record_in_each_branch(self):
         self.seed()

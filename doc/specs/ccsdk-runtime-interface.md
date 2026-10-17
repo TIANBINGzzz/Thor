@@ -34,7 +34,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 - Run 查询返回公开状态、最大事件序号及稳定错误码，不返回身份和 SDK 元数据；业务会话检索只返回公开执行摘要，不代替 Java 的会话/消息存储。
 - 会话检索按 JWT 的 tenant、sub、businessSessionId 过滤，独立使用 session.read。按 createdAt/runId 倒序分页，cursor 原样传回，不能作为权限依据；分页不是数据库快照。无记录不证明 Java 会话不存在。
-- cancel 取消排队或活动 Run；interrupt 不是暂停/恢复，文件准备期取消准备，持久 Client 模型期请求 SDK 中断、独立执行期停止任务。已结束 Run 不变，返回时可能仍在收尾，终态以事件或后续查询为准。
+- cancel 按 runId 幂等取消排队或活动 Run，两种取消入口合并在途请求；重复取消不重复发送 SDK 命令，已结束 Run 不变。HTTP 断开或控制超时不撤销已接受的取消，504 后查询状态或重试；取消不抢先宣告活动执行终态。interrupt 不是暂停/恢复，文件准备期取消准备，持久 Client 模型期请求 SDK 中断、独立执行期停止任务。
 - 控制不删除业务会话、已有文件或已完成工具副作用；断开 SSE 不取消执行，继续对话创建新 Run。
 
 ## 5. SSE 事件模块
@@ -57,7 +57,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 - Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验，不再校验 messageId。
-- 创建用 run.execute，读取用 run.read/run.execute，控制用 run.control/run.cancel；写操作消耗 jti，读取不消耗。session.read 和 run.observe 是独立授权，不能从普通 Run 权限推导。
+- 创建用 run.execute，读取用 run.read/run.execute，控制用 run.control/run.cancel；创建和 interrupt 消耗 jti，读取和 cancel 不消耗。cancel 每次仍校验有效期、权限与身份/Run 绑定，可复用含取消权限的创建 JWT；过期须重新签发。session.read 和 run.observe 是独立授权，不能从普通 Run 权限推导。
 - credentials.platformBearer 是不透明业务 Token，仅按服务端规则注入获准 MCP；不是 Runtime 身份来源，不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
 
 ## 8. File Broker 模块

@@ -235,6 +235,11 @@ class SessionActor:
         """接收 Run 标识，取消排队、附件准备或正在执行的命令，无返回值；非活动 Run 抛出异常。"""
         if run_id not in self._run_commands:
             raise SessionActorError("Run 不存在或已结束", code="run_not_active")
+        if run_id in self._cancel_requested:
+            # 同一 Run 的后续取消只等待原执行结束，不重复取消准备或发送 SDK 命令。
+            if self._active_run_id == run_id:
+                await asyncio.shield(self._run_commands[run_id].future)
+            return
         # Set this before enqueuing the control command. If the Run is still in
         # the mailbox, the actor can skip it without starting preparation or a
         # provider query even though FIFO puts the cancel command after it.
@@ -653,7 +658,6 @@ class SessionActor:
             return
         if command_type == "cancel":
             if command_value.run_id == run_id:
-                self._cancel_requested.discard(run_id)
                 await worker.send({"type": "client_cancel", "run_id": run_id})
                 self._resolve(command_value, None)
             else:

@@ -265,15 +265,19 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                      patch.object(server, "FileBroker", side_effect=broker), \
                      patch.object(server, "stream_agent", side_effect=AssertionError("SDK must not start")):
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url="http://runtime") as client:
-                        response = await client.post("/internal/v1/runs", json=body, headers=headers("run.execute"))
+                        run_headers = headers(["run.execute", "run.cancel"])
+                        response = await client.post("/internal/v1/runs", json=body, headers=run_headers)
                         self.assertEqual(response.status_code, 202)
                         await asyncio.wait_for(started.wait(), 1)
                         task = server.internal_tasks["run-1"]
                         self.assertFalse(task.done())
-                        response = await client.post("/internal/v1/runs/run-1/control", json={"option": "cancel"}, headers=headers("run.cancel"))
+                        response = await client.post("/internal/v1/runs/run-1/control", json={"option": "cancel"}, headers=run_headers)
                         self.assertEqual(response.status_code, 200, response.text)
                         await asyncio.gather(task, return_exceptions=True)
                         self.assertEqual(store.get_run("run-1")["status"], "cancelled")
+                        response = await client.post("/internal/v1/runs/run-1/cancel", headers=run_headers)
+                        self.assertEqual(response.status_code, 200, response.text)
+                        self.assertEqual(len([e for e in store.events_after('run-1') if e['type'] == 'run.cancelled']), 1)
                         response = await client.get("/internal/v1/runs/run-1/events", headers=headers("run.read"))
                         self.assertIn("downloading_file", response.text)
                         self.assertIn("run.cancelled", response.text)

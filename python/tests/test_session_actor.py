@@ -85,6 +85,32 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_concurrent_cancel_sends_only_one_worker_command(self):
+        async def exercise():
+            sent, release = asyncio.Event(), asyncio.Event()
+            worker = FakeClientWorker([lambda _: []], worker_id=0)
+            original_send = worker.send
+            async def send(message):
+                if message['type'] == 'client_cancel':
+                    sent.set()
+                    await release.wait()
+                await original_send(message)
+            worker.send = send
+            actor = SessionActor('session', {}, worker_factory=lambda **kw: worker)
+            pending = asyncio.create_task(actor.submit('run-1', {}))
+            await _wait_until(lambda: any(m['type'] == 'client_query' for m in worker.sent))
+            first = asyncio.create_task(actor.cancel('run-1'))
+            await sent.wait()
+            second = asyncio.create_task(actor.cancel('run-1'))
+            await asyncio.sleep(0)
+            release.set()
+            results = await asyncio.gather(first, second, return_exceptions=True)
+            self.assertEqual(results, [None, None])
+            self.assertEqual((await pending)['status'], 'cancelled')
+            self.assertEqual(len([m for m in worker.sent if m['type'] == 'client_cancel']), 1)
+            await actor.close()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
     def test_performance_callback_failure_does_not_fail_run_or_next_command(self):
         async def exercise():
             async def receive(run_id, event):
@@ -357,6 +383,7 @@ class SessionActorTests(unittest.TestCase):
             ))
             await _wait_until(lambda: "run-queued" in actor._run_commands)
             await actor.cancel("run-queued")
+            await asyncio.wait_for(actor.cancel("run-queued"), timeout=0.1)
             await actor.cancel("run-active")
 
             queued = await asyncio.wait_for(second, timeout=1)
