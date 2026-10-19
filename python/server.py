@@ -434,7 +434,8 @@ def _artifact_delivery() -> ArtifactDelivery:
 
 
 def _observe_artifact(run_id, event):
-    OBSERVATION.emit('milestone',run_id,{**event,'artifact':{'artifactId':event['artifactId'],'fileId':event.get('fileId')}})
+    OBSERVATION.emit('milestone',run_id,{**event,'artifact':{
+        key: event[key] for key in ('artifactId', 'fileId', 'storagePath') if key in event}})
     if event['name']=='artifact.upload_finished':
         OBSERVATION.span(run_id,'artifact.upload',event['originUnixMs'],event['elapsedMs'],
             parent=OBSERVATION.span_id(run_id,'run'),identity=event['artifactId']+':'+str(event['attempt']),

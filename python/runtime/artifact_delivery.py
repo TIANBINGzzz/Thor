@@ -235,7 +235,7 @@ class ArtifactDelivery:
                         last_failure = error
                     else:
                         in_flight = False
-                        self._observe(record, 'artifact.file_id', fileId=fields['fileId'])
+                        self._observe(record, 'artifact.file_id', fileId=fields['fileId'], storagePath=fields['storagePath'])
                         break
                     finally:
                         self._observe(record, 'artifact.upload_finished', attempt=attempt+1,

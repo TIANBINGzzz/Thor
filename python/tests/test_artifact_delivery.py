@@ -53,6 +53,8 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         return publish_artifact('draft.txt', '报告.txt', self.work, self.spool, self.work.parent)
 
     async def test_stream_upload_and_idempotent_registration(self):
+        observations = []
+        self.delivery.on_observation = lambda run, event: observations.append(event)
         item = self.publish()
         await self.delivery.accept('run_01', self.spool, item['artifactId'])
         await self.delivery.wait('run_01')
@@ -71,6 +73,9 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         files = self.delivery.list('run_01')
         self.assertEqual(files[0]['fileId'], 'remote_01')
         self.assertEqual(files[0]['status'], 'ready')
+        observed = next(e for e in observations if e['name'] == 'artifact.file_id')
+        self.assertEqual(observed['fileId'], 'remote_01')
+        self.assertEqual(observed['storagePath'], 'stringfast/private-object.txt')
         self.assertNotIn('stringfast', json.dumps(files))
         self.assertNotIn(str(self.root), json.dumps(files))
         self.assertEqual(self.delivery.list('other_run'), [])
