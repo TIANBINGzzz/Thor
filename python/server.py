@@ -34,14 +34,14 @@ from runtime.session_actor import SessionActorError, SessionManager
 from runtime.worker_pool import WorkerPool, configure_worker_logging
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
-from runtime import private_trace
+from runtime import telemetry
 from runtime.observability import create_observer, trace_id
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOGGER = logging.getLogger("ccsdk.runtime")
-TRACE_SECRETS: dict[str, tuple[str, ...]] = {}
-RUN_TIMINGS: dict[str, private_trace.Timing] = {}
+OBSERVATION_SECRETS: dict[str, tuple[str, ...]] = {}
+RUN_TIMINGS: dict[str, telemetry.Timing] = {}
 
 
 load_runtime_environment()
@@ -69,7 +69,6 @@ internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
 WORKER_POOL: WorkerPool | None = None
-actor_snapshots: dict[str, dict[str, Any]] = {}
 INTERNAL_BODY_BYTES = RUNTIME_SETTINGS.limits.http_body_bytes
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = RUNTIME_SETTINGS.sse_heartbeat_ms / 1000
@@ -173,8 +172,6 @@ def _plain(message: str, status: int) -> PlainTextResponse:
     )
 
 
-
-
 @app.get("/health")
 async def health() -> dict[str, bool]:
     """返回服务存活标记，无输入，不检查模型或 MCP 的连通性。"""
@@ -186,16 +183,6 @@ async def internal_capabilities():
     """返回登记能力的公开目录 JSON，无输入，不包含 Workflow 执行配置。"""
     return JSONResponse({"capabilities": [item.to_public_dict() for item in CAPABILITIES.values()]},
                         headers={"cache-control": "no-store"})
-
-
-
-
-
-
-
-
-
-
 
 
 async def _small_json(request: Request, maximum: int = MAX_PROMPT_BYTES) -> dict[str, Any]:
@@ -240,24 +227,6 @@ def _authorize_observation(request: Request) -> dict[str, Any]:
     return claims
 
 
-def _claim_scope(claims: dict[str, Any]) -> set[str]:
-    """将已验证声明中的单项或列表权限归一为集合。"""
-    scope = claims.get("scope")
-    if isinstance(scope, str):
-        return {scope}
-    if isinstance(scope, list) and all(isinstance(item, str) for item in scope):
-        return set(scope)
-    return set()
-
-
-def _require_claim_identity(claims: dict[str, Any]) -> None:
-    """Require the Java-issued principal on every internal Runtime call."""
-    for name in ("sub", "tenant"):
-        value = claims.get(name)
-        if not isinstance(value, str) or not value.strip():
-            raise _InternalAuthError(f"Runtime JWT 缺少 {name}")
-
-
 def _authorize_internal(
     request: Request,
     run: dict[str, Any],
@@ -279,26 +248,15 @@ def _authorize_internal(
             capability_ref=capability,
             turn_id=run.get("turnId"),
             business_session_id=run.get("businessSessionId"),
-            body={
-                "runId": run_id,
-                "capabilityRef": capability,
-                "turnId": run.get("turnId"),
-                "businessSessionId": run.get("businessSessionId"),
-            },
+            tenant_id=run.get("tenantId"),
+            user_id=run.get("userId"),
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
-            expected_scope="",
+            expected_scope=allowed_scopes,
             consume_jti=consume_jti,
         )
     except JWTError as error:
         raise _InternalAuthError(str(error)) from error
-    _require_claim_identity(claims)
-    if not (_claim_scope(claims) & allowed_scopes):
-        raise _InternalAuthError("Runtime JWT scope 不允许此操作")
-    if run.get("tenantId") is not None and claims.get("tenant") != run["tenantId"]:
-        raise _InternalAuthError("租户不匹配")
-    if run.get("userId") is not None and claims.get("sub") != run["userId"]:
-        raise _InternalAuthError("用户不匹配")
     return claims
 
 
@@ -323,7 +281,6 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tu
         )
     except JWTError as error:
         raise _InternalAuthError(str(error)) from error
-    _require_claim_identity(claims)
     # Keep the raw Run JWT only in the in-memory task closure.  It is needed
     # for the Java File Broker, but it must not enter RunStore or worker data
     # that can be replayed as public events.
@@ -385,8 +342,6 @@ def _public_run(run: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-
-
 async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any]:
     """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
     clean = with_display_name({"protocolVersion": "agent-events/v1", **event})
@@ -409,8 +364,11 @@ async def _notify_stored_event(stored: dict[str, Any]) -> None:
             if event_type in {'artifact.ready','artifact.failed'}:
                 OBSERVATION.count('ccsdk_artifact_'+event_type.split('.')[1]+'_total')
             # 正文与公共业务内容不复制到数值观测出口。
-            OBSERVATION.emit('milestone',run_id,{'name':event_type, 'sequence':stored.get('sequence'),
-                'phase':payload.get('name'), 'artifact':payload if event_type.startswith('artifact.') else None})
+            if event_type != 'message.delta':
+                OBSERVATION.emit('milestone',run_id,{'name':event_type, 'sequence':stored.get('sequence'),
+                    'phase':payload.get('name'), 'code':payload.get('code'),
+                    'artifact':payload if event_type.startswith('artifact.') else None},
+                    secrets=OBSERVATION_SECRETS.get(run_id, ()))
             if event_type in {'run.started','run.completed','run.failed','run.cancelled'}:
                 current=RUN_STORE.get_run(run_id)
                 _observe_run(current)
@@ -443,7 +401,7 @@ def _observe_artifact(run_id, event):
                 'timing.local_duration_ms':event['elapsedMs'],'measurement.boundary':'runtime_http_client'})
 
 
-def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
+def _record_observation(run_id: str, raw: dict[str, Any] | None) -> None:
     """私有观测尽力写入；诊断存储故障不能改变业务结果或阻断 Run 清理。"""
     if raw is None:
         return
@@ -459,39 +417,35 @@ def _record_trace(run_id: str, raw: dict[str, Any] | None) -> None:
                             'timing.local_duration_ms':raw['elapsedMs'],'measurement.boundary':'runtime_client_acquisition'},
                         links=[{'traceId':trace_id(OBSERVATION.instance_id,warm),'spanId':OBSERVATION.span_id(warm,'prewarm')}] if warm else [])
             if raw.get('type') == 'performance':
-                event=private_trace.performance_event(raw)
+                event=telemetry.performance_event(raw)
                 if event:
                     if raw.get('live'): OBSERVATION.emit('milestone',run_id,event)
                     else: OBSERVATION.performance(run_id,event)
-            elif raw.get('type') in private_trace.TRACE_TYPES:
-                OBSERVATION.emit('evidence',run_id,raw,secrets=TRACE_SECRETS.get(run_id,()))
+            elif raw.get('type') in telemetry.EVIDENCE_TYPES:
+                OBSERVATION.emit('evidence',run_id,raw,secrets=OBSERVATION_SECRETS.get(run_id,()))
     except Exception as error:
         LOGGER.warning("观测转换失败：%s", type(error).__name__)
-    if not private_trace.enabled():
-        return
-    try:
-        event = None
-        if raw.get('type') == 'performance':
-            event = private_trace.performance_event(raw)
-        elif raw.get('type') in private_trace.TRACE_TYPES:
-            event = private_trace.sanitize(raw, TRACE_SECRETS.get(run_id, ()))
-        if event:
-            RUN_STORE.append_trace(run_id, event)
-    except Exception as error:
-        LOGGER.warning("私有观测写入失败：%s", type(error).__name__)
+
+
+def _record_exception(run_id: str, error: Exception) -> None:
+    if OBSERVATION.enabled:
+        try:
+            _record_observation(run_id, telemetry.exception_event(error, scope='runtime', secrets=OBSERVATION_SECRETS.get(run_id, ())))
+        except Exception:
+            LOGGER.warning("异常诊断采集失败")
 
 
 async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
     """分流私有观测、产物和公共事件，暂存终态直到文件交付收尾。"""
-    if raw.get('type') == 'performance':
-        _record_trace(run_id, raw)
+    if raw.get('type') in {'performance', 'diagnostic', 'assistant_turn'}:
+        _record_observation(run_id, raw)
         return
     timing = RUN_TIMINGS.get(run_id)
     if timing:
         timing.mark('first_message')
         if raw.get('type') in {'text', 'thinking'} and isinstance(raw.get('text'), str) and raw['text'].strip():
             timing.mark('first_' + raw['type'])
-    _record_trace(run_id, raw)
+    _record_observation(run_id, raw)
     if raw.get('type') == 'artifact.published':
         run = RUN_STORE.get_run(run_id)
         session_key = run.get('metadata', {}).get('sessionKey')
@@ -523,18 +477,12 @@ def _create_session_manager() -> SessionManager:
     """绑定公共事件和状态回调，创建使用部署空闲时限的会话管理器。"""
     return SessionManager(
         on_public_event=_handle_client_public_event,
-        on_state=_handle_actor_state,
-        on_observation=_record_trace if OBSERVATION.enabled else None,
+        on_observation=_record_observation if OBSERVATION.enabled else None,
         idle_ttl_ms=RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
     )
 
 
-async def _handle_actor_state(snapshot: dict[str, Any]) -> None:
-    """接收 Actor 状态回调，按有效会话键保存内部快照。"""
-    session_key = snapshot.get("sessionKey")
-    if isinstance(session_key, str) and session_key:
-        actor_snapshots[session_key] = dict(snapshot)
 async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
     """保存 Client 的 SDK 会话引用，再将事件交给统一分流入口。"""
     provider_session = raw.get("sessionId") or raw.get("session_id")
@@ -779,14 +727,14 @@ async def _execute_internal_run(
     run_id = run_request.run_id
     timing = RUN_TIMINGS.get(run_id)
     if timing is None:
-        timing = private_trace.Timing('runtime', active=private_trace.enabled() or OBSERVATION.enabled)
+        timing = telemetry.Timing('runtime', active=OBSERVATION.enabled)
         if timing.active:
             RUN_TIMINGS[run_id] = timing
     if OBSERVATION.enabled:
         timing.on_mark = lambda name, elapsed: OBSERVATION.timing_mark(run_id, timing, name)
     timing.mark('accepted')
     timing.mark('scheduled')
-    TRACE_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
+    OBSERVATION_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
     input_workspace: Path | None = None
     session_directory: Path | None = None
     runtime_mode: str | None = None
@@ -864,7 +812,7 @@ async def _execute_internal_run(
             timing.mark('assembled')
         if OBSERVATION.enabled:
             try:
-                OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(private_trace.sanitize(worker_payload.get('_workflow_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
+                OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(telemetry.sanitize(worker_payload.get('_workflow_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
             except Exception as error:
                 LOGGER.warning("观测配置摘要失败：%s", type(error).__name__)
         async def consume_agent() -> None:
@@ -914,7 +862,8 @@ async def _execute_internal_run(
             await _run_phase(run_id, {"name": "model_starting"})
             await asyncio.wait_for(consume_agent(), timeout=worker_payload["timeout_ms"] / 1000)
         await _finish_run(run_id, pending_terminals.pop(run_id, {"runId": run_id, "type": "run.completed", "payload": {}}))
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as error:
+        _record_exception(run_id, error)
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
 
@@ -926,22 +875,24 @@ async def _execute_internal_run(
             await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
         raise
     except Exception as error:
+        _record_exception(run_id, error)
         current = RUN_STORE.get_run(run_id)
         if current and current.get("status") not in TERMINAL_RUN_STATUSES:
             code = getattr(error, "code", None) or "runtime_error"
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
+        OBSERVATION.finish_run(run_id, (RUN_STORE.get_run(run_id) or {}).get('status', 'unknown'))
         if session_directory is not None and WORKER_POOL is not None:
             WORKER_POOL.release_workspace(str(session_directory))
         if timing:
             timing.mark('completed')
-            _record_trace(run_id, timing.event())
+            _record_observation(run_id, timing.event())
             OBSERVATION.span(run_id,'run',timing.origin_unix_ms,timing.elapsed.get('completed',0),
                 attributes={'run.id':run_id,'run.status':(RUN_STORE.get_run(run_id) or {}).get('status','unknown')},
                 links=[{'traceId':trace_id(OBSERVATION.instance_id,'http:'+run_id),'spanId':OBSERVATION.span_id('http:'+run_id,'HTTP create')}])
             RUN_TIMINGS.pop(run_id, None)
         pending_terminals.pop(run_id, None)
-        TRACE_SECRETS.pop(run_id, None)
+        OBSERVATION_SECRETS.pop(run_id, None)
         TOOL_DISPLAYS.clear(run_id)
         # Query owns a private directory and can clean it here. Client's
         # current-input directory is shared by the Session and is cleaned by
@@ -956,7 +907,7 @@ async def _execute_internal_run(
 @app.post("/internal/v1/runs")
 async def internal_create_run(request: Request):
     """解析并鉴权创建请求，幂等登记和调度 Run，返回公开状态及 SSE 地址，错误时返回 HTTP 错误响应。"""
-    timing = private_trace.Timing('runtime', active=private_trace.enabled() or OBSERVATION.enabled)
+    timing = telemetry.Timing('runtime', active=OBSERVATION.enabled)
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
@@ -1061,24 +1012,6 @@ async def internal_get_run(run_id: str, request: Request):
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
     return {"run": _public_run(run)}
-
-
-@app.get('/internal/v1/runs/{run_id}/trace')
-async def internal_run_trace(run_id: str, request: Request,
-                             afterSequence: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500)):
-    """开发观测需显式启用及run.observe授权；身份/会话/能力仍绑定原Run。"""
-    if not private_trace.enabled():
-        return _plain('运行观测未启用', 404)
-    run = RUN_STORE.get_run(run_id)
-    if run is None:
-        return _plain('Run 不存在', 404)
-    try:
-        _authorize_internal(request, run, allowed_scopes={'run.observe'}, consume_jti=False)
-    except _InternalAuthError as error:
-        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
-    events = RUN_STORE.traces_after(run_id, afterSequence, limit)
-    return JSONResponse({'events': events, 'nextSequence': events[-1]['sequence'] if events else afterSequence,
-                         'hasMore': len(events) == limit}, headers={'cache-control': 'no-store'})
 
 
 @app.get("/internal/v1/runs/{run_id}/events")
@@ -1209,6 +1142,8 @@ async def internal_artifact_content(run_id: str, artifact_id: str, request: Requ
 
 async def _apply_internal_control(run_id: str, request: Request, option: str):
     """校验请求对 Run 的控制权限，执行 interrupt 或 cancel，返回最新公开状态或错误响应。"""
+    if option not in {"interrupt", "cancel"}:
+        return _plain("control.option 无效", 400)
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
@@ -1221,8 +1156,6 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         )
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
-    if option not in {"interrupt", "cancel"}:
-        return _plain("control.option 无效", 400)
     if run.get("status") in TERMINAL_RUN_STATUSES:
         return {"run": _public_run(run)}
     if option == "cancel":
@@ -1322,29 +1255,13 @@ async def internal_cancel_run(run_id: str, request: Request):
     return await _apply_internal_control(run_id, request, "cancel")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 独立观测出口仅提供 Python Runtime 执行侧数据。
 def _observe_run(run):
     if not run: return
-    OBSERVATION.emit('run',run['runId'],{k:run.get(k) for k in
-        ('status','createdAt','updatedAt','capabilityRef','businessSessionId','runtimeSessionRef')})
+    data = {key: run.get(key) for key in ('status', 'error', 'createdAt', 'updatedAt',
+        'tenantId', 'userId', 'capabilityRef', 'businessSessionId', 'runtimeSessionRef')}
+    data['messageId'] = run.get('metadata', {}).get('messageId')
+    OBSERVATION.emit('run', run['runId'], data, secrets=OBSERVATION_SECRETS.get(run['runId'], ()))
 
 
 @app.get('/internal/observability/v1/info')
@@ -1362,7 +1279,7 @@ async def observation_records(cursor:int=Query(0,ge=0),limit:int=Query(200,ge=1,
 
 @app.get('/internal/observability/v1/snapshot')
 async def observation_snapshot():
-    return JSONResponse({'timestamp':time.time_ns()//1000000,'actors':list(actor_snapshots.values()),
+    return JSONResponse({'timestamp':time.time_ns()//1000000,'actors':SESSION_MANAGER.snapshots() if SESSION_MANAGER else [],
         'pool':WORKER_POOL.snapshot() if WORKER_POOL else None,
         'processes':await asyncio.to_thread(WORKER_POOL.memory_snapshot) if WORKER_POOL else [],
         'dropped':OBSERVATION.dropped},headers={'cache-control':'no-store'})
@@ -1374,7 +1291,8 @@ async def observation_metrics():
     if WORKER_POOL:
         for key,value in WORKER_POOL.snapshot().items():
             if type(value) in (bool,int,float): extra+=f'ccsdk_pool_{key} {int(value) if isinstance(value,bool) else value}\n'
-    extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actor_snapshots.values())}\n'
+    actors = SESSION_MANAGER.snapshots() if SESSION_MANAGER else []
+    extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actors)}\n'
     return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4',
                              headers={'x-ccsdk-instance-id':OBSERVATION.instance_id})
 

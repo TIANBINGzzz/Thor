@@ -1,10 +1,13 @@
-"""开发观测事件：独立于公共SSE，只保留SDK实际返回的内容并遮盖凭据。"""
+"""私有观测基础：进程内计时、SDK 证据筛选与凭据遮盖，不负责存储。"""
 import os
+import json
 import re
 import math
 import time
+import traceback
+from pathlib import Path
 
-TRACE_TYPES = {'thinking', 'tool_use', 'tool_result', 'tool_progress', 'result', 'error'}
+EVIDENCE_TYPES = {'init', 'thinking', 'tool_use', 'tool_result', 'tool_progress', 'result', 'error', 'diagnostic', 'assistant_turn'}
 SENSITIVE = re.compile(r'authorization|credential|password|secret|api.?key|token|cookie|signature', re.I)
 TIMING_STAGES = {
     'runtime': {'accepted', 'scheduled', 'assembled', 'enqueued', 'prepare_begin', 'prepared',
@@ -45,7 +48,7 @@ class Timing:
 
     def __init__(self, scope, *, origin=None, active=None, on_mark=None):
         self.scope = scope
-        self.active = (enabled() or os.environ.get('CCSDK_ENABLE_TIMING') == '1') if active is None else active
+        self.active = (os.environ.get('CCSDK_ENABLE_TIMING') == '1') if active is None else active
         self.origin = (origin or (time.perf_counter(), time.process_time())) if self.active else None
         self.origin_unix_ms = time.time_ns() / 1000000 if self.active else None
         if self.active and origin:
@@ -78,9 +81,41 @@ class Timing:
                                   'elapsedMs': dict(self.elapsed), 'cpuMs': dict(self.cpu),
                                   'counts': dict(self.counts)})
 
-def enabled():
-    """仅在部署环境显式启用时开放私有观测记录。"""
-    return os.environ.get('CCSDK_ENABLE_RUN_TRACE', '').strip() == '1'
+def exception_event(error, *, scope, secrets=()):
+    """异常只保留位置和脱敏消息，不读取局部变量或源代码中的潜在凭据。"""
+    root = Path(__file__).resolve().parents[2]
+    chain, seen, truncated = [], set(), False
+    while error is not None and id(error) not in seen and len(chain) < 5:
+        seen.add(id(error))
+        frames = []
+        stack = list(traceback.walk_tb(error.__traceback__))
+        truncated = truncated or len(stack) > 20
+        for frame, line in stack[-20:]:
+            path = Path(frame.f_code.co_filename)
+            try:
+                filename = path.resolve().relative_to(root).as_posix()
+            except ValueError:
+                filename = path.name
+            frames.append({'file': filename, 'line': line, 'function': frame.f_code.co_name})
+        chain.append({'exceptionType': type(error).__name__, 'message': str(error), 'frames': frames})
+        # SDK 的安全包装通过 from 保留原始异常，私有证据须能追溯这一因果链。
+        error = error.__cause__ or (None if error.__suppress_context__ else error.__context__)
+    event = sanitize({'type': 'diagnostic', 'scope': scope, **chain[0], 'causes': chain[1:]}, secrets)
+    details = [event, *event['causes']]
+    event['scope'] = str(event['scope'])[:128]
+    event['truncated'] = truncated or error is not None
+    for detail in details:
+        detail['exceptionType'] = detail['exceptionType'][:128]
+        if len(detail['message']) > 2048:
+            detail['message'] = detail['message'][:2048]
+            event['truncated'] = True
+    # Worker JSONL 的 readline 有 64 KiB 上限；按整条 UTF-8 字节留足余量。
+    while len(json.dumps(event, ensure_ascii=False).encode('utf-8')) > 32768:
+        event['truncated'] = True
+        for detail in details:
+            detail['message'] = detail['message'][:len(detail['message']) // 2]
+            detail['frames'] = detail['frames'][len(detail['frames']) // 2 + 1:]
+    return event
 
 def sanitize(value, secrets=()):
     """去除结构化凭据与已知凭据原文；保留业务工具参数，二进制与超长文本不入库。"""

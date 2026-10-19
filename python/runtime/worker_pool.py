@@ -10,6 +10,7 @@ import uuid
 import psutil
 
 from runtime.process import ClientWorkerProcess, ClientWorkerError
+from runtime.telemetry import exception_event
 
 LOGGER = logging.getLogger('ccsdk.worker_pool')
 
@@ -78,6 +79,17 @@ class WorkerPool:
         if self._observer:
             try:
                 self._observer.emit('pool',getattr(worker,'observation_warm_id','pool'),{'name':name,**values})
+            except Exception:
+                pass
+
+    def _observe_startup(self, warm_id, event):
+        """预热只有自身关联标识；连接证据不得归入尚不存在的业务 Run。"""
+        if self._observer:
+            try:
+                if event.get('type') == 'diagnostic':
+                    self._observer.emit('evidence', warm_id, event)
+                elif event.get('type') == 'performance':
+                    self._observer.emit('milestone', warm_id, event)
             except Exception:
                 pass
 
@@ -237,12 +249,18 @@ class WorkerPool:
 
     async def _prepare(self):
         worker = None
+        warm_id = 'warm:' + uuid.uuid4().hex
         started=time.perf_counter()
         wall=time.time_ns()/1000000
         outcome='failed'
         try:
             worker = self._factory()
-            worker.observation_warm_id='warm:'+uuid.uuid4().hex
+            worker.observation_warm_id = warm_id
+            if self._observer and hasattr(worker, 'set_observation_callback'):
+                try:
+                    worker.set_observation_callback(self._observe_startup, run_id=warm_id)
+                except Exception:
+                    pass
             self._observe(worker,'prewarm_started')
             if self._payload_factory is None:
                 await worker.prewarm()
@@ -262,6 +280,11 @@ class WorkerPool:
                 await self._terminate(worker)
             raise
         except Exception as error:
+            if self._observer:
+                try:
+                    self._observe_startup(warm_id, exception_event(error, scope='pool_prewarm'))
+                except Exception:
+                    pass
             if worker is not None:
                 await self._terminate(worker)
             self._failures += 1

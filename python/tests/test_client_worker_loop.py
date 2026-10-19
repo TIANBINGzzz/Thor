@@ -194,7 +194,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                         raise BrokenPipeError('diagnostic output unavailable')
                     events.append(event)
 
-                with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
+                with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}), \
                      patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                                     missing_environment=lambda: [], create_run_services=lambda _: data,
                                     ToolServices=lambda *args: tools,
@@ -247,7 +247,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
             if event['type'] == 'client_run_completed':
                 completed.set()
 
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
+        with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}), \
              patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
                             build_options=lambda _, **kw: build_agent_options(tools=[], strict_mcp_config=True),

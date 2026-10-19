@@ -366,12 +366,7 @@ xychart-beta
 <p>生成PNG → 查看核验 → 发布快照 → artifact.pending → artifact.uploading → artifact.ready。ready携带文件服务fileId；不返回上游临时URL、Base64或公开下载URL。生图中的工具状态为 <code>toolKey: image.generate</code>、<code>displayName: 生成或编辑图片</code>。图片预览和下载复用Java授权文件接口。</p>
 </section>
 
-<section id="run-trace"><h2>开发观测 · 私有执行日志</h2>
-<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/trace</code></div>
-<p>仅开发排查使用。部署显式设置 <code>CCSDK_ENABLE_RUN_TRACE=1</code> 才采集并开放接口，默认关闭返回404；不会补录历史Run。JWT须单独授予 <code>run.observe</code>，run.read/run.execute不包含此权限，用户、租户、会话、能力仍绑定目标Run。Java不可向普通前端授予此scope。</p>
-<p>参数 afterSequence 默认0，limit 默认100、范围1–500。响应为 <code>{"events":[{"runId":"run_01","sequence":1,"occurredAt":1725400300000,"event":{"type":"tool_use","id":"call_01","name":"Read","input":{"path":"template.docx"}}}],"nextSequence":1,"hasMore":false}</code>。按nextSequence增量轮询，hasMore为true时继续取下一页；序号独立于公共SSE。响应不缓存。</p>
-<p>记录SDK实际返回的thinking、tool_use、tool_progress、tool_result和结果/错误；保留调用ID、工具名、输入与结果，遮盖结构化凭据、已知凭据和Bearer/JWT，省略二进制及过长文本。SDK自身也可能截断工具结果。日志可能含业务内容与运行路径，只供可信开发者；不承诺收集模型未输出的内部推理。公共SSE继续隐藏这些详情。</p>
-</section>
+
 
 <section id="query"><h2>查询 Run</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}</code></div>
@@ -846,7 +841,7 @@ Accept: application/octet-stream</pre></div>
 </tbody></table>
 <p>接口接收、SDK 成功、文件 ready 和业务质量分别验收。真实 Java Token 生命周期、文件 ACL、生产隔离，以及复杂报告事实、目录和逐页版式仍须独立验证；历史测试次数不作为当前部署状态。</p>
 </section>
-<section id="observation"><h2>独立观测采集</h2><p>默认关闭，由 config/application.yml 的 runtime.observability.enabled 及 application.local.yml 同节点覆盖启用。GET /internal/observability/v1/* 使用独立环境密钥 CCSDK_OBSERVATION_JWT_SECRET 验证短时 HS256 Bearer JWT；签发方为 ccsdk-hawkeye、受众为 ccsdk-runtime-observability、唯一权限为 observation.read、主体为 hawkeye-collector，生命周期最多 300 秒。它与 Java 的 Run JWT 密钥分离，不能访问业务 Run 接口。未配置密钥返回 503，无效 Token 返回 401，关闭观测返回 404，携带浏览器 Origin 返回 403。Runtime 有界暂存待采事件，长期观测库由平台维护；读取不消费记录，各采集方独立维护游标，epoch 变化或游标过期返回缺口信息。</p><ul><li>GET /internal/observability/v1/info：instanceId、epoch、版本和覆盖边界。instanceId 自动生成并随观测库持久化，数据源登记时读取；重建观测库后须重新登记。</li><li>GET /internal/observability/v1/records：cursor、limit（1–500），返回 records、nextCursor、gap、hasMore。</li><li>GET /internal/observability/v1/snapshot：Actor、预热池及进程内存快照。</li><li>GET /internal/observability/v1/metrics：Prometheus 数值指标，响应头 X-CCSDK-Instance-ID 必须与登记实例一致。</li></ul><p>本接口只采 Python Runtime、Actor、Worker 及其可观察的工具与成果阶段，不上报浏览器收字/渲染或 Java 链路。面向用户的首字仍是浏览器收到的首条非空正文；本接口的 runtime.first_text 表示 Python 首次收到非空 SDK 正文，二者不能混称。HTTP 202、SDK 首消息、thinking 和 sse_yield 也都不代表浏览器首字。跨进程只用墙钟定位；本地单调时钟计算耗时。预热独立 Trace，领取以 Link 关联。开启观测后收集所有会话及能力的脱敏详细事件，不使用 Capability 白名单，不补录历史。</p></section>
+<section id="observation"><h2>独立观测采集</h2><p>默认关闭，由 config/application.yml 的 runtime.observability.enabled 及 application.local.yml 同节点覆盖启用。GET /internal/observability/v1/* 使用独立环境密钥 CCSDK_OBSERVATION_JWT_SECRET 验证短时 HS256 Bearer JWT；签发方为 ccsdk-hawkeye、受众为 ccsdk-runtime-observability、唯一权限为 observation.read、主体为 hawkeye-collector，生命周期最多 300 秒。它与 Java 的 Run JWT 密钥分离，不能访问业务 Run 接口。未配置密钥返回 503，无效 Token 返回 401，关闭观测返回 404，携带浏览器 Origin 返回 403。Runtime 有界暂存待采事件，长期观测库由平台维护；读取不消费记录，各采集方独立维护游标，epoch 变化或游标过期返回缺口信息。</p><ul><li>GET /internal/observability/v1/info：instanceId、epoch、版本和覆盖边界。instanceId 自动生成并随观测库持久化，数据源登记时读取；重建观测库后须重新登记。</li><li>GET /internal/observability/v1/records：cursor、limit（1–500），返回 records、nextCursor、oldestCursor、latestCursor、gap、hasMore；空闲期也执行保留策略，记录全部过期时仍返回持久水位及 gap。</li><li>GET /internal/observability/v1/snapshot：Actor、预热池及进程内存快照。</li><li>GET /internal/observability/v1/metrics：Prometheus 数值指标，响应头 X-CCSDK-Instance-ID 必须与登记实例一致。</li></ul><p>本接口只采 Python Runtime、Actor、Worker 及其可观察的工具与成果阶段，不上报浏览器收字/渲染或 Java 链路。面向用户的首字仍是浏览器收到的首条非空正文；本接口的 runtime.first_text 表示 Python 首次收到非空 SDK 正文，二者不能混称。HTTP 202、SDK 首消息、thinking 和 sse_yield 也都不代表浏览器首字。跨进程只用墙钟定位；本地单调时钟计算耗时。预热独立 Trace，领取以 Link 关联。开启观测后收集所有会话及能力的脱敏详细事件，不使用 Capability 白名单，不补录历史。私有证据只进入本出口，包括 SDK 初始化、工具、真实 messageId 对应的 assistant_turn、结果和脱敏 diagnostic 异常；公共正文分片不复制为观测记录，未收到结果的工具以 tool.incomplete 标记。旧的单 Run trace 接口及其 run.observe 授权已移除。</p></section>
 <footer>本文维护 Python Runtime 接口字段及示例；变更同步协议测试。执行契约和业务职责按各自边界维护，测试与部署结果不混入接口定义。</footer>
 </main><aside><p class="toc-title">目录</p><nav class="toc"></nav></aside></div>
 <script>

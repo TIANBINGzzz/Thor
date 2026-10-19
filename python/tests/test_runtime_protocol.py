@@ -1,4 +1,5 @@
 import unittest
+from runtime.auth import JWTError, ReplayCache, encode_hs256_jwt, verify_run_jwt
 from runtime.protocol import AgentRunRequest, ProtocolError
 
 class RuntimeProtocolTests(unittest.TestCase):
@@ -45,4 +46,43 @@ class RuntimeProtocolTests(unittest.TestCase):
             with self.subTest(value_type=type(value).__name__):
                 with self.assertRaises(ProtocolError):
                     AgentRunRequest.from_dict({**body, "payload": value})
+
+
+class RuntimeJWTTests(unittest.TestCase):
+    def token(self, jti, *, expires=140):
+        return encode_hs256_jwt({
+            'aud': 'ccsdk-runtime', 'iat': 99, 'exp': expires, 'jti': jti,
+            'sub': 'user', 'tenant': 'tenant', 'scope': 'run.execute',
+            'runId': 'run-1', 'capabilityRef': 'document-writing',
+        }, 'test-secret')
+
+    def test_full_replay_cache_preserves_unexpired_grants_until_expiry(self):
+        cache = ReplayCache(max_entries=1)
+        options = {'run_id': 'run-1', 'capability_ref': 'document-writing', 'replay_cache': cache}
+        first = self.token('first', expires=110)
+        second = self.token('second')
+        verify_run_jwt(first, 'test-secret', now=100, **options)
+        with self.assertRaisesRegex(JWTError, 'replay cache is full'):
+            verify_run_jwt(second, 'test-secret', now=100, **options)
+        with self.assertRaisesRegex(JWTError, 'already been used'):
+            verify_run_jwt(first, 'test-secret', now=100, **options)
+        self.assertEqual(verify_run_jwt(
+            second, 'test-secret', now=100, consume_jti=False, **options)['jti'], 'second')
+        self.assertEqual(verify_run_jwt(second, 'test-secret', now=116, **options)['jti'], 'second')
+        with self.assertRaisesRegex(JWTError, 'already been used'):
+            verify_run_jwt(second, 'test-secret', now=116, **options)
+
+    def test_jwt_binding_requires_capability_instead_of_legacy_workflow(self):
+        for workflow in ('document-writing', {'id': 'document-writing'}):
+            with self.subTest(workflow=workflow):
+                cache = ReplayCache()
+                token = self.token('workflow')
+                body = {'runId': 'run-1', 'execution': {'workflowRef': workflow}}
+                with self.assertRaisesRegex(JWTError, 'capabilityRef mismatch'):
+                    verify_run_jwt(token, 'test-secret', body=body, replay_cache=cache, now=100)
+                claims = verify_run_jwt(token, 'test-secret', replay_cache=cache, now=100,
+                                        body={'runId': 'run-1', 'capabilityRef': 'document-writing'})
+                self.assertEqual(claims['capabilityRef'], 'document-writing')
+
+
 if __name__ == "__main__": unittest.main()

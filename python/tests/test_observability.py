@@ -7,6 +7,24 @@ from pathlib import Path
 from runtime.observability import ObservationStore, Observer, trace_id, create_observer
 
 class ObservationTests(unittest.TestCase):
+    def test_idle_retention_reports_gap_even_when_all_records_expire(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        store = ObservationStore(Path(directory) / 'observe.db', retention_seconds=10)
+        self.addCleanup(store.close)
+        with patch('runtime.observability.time.time', return_value=100):
+            store.append({'kind': 'milestone', 'runId': 'r'})
+        with patch('runtime.observability.time.time', return_value=111):
+            page = store.read(0, 10)
+        self.assertEqual(page['records'], [])
+        self.assertTrue(page['gap'])
+        self.assertEqual(page['nextCursor'], 1)
+        self.assertEqual(page['latestCursor'], 1)
+        with patch('runtime.observability.time.time', return_value=112):
+            store.append({'kind': 'milestone', 'runId': 'next'})
+            page = store.read(1, 10)
+        self.assertFalse(page['gap'])
+        self.assertEqual(page['records'][0]['sequence'], 2)
+
     @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''})
     def test_invalid_observability_section_disables_collection(self):
         with tempfile.TemporaryDirectory() as d:
@@ -111,7 +129,7 @@ class ObservationTests(unittest.TestCase):
     def test_runtime_first_text_metric_counts_once_and_never_uses_browser_series(self):
         with tempfile.TemporaryDirectory() as d:
             observer=Observer(Path(d)/"o.db", enabled=True, max_records=100)
-            from runtime.private_trace import Timing
+            from runtime.telemetry import Timing
             timing=Timing('runtime',active=True)
             timing.on_mark=lambda stage,elapsed: observer.timing_mark('r',timing,stage)
             timing.mark('first_message')
@@ -162,7 +180,7 @@ class ObservationTests(unittest.TestCase):
             self.assertEqual(data['costUsd'],.01)
 
     def test_performance_keeps_wall_anchor_without_cross_clock_subtraction(self):
-        from runtime.private_trace import performance_event
+        from runtime.telemetry import performance_event
         event=performance_event({"type":"performance","version":1,"scope":"worker_run", "originUnixMs":1000,"clockId":"worker-a", "elapsedMs":{"query_sent":25}})
         self.assertEqual(event.get("originUnixMs"),1000)
         self.assertEqual(event.get("clockId"),"worker-a")

@@ -22,6 +22,70 @@ from runtime.observability import Observer
 
 
 class RuntimeHTTPTests(unittest.TestCase):
+    def test_public_text_chunks_do_not_evict_diagnostic_evidence(self):
+        self.seed()
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True, max_records=10)
+        self.addCleanup(observer.close)
+        async def exercise():
+            await server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'c1', 'name': 'Read'})
+            await server._handle_agent_event('run-test', {'type': 'tool_result', 'id': 'c1', 'text': 'source evidence'})
+            for _ in range(30):
+                await server._handle_agent_event('run-test', {'type': 'text', 'text': 'answer'})
+        with patch.object(server, 'OBSERVATION', observer):
+            asyncio.run(exercise())
+        observer.flush()
+        records = observer.read(0, 100)['records']
+        self.assertTrue(any(r['kind'] == 'evidence' and r['data'].get('text') == 'source evidence' for r in records))
+        self.assertFalse(any(r['data'].get('name') == 'message.delta' for r in records))
+        self.assertEqual(sum(e['type'] == 'message.delta' for e in self.store.events_after('run-test')), 30)
+
+    def test_runtime_exception_keeps_private_diagnostics_and_releases_tool_tracking(self):
+        self.seed()
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        async def stream(payload, *, timing_enabled=False):
+            yield {'type': 'tool_use', 'id': 'c1', 'name': 'Read'}
+            raise ValueError('upstream exploded business-token test-runtime-token')
+        with patch.object(server, 'OBSERVATION', observer), \
+             patch.object(server, '_runtime_mode_for_request', return_value='query'), \
+             patch.object(server, '_internal_worker_payload', return_value={'timeout_ms': 2000}), \
+             patch.object(server, 'stream_agent', stream):
+            asyncio.run(server._execute_internal_run(AgentRunRequest.from_dict(self.body),
+                {'tenant': 'tenant-test', 'sub': 'user-test'}, runtime_bearer='test-runtime-token'))
+        observer.flush()
+        records = observer.read(0, 500)['records']
+        errors = [r['data'] for r in records if r['kind'] == 'evidence' and r['data'].get('type') == 'diagnostic']
+        self.assertTrue(errors)
+        self.assertEqual(errors[-1]['exceptionType'], 'ValueError')
+        self.assertIn('upstream exploded', errors[-1]['message'])
+        self.assertTrue(errors[-1]['frames'])
+        self.assertNotIn('business-token', json.dumps(records))
+        self.assertNotIn('test-runtime-token', json.dumps(records))
+        self.assertNotIn('upstream exploded', json.dumps(self.store.events_after('run-test')))
+        self.assertEqual(self.store.get_run('run-test')['status'], 'failed')
+        summary = [r['data'] for r in records if r['kind'] == 'run'][-1]
+        self.assertEqual((summary.get('tenantId'), summary.get('userId'), summary.get('messageId')),
+                         ('tenant-test', 'user-test', 'msg-test'))
+        self.assertEqual(summary.get('error'), 'runtime_error')
+        self.assertFalse(observer.tool_starts)
+        incomplete = [r['data'] for r in records if r['kind'] == 'milestone' and r['data'].get('name') == 'tool.incomplete']
+        self.assertEqual(incomplete[0]['callId'], 'c1')
+
+    def test_worker_diagnostics_and_turn_identity_are_private(self):
+        self.seed()
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer):
+            for event in (
+                {'type': 'assistant_turn', 'messageId': 'sdk-message', 'scope': 'main'},
+                {'type': 'diagnostic', 'exceptionType': 'RuntimeError', 'message': 'private failure'},
+            ):
+                asyncio.run(server._handle_client_public_event('run-test', event))
+        observer.flush()
+        evidence = [r['data']['type'] for r in observer.read(0, 100)['records'] if r['kind'] == 'evidence']
+        self.assertEqual(evidence, ['assistant_turn', 'diagnostic'])
+        self.assertEqual(self.store.events_after('run-test'), [])
+
     def setUp(self):
         self.store = RunStore(":memory:")
         self.addCleanup(self.store.close)
@@ -39,7 +103,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
             "pending_terminals": {},
-            "RUN_TIMINGS": {}, "TRACE_SECRETS": {},
+            "RUN_TIMINGS": {}, "OBSERVATION_SECRETS": {},
             "internal_cancellations": {},
             "OBSERVATION": Observer(Path(self.temp.name)/'unused'),
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
@@ -118,7 +182,7 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_runtime_first_text_excludes_whitespace_only_sdk_chunks(self):
         self.seed()
-        timing=server.private_trace.Timing('runtime',active=True)
+        timing=server.telemetry.Timing('runtime',active=True)
         server.RUN_TIMINGS['run-test']=timing
         async def exercise():
             await server._handle_agent_event('run-test',{'type':'text','text':'  \n '})
@@ -129,7 +193,7 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_runtime_first_message_ignores_worker_timing_events(self):
         self.seed()
-        timing=server.private_trace.Timing('runtime',active=True)
+        timing=server.telemetry.Timing('runtime',active=True)
         server.RUN_TIMINGS['run-test']=timing
         asyncio.run(server._handle_agent_event('run-test',{
             'type':'performance','version':1,'scope':'worker_boot',
@@ -163,35 +227,36 @@ class RuntimeHTTPTests(unittest.TestCase):
             asyncio.run(server._handle_agent_event('run-test',{'type':'text','text':'answer'}))
         self.assertEqual(self.store.events_after('run-test')[-1]['payload']['textDelta'],'answer')
 
-    def test_performance_is_private_even_when_trace_is_disabled(self):
+    def test_performance_is_private_and_observation_switch_controls_recording(self):
         self.seed()
         event = {'type': 'performance', 'version': 1, 'scope': 'worker_run',
                  'elapsedMs': {'first_text': 10, 'token': 'business-token'},
                  'cpuMs': {}, 'prompt': 'private'}
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '0'}):
-            asyncio.run(server._handle_agent_event('run-test', event))
+        asyncio.run(server._handle_agent_event('run-test', event))
         self.assertEqual(self.store.events_after('run-test'), [])
-        self.assertEqual(self.store.traces_after('run-test'), [])
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer):
             asyncio.run(server._handle_agent_event('run-test', event))
-        self.assertEqual(self.store.events_after('run-test'), [])
-        trace = self.store.traces_after('run-test')[0]['event']
+        observer.flush()
+        trace = observer.read(0, 100)['records'][0]['data']
         self.assertEqual(trace['elapsedMs'], {'first_text': 10})
         self.assertNotIn('prompt', trace)
+        self.assertEqual(self.store.events_after('run-test'), [])
 
     def test_performance_storage_failure_preserves_run_result_and_cleanup(self):
         self.seed()
-        server.RUN_TIMINGS['run-test'] = server.private_trace.Timing('runtime', active=True)
+        server.RUN_TIMINGS['run-test'] = server.telemetry.Timing('runtime', active=True)
         server.internal_tasks['run-test'] = object()
 
-        async def stream(payload):
+        async def stream(payload, *, timing_enabled=False):
             yield {'type': 'performance', 'version': 1, 'scope': 'worker_run',
                    'elapsedMs': {'first_text': 10}, 'cpuMs': {}, 'counts': {}}
             yield {'type': 'text', 'text': 'answer'}
             yield {'type': 'result', 'ok': True}
 
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}), \
-             patch.object(self.store, 'append_trace', side_effect=OSError('diagnostic storage unavailable')), \
+        with patch.object(server.OBSERVATION, 'enabled', True), \
+             patch.object(server.OBSERVATION, 'sdk', side_effect=OSError('diagnostic storage unavailable')), \
              patch.object(server, '_runtime_mode_for_request', return_value='query'), \
              patch.object(server, '_internal_worker_payload', return_value={'timeout_ms': 2000}), \
              patch.object(server, '_clear_runtime_input') as clear, \
@@ -200,7 +265,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                 {'tenant': 'tenant-test', 'sub': 'user-test'}, runtime_bearer='test-runtime-token'))
         self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
         self.assertNotIn('run-test', server.RUN_TIMINGS)
-        self.assertNotIn('run-test', server.TRACE_SECRETS)
+        self.assertNotIn('run-test', server.OBSERVATION_SECRETS)
         self.assertNotIn('run-test', server.internal_tasks)
         clear.assert_called_once()
 
@@ -217,18 +282,11 @@ class RuntimeHTTPTests(unittest.TestCase):
 
             return events()
 
-        observer = SimpleNamespace(
-            enabled=True,
-            instance_id='instance-test',
-            timing_mark=lambda *args: None,
-            emit=lambda *args, **kwargs: None,
-            span=lambda *args, **kwargs: None,
-            span_id=lambda *args, **kwargs: '1' * 16,
-            count=lambda *args, **kwargs: None,
-        )
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
         with patch.object(server, 'OBSERVATION', observer), \
              patch.object(server, 'stream_agent', stream), \
-             patch.object(server, '_record_trace'), \
+             patch.object(server, '_record_observation'), \
              patch.object(server, '_runtime_mode_for_request', return_value='query'), \
              patch.object(server, '_internal_worker_payload', return_value={'prompt': 'hello', 'timeout_ms': 2000}), \
              patch.object(server, '_clear_runtime_input'):
@@ -295,28 +353,24 @@ class RuntimeHTTPTests(unittest.TestCase):
             self.assert_public_run(self.client.post('/internal/v1/runs',json=body,
                 headers=self.headers('run.execute')),202)
 
-    def test_private_trace_requires_observe_scope_and_never_enters_public_events(self):
+    def test_detailed_evidence_uses_collection_jwt_and_stays_out_of_sse(self):
         self.seed()
-        route = '/internal/v1/runs/run-test/trace'
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '0'}):
-            self.assertEqual(self.client.get(route, headers=self.headers('run.observe')).status_code, 404)
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1', 'TEST_API_KEY': 'private-test-key'}):
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer), patch.dict('os.environ', {'TEST_API_KEY': 'private-test-key'}):
             asyncio.run(server._handle_agent_event('run-test', {'type': 'thinking', 'text': '测试模型返回的思考'}))
-            asyncio.run(server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'call-1',
-                'name': 'Read', 'input': {'path': 'template.docx', 'authorization': 'private-test-key',
-                'note': 'Bearer private-test-key'}}))
+            asyncio.run(server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'c1', 'name': 'Read',
+                'input': {'path': 'template.docx', 'text': 'private-test-key'}}))
+            observer.flush()
+            route = '/internal/observability/v1/records'
             self.assertEqual(self.client.get(route, headers=self.headers()).status_code, 401)
-            self.assertEqual(self.client.get(route, headers=self.headers('run.execute')).status_code, 401)
-            self.assertEqual(self.client.get(route, headers=self.headers('run.observe', sub='other')).status_code, 401)
-            response = self.client.get(route+'?limit=1', headers=self.headers('run.observe'))
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.headers['cache-control'], 'no-store')
-            self.assertEqual(response.json()['events'][0]['event']['text'], '测试模型返回的思考')
-            second = self.client.get(route+'?afterSequence=1', headers=self.headers('run.observe')).json()
-            self.assertEqual(second['events'][0]['event']['name'], 'Read')
-            self.assertNotIn('private-test-key', json.dumps(second))
-            self.assertNotIn('测试模型返回的思考', json.dumps(self.store.events_after('run-test'), ensure_ascii=False))
-            self.assertNotIn('template.docx', json.dumps(self.store.events_after('run-test')))
+            response = self.client.get(route, headers=self.observation_headers())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('template.docx', response.text)
+        self.assertNotIn('private-test-key', response.text)
+        public = json.dumps(self.store.events_after('run-test'), ensure_ascii=False)
+        self.assertNotIn('测试模型返回的思考', public)
+        self.assertNotIn('template.docx', public)
 
     def test_upstream_failure_persists_failed_status_and_safe_sse(self):
         self.seed()
@@ -326,14 +380,16 @@ class RuntimeHTTPTests(unittest.TestCase):
             await server._handle_agent_event('run-test', {'type': 'text', 'text': 'partial answer'})
             await server._handle_agent_event('run-test', raw)
             await server._finish_run('run-test', server.pending_terminals.pop('run-test'))
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        with patch.object(server, 'OBSERVATION', observer):
             asyncio.run(finish())
-            run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
-            self.assertEqual(run['status'], 'failed')
-            self.assertEqual(run['error'], 'upstream_service_error')
-            trace = self.client.get('/internal/v1/runs/run-test/trace', headers=self.headers('run.observe'))
-            self.assertEqual(trace.status_code, 200)
-            self.assertEqual(trace.json()['events'][-1]['event']['code'], 'upstream_service_error')
+        run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
+        self.assertEqual(run['status'], 'failed')
+        self.assertEqual(run['error'], 'upstream_service_error')
+        observer.flush()
+        evidence = [r['data'] for r in observer.read(0, 100)['records'] if r['kind'] == 'evidence']
+        self.assertEqual(evidence[-1]['code'], 'upstream_service_error')
         stored = self.store.events_after('run-test')
         self.assertNotIn('private-upstream-response', json.dumps(stored))
         response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())

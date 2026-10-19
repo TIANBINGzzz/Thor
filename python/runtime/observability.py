@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 import yaml
-from runtime.private_trace import sanitize
+from runtime.telemetry import sanitize
 
 
 def trace_id(instance, run):
@@ -38,12 +38,16 @@ class ObservationStore:
             self.db.execute("DELETE FROM records WHERE seq<=? OR at<?",(high-self.max_records,time.time()-self.retention_seconds))
 
     def read(self, cursor, limit):
-        with self.lock:
-            low,high=self.db.execute("SELECT MIN(seq),MAX(seq) FROM records").fetchone()
+        with self.lock, self.db:
+            # 空闲期读取也执行保留策略；全部过期后仍保留单调水位，明确报告缺口。
+            self.db.execute("DELETE FROM records WHERE at<?", (time.time()-self.retention_seconds,))
+            row=self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='records'").fetchone()
+            high=row[0] if row else 0
+            low=self.db.execute("SELECT MIN(seq) FROM records").fetchone()[0]
             rows=self.db.execute("SELECT seq,body FROM records WHERE seq>? ORDER BY seq LIMIT ?",(cursor,limit)).fetchall()
         return {"epoch":self.epoch,"records":[{**json.loads(b),"sequence":s} for s,b in rows],
-                "nextCursor":rows[-1][0] if rows else cursor,"oldestCursor":low,"latestCursor":high,
-                "gap":bool(low and cursor<low-1),"hasMore":bool(rows and rows[-1][0] < high)}
+                "nextCursor":rows[-1][0] if rows else max(cursor,high),"oldestCursor":low,"latestCursor":high,
+                "gap":cursor < (low-1 if low is not None else high),"hasMore":bool(rows and rows[-1][0] < high)}
 
     def close(self):
         self.db.close()
@@ -94,7 +98,7 @@ class Observer:
                 self.queue.task_done()
 
     def span_id(self, run_id, identity):
-        # Phoenix 对 span_id 建全局唯一约束，阶段名必须带实例与 Run 命名空间。
+        # 阶段名带实例与 Run 命名空间，保证跨 Trace 导出时也不碰撞。
         return hashlib.sha256((self.instance_id+':'+run_id+':'+identity).encode()).hexdigest()[:16]
 
     def span(self, run_id, name, start_ms, duration_ms, *, parent=None, attributes=None, links=(), identity=None):
@@ -158,7 +162,14 @@ class Observer:
             usage={name:raw[key] for name,key in (('input','inputTokens'),('output','outputTokens'))
                    if type(raw.get(key)) in (int,float) and math.isfinite(raw[key])}
             self.emit('milestone',run_id,{'name':'sdk_result','usage':usage,**{k:v for k,v in raw.items() if k in {'turns','durationMs','costUsd','ok'} and type(v) in (int,float,bool)}})
-            for k in [k for k in self.tool_starts if k[0]==run_id]: self.tool_starts.pop(k,None)
+
+    def finish_run(self, run_id, status):
+        """未收到结果的调用只标记不完整，不能把 Run 终点冒充工具完成时间。"""
+        for key in [key for key in self.tool_starts if key[0] == run_id]:
+            _, wall, name = self.tool_starts.pop(key)
+            self.emit('milestone', run_id, {'name': 'tool.incomplete', 'callId': key[1],
+                'toolName': name, 'originUnixMs': wall, 'runStatus': status,
+                'measurement.boundary': 'sdk_outer', 'reason': 'run_ended_without_tool_result'})
 
     def observe(self, name, value):
         count,total,buckets=self.histograms.setdefault(name,[0,0,{}])

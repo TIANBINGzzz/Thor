@@ -407,10 +407,14 @@ async def _disconnect_provider(provider: Any, timeout_ms: int) -> SDKError | Non
         # caller owns the final client state and must still be able to tell a
         # requested shutdown from a failed disconnect.
         raise
-    except asyncio.TimeoutError:
-        return SDKTimeoutError("Claude SDK disconnect 超时")
-    except Exception:
-        return SDKCleanupError("Claude SDK disconnect 失败")
+    except asyncio.TimeoutError as error:
+        failure = SDKTimeoutError("Claude SDK disconnect 超时")
+        failure.__cause__ = error
+        return failure
+    except Exception as error:
+        failure = SDKCleanupError("Claude SDK disconnect 失败")
+        failure.__cause__ = error
+        return failure
     return None
 
 

@@ -52,7 +52,7 @@
 - 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 为随机空白工作区预连接无业务身份及 MCP 的 SDK Client，首轮绑定会话后独占领取；恢复历史或固定配置不匹配时冷启动。已绑定进程不跨会话归还；空闲、创建并发、总存活上限及内存保护见配置字段。
-- Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有 Run Trace 另需 run.observe，不进入公共 SSE。独立观测读取由专用短时 JWT 和单独环境密钥授权。
+- Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。
 - 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 显式管理指令、按需知识和 MCP 参数，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，`tools/campus.py` 校验业务参数并过滤响应，见 [ADR-035](doc/ADR/035-campus-query-adapter.md)。
 
 ## 8. Cross-cutting concerns

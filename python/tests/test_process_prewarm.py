@@ -1,9 +1,13 @@
 import asyncio
 import json
+import os
+from pathlib import Path
+import sys
 import unittest
 from unittest.mock import patch
 
 from runtime.process import ClientWorkerError, ClientWorkerProcess
+from runtime.session_actor import SessionActor, SessionActorError
 
 
 class Process:
@@ -181,3 +185,104 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNotNone(process.returncode)
                 finally:
                     await pool.close()
+
+
+class WorkerTerminalEvidenceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_actor_consumes_disconnect_evidence_before_failed_or_closing_terminal(self):
+        # 真正启动 Worker 子进程，只替换外部 SDK Provider；父进程使用原 JSONL 通道和 Actor。
+        script = r'''
+import asyncio, sys
+from contextlib import nullcontext
+from types import SimpleNamespace
+import agent_worker as worker
+from runtime.claude_sdk import ClaudeSDKClient, SDKMessage, build_agent_options
+mode = sys.argv[1]
+class Provider:
+    def __init__(self):
+        self.interrupted = asyncio.Event()
+    async def connect(self, prompt=None):
+        pass
+    async def query(self, prompt, session_id):
+        pass
+    async def receive_response(self):
+        yield SDKMessage(kind='assistant', data={'message_id': 'm1', 'content': [{'type': 'text', 'text': 'ready to close'}]})
+        await self.interrupted.wait()
+        yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+    async def interrupt(self):
+        self.interrupted.set()
+    async def disconnect(self):
+        raise ValueError('disconnect rejected business-private-value')
+class Client(ClaudeSDKClient):
+    async def connect(self, prompt=None):
+        await super().connect(prompt)
+        if mode == 'connect':
+            raise ValueError('startup failed before ready')
+def options(*args, **kwargs):
+    if mode == 'failed':
+        raise ValueError('run setup failed')
+    return build_agent_options(tools=[], strict_mcp_config=True)
+worker.load_runtime_environment = lambda _: None
+worker.missing_environment = lambda: []
+worker.prepare_workflow_assets = lambda _: {}
+worker.create_run_services = lambda _: None
+worker.ToolServices = lambda *args: SimpleNamespace(clear=lambda: None)
+worker.build_client_options = lambda *args: build_agent_options(tools=[], strict_mcp_config=True)
+worker.build_options = options
+worker.isolated_sdk_environment = nullcontext
+worker.ClaudeSDKClient = lambda *args, **kwargs: Client(*args, **kwargs, client_factory=lambda _: Provider())
+asyncio.run(worker.main())
+'''
+        for mode in ('failed', 'closing', 'connect'):
+            with self.subTest(mode=mode):
+                observations, processes = [], []
+                text_received = asyncio.Event()
+                async def consume(run_id, event):
+                    observations.append((run_id, event))
+                    if event.get('type') == 'text':
+                        text_received.set()
+                async def spawn(*args, **kwargs):
+                    process = await asyncio.create_subprocess_exec(
+                        sys.executable, '-u', '-c', script, mode,
+                        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        env={**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1]),
+                             'CCSDK_ENABLE_TIMING': '1'})
+                    processes.append(process)
+                    return process
+                actor = SessionActor('diagnostic-test-session',
+                                     {'credentials': {'platformBearer': 'business-private-value'}},
+                                     on_public_event=consume,
+                                     on_observation=lambda run_id, event: observations.append((run_id, event)),
+                                     worker_start_timeout_ms=10000, worker_close_timeout_ms=2000)
+                try:
+                    with patch('runtime.process._spawn_worker_process', side_effect=spawn):
+                        pending = asyncio.create_task(actor.submit('diagnostic-run', {
+                            'prompt': 'test', 'credentials': {'platformBearer': 'business-private-value'}}))
+                        if mode == 'closing':
+                            ready = asyncio.create_task(text_received.wait())
+                            done, _ = await asyncio.wait({pending, ready}, timeout=10,
+                                                         return_when=asyncio.FIRST_COMPLETED)
+                            if ready not in done:
+                                ready.cancel()
+                                pending.cancel()
+                                await asyncio.gather(ready, return_exceptions=True)
+                                await asyncio.gather(pending, return_exceptions=True)
+                                self.fail(str(observations))
+                            await asyncio.wait_for(actor.close(), 10)
+                            await pending
+                        else:
+                            with self.assertRaises(SessionActorError):
+                                await asyncio.wait_for(pending, 10)
+                        evidence = [(run_id, event) for run_id, event in observations
+                                    if event.get('scope') == 'worker_client_disconnect']
+                        self.assertEqual(len(evidence), 1, observations)
+                        self.assertEqual(evidence[0][0], 'diagnostic-run')
+                        self.assertEqual(evidence[0][1]['exceptionType'], 'SDKCleanupError')
+                        self.assertEqual(evidence[0][1]['causes'][0]['exceptionType'], 'ValueError')
+                        self.assertNotIn('business-private-value', json.dumps(evidence))
+                finally:
+                    await actor.close()
+                    for process in processes:
+                        if process.returncode is None:
+                            process.kill()
+                        await process.wait()

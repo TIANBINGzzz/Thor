@@ -1,8 +1,8 @@
 # CCSDK Runtime 执行契约
 
-本文维护 Java/Python 的执行语义及文件边界；HTTP 路径、字段表、状态、错误码和可解析示例统一维护在 [API 参考](../python-api.html)，业务映射见 [Java 职责](java-control-plane.md)。接口变化同步参考页和协议测试，职责变化才更新 Java 文档；不复制实现教程或未实现接口。
+本文维护 Java/Python 的执行语义、职责及文件边界；HTTP 路径、字段表、状态、错误码和可解析示例统一维护在 [API 参考](../python-api.html)。接口变化同步参考页和协议测试；不复制实现教程或未实现接口。
 
-观测出口由主配置 `runtime.observability.enabled` 控制，供独立平台主动拉取，接口见 [API 参考](../python-api.html#observation)。当前采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；浏览器收字/渲染与 Java 阶段不由本出口采集。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，已结束的区间转换为 Span 并导入 Phoenix，完整 Trace 在 Run 结束后收齐。Python `first_text` 表示 SDK 首次返回非空正文，不等同于用户首字。CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
+观测出口由主配置 `runtime.observability.enabled` 控制，供独立平台主动拉取，接口见 [API 参考](../python-api.html#observation)。当前采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；浏览器收字/渲染与 Java 阶段不由本出口采集。现有 Timing 保持阶段含义，新增 `originUnixMs`、`clockId` 用于 Trace 定位；同 scope 的相邻里程碑形成区间，跨 scope 不相加。Run 与返回 202 的 HTTP 创建独立记录；预热使用独立 Trace，领取通过 Link 关联。运行中依赖里程碑，已结束的区间转换为 Span 供平台导出，完整 Trace 在 Run 结束后收齐。Python `first_text` 表示 SDK 首次返回非空正文，不等同于用户首字。CLI 内部模型 HTTP 未埋点时标记缺失。采集故障不影响业务执行，丢弃量与游标缺口可查。
 
 ## 1. 职责边界
 
@@ -58,8 +58,9 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 - Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验，不再校验 messageId。
-- 创建用 run.execute，读取用 run.read/run.execute，控制用 run.control/run.cancel；创建和 interrupt 消耗 jti，读取和 cancel 不消耗。cancel 每次仍校验有效期、权限与身份/Run 绑定，可复用含取消权限的创建 JWT；过期须重新签发。session.read 和 run.observe 是独立授权，不能从普通 Run 权限推导。
+- 创建用 run.execute，读取用 run.read/run.execute，控制用 run.control/run.cancel；创建和 interrupt 消耗 jti，读取和 cancel 不消耗。cancel 每次仍校验有效期、权限与身份/Run 绑定，可复用含取消权限的创建 JWT；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
 - credentials.platformBearer 是不透明业务 Token，仅按服务端规则注入获准 MCP；不是 Runtime 身份来源，不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
+- scope、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
 
 ## 8. File Broker 模块
 
@@ -88,7 +89,7 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 
 独立平台读取 `/internal/observability/v1/`：由主配置 `runtime.observability.enabled` 控制，使用独立于 Run JWT 的 `CCSDK_OBSERVATION_JWT_SECRET` 校验只读采集 JWT；启用后收集所有会话及能力的脱敏事件。Runtime 只保存有界待采日志，长期事件、Trace、时序指标和分析索引由观测平台维护。读取不消费或删除记录，各采集方独立维护游标；断连超过保留窗口或队列溢出时不能保证完整补采，须报告缺口。实例标识自动生成并随待采库持久化，数据源登记时发现；库重建后须重新登记，采集指标也须校验相同实例。该出口只读取 Python Runtime 观测，不提供浏览器遥测写入接口。
 
-启用 CCSDK_ENABLE_RUN_TRACE=1 且持有绑定原 Run 的 run.observe 才可读取 trace；默认关闭返回 404。分页序号独立于 SSE，响应 no-store，只采集启用后 SDK 实际返回的思考与工具事件，遮盖已知凭据、省略二进制及过长内容；不补录历史、不承诺完整内部推理。字段见 [观测参考](../python-api.html#run-trace)。
+私有证据只写有界待采日志，不再写业务 RunStore 或提供单 Run 调试接口。证据包含 SDK 初始化、实际返回的思考/工具输入输出、结果及异常类型、脱敏消息和堆栈位置；不记录异常局部变量、源代码或未返回的内部推理。逐条正文分片仍只走公共 SSE，观测保留首次正文里程碑。SDK message_start 的真实 messageId 记录为 assistant_turn，工具调用以 messageId 关联；最终 turns 是 SDK 汇总值，两者不应当作业务会话轮次互相替代。工具缺少结果时标记 tool.incomplete，不伪造完成时间。截断、缺口和下游显示支持须由消费方明确呈现。
 
 性能观测基准 **v1**：面向用户的首字仍指浏览器收到第一条非空正文，从请求提交前计时；HTTP 202、SDK 首消息、thinking、Python `first_text`、SSE yield 均不能替代。当前独立平台不采集浏览器网络/渲染时间，因此其 `runtime.first_text` 只用于诊断 Python SDK 到 Runtime 的阶段耗时，不能称为端到端首字。每次比较须固定版本、依赖、模型、问题、工具、池容量、预热完成状态、并发数及首轮/续轮，交替重复并报告样本数、失败、分布和资源。
 
@@ -96,7 +97,7 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 | --- | --- | --- |
 | 浏览器 / 提交前 | 请求发出、首段 SSE 到达、正文渲染 | 本平台不采集；端到端首字指标保持缺失 |
 | Java / 请求入口 | 鉴权结束、Python 请求/202、SSE 首字接收/转发 | Java 计时；本仓库不实现 |
-| Python / Run 路由入口 | `runtime`：accepted、scheduled、assembled、enqueued、prepare_begin、prepared、first_message、first_thinking、first_text、text_stored、sse_yield、completed | 现有私有 trace；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
+| Python / Run 路由入口 | `runtime`：accepted、scheduled、assembled、enqueued、prepare_begin、prepared、first_message、first_thinking、first_text、text_stored、sse_yield、completed | 有界观测日志；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
 | Actor / 命令入队 | `actor`：queue_exit、prepared、worker_ready、query_sent、first_text、completed；worker_created/reused、pool_hit、rebuilt | 同会话串行；冷启动的 worker_ready − prepared 包含领取、导入和连接；预热创建单独记录，预热完成时间不计入本轮；续轮复用不沿用上次启动值 |
 | Worker / 模块加载前、初始配置收到、本轮命令收到 | `worker_boot.imported`；`worker_start`：configured、connect_begin、connected；`worker_run`：bound、configured、query_begin、query_sent、first_message、first_thinking、first_text、completed | boot 不含解释器启动；命中池时导入已在请求前完成；connect 包含 CLI 版本检查/启动及 SDK 初始化，部分 MCP 握手可延至首个 query；query_sent 只是写入 SDK |
 | 模型 HTTP / 每次请求发出前 | 请求次数/状态、响应头、首字节、首个流事件、首段思考/正文、结束；请求字节数/工具数量/Token 用量 | 测试透传探针或可信模型网关；不由 SDK init 推断，不记录 Header/正文/凭据 |

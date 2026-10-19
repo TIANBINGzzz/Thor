@@ -21,7 +21,7 @@ from typing import Any
 
 
 class JWTError(ValueError):
-    """Raised when a JWT is malformed, unauthenticated, expired or replayed."""
+    """JWT 校验或重放保护失败时拒绝授权。"""
 
 
 def _b64encode(value: bytes) -> str:
@@ -77,7 +77,7 @@ class ReplayCache:
         self._lock = threading.Lock()
 
     def check_and_mark(self, jti: str, *, ttl_seconds: float, now: float | None = None) -> bool:
-        """检查并登记指定 jti 的有效期，首次登记返回 True，重复使用返回 False；缓存满时淘汰最早过期项。"""
+        """首次登记返回 True，重复使用返回 False；容量不足时拒绝新授权，保留未过期记录。"""
         current = time.time() if now is None else float(now)
         expiry = current + max(0.001, float(ttl_seconds))
         with self._lock:
@@ -87,8 +87,7 @@ class ReplayCache:
             if jti in self._values:
                 return False
             if len(self._values) >= self.max_entries:
-                oldest = min(self._values, key=self._values.get)
-                self._values.pop(oldest, None)
+                raise JWTError("JWT replay cache is full")
             self._values[jti] = expiry
             return True
 
@@ -121,7 +120,7 @@ def _audience_matches(value: Any, expected: str) -> bool:
 
 def _verify_signed_claims(
     token: str, secret: str | bytes, *, audience: str, issuer: str | None,
-    expected_scope: str, required_claims: tuple[str, ...], now: float | None = None,
+    expected_scope: str | set[str], required_claims: tuple[str, ...], now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
     """校验签名、时效、受众、签发方和权限声明，不消费重放标识。"""
@@ -171,7 +170,8 @@ def _verify_signed_claims(
         scopes = set(scope)
     else:
         raise JWTError("JWT scope is required")
-    if expected_scope and expected_scope not in scopes:
+    allowed_scopes = {expected_scope} if isinstance(expected_scope, str) else expected_scope
+    if not scopes & allowed_scopes:
         raise JWTError("JWT scope is not allowed")
 
     return claims
@@ -233,9 +233,11 @@ def verify_run_jwt(
     turn_id: str | None = None,
     business_session_id: str | None = None,
     message_id: str | None = None,
+    tenant_id: str | None = None,
+    user_id: str | None = None,
     body: Mapping[str, Any] | Any | None = None,
     audience: str = "ccsdk-runtime",
-    expected_scope: str = "run.execute",
+    expected_scope: str | set[str] = "run.execute",
     issuer: str | None = None,
     replay_cache: ReplayCache | None = None,
     consume_jti: bool = True,
@@ -273,14 +275,6 @@ def verify_run_jwt(
             body_turn_id = body.get("turnId", body.get("turn_id", body_turn_id))
             body_business_session_id = body.get("businessSessionId", body.get("business_session_id", body_business_session_id))
             body_message_id = body.get("messageId", body.get("message_id", body_message_id))
-            if body_capability is None:
-                execution = body.get("execution")
-                if isinstance(execution, Mapping):
-                    workflow = execution.get("workflowRef")
-                    if isinstance(workflow, Mapping):
-                        body_capability = workflow.get("id")
-                    elif isinstance(workflow, str):
-                        body_capability = workflow
     if body_run_id is not None and body_run_id != claims["runId"]:
         raise JWTError("runId mismatch")
     if body_capability != claims.get("capabilityRef"):
@@ -289,6 +283,8 @@ def verify_run_jwt(
         ("turnId", body_turn_id, "turnId"),
         ("businessSessionId", body_business_session_id, "businessSessionId"),
         ("messageId", body_message_id, "messageId"),
+        ("tenant", tenant_id, "tenant"),
+        ("sub", user_id, "sub"),
     ):
         claim_value = claims.get(claim_name)
         if body_value is not None and claim_value != body_value:

@@ -83,7 +83,7 @@
 <text x="230" y="492" font-size="16" fill="#667489" text-anchor="start">关联原业务消息</text>
 <rect x="48" y="812" width="1504" height="60" rx="4" fill="#F7F8FA" stroke="#DCE3EB" stroke-width="1" stroke-dasharray="5 5"/>
 <text x="68" y="849" font-size="22" fill="#182B43" text-anchor="start" class="heading">外部观测平台</text>
-<text x="340" y="849" font-size="18" fill="#667489" text-anchor="start">runId 关联    ·    Trace / 工具 / 耗时 / 用量    ·    run.observe 授权</text>
+<text x="340" y="849" font-size="18" fill="#667489" text-anchor="start">runId 关联    ·    Trace / 工具 / 耗时 / 用量    ·    独立观测 JWT 授权</text>
 <path d="M803 742 L803 812" fill="none" stroke="#8492A4" stroke-width="1.6" marker-end="url(#planned)" stroke-dasharray="5 5"/>
 <text x="825" y="794" font-size="16" fill="#667489" text-anchor="start">授权观测 / 脱敏用量</text>
 </svg>

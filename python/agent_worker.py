@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -40,7 +41,7 @@ from runtime.claude_sdk import (
 from runtime.chart_delivery import ChartDelivery
 from runtime.tool_services import ToolServices
 from runtime.mcp_auth import MCPAuthError
-from runtime.private_trace import Timing
+from runtime.telemetry import Timing, exception_event
 from runtime.runtime_settings import RUNTIME_SETTINGS
 DEFAULT_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
 
@@ -105,6 +106,18 @@ def emit_live_performance(timing: Timing) -> None:
             pass
 
 
+def emit_diagnostic(error: BaseException, timing: Timing | None, payload: Any, *, scope: str) -> None:
+    """异常证据仅进入私有观测；凭据显式脱敏，观测失败不替换原执行错误。"""
+    if not ((timing is not None and timing.active) or os.environ.get('CCSDK_ENABLE_TIMING') == '1'):
+        return
+    try:
+        credentials = payload.get('credentials') if isinstance(payload, dict) else None
+        bearer = credentials.get('platformBearer') if isinstance(credentials, dict) else None
+        emit(exception_event(error, scope=scope, secrets=(bearer,) if bearer else ()))
+    except Exception:
+        pass
+
+
 def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str, Any]]:
     """接收增量消息和流状态，更新各作用域的消息标识，返回文本或思考增量事件列表。"""
     normalized = normalize_message(message)
@@ -118,6 +131,7 @@ def event_from_stream(message: Any, streaming: dict[str, str]) -> list[dict[str,
         message_id = (raw.get("message") or {}).get("id")
         if message_id:
             streaming[scope] = message_id
+            return [{"type": "assistant_turn", "scope": scope, "messageId": message_id}]
         return []
     if event_type == "message_stop":
         streaming.pop(scope, None)
@@ -153,6 +167,7 @@ def events_from_assistant(message: Any, streaming: dict[str, str]) -> list[dict[
                 "type": "tool_use",
                 "scope": scope,
                 "id": block.get("id"),
+                **({"messageId": message_id} if message_id else {}),
                 "name": block.get("name"),
                 "input": clip(block.get("input")),
             })
@@ -401,7 +416,8 @@ async def _receive_client_response(
             await iterator.aclose()
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except Exception as error:
+            emit_diagnostic(error, timing, command, scope='worker_client_response_cleanup')
             if completed:
                 raise
 
@@ -411,6 +427,7 @@ async def run_client(initial: dict[str, Any]) -> None:
 
     startup = Timing('worker_start')
     startup.on_mark = lambda _stage, _elapsed: emit_live_performance(startup)
+    diagnostic_payload, diagnostic_timing = initial, startup
 
     def terminal(event, timing):
         """先输出本轮计时再输出终态，防止剩余事件被下一 Run 错领。"""
@@ -440,6 +457,22 @@ async def run_client(initial: dict[str, Any]) -> None:
     chart_delivery = ChartDelivery(emit)
     mcp_errors = []
     client_closed = False
+
+    async def disconnect(*, observe=True):
+        """退出清理在终态前完成；空闲关闭没有活动 Run，不向上轮补发证据。"""
+        nonlocal client_closed
+        if client_closed or client.state in {ClientState.CLOSED, ClientState.NEW}:
+            return None
+        try:
+            await client.disconnect()
+        except Exception as error:
+            if observe:
+                emit_diagnostic(error, diagnostic_timing, diagnostic_payload, scope='worker_client_disconnect')
+            return error
+        finally:
+            client_closed = True
+        return None
+
     try:
         startup.mark('connect_begin')
         with isolated_sdk_environment():
@@ -450,9 +483,9 @@ async def run_client(initial: dict[str, Any]) -> None:
             command = await command_queue.get()
             command_type = command.get("type")
             if command_type in {"client_close", "worker_stdin_closed"}:
-                await client.disconnect()
-                client_closed = True
-                emit({"type": "client_closed", "state": client.state.value})
+                error = await disconnect(observe=False)
+                emit({"type": "client_error", "code": _client_error_code(error)} if error else
+                     {"type": "client_closed", "state": client.state.value})
                 return
             if command_type != "client_query":
                 emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
@@ -461,6 +494,7 @@ async def run_client(initial: dict[str, Any]) -> None:
             run_id = _client_command_run_id(command)
             timing = Timing('worker_run', active=startup.active)
             timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
+            diagnostic_payload, diagnostic_timing = command, timing
             chart_delivery.reset()
             mcp_errors.clear()
             prompt = command.get("prompt")
@@ -507,12 +541,14 @@ async def run_client(initial: dict[str, Any]) -> None:
                         )
                 outcome = {"type": "client_run_cancelled" if response.cancelled else "client_run_completed",
                            "run_id": run_id, "session_id": response.session_id}
-            except (asyncio.TimeoutError, SDKTimeoutError):
+            except (asyncio.TimeoutError, SDKTimeoutError) as error:
+                emit_diagnostic(error, timing, command, scope='worker_client_run')
                 outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
                 failed = True
             except asyncio.CancelledError:
                 raise
             except Exception as error:
+                emit_diagnostic(error, timing, command, scope='worker_client_run')
                 outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
                 failed = True
             finally:
@@ -524,33 +560,36 @@ async def run_client(initial: dict[str, Any]) -> None:
                         await tool_scope.drain(timeout_ms=max(0, (cleanup_deadline - time.monotonic()) * 1000))
                         if data_services:
                             await data_services.close()
-                except (asyncio.TimeoutError, SDKTimeoutError):
+                except (asyncio.TimeoutError, SDKTimeoutError) as error:
+                    emit_diagnostic(error, timing, command, scope='worker_client_cleanup')
                     outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
                     failed = True
                 except Exception as error:
+                    emit_diagnostic(error, timing, command, scope='worker_client_cleanup')
                     outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
                     failed = True
                 finally:
                     if tool_services is not None:
                         tool_services.clear()
             # 终态是下一轮的放行屏障，必须排在工具、凭据清理之后。
+            if failed or response.close_requested:
+                await disconnect()
             terminal(outcome, timing)
+            diagnostic_payload, diagnostic_timing = None, None
             if failed or response.close_requested:
                 return
     except asyncio.CancelledError:
         raise
     except Exception as error:
+        emit_diagnostic(error, diagnostic_timing, diagnostic_payload, scope='worker_client')
+        await disconnect()
         emit({"type": "client_error", "code": _client_error_code(error)})
     finally:
         policy.clear()
         tool_scope.stop(cancel=True)
         if tool_services is not None:
             tool_services.clear()
-        if not client_closed and client.state not in {ClientState.CLOSED, ClientState.NEW}:
-            try:
-                await client.disconnect()
-            except Exception:
-                emit({"type": "client_error", "code": "sdk_cleanup_error"})
+        await disconnect(observe=diagnostic_payload is not None)
         reader_task.cancel()
         await asyncio.gather(reader_task, return_exceptions=True)
 
@@ -622,23 +661,25 @@ async def main() -> None:
     first_line = await asyncio.to_thread(sys.stdin.readline)
     if not first_line.strip():
         return
+    payload = None
     try:
-        first_payload = json.loads(first_line)
-        if isinstance(first_payload, dict) and first_payload.get("mode") == "client":
-            await run_client(first_payload)
+        payload = json.loads(first_line)
+        if isinstance(payload, dict) and payload.get("mode") == "client":
+            await run_client(payload)
             return
-        await run(first_payload)
+        await run(payload)
         emit({"type": "worker_done"})
         for line in sys.stdin:
             if not line.strip():
                 continue
-            await run(json.loads(line))
+            payload = json.loads(line)
+            await run(payload)
             emit({"type": "worker_done"})
     except asyncio.CancelledError:
         raise
-    except Exception:
-        # Never forward raw provider paths, command lines or credential-shaped
-        # details through the worker protocol.
+    except Exception as error:
+        emit_diagnostic(error, boot, payload, scope='worker_query')
+        # 公开错误只含稳定文案；异常细节由父进程分流到私有观测出口。
         emit({"type": "worker_error", "message": "Python Agent worker 执行失败"})
 
 

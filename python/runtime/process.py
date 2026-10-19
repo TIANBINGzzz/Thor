@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime.config import worker_environment
-from runtime.private_trace import performance_event
+from runtime.telemetry import performance_event
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
@@ -271,6 +271,11 @@ class ClientWorkerProcess:
                             except Exception:
                                 pass
                     continue
+                if event.get('type') == 'diagnostic' and self._on_observation is not None:
+                    try:
+                        self._on_observation(self._observation_run_id or str(payload.get('run_id', '')), event)
+                    except Exception:
+                        pass
                 if event.get("type") == "client_error":
                     raise ClientWorkerError("Client worker 连接失败")
         except asyncio.TimeoutError as error:

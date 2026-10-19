@@ -1,12 +1,19 @@
 import unittest
 import os
+import asyncio
+import io
+import json
 import tempfile
+from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from claude_agent_sdk import AssistantMessage, StreamEvent, TextBlock
+from claude_agent_sdk import AssistantMessage, StreamEvent, TextBlock, ToolUseBlock
 
+import agent_worker
 from agent_worker import direct_workflow_event, event_from_stream, events_from_assistant
+from runtime.claude_sdk import ClientState, SDKMessage, build_agent_options
 from runtime.config import (
     build_options,
     build_system_prompt,
@@ -366,6 +373,29 @@ class AgentWorkerTests(unittest.TestCase):
         )
         self.assertEqual(events_from_assistant(message, streaming), [])
 
+    def test_assistant_turn_uses_real_stream_message_id_and_tool_link(self):
+        streaming = {}
+        start = StreamEvent(uuid='u1', session_id='s1', parent_tool_use_id='parent-tool',
+                            event={'type': 'message_start', 'message': {'id': 'm1'}})
+        self.assertEqual(event_from_stream(start, streaming), [
+            {'type': 'assistant_turn', 'scope': 'sub:parent-tool', 'messageId': 'm1'}])
+        message = AssistantMessage(
+            content=[ToolUseBlock(id='tool-1', name='Read', input={'file': 'example.txt'})],
+            model='qwen', message_id='m1', parent_tool_use_id='parent-tool')
+        events = events_from_assistant(message, streaming)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]['messageId'], 'm1')
+        self.assertEqual(events[0]['scope'], 'sub:parent-tool')
+
+    def test_missing_message_id_does_not_invent_assistant_turn_or_tool_link(self):
+        streaming = {}
+        start = StreamEvent(uuid='u1', session_id='s1', event={'type': 'message_start', 'message': {}})
+        self.assertEqual(event_from_stream(start, streaming), [])
+        message = AssistantMessage(content=[ToolUseBlock(id='tool-1', name='Read', input={})], model='qwen')
+        events = events_from_assistant(message, streaming)
+        self.assertEqual([event['type'] for event in events], ['tool_use'])
+        self.assertNotIn('messageId', events[0])
+
     def test_assistant_text_without_partial_stream_is_emitted(self):
         message = AssistantMessage(
             content=[TextBlock(text="直接输出")],
@@ -388,6 +418,134 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(event["skills"], [])
         self.assertEqual(event["agents"], [])
         self.assertEqual(event["commands"], [])
+
+
+class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
+    def assert_private_exception(self, events, expected_type):
+        diagnostics = [event for event in events if event['type'] == 'diagnostic']
+        self.assertTrue(diagnostics, events)
+        self.assertEqual(diagnostics[0]['exceptionType'], expected_type)
+        self.assertIn('[REDACTED]', diagnostics[0]['message'])
+        self.assertNotIn('business-private-value', json.dumps(events))
+        self.assertTrue(diagnostics[0]['frames'])
+        for frame in diagnostics[0]['frames']:
+            self.assertEqual(set(frame), {'file', 'line', 'function'})
+            self.assertFalse(Path(frame['file']).is_absolute())
+
+    async def test_query_failure_keeps_private_exception_before_safe_worker_error(self):
+        payload = {'prompt': 'test', 'credentials': {'platformBearer': 'business-private-value'}}
+        events = []
+        def fail_tools(*args):
+            raise ValueError('provider rejected business-private-value')
+        with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}, clear=True), \
+             patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
+             patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                            missing_environment=lambda: [], create_run_services=lambda _: None,
+                            prepare_workflow_assets=lambda _: {}, ToolServices=fail_tools, emit=events.append):
+            await agent_worker.main()
+        self.assert_private_exception(events, 'ValueError')
+        self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
+
+    async def test_diagnostic_disabled_or_write_failure_preserves_safe_query_error(self):
+        payload = {'prompt': 'test', 'credentials': {'platformBearer': 'business-private-value'}}
+        for enabled in (False, True):
+            with self.subTest(enabled=enabled):
+                events = []
+                def emit(event):
+                    if event['type'] == 'diagnostic':
+                        raise OSError('diagnostic output failed')
+                    events.append(event)
+                def fail_tools(*args):
+                    raise ValueError('provider rejected business-private-value')
+                with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1' if enabled else '0'}, clear=True), \
+                     patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
+                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                                    missing_environment=lambda: [], create_run_services=lambda _: None,
+                                    prepare_workflow_assets=lambda _: {}, ToolServices=fail_tools, emit=emit):
+                    await agent_worker.main()
+                self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
+                self.assertFalse(any(event['type'] == 'diagnostic' for event in events))
+                self.assertNotIn('business-private-value', json.dumps(events))
+
+    async def test_client_failures_keep_sanitized_evidence_at_each_catch_boundary(self):
+        for boundary in ('connect', 'run', 'cleanup', 'timeout'):
+            with self.subTest(boundary=boundary):
+                events = []
+                command = {'type': 'client_query', 'run_id': 'failed-run', 'prompt': 'test',
+                           'credentials': {'platformBearer': 'business-private-value'}}
+                def fail():
+                    if boundary == 'timeout':
+                        raise TimeoutError('provider timed out business-private-value')
+                    raise ValueError('provider rejected business-private-value')
+                class Client:
+                    state = ClientState.NEW
+                    async def connect(self):
+                        if boundary == 'connect':
+                            fail()
+                        self.state = ClientState.READY
+                    async def configure_turn(self, options):
+                        if boundary in {'run', 'timeout'}:
+                            fail()
+                    async def query(self, prompt, session_id):
+                        pass
+                    async def receive_response(self, **kwargs):
+                        yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
+                    async def disconnect(self):
+                        self.state = ClientState.CLOSED
+                class Data:
+                    async def bind(self, command):
+                        pass
+                    def prepare_prompt(self, prompt):
+                        return prompt
+                    async def close(self):
+                        if boundary == 'cleanup':
+                            fail()
+                done = asyncio.Event()
+                async def commands(queue):
+                    await queue.put(command)
+                    await done.wait()
+                    await queue.put({'type': 'client_close'})
+                def emit(event):
+                    events.append(event)
+                    if event['type'] == 'client_run_completed':
+                        done.set()
+                with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}, clear=True), \
+                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                                    missing_environment=lambda: [], create_run_services=lambda _: Data(),
+                                    prepare_workflow_assets=lambda _: {},
+                                    ToolServices=lambda *args: SimpleNamespace(clear=lambda: None),
+                                    build_client_options=lambda *args: SimpleNamespace(),
+                                    build_options=lambda *args, **kw: build_agent_options(tools=[], strict_mcp_config=True),
+                                    ClaudeSDKClient=lambda *args, **kw: Client(), isolated_sdk_environment=nullcontext,
+                                    _read_client_commands=commands, emit=emit):
+                    await asyncio.wait_for(agent_worker.run_client({'credentials': command['credentials']}), 3)
+                self.assert_private_exception(events, 'TimeoutError' if boundary == 'timeout' else 'ValueError')
+                scopes = [event['scope'] for event in events if event['type'] == 'diagnostic']
+                self.assertIn({'connect': 'worker_client', 'run': 'worker_client_run',
+                               'cleanup': 'worker_client_cleanup',
+                               'timeout': 'worker_client_run'}[boundary], scopes)
+                if boundary == 'cleanup':
+                    self.assertTrue(any(event['type'] == 'result' and event['ok'] for event in events))
+                self.assertTrue(any(event['type'] == 'client_error' for event in events))
+                self.assertFalse(any('message' in event for event in events if event['type'] == 'client_error'))
+
+    async def test_disconnect_wrapper_keeps_provider_cause_for_private_evidence(self):
+        from runtime.claude_sdk import ClaudeSDKClient, SDKCleanupError
+        from runtime.telemetry import exception_event
+        class Provider:
+            async def connect(self, prompt=None):
+                pass
+            async def disconnect(self):
+                raise ValueError('disconnect rejected business-private-value')
+        client = ClaudeSDKClient(build_agent_options(), client_factory=lambda _: Provider())
+        await client.connect()
+        with self.assertRaises(SDKCleanupError) as caught:
+            await client.disconnect()
+        event = exception_event(caught.exception, scope='worker_client_disconnect',
+                                secrets=('business-private-value',))
+        self.assertEqual(event['causes'][0]['exceptionType'], 'ValueError')
+        self.assertEqual(event['causes'][0]['message'], 'disconnect rejected [REDACTED]')
+        self.assertTrue(event['causes'][0]['frames'])
 
 
 if __name__ == "__main__":

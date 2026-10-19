@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
 from runtime.process import ClientWorkerError, ClientWorkerProcess
-from runtime.private_trace import Timing
+from runtime.telemetry import Timing
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
@@ -429,7 +429,9 @@ class SessionActor:
             self._state = ActorState.FAILED
             self._streaming_state = "failed"
             await self._cleanup_run(command)
-            self._resolve_run_error(command, SessionActorError("SessionActor 执行失败", code=self._last_error_code))
+            failure = SessionActorError("SessionActor 执行失败", code=self._last_error_code)
+            failure.__cause__ = error
+            self._resolve_run_error(command, failure)
         finally:
             command.timing.mark('completed')
             await self._emit_performance(command.run_id, command.timing.event())
@@ -595,7 +597,7 @@ class SessionActor:
                         raise SessionActorError("Claude Client 执行失败", code=str(event.get("code") or "sdk_execution_error"))
                     if event_type == "worker_exit":
                         raise ClientWorkerError("Client worker 已退出")
-                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance'}:
+                    if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance', 'diagnostic', 'assistant_turn'}:
                         if event_type == 'text' and isinstance(event.get('text'), str) and event['text'].strip():
                             timing.mark('first_text')
                         session_id = event.get("sessionId")
@@ -770,7 +772,9 @@ class SessionActor:
         """保留已有 Actor 异常，其余异常转换为统一的 Actor 错误。"""
         if isinstance(error, SessionActorError):
             return error
-        return SessionActorError(str(error) or "SessionActor 执行失败", code=code or "session_actor_error")
+        failure = SessionActorError(str(error) or "SessionActor 执行失败", code=code or "session_actor_error")
+        failure.__cause__ = error
+        return failure
 
 
 class SessionManager:

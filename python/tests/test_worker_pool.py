@@ -1,11 +1,15 @@
 """预热池只分配未绑定进程，验证容量、故障和取消边界。"""
 import asyncio
+import json
 from pathlib import Path
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
 from runtime.worker_pool import WorkerPool
+from runtime.observability import Observer
+from runtime.process import ClientWorkerProcess
 from runtime.runtime_settings import load_worker_pool_settings
 
 
@@ -118,6 +122,89 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(.05)
         self.assertLessEqual(len(FakeWorker.created), 2)
         self.assertTrue(all(w.terminated for w in FakeWorker.created))
+
+    async def test_preconnect_diagnostic_keeps_warm_identity_and_failure_backoff(self):
+        from tests.test_process_prewarm import Process
+        process = Process()
+        process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        process.client_event = [
+            {'type': 'diagnostic', 'scope': 'worker_client', 'exceptionType': 'ValueError',
+             'message': 'provider rejected prewarm-private-value', 'frames': []},
+            {'type': 'client_error', 'code': 'sdk_connection_error'},
+        ]
+        async def stop(child):
+            child.stop()
+        with tempfile.TemporaryDirectory() as folder:
+            observer = Observer(Path(folder) / 'observation.sqlite', enabled=True)
+            pool = WorkerPool(max_idle=1, max_starting=1, observer=observer,
+                              payload_factory=lambda: {'session_directory': 'blank'},
+                              worker_factory=lambda: ClientWorkerProcess(start_timeout_ms=500))
+            try:
+                with patch.dict('os.environ', {'OBSERVATION_TEST_SECRET': 'prewarm-private-value'}), \
+                     patch('runtime.process._spawn_worker_process', return_value=process), \
+                     patch('runtime.process._terminate_process_tree', side_effect=stop):
+                    await pool._prepare()
+                observer.flush()
+                records = observer.read(0, 100)['records']
+                evidence = [record for record in records if record['kind'] == 'evidence']
+                self.assertEqual([record['data']['exceptionType'] for record in evidence],
+                                 ['ValueError', 'ClientWorkerError'])
+                self.assertEqual(len({record['runId'] for record in records}), 1)
+                self.assertTrue(evidence[0]['runId'].startswith('warm:'))
+                self.assertNotIn('prewarm-private-value', json.dumps(records))
+                self.assertNotIn('credentials', process.writes[0])
+                self.assertNotIn('run_id', process.writes[0])
+                self.assertIsNotNone(process.returncode)
+                self.assertEqual(pool.snapshot()['failures'], 1)
+                self.assertEqual(pool.snapshot()['ready'], 0)
+                self.assertEqual(pool._backoff, 2)
+                self.assertGreater(pool._retry_at, time.monotonic())
+            finally:
+                await pool.close()
+                observer.close()
+
+    async def test_factory_exception_has_attempt_evidence_without_a_worker(self):
+        def fail_factory():
+            raise ValueError('factory rejected prewarm-private-value')
+        with tempfile.TemporaryDirectory() as folder:
+            observer = Observer(Path(folder) / 'observation.sqlite', enabled=True)
+            pool = WorkerPool(max_idle=1, max_starting=1, observer=observer, worker_factory=fail_factory)
+            try:
+                with patch.dict('os.environ', {'OBSERVATION_TEST_SECRET': 'prewarm-private-value'}):
+                    await pool._prepare()
+                observer.flush()
+                evidence = [record for record in observer.read(0, 100)['records'] if record['kind'] == 'evidence']
+                self.assertEqual(len(evidence), 1)
+                self.assertEqual(evidence[0]['data']['exceptionType'], 'ValueError')
+                self.assertTrue(evidence[0]['runId'].startswith('warm:'))
+                self.assertNotIn('prewarm-private-value', json.dumps(evidence))
+                self.assertEqual(pool.snapshot()['failures'], 1)
+                self.assertEqual(pool.snapshot()['starting'], 0)
+            finally:
+                await pool.close()
+                observer.close()
+
+    async def test_diagnostic_storage_failure_does_not_fail_ready_prewarm(self):
+        class Worker(FakeWorker):
+            callback = None
+            def set_observation_callback(self, callback, *, run_id=None):
+                self.callback, self.run_id = callback, run_id
+            async def prewarm(self):
+                if self.callback:
+                    self.callback(self.run_id, {'type': 'diagnostic', 'message': 'nonfatal startup evidence'})
+                self.alive = True
+        with tempfile.TemporaryDirectory() as folder:
+            observer = Observer(Path(folder) / 'observation.sqlite', enabled=True)
+            pool = WorkerPool(max_idle=1, max_starting=1, observer=observer, worker_factory=Worker)
+            try:
+                with patch.object(observer, 'emit', side_effect=OSError('observation unavailable')):
+                    await pool._prepare()
+                self.assertEqual(pool.snapshot()['ready'], 1)
+                self.assertEqual(pool.snapshot()['failures'], 0)
+                self.assertEqual(pool._backoff, 1)
+            finally:
+                await pool.close()
+                observer.close()
 
     async def test_disabled_pool_creates_no_idle_workers(self):
         pool = WorkerPool(max_idle=0, max_starting=2, worker_factory=FakeWorker)

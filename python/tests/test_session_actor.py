@@ -85,6 +85,25 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_preparation_exception_keeps_private_cause_through_actor_boundary(self):
+        from runtime.telemetry import exception_event
+        async def exercise():
+            async def prepare():
+                raise ValueError('preparation rejected business-private-value')
+            actor = SessionActor('diagnostic-session', {})
+            try:
+                with self.assertRaises(SessionActorError) as caught:
+                    await actor.submit('diagnostic-run', {}, prepare=prepare)
+                self.assertEqual(caught.exception.code, 'session_actor_error')
+                event = exception_event(caught.exception, scope='runtime', secrets=('business-private-value',))
+                self.assertTrue(event['causes'])
+                self.assertEqual(event['causes'][0]['exceptionType'], 'ValueError')
+                self.assertEqual(event['causes'][0]['message'], 'preparation rejected [REDACTED]')
+                self.assertTrue(event['causes'][0]['frames'])
+            finally:
+                await actor.close()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
     def test_concurrent_cancel_sends_only_one_worker_command(self):
         async def exercise():
             sent, release = asyncio.Event(), asyncio.Event()
@@ -134,7 +153,7 @@ class SessionActorTests(unittest.TestCase):
             finally:
                 await actor.close()
 
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+        with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}):
             asyncio.run(asyncio.wait_for(exercise(), 2))
 
     def test_actor_observation_publishes_live_milestones_with_run_identity(self):
@@ -184,7 +203,7 @@ class SessionActorTests(unittest.TestCase):
             self.assertLessEqual(timings['r2']['elapsedMs']['queue_exit'], timings['r2']['elapsedMs']['query_sent'])
             self.assertEqual(len([e for r, e in events if e['type'] == 'text']), 2)
 
-        with patch.dict('os.environ', {'CCSDK_ENABLE_RUN_TRACE': '1'}):
+        with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}):
             asyncio.run(exercise())
 
     def test_preparation_can_be_cancelled_without_starting_sdk(self):

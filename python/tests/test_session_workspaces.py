@@ -148,7 +148,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
             current_manager = manager()
             settings = dict(RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / 'sessions',
                 DEFAULT_MODEL='test', RUNTIME_JWT_SECRET='workspace-test', SESSION_MANAGER=current_manager,
-                internal_tasks={}, internal_subscribers={}, pending_terminals={}, RUN_TIMINGS={}, TRACE_SECRETS={})
+                internal_tasks={}, internal_subscribers={}, pending_terminals={}, RUN_TIMINGS={}, OBSERVATION_SECRETS={})
             # 此处验证会话生命周期；部署配置使用固定数据，禁止依赖真实外部服务。
             with patch.multiple(server, **settings), \
                  patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
