@@ -246,7 +246,6 @@ def _authorize_internal(
             RUNTIME_JWT_SECRET,
             run_id=run_id,
             capability_ref=capability,
-            turn_id=run.get("turnId"),
             business_session_id=run.get("businessSessionId"),
             tenant_id=run.get("tenantId"),
             user_id=run.get("userId"),
@@ -535,7 +534,7 @@ def _blank_client_payload():
     payload = {'cwd': str(PROJECT_ROOT), 'session_directory': str(directory),
                'additional_directories': [str(path) for path in directories],
                'include_partial_messages': True, 'model': DEFAULT_MODEL}
-    payload['_credential_binding'] = client_connection_fingerprint(payload)
+    payload['_client_connection_fingerprint'] = client_connection_fingerprint(payload)
     return payload
 
 
@@ -582,11 +581,6 @@ def _clear_runtime_input(directory: Path) -> None:
                 child.unlink(missing_ok=True)
         except OSError:
             LOGGER.warning("Runtime 临时输入清理失败：%s", child.name)
-
-
-def _client_config_fingerprint(run_request: AgentRunRequest, payload: dict[str, Any]) -> str:
-    """只因连接固定配置变化而重建；本轮能力、模型与凭据在 Worker 内更新。"""
-    return client_connection_fingerprint(payload)
 
 
 def _runtime_mode_for_request(run_request: AgentRunRequest, execution_entry=None) -> str:
@@ -804,7 +798,7 @@ async def _execute_internal_run(
                 attachment_files=attachment_files,
             )
         if runtime_mode == "client":
-            worker_payload["_credential_binding"] = _client_config_fingerprint(run_request, worker_payload)
+            worker_payload["_client_connection_fingerprint"] = client_connection_fingerprint(worker_payload)
             business = run_request.business_session_id or claims.get("businessSessionId")
             if business:
                 worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)

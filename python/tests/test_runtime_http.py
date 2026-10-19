@@ -71,7 +71,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         incomplete = [r['data'] for r in records if r['kind'] == 'milestone' and r['data'].get('name') == 'tool.incomplete']
         self.assertEqual(incomplete[0]['callId'], 'c1')
 
-    def test_worker_diagnostics_and_turn_identity_are_private(self):
+    def test_worker_diagnostics_are_private(self):
         self.seed()
         observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
         self.addCleanup(observer.close)
@@ -678,7 +678,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.store.append_event("run-test", {"protocolVersion": "agent-events/v1", **event})
         events = self.client.get("/internal/v1/runs/run-test/events", headers=self.headers())
         self.assertEqual(events.status_code, 200)
-        for private in ("provider-private", "business-token", "internal-value", "tenantId", "userId", "turnId"):
+        for private in ("provider-private", "business-token", "internal-value", "tenantId", "userId"):
             self.assertNotIn(private, events.text)
         item = self.seed_artifact()
         listing = self.client.get("/internal/v1/runs/run-test/artifacts", headers=self.headers())

@@ -83,7 +83,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
                 'messageId': 'm', 'businessSessionId': 's', 'input': {'text': 'hello'}})
             actual = server._internal_worker_payload(request, Path(root) / 'run',
                 runtime_mode='client', session_directory=Path(blank['session_directory']))
-            self.assertEqual(blank['_credential_binding'], client_connection_fingerprint(actual))
+            self.assertEqual(blank['_client_connection_fingerprint'], client_connection_fingerprint(actual))
 
     def test_only_immutable_options_rebuild_client(self):
         from runtime.config import client_connection_fingerprint
@@ -206,7 +206,7 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             def payload():
                 directory = str(Path(root) / str(len(made)))
                 made.append(directory)
-                return {'session_directory': directory, '_credential_binding': 'fixed'}
+                return {'session_directory': directory, '_client_connection_fingerprint': 'fixed'}
             pool = WorkerPool(max_idle=2, max_starting=1, max_live=3,
                               payload_factory=payload, worker_factory=lambda **kw: Worker())
             pool.start()
@@ -215,7 +215,7 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 workspace = pool.reserve_workspace()
                 self.assertIn(workspace, made)
                 self.assertEqual(pool.snapshot()['reserved'], 1)
-                worker = await pool.acquire(initial_payload={'session_directory': workspace, '_credential_binding': 'fixed'})
+                worker = await pool.acquire(initial_payload={'session_directory': workspace, '_client_connection_fingerprint': 'fixed'})
                 self.assertTrue(worker.alive)
                 self.assertEqual(worker.initial['session_directory'], workspace)
                 self.assertEqual(pool.snapshot()['reserved'], 0)

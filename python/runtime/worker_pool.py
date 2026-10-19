@@ -143,7 +143,7 @@ class WorkerPool:
             if candidate is not None:
                 expected = self._payloads[candidate]
                 if (candidate.alive and not initial_payload.get('resume')
-                        and expected.get('_credential_binding') == initial_payload.get('_credential_binding')):
+                        and expected.get('_client_connection_fingerprint') == initial_payload.get('_client_connection_fingerprint')):
                     worker = candidate
                 else:
                     reason='dead_client' if not candidate.alive else 'binding_changed'

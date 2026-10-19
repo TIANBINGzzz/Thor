@@ -14,7 +14,6 @@ from data_access.context import DataError
 from runtime.config import build_options, prepare_workflow_assets, workflow_prompt_documents
 from runtime.data_services import RunServices
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
-from runtime.protocol import AgentRunRequest
 from workflows.writing_docx.template_assets import load_template, stage_template
 
 
@@ -105,21 +104,18 @@ class TemplateDocumentTests(unittest.TestCase):
         self.assertIn('BETA_GUIDE',prepare_workflow_assets(payload)['prompt'])
 
     def test_rules_refresh_per_turn_without_rebuilding_connection(self):
-        from server import _client_config_fingerprint
-        request=AgentRunRequest.from_dict({'protocol':'agent-run/v1','runId':'run-test',
-            'messageId':'msg-test','businessSessionId':'session-test','capabilityRef':'document-writing',
-            'input':{'text':'write'}})
+        from runtime.config import client_connection_fingerprint
         old=self.payload('alpha')
-        before=_client_config_fingerprint(request,old)
+        before=client_connection_fingerprint(old)
         json.dumps(old)
         self.workflow['_body'] = 'CHANGED_COMMON'
-        self.assertEqual(before,_client_config_fingerprint(request,old))
+        self.assertEqual(before,client_connection_fingerprint(old))
         new=self.payload('alpha')
-        self.assertEqual(before,_client_config_fingerprint(request,new))
+        self.assertEqual(before,client_connection_fingerprint(new))
         self.assertIn('CHANGED_COMMON',prepare_workflow_assets(new)['prompt'])
         self.assertNotIn('CHANGED_COMMON',prepare_workflow_assets(old)['prompt'])
         beta=self.payload('beta')
-        self.assertEqual(before,_client_config_fingerprint(request,beta))
+        self.assertEqual(before,client_connection_fingerprint(beta))
         self.assertIn('BETA_GUIDE',prepare_workflow_assets(beta)['prompt'])
 
     def test_invalid_guides_are_rejected_before_agent_start(self):

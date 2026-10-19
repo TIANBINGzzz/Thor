@@ -74,17 +74,17 @@ class AgentProcessTests(unittest.TestCase):
             process.stderr.feed_eof()
             with patch('runtime.process._spawn_worker_process', return_value=process) as spawn:
                 events = [event async for event in stream_agent({}, timing_enabled=True)]
-                spawn.assert_awaited_once_with({}, timing_enabled=True)
+                spawn.assert_awaited_once_with(timing_enabled=True)
             self.assertEqual(events, [boot, {'type': 'text', 'text': 'answer'}])
+            self.assertEqual(process.stdin.writes, [b'{}\n'])
 
         asyncio.run(exercise())
 
-    def test_worker_spawn_passes_trusted_payload_to_environment_selection(self):
+    def test_worker_spawn_uses_selected_environment_without_run_payload(self):
         async def exercise():
-            payload = {"workflow_name":"qa", "_data_identity":{"tenant_id":"tenant"}}
             with patch("runtime.process.worker_environment", return_value={"SELECTED_SECRET":"test"}) as select, \
                  patch("runtime.process.asyncio.create_subprocess_exec", return_value=FakeProcess()) as spawn:
-                await _spawn_worker_process(payload)
+                await _spawn_worker_process()
                 select.assert_called_once_with()
                 self.assertEqual(spawn.call_args.kwargs["env"], {"SELECTED_SECRET":"test"})
         asyncio.run(exercise())
@@ -93,7 +93,7 @@ class AgentProcessTests(unittest.TestCase):
         async def exercise():
             with patch("runtime.process.worker_environment", return_value={"SELECTED_SECRET":"test"}), \
                  patch("runtime.process.asyncio.create_subprocess_exec", return_value=FakeProcess()) as spawn:
-                await _spawn_worker_process({}, timing_enabled=True)
+                await _spawn_worker_process(timing_enabled=True)
                 self.assertEqual(spawn.call_args.kwargs["env"], {
                     "SELECTED_SECRET": "test", "CCSDK_ENABLE_TIMING": "1"
                 })

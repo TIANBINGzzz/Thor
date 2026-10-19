@@ -154,7 +154,7 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         for failure in ('error', 'timeout', 'cancel', 'exit'):
             with self.subTest(failure=failure):
                 spawned = []
-                def spawn(payload):
+                def spawn():
                     process = Process()
                     process.stdout.feed_data(b'{"type":"worker_ready"}\n')
                     spawned.append(process)

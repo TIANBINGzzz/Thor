@@ -1,7 +1,9 @@
 """会话执行索引的HTTP授权、稳定分页与公开字段契约。"""
 
+import sqlite3
 import time
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -146,3 +148,29 @@ class SessionRunTests(unittest.TestCase):
             with RunStore(path) as store:
                 self.assertEqual(store.latest_runtime_session('t', 'u', 's'), 'sdk-second')
                 self.assertIsNone(store.latest_runtime_session('t', 'u', 'unknown'))
+
+    def test_old_turn_id_column_is_removed_without_losing_run_history(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'runs.sqlite3'
+            with RunStore(path) as store:
+                store.create_run('legacy-run', tenant_id='t', user_id='u', business_session_id='s',
+                                 runtime_session_ref='sdk-session')
+                store.append_event('legacy-run', {'type': 'run.started', 'eventId': 'event-1'})
+            with closing(sqlite3.connect(path)) as connection:
+                connection.execute('ALTER TABLE runs ADD COLUMN turn_id TEXT')
+                connection.execute("UPDATE runs SET turn_id = 'legacy-turn' WHERE run_id = 'legacy-run'")
+                connection.commit()
+            with RunStore(path) as store:
+                legacy = store.get_run('legacy-run')
+                retried = store.create_run('legacy-run', tenant_id='t', user_id='u', business_session_id='s')
+                created = store.create_run('new-run', tenant_id='t', user_id='u', business_session_id='s')
+                self.assertEqual(store.events_after('legacy-run')[0]['eventId'], 'event-1')
+            self.assertEqual(legacy['runtimeSessionRef'], 'sdk-session')
+            self.assertEqual(retried['runtimeSessionRef'], 'sdk-session')
+            self.assertNotIn('turnId', legacy)
+            self.assertNotIn('turnId', created)
+            with closing(sqlite3.connect(path)) as connection:
+                columns = {row[1] for row in connection.execute('PRAGMA table_info(runs)')}
+            self.assertNotIn('turn_id', columns)

@@ -597,13 +597,13 @@ class SessionActorTests(unittest.TestCase):
             )
             first = await manager.submit(
                 "session",
-                {"_credential_binding": "a"},
+                {"_client_connection_fingerprint": "a"},
                 "run-1",
                 {"prompt": "one"},
             )
             second = await manager.submit(
                 "session",
-                {"_credential_binding": "b"},
+                {"_client_connection_fingerprint": "b"},
                 "run-2",
                 {"prompt": "two"},
             )
@@ -612,7 +612,7 @@ class SessionActorTests(unittest.TestCase):
             self.assertEqual(len(workers), 2)
             self.assertTrue(workers[0].closed)
             self.assertEqual(workers[1].start_payload['resume'], 'session-1')
-            self.assertEqual(workers[1].start_payload['_credential_binding'], 'b')
+            self.assertEqual(workers[1].start_payload['_client_connection_fingerprint'], 'b')
             self.assertEqual(len(manager.snapshots()), 1)
             await manager.close_all()
 
@@ -629,17 +629,17 @@ class SessionActorTests(unittest.TestCase):
                 return worker
 
             manager = SessionManager(worker_factory=factory)
-            first = asyncio.create_task(manager.submit('s', {'_credential_binding': 'a'}, 'one', {'prompt': 'one'}))
+            first = asyncio.create_task(manager.submit('s', {'_client_connection_fingerprint': 'a'}, 'one', {'prompt': 'one'}))
             await _wait_until(lambda: workers and workers[0].sent)
             second = asyncio.create_task(manager.submit('s', {
-                '_credential_binding': 'b', 'capability_ref': 'image-generation',
+                '_client_connection_fingerprint': 'b', 'capability_ref': 'image-generation',
                 'credentials': {'platformBearer': 'new-token'},
             }, 'two', {'prompt': 'two'}))
             await _wait_until(lambda: manager.snapshots()[0]['pendingRuns'] == 1)
             self.assertFalse(workers[0].closed)
             await workers[0].events.put({'type': 'client_run_completed', 'session_id': 'session-1'})
             await asyncio.gather(first, second)
-            await manager.submit('s', {'_credential_binding': 'a', 'capability_ref': 'conversation'},
+            await manager.submit('s', {'_client_connection_fingerprint': 'a', 'capability_ref': 'conversation'},
                                  'three', {'prompt': 'three'})
             self.assertEqual([w.start_payload.get('resume') for w in workers], [None, 'session-1', 'session-1'])
             self.assertEqual(workers[1].start_payload['credentials'], {'platformBearer': 'new-token'})

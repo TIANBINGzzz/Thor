@@ -370,12 +370,12 @@ class WorkerPoolActorTests(unittest.IsolatedAsyncioTestCase):
         pool.start()
         try:
             await until(lambda: pool.snapshot()['ready'] == 2)
-            first = {'_credential_binding':'a','credentials':{'platformBearer':'first-token'}}
+            first = {'_client_connection_fingerprint':'a','credentials':{'platformBearer':'first-token'}}
             await manager.submit('tenant/user/session', first, 'one', {'prompt':'one'})
             await manager.submit('tenant/user/session', first, 'two', {'prompt':'two'})
             self.assertEqual(pool.snapshot()['hits'], 1)
             self.assertEqual(manager.snapshots()[0]['workerReuses'], 1)
-            second = {'_credential_binding':'b','credentials':{'platformBearer':'second-token'}}
+            second = {'_client_connection_fingerprint':'b','credentials':{'platformBearer':'second-token'}}
             await manager.submit('tenant/user/session', second, 'three', {'prompt':'three'})
             self.assertTrue(workers[0].terminated)
             self.assertEqual(workers[1].start_payload['credentials'], second['credentials'])

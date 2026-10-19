@@ -835,7 +835,7 @@ Accept: application/octet-stream</pre></div>
 <tr><td>模板管理、学校可见范围、启停、重命名、删除</td><td>不属于执行 API。</td><td>由业务层维护模板记录、版本及学校授权；预制模板执行资产通过部署更新。修改数据库记录不等于 Python 模板已更新。</td></tr>
 <tr><td>停止生成</td><td>control option: cancel 或 /cancel。</td><td>断开 SSE 不停止执行；等待终态后更新消息。interrupt 不是暂停与恢复。</td></tr>
 <tr><td>重试、重新回答、编辑后发送</td><td>传输重试复用 runId 和原请求、新 jti；重新执行使用新 runId。</td><td>保存消息与各次 Run 的关联。没有 SDK 历史回滚/分叉接口；新 Run 不会撤销旧工具副作用或自动删除历史上下文。</td></tr>
-<tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、已消费序号并去重；同 tenant、sub、businessSessionId 串行共享 SDK 历史，跨能力也连续，配置或凭据改变时重建 Client 并 resume。重启恢复须保留 RunStore 和 SDK transcript；无业务会话不保证连续上下文。</td></tr>
+<tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、已消费序号并去重；同 tenant、sub、businessSessionId 串行共享 SDK 历史，跨能力也连续。模型、规则、MCP 与凭据按轮更新；仅工作区、SDK 环境或其他不可热更新的连接选项变化时重建 Client 并 resume。重启恢复须保留 RunStore 和 SDK transcript；无业务会话不保证连续上下文。</td></tr>
 <tr><td>文档卡片、预览、下载、引用回对话</td><td>artifact 状态事件、按 ID 查询及本地快照下载；Python 自动上传。</td><td>Java 需消费 artifact.ready 并绑定消息与 fileId，提供鉴权下载；前端需实现文件卡片。无专用预览端点，再次引用时Java授权并重新提交attachmentRefs。复杂排版与报告质量仍须成稿验收。</td></tr>
 <tr><td>点赞、反馈、分享、语音、业务知识库管理</td><td>当前无对应执行管理 API。</td><td>业务层负责反馈/分享 ACL 和语音转写；不能从原型展示推断 Python 已具备相应接口。</td></tr>
 </tbody></table>

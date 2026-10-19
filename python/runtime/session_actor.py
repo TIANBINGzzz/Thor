@@ -138,9 +138,9 @@ class SessionActor:
         self._last_pool_hit = False
 
     @property
-    def config_fingerprint(self) -> str | None:
+    def client_connection_fingerprint(self) -> str | None:
         """返回连接固定配置的指纹；本轮模型、工具和业务凭据可热更新。"""
-        value = self._initial_payload.get("_credential_binding")
+        value = self._initial_payload.get("_client_connection_fingerprint")
         return str(value) if value is not None else None
 
     @property
@@ -367,8 +367,8 @@ class SessionActor:
                     if command.initial_payload is not None:
                         # 每轮热装配工具、规则及凭据；只有连接固定项变化才重建。
                         initial = {**command.initial_payload, **prepared}
-                        fingerprint = initial.get('_credential_binding')
-                        if self.config_fingerprint != (str(fingerprint) if fingerprint is not None else None):
+                        fingerprint = initial.get('_client_connection_fingerprint')
+                        if self.client_connection_fingerprint != (str(fingerprint) if fingerprint is not None else None):
                             await self._discard_worker('config_changed')
                         self._initial_payload = initial
                     starts = self._worker_starts

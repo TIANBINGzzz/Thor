@@ -230,7 +230,6 @@ def verify_run_jwt(
     *,
     run_id: str | None = None,
     capability_ref: str | None = None,
-    turn_id: str | None = None,
     business_session_id: str | None = None,
     message_id: str | None = None,
     tenant_id: str | None = None,
@@ -259,20 +258,17 @@ def verify_run_jwt(
 
     body_run_id: str | None = run_id
     body_capability: str | None = capability_ref
-    body_turn_id: str | None = turn_id
     body_business_session_id: str | None = business_session_id
     body_message_id: str | None = message_id
     if body is not None:
         if hasattr(body, "run_id"):
             body_run_id = getattr(body, "run_id")
             body_capability = getattr(body, "capability_ref", body_capability)
-            body_turn_id = getattr(body, "turn_id", body_turn_id)
             body_business_session_id = getattr(body, "business_session_id", body_business_session_id)
             body_message_id = getattr(body, "message_id", body_message_id)
         elif isinstance(body, Mapping):
             body_run_id = body.get("runId", body.get("run_id", body_run_id))
             body_capability = body.get("capabilityRef", body.get("capability_ref", body_capability))
-            body_turn_id = body.get("turnId", body.get("turn_id", body_turn_id))
             body_business_session_id = body.get("businessSessionId", body.get("business_session_id", body_business_session_id))
             body_message_id = body.get("messageId", body.get("message_id", body_message_id))
     if body_run_id is not None and body_run_id != claims["runId"]:
@@ -280,7 +276,6 @@ def verify_run_jwt(
     if body_capability != claims.get("capabilityRef"):
         raise JWTError("capabilityRef mismatch")
     for claim_name, body_value, label in (
-        ("turnId", body_turn_id, "turnId"),
         ("businessSessionId", body_business_session_id, "businessSessionId"),
         ("messageId", body_message_id, "messageId"),
         ("tenant", tenant_id, "tenant"),

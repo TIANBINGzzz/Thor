@@ -51,7 +51,7 @@ async def _terminate_process_tree(process: asyncio.subprocess.Process) -> None:
             await process.wait()
 
 
-async def _spawn_worker_process(payload: dict[str, Any], *, timing_enabled: bool = False) -> asyncio.subprocess.Process:
+async def _spawn_worker_process(*, timing_enabled: bool = False) -> asyncio.subprocess.Process:
     """以受控环境启动 agent_worker.py，返回带标准输入、输出和错误管道的子进程。"""
     creation_flags = 0
     kwargs: dict[str, Any] = {}
@@ -81,7 +81,7 @@ async def _spawn_worker_process(payload: dict[str, Any], *, timing_enabled: bool
 
 async def stream_agent(payload: dict[str, Any], *, timing_enabled: bool = False) -> AsyncIterator[dict[str, Any]]:
     """将执行 payload 发送给一次性 Worker，逐条产出事件字典，结束或取消时回收进程。"""
-    process = await _spawn_worker_process(payload, timing_enabled=timing_enabled)
+    process = await _spawn_worker_process(timing_enabled=timing_enabled)
     saw_done = False
     worker_error: str | None = None
     stderr_task: asyncio.Task[Any] | None = None
@@ -212,7 +212,7 @@ class ClientWorkerProcess:
         if self._process is not None or self._closed or self._bound:
             raise ClientWorkerError("Client worker 已经启动")
         try:
-            self._process = await _spawn_worker_process({}, timing_enabled=True) if self._timing_enabled else await _spawn_worker_process({})
+            self._process = await _spawn_worker_process(timing_enabled=True) if self._timing_enabled else await _spawn_worker_process()
             self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
             self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
             event = await asyncio.wait_for(self.next_event(), self.start_timeout_ms / 1000)
@@ -235,7 +235,7 @@ class ClientWorkerProcess:
         if self._connected:
             expected = self._preconnected_payload or {}
             if (payload.get('resume') or any(payload.get(key) != expected.get(key)
-                    for key in ('session_directory', '_credential_binding'))):
+                    for key in ('session_directory', '_client_connection_fingerprint'))):
                 raise ClientWorkerError('预连接 Client 的工作区或固定配置不匹配')
             self._bound = True
             # 预连接阶段的耗时不属于本轮请求。

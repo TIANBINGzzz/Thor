@@ -90,7 +90,6 @@ class RunStore:
                     tenant_id TEXT,
                     user_id TEXT,
                     business_session_id TEXT,
-                    turn_id TEXT,
                     capability_ref TEXT,
                     runtime_session_ref TEXT,
                     request_hash TEXT,
@@ -142,7 +141,8 @@ class RunStore:
                 self._connection.execute("ALTER TABLE runs ADD COLUMN request_hash TEXT")
             if "last_sequence" not in columns:
                 self._connection.execute("ALTER TABLE runs ADD COLUMN last_sequence INTEGER NOT NULL DEFAULT 0")
-            self._connection.commit()
+            if "turn_id" in columns:
+                self._connection.execute("ALTER TABLE runs DROP COLUMN turn_id")
             self._connection.commit()
 
     def artifact(self, artifact_id: str) -> dict[str, Any] | None:
@@ -309,7 +309,6 @@ class RunStore:
         tenant_id: str | None = None,
         user_id: str | None = None,
         business_session_id: str | None = None,
-        turn_id: str | None = None,
         capability_ref: str | None = None,
         runtime_session_ref: str | None = None,
         request: Any | None = None,
@@ -324,7 +323,6 @@ class RunStore:
         if request is not None:
             metadata = metadata or {}
             business_session_id = business_session_id or getattr(request, "business_session_id", None)
-            turn_id = turn_id or getattr(request, "turn_id", None)
             capability_ref = capability_ref or getattr(request, "capability_ref", None)
         request_hash = None
         if request is not None:
@@ -351,15 +349,14 @@ class RunStore:
             if row is None:
                 self._connection.execute(
                     """INSERT INTO runs
-                    (run_id,status,tenant_id,user_id,business_session_id,turn_id,capability_ref,runtime_session_ref,request_hash,last_sequence,error,metadata_json,created_at,updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (run_id,status,tenant_id,user_id,business_session_id,capability_ref,runtime_session_ref,request_hash,last_sequence,error,metadata_json,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         run_id,
                         status,
                         tenant_id,
                         user_id,
                         business_session_id,
-                        turn_id,
                         capability_ref,
                         runtime_session_ref,
                         request_hash,
@@ -379,7 +376,6 @@ class RunStore:
                     ("tenant_id", tenant_id),
                     ("user_id", user_id),
                     ("business_session_id", business_session_id),
-                    ("turn_id", turn_id),
                     ("capability_ref", capability_ref),
                 ):
                     stored = row[field]
@@ -495,16 +491,6 @@ class RunStore:
             ).fetchall()
             return [self._event_row(row) for row in rows]
 
-    replay = events_after
-
-    def delete_run(self, run_id: str) -> bool:
-        """删除指定 Run 及关联事件，返回是否实际删除了 Run 记录。"""
-        run_id = _validate_run_id(run_id)
-        with self._lock:
-            cursor = self._connection.execute("DELETE FROM runs WHERE run_id = ?", (run_id,))
-            self._connection.commit()
-            return cursor.rowcount == 1
-
     @staticmethod
     def _run_row(row: sqlite3.Row | None) -> dict[str, Any] | None:
         """将数据库行转换为内部 Run 记录，元数据解析失败时使用空对象。"""
@@ -520,7 +506,6 @@ class RunStore:
             "tenantId": row["tenant_id"],
             "userId": row["user_id"],
             "businessSessionId": row["business_session_id"],
-            "turnId": row["turn_id"],
             "capabilityRef": row["capability_ref"],
             "runtimeSessionRef": row["runtime_session_ref"],
             "lastSequence": int(row["last_sequence"] or 0),
