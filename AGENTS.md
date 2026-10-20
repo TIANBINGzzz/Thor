@@ -40,7 +40,7 @@
 - 不写超过 100 行的详细教程、长篇使用/排障指南，不在 `doc/` 根目录新增冗长 Markdown。字段参考和模板业务知识按职责集中，不靠拆成大量小文件规避精简。
 - ADR 放 `doc/ADR/NNN-kebab-case-title.md`，按 [模板](doc/ADR/template.md) 写背景、决策和后果，优先 20-30 行、最多 50 行；决策状态与实现状态分开，替代及删除规则见 [ADR 索引](doc/ADR/README.md)。
 - 模板指南、指标定义和来源核验记录是必要业务知识；执行规则留在 `.claude/`，`doc/verification/` 只保留必要证据、未决口径和验收边界，不自动注入模型。
-- 临时计划、原始日志和测试材料放忽略的 `scratch/`，不提交 Git。`FUTURE-IDEAS.not-for-model.md` 只保存人工想法，仅在用户要求查看或维护时读取，不据此自行实施。
+- 临时计划、原始日志和测试材料放忽略的 `scratch/`，不提交 Git。人工需求备忘已迁至项目外层 `../CCSDKScribe-diagrams/FUTURE-IDEAS.not-for-model.md`，仅在用户要求查看或维护时读取，不据此自行实施。
 
 ## 可部署路径
 
