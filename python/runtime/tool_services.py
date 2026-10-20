@@ -29,7 +29,7 @@ class ToolServices:
         self.configure(assets, credentials)
 
     def configure(self, assets, credentials):
-        """只替换版本变化的适配器；未选中的服务不持有身份，也不挂载工具。"""
+        """完整修订校验冻结资产；仅 schema 变化重建适配器，内容按轮更新。"""
         self.clear()
         loaded = load_tool_assets(assets['capability'], ConfigSnapshot(values=assets['config_values']))
         self.services = {}
@@ -41,10 +41,14 @@ class ToolServices:
                 if provider.create_service is None:
                     raise RuntimeError(f'有状态工具缺少服务工厂：{name}')
                 cached = self._cache.get(name)
-                if cached is None or cached[0] != value['revision']:
-                    cached = (value['revision'], provider.create_service(value, credentials))
+                if cached is None or cached[0] != value['schema_revision']:
+                    cached = (value['schema_revision'], provider.create_service(value, credentials))
                     self._cache[name] = cached
                     self._servers.pop(name, None)
+                else:
+                    if provider.update_service is None:
+                        raise RuntimeError(f'有状态工具缺少资产更新器：{name}')
+                    provider.update_service(cached[1], value)
                 self.services[name] = cached[1]
             self.bind(credentials)
         except Exception:

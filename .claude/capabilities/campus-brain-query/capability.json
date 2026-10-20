@@ -9,5 +9,5 @@
   "requiredToolRefs": ["campus"],
   "toolConfig": {"campus": "assets/campus.json"},
   "execution": {"mode": "direct"},
-  "runtime": {"thinking": {"type": "disabled"}, "prompt_mode": "custom", "max_turns": 12, "effort": "low"}
+  "runtime": {"thinking": {"type": "disabled"}, "prompt_mode": "custom", "effort": "low"}
 }

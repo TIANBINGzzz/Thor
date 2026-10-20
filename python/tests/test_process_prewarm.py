@@ -55,7 +55,8 @@ class Process:
 class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.process = Process()
-        self.worker = ClientWorkerProcess(start_timeout_ms=50)
+        # 成功路径不以事件循环能否在 50ms 内调度作为验收条件。
+        self.worker = ClientWorkerProcess(start_timeout_ms=2000)
         self.spawn = patch('runtime.process._spawn_worker_process', return_value=self.process)
         self.spawn_mock = self.spawn.start()
         async def stop(process):
@@ -82,6 +83,7 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(self.process.returncode)
 
     async def test_prewarm_timeout_and_cancel_reclaim_process(self):
+        self.worker.start_timeout_ms = 50
         with self.assertRaises(ClientWorkerError):
             await self.worker.prewarm()
         self.assertFalse(self.worker.awaiting_connection)
@@ -161,11 +163,13 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
                     return process
                 self.spawn_mock.side_effect = spawn
                 pool = WorkerPool(max_idle=1, max_starting=1,
-                    worker_factory=lambda **kwargs: ClientWorkerProcess(start_timeout_ms=50))
+                    worker_factory=lambda **kwargs: ClientWorkerProcess(start_timeout_ms=2000))
                 try:
                     pool.start()
                     await until(lambda: pool.snapshot()['ready'] == 1)
                     worker = await pool.acquire()
+                    if failure == 'timeout':
+                        worker.start_timeout_ms = 50
                     self.assertEqual(pool.snapshot()['leased_connecting'], 1)
                     self.assertEqual(len(spawned), 1)
                     process = spawned[0]

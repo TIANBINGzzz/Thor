@@ -7,6 +7,33 @@ from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKExecutionError
 
 
 class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_settings_update_without_mcp_change_and_explicit_reset(self):
+        from runtime.claude_sdk import build_agent_options
+        query = SimpleNamespace(_send_control_request=AsyncMock(return_value={}))
+        provider = SimpleNamespace(_query=query, set_model=AsyncMock(), set_permission_mode=AsyncMock())
+        baseline = build_agent_options(model='same', env={'ANTHROPIC_AUTH_TOKEN': 'base'}, mcp_servers={})
+        client = ClaudeSDKClient(baseline)
+        client._provider, client._state = provider, ClientState.READY
+        turn = build_agent_options(model='same', mcp_servers={}, thinking={'type': 'disabled'},
+            effort='low', add_dirs=['work'], permission_mode='bypassPermissions',
+            env={'ANTHROPIC_AUTH_TOKEN': 'changed', 'CLAUDE_CODE_EXTRA_BODY': '{"thinking":{"type":"disabled"}}'})
+        await client.configure_turn(turn)
+        calls = [call.args[0] for call in query._send_control_request.await_args_list]
+        self.assertIn({'subtype': 'set_max_thinking_tokens', 'max_thinking_tokens': 0}, calls)
+        settings = next(value['settings'] for value in calls if value['subtype'] == 'apply_flag_settings')
+        self.assertEqual(settings['env']['ANTHROPIC_AUTH_TOKEN'], 'changed')
+        self.assertEqual(settings['permissions']['additionalDirectories'], ['work'])
+        self.assertEqual(settings['effortLevel'], 'low')
+        query._send_control_request.reset_mock()
+        await client.configure_turn(baseline)
+        calls = [call.args[0] for call in query._send_control_request.await_args_list]
+        self.assertIn({'subtype': 'set_max_thinking_tokens', 'max_thinking_tokens': None}, calls)
+        settings = next(value['settings'] for value in calls if value['subtype'] == 'apply_flag_settings')
+        self.assertEqual(settings['env']['ANTHROPIC_AUTH_TOKEN'], 'base')
+        self.assertEqual(settings['env']['CLAUDE_CODE_EXTRA_BODY'], '{}')
+        self.assertEqual(settings['permissions']['additionalDirectories'], [])
+        self.assertIsNone(settings['effortLevel'])
+
     async def test_turn_policy_replaces_rules_and_denies_old_or_missing_grants(self):
         from runtime.claude_sdk import ClientTurnPolicy
         policy = ClientTurnPolicy()
@@ -70,6 +97,38 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
             await client.query('should never run')
 
 class ConnectionFingerprintTests(unittest.TestCase):
+    def test_queued_turn_inherits_latest_settings_without_freezing_old_inheritance(self):
+        from unittest.mock import patch
+        from runtime.config import inherit_client_runtime
+        payload = {'_workflow_assets': {'runtime': {'effort': 'low'}}}
+        with patch('runtime.config.prepare_workflow_assets', side_effect=lambda value: value['_workflow_assets']):
+            inherit_client_runtime(payload, {'thinking': {'type': 'disabled'}, 'max_turns': 7})
+            latest = {'thinking': {'type': 'enabled', 'budget_tokens': 2048}, 'effort': 'high', 'max_turns': 9}
+            runtime = inherit_client_runtime(payload, latest)
+            self.assertEqual(runtime, {**latest, 'effort': 'low'})
+            self.assertEqual(payload['_workflow_assets']['runtime'], {'effort': 'low'})
+
+    def test_enabled_thinking_requires_and_preserves_sdk_budget(self):
+        from runtime.capabilities import _validate_runtime
+        value = {'thinking': {'type': 'enabled', 'budget_tokens': 2048}}
+        self.assertEqual(_validate_runtime(value), value)
+        for thinking in ({'type': 'enabled'}, {'type': 'enabled', 'budget_tokens': True},
+                         {'type': 'enabled', 'budget_tokens': 0},
+                         {'type': 'disabled', 'budget_tokens': 2048}):
+            with self.assertRaises(RuntimeError):
+                _validate_runtime({'thinking': thinking})
+
+    def test_explicit_null_max_turns_resets_inherited_limit_to_yaml(self):
+        from unittest.mock import patch
+        from runtime.config import inherit_client_runtime, build_client_options
+        from runtime.claude_sdk import ClientTurnPolicy
+        assets = {'runtime': {'max_turns': None}}
+        payload = {}
+        with patch('runtime.config.prepare_workflow_assets', return_value=assets):
+            runtime = inherit_client_runtime(payload, {'max_turns': 7})
+            self.assertEqual(runtime['max_turns'], 200)
+            self.assertEqual(build_client_options(payload, ClientTurnPolicy()).max_turns, 200)
+
     def test_blank_client_matches_first_conversation_connection(self):
         import tempfile
         from pathlib import Path
@@ -96,9 +155,76 @@ class ConnectionFingerprintTests(unittest.TestCase):
                        'credentials': {'platformBearer': 'changed'}}
             self.assertEqual(first, client_connection_fingerprint(changed))
             assets['runtime'] = {'thinking': {'type': 'disabled'}}
+            self.assertEqual(first, client_connection_fingerprint(base))
+            assets['runtime'] = {'effort': 'low'}
+            self.assertEqual(first, client_connection_fingerprint({**base, 'additional_directories': ['other']}))
+            assets['runtime'] = {'max_turns': 7}
             self.assertNotEqual(first, client_connection_fingerprint(base))
 
 class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_new_fixed_group_rebalances_shared_inventory(self):
+        from runtime.worker_pool import WorkerPool
+        from tests.test_worker_pool import until
+        from uuid import uuid4
+        class Worker:
+            alive = False
+            awaiting_connection = False
+            process = None
+            async def preconnect(self, payload):
+                self.alive = True
+            async def terminate(self):
+                self.alive = False
+        base = {'_client_connection_fingerprint': 'base'}
+        pool = WorkerPool(max_idle=6, max_starting=2, max_live=24,
+            profile_payloads=[base],
+            payload_factory=lambda profile: {**profile, 'session_directory': uuid4().hex},
+            worker_factory=lambda **kw: Worker())
+        pool.start()
+        try:
+            await until(lambda: pool.snapshot()['ready'] == 6)
+            special = {'_client_connection_fingerprint': 'special'}
+            pool.register_profile(special)
+            await until(lambda: pool.snapshot()['groups'].get('special') == 3)
+            self.assertEqual(pool.snapshot()['groups'], {'base': 3, 'special': 3})
+            self.assertIsNotNone(pool.reserve_workspace(special))
+            self.assertEqual(pool.snapshot()['live'], 6)
+        finally:
+            await pool.close()
+
+    async def test_reservation_matches_before_removing_and_groups_share_budget(self):
+        from runtime.worker_pool import WorkerPool
+        from tests.test_worker_pool import until
+        from uuid import uuid4
+        class Worker:
+            alive = False
+            awaiting_connection = False
+            process = None
+            async def preconnect(self, payload):
+                self.initial = payload
+                self.alive = True
+            async def terminate(self):
+                self.alive = False
+        profiles = [{'_client_connection_fingerprint': name} for name in ('default', 'special')]
+        pool = WorkerPool(max_idle=6, max_starting=2, max_live=24,
+            profile_payloads=profiles,
+            payload_factory=lambda profile: {**profile, 'session_directory': uuid4().hex},
+            worker_factory=lambda **kw: Worker())
+        pool.start()
+        try:
+            await until(lambda: pool.snapshot()['ready'] == 6)
+            self.assertIsNone(pool.reserve_workspace({'_client_connection_fingerprint': 'missing'}))
+            self.assertEqual(pool.snapshot()['ready'], 6)
+            directories = [pool.reserve_workspace(profiles[index % 2]) for index in range(6)]
+            self.assertTrue(all(directories))
+            await asyncio.sleep(.02)
+            self.assertEqual(pool.snapshot()['ready'] + pool.snapshot()['starting'] + pool.snapshot()['reserved'], 6)
+            leases = [await pool.acquire(initial_payload={'session_directory': directory,
+                **profiles[index % 2]}) for index, directory in enumerate(directories)]
+            self.assertEqual(len(leases), 6)
+            self.assertEqual(pool.snapshot()['hits'], 6)
+        finally:
+            await pool.close()
+
     async def test_parallel_cold_leases_respect_total_limit_until_terminated(self):
         from runtime.worker_pool import WorkerPool
         from runtime.process import ClientWorkerError
@@ -249,14 +375,14 @@ class WorkflowEnvironmentTests(unittest.TestCase):
                 before = dict(os.environ)
                 base = config.client_connection_fingerprint({})
                 selected = config.client_connection_fingerprint({'workflow_name': 'flow'})
-                self.assertNotEqual(base, selected)
+                self.assertEqual(base, selected)
                 self.assertEqual(before, dict(os.environ))
                 try:
                     config.load_runtime_environment('flow')
                     values = config._client_connection_values({'workflow_name': 'flow'})
-                    self.assertEqual(values['env'], config.agent_environment())
+                    self.assertNotIn('ANTHROPIC_AUTH_TOKEN', values['env'])
                     self.assertEqual(values['max_turns'], config.RUNTIME_SETTINGS.limits.max_turns)
-                    self.assertEqual(values['env']['ANTHROPIC_AUTH_TOKEN'], 'synthetic-flow')
+                    self.assertNotIn('ANTHROPIC_BASE_URL', values['env'])
                     self.assertEqual(selected, config.client_connection_fingerprint({'workflow_name': 'flow'}))
                     self.assertEqual(base, config.client_connection_fingerprint({}))
                 finally:

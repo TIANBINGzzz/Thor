@@ -39,10 +39,15 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                         'type': 'invalid_request_error', 'message': 'local probe'}}, status_code=400)
                 stage['requests'].append({'model': data['model'],
                     'tools': [item['name'] for item in data['tools']],
+                    'thinking': data.get('thinking'), 'effort': data.get('output_config', {}).get('effort'),
+                    'path': path, 'marker': data.get('probe_marker'),
+                    'auth_matches': request.headers.get('authorization') == 'Bearer ' + stage.get('auth', 'local-probe'),
                     'context': 'CONTEXT_' + stage['name'] in json.dumps(data)})
                 tool = stage['tool'] if len(stage['requests']) == 1 else None
                 hang = stage['name'] == 'CANCEL_MODEL'
                 arguments = {'command': f'echo forbidden > "{side_effect.as_posix()}"'} if tool == 'Bash' else {}
+                if tool == 'Write':
+                    arguments = {'file_path': str(stage['target']), 'content': 'local probe'}
                 blocks = [{'type': 'tool_use', 'id': 'toolu_' + uuid4().hex,
                            'name': tool, 'input': arguments}] if tool else [{'type': 'text', 'text': 'OK.'}]
                 reason = 'tool_use' if tool else 'end_turn'
@@ -138,6 +143,55 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     tool_scope.stop()
                     await tool_scope.drain(timeout_ms=1000)
                 self.assertEqual(hits, ['A', 'B'])
+
+                # 验证 SDK 私有设置真正改变模型请求，并能清除上轮环境覆盖。
+                for name, model_name, thinking, effort, env in [
+                    ('HOT_ON', 'claude-sonnet-4-5', {'type': 'enabled', 'budget_tokens': 2048}, 'low',
+                     {'ANTHROPIC_BASE_URL': f'http://127.0.0.1:{port}/changed',
+                      'ANTHROPIC_AUTH_TOKEN': 'changed-probe', 'CLAUDE_CODE_EXTRA_BODY': '{"probe_marker":"hot"}'}),
+                    ('HOT_LOW', 'claude-sonnet-4-6', {'type': 'adaptive'}, 'low', {}),
+                    ('HOT_OFF', 'claude-sonnet-4-6', {'type': 'disabled'}, 'high', {}),
+                    ('HOT_RESET', 'claude-sonnet-4-6', None, None, {}),
+                ]:
+                    stage.update(name=name, tool=None, requests=[], auth='changed-probe' if env else 'local-probe')
+                    turn = SimpleNamespace(model=model_name, thinking=thinking, effort=effort, env=env,
+                        mcp_servers={}, tools=[], allowed_tools=[], disallowed_tools=[],
+                        system_prompt='CONTEXT_' + name)
+                    policy.bind(turn)
+                    with isolated_sdk_environment():
+                        await client.configure_turn(turn)
+                        await client.query('Perform the probe for ' + name)
+                        messages = [message async for message in client.receive_response()]
+                    request = stage['requests'][0]
+                    self.assertIs(client._provider, provider)
+                    self.assertFalse(messages[-1].data['is_error'])
+                    self.assertTrue(request['auth_matches'])
+                    self.assertEqual(request['path'], 'changed/v1/messages' if env else 'v1/messages')
+                    self.assertEqual(request['marker'], 'hot' if env else None)
+                    self.assertEqual(request['thinking']['type'],
+                                     {'HOT_ON': 'enabled', 'HOT_LOW': 'adaptive',
+                                      'HOT_OFF': 'disabled', 'HOT_RESET': 'adaptive'}[name])
+                    if name == 'HOT_ON':
+                        self.assertEqual(request['thinking']['budget_tokens'], 2048)
+                    if name != 'HOT_ON':
+                        self.assertEqual(request['effort'], effort or 'high')
+
+                # 原生目录权限增删也须实际生效；acceptEdits 下仅获准目录可以自动写入。
+                with tempfile.TemporaryDirectory() as external:
+                    for name, directories, allowed in [('DIR_DENY', [], False),
+                            ('DIR_ALLOW', [external], True), ('DIR_REVOKE', [], False)]:
+                        target = Path(external) / (name + '.txt')
+                        stage.update(name=name, tool='Write', target=target, requests=[])
+                        turn.add_dirs, turn.permission_mode = directories, 'acceptEdits'
+                        turn.allowed_tools, turn.system_prompt = ['Write'], 'CONTEXT_' + name
+                        policy.bind(turn)
+                        with isolated_sdk_environment():
+                            await client.configure_turn(turn)
+                            await client.query('Perform the local directory probe')
+                            messages = [message async for message in client.receive_response()]
+                        self.assertIs(client._provider, provider)
+                        self.assertEqual(target.exists(), allowed)
+                turn.permission_mode = 'bypassPermissions'
 
                 # 真实 CLI 的模型流中断、MCP 工具中断，均须能在原连接继续下一轮。
                 import agent_worker

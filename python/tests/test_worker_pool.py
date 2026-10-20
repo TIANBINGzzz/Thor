@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from runtime.worker_pool import WorkerPool
 from runtime.observability import Observer
-from runtime.process import ClientWorkerProcess
+from runtime.process import ClientWorkerProcess, ClientWorkerError
 from runtime.runtime_settings import load_worker_pool_settings
 
 
@@ -297,6 +297,65 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(worker.alive)
         finally:
             allow_termination.set()
+
+    async def test_failed_termination_keeps_capacity_and_retries_before_next_acquire(self):
+        class Worker(FakeWorker):
+            fail_close = True
+
+            async def preconnect(self, payload):
+                await self.prewarm()
+
+            async def terminate(self):
+                if self.fail_close:
+                    raise OSError('local termination failed')
+                await super().terminate()
+
+        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1,
+                          payload_factory=lambda: {'session_directory': 'blank'}, worker_factory=Worker)
+        self.addAsyncCleanup(pool.close)
+        pool.start()
+        FakeWorker.gate.set()
+        await until(lambda: pool.snapshot()['ready'] == 1)
+        worker = FakeWorker.created[0]
+        try:
+            with self.assertRaises(ClientWorkerError):
+                await pool.acquire({'resume': 'history'})
+            self.assertEqual(pool.snapshot()['live'], 1)
+            self.assertIn(worker, pool._retiring_workers)
+            worker.fail_close = False
+            leased = await pool.acquire({'resume': 'history'})
+            self.assertTrue(worker.terminated)
+            self.assertIsNot(leased, worker)
+        finally:
+            worker.fail_close = False
+
+    async def test_reclaim_callback_failure_does_not_stop_pool_maintenance(self):
+        class Worker(FakeWorker):
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.awaiting_connection = False
+
+        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=Worker)
+        worker = await pool.acquire()
+        worker.alive = True
+        attempts = 0
+
+        async def fail_reclaim():
+            nonlocal attempts
+            attempts += 1
+            raise OSError('temporary reclaim failure')
+
+        pool.reclaim_idle = fail_reclaim
+        pool.start()
+        try:
+            await until(lambda: attempts >= 1)
+            self.assertIsNotNone(pool._task)
+            self.assertFalse(pool._task.done())
+            self.assertEqual(pool._live_count(), 1)
+        finally:
+            worker.alive = False
+            await pool.close()
+            await worker.terminate()
 
     async def test_cancelled_acquire_does_not_interrupt_cancelled_prewarm_cleanup(self):
         termination_started = asyncio.Event()

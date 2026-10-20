@@ -85,6 +85,347 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_close_simultaneous_with_run_terminal_waits_for_cleanup_and_exit(self):
+        async def exercise(terminal):
+            cleaned = False
+            worker = FakeClientWorker([lambda _: [{'type': terminal, 'code': 'model_failed'}]], worker_id=0)
+            actor = SessionActor('session', {}, worker_factory=lambda **_: worker)
+            original_wait = asyncio.wait
+            original_close = worker.close
+
+            async def wait_for_both(tasks, **kwargs):
+                # 固定重现终态和 close 在同一轮被取到的竞态，不依赖调度时机。
+                return await original_wait(tasks, timeout=kwargs.get('timeout'),
+                                           return_when=asyncio.ALL_COMPLETED)
+
+            async def cleanup():
+                nonlocal cleaned
+                cleaned = True
+
+            async def close():
+                self.assertTrue(cleaned)
+                await original_close()
+
+            worker.close = close
+            try:
+                with patch('runtime.session_actor.asyncio.wait', side_effect=wait_for_both):
+                    run = asyncio.create_task(actor.submit('run', {}, cleanup=cleanup))
+                    await _wait_until(lambda: bool(worker.sent))
+                    closing = asyncio.create_task(actor.close())
+                    outcome, close_result = await asyncio.gather(run, closing, return_exceptions=True)
+                self.assertIsNone(close_result)
+                self.assertEqual(actor.state, ActorState.CLOSED)
+                self.assertTrue(worker.closed)
+                self.assertIsNone(actor._worker)
+                if terminal == 'client_error':
+                    self.assertIsInstance(outcome, SessionActorError)
+                    self.assertEqual(outcome.code, 'model_failed')
+                else:
+                    self.assertEqual(outcome['status'],
+                                     'succeeded' if terminal == 'client_run_completed' else 'cancelled')
+            finally:
+                await actor.close()
+
+        for terminal in ('client_run_completed', 'client_run_cancelled', 'client_error'):
+            with self.subTest(terminal=terminal):
+                asyncio.run(asyncio.wait_for(exercise(terminal), 2))
+
+    def test_failed_explicit_close_keeps_owner_and_blocks_replacement_until_exit(self):
+        async def exercise():
+            workers = []
+            allow_exit = False
+            close_attempts = 0
+
+            def factory(**kwargs):
+                worker = FakeClientWorker([complete_script('kept-history')], worker_id=len(workers))
+                workers.append(worker)
+                original_close = worker.close
+
+                async def close():
+                    nonlocal close_attempts
+                    close_attempts += 1
+                    if not allow_exit:
+                        raise OSError('process still running')
+                    await original_close()
+
+                async def terminate():
+                    if not allow_exit:
+                        raise OSError('termination failed')
+                    await original_close()
+
+                worker.close, worker.terminate = close, terminate
+                return worker
+
+            manager = SessionManager(worker_factory=factory)
+            try:
+                await manager.submit('session', {}, 'first', {})
+                actor = manager._actors['session']
+                with self.assertRaises(SessionActorError):
+                    await asyncio.wait_for(manager.close_all(), .5)
+                self.assertIs(manager._actors['session'], actor)
+                self.assertIs(actor._worker, workers[0])
+                self.assertNotEqual(actor.state, ActorState.CLOSED)
+                with self.assertRaises(SessionActorError):
+                    await asyncio.wait_for(manager.submit('session', {}, 'blocked', {}), .5)
+                self.assertEqual(len(workers), 1)
+                self.assertTrue(workers[0].alive)
+                previous_attempts = close_attempts
+                await _wait_until(lambda: close_attempts > previous_attempts)
+                allow_exit = True
+                await _wait_until(lambda: actor.state == ActorState.CLOSED)
+                self.assertIsNone(actor._worker)
+                result = await manager.submit('session', {}, 'restored', {})
+                self.assertEqual(result['status'], 'succeeded')
+                self.assertEqual(workers[1].start_payload['resume'], 'kept-history')
+            finally:
+                allow_exit = True
+                await manager.close_all()
+        asyncio.run(asyncio.wait_for(exercise(), 3))
+
+    def test_close_during_run_settles_failure_and_retries_without_hanging(self):
+        async def exercise():
+            worker = FakeClientWorker([lambda message: []], worker_id=0)
+            allow_exit = False
+            original = worker.close
+
+            async def close():
+                if not allow_exit:
+                    raise OSError('close failed')
+                await original()
+
+            worker.close = close
+            actor = SessionActor('session', {}, worker_factory=lambda **_: worker)
+            try:
+                run = asyncio.create_task(actor.submit('run', {}))
+                await _wait_until(lambda: bool(worker.sent))
+                with self.assertRaises(SessionActorError):
+                    await asyncio.wait_for(actor.close(), .5)
+                self.assertEqual((await run)['status'], 'cancelled')
+                self.assertIs(actor._worker, worker)
+                allow_exit = True
+                await _wait_until(lambda: actor.state == ActorState.CLOSED)
+                self.assertIsNone(actor._worker)
+            finally:
+                allow_exit = True
+                await actor.close()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_run_failure_and_termination_failure_still_settle_and_retry_safely(self):
+        async def exercise():
+            workers, cleaned = [], []
+            def factory(**kwargs):
+                scripts = [lambda message: [{'type': 'client_error', 'code': 'model_failed'}]] if not workers else [complete_script()]
+                worker = FakeClientWorker(scripts, worker_id=len(workers))
+                workers.append(worker)
+                if len(workers) == 1:
+                    original = worker.terminate
+                    attempts = 0
+                    async def terminate():
+                        nonlocal attempts
+                        attempts += 1
+                        if attempts == 1:
+                            raise OSError('termination failed')
+                        await original()
+                    worker.terminate = terminate
+                return worker
+            async def cleanup():
+                cleaned.append(True)
+            actor = SessionActor('s', {}, worker_factory=factory)
+            try:
+                with self.assertRaises(SessionActorError) as caught:
+                    await asyncio.wait_for(actor.submit('broken', {}, cleanup=cleanup), .5)
+                self.assertEqual(caught.exception.code, 'model_failed')
+                self.assertEqual(cleaned, [True])
+                self.assertIs(actor._worker, workers[0])
+                self.assertTrue(workers[0].alive)
+                result = await actor.submit('retry', {})
+                self.assertEqual(result['status'], 'succeeded')
+                self.assertTrue(workers[0].terminated)
+            finally:
+                await actor.close()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_async_capacity_failure_does_not_poison_next_submission(self):
+        from runtime.process import ClientWorkerError
+        async def exercise():
+            attempts = 0
+            async def factory(**kwargs):
+                nonlocal attempts
+                attempts += 1
+                if attempts == 1:
+                    raise ClientWorkerError('Client 容量已满，请稍后重试')
+                return FakeClientWorker([complete_script()], worker_id=0)
+            manager = SessionManager(worker_factory=factory)
+            try:
+                with self.assertRaises(SessionActorError):
+                    await manager.submit('s', {}, 'full', {})
+                result = await manager.submit('s', {}, 'retry', {})
+                self.assertEqual(result['status'], 'succeeded')
+            finally:
+                await manager.close_all()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_runtime_applied_marker_is_private_and_marks_effective_snapshot(self):
+        async def exercise():
+            snapshots, public = [], []
+            def script(message):
+                return [{'type': 'client_runtime_applied'}, *complete_script('sdk-session')(message)]
+            worker = FakeClientWorker([script], worker_id=0)
+            async def on_state(snapshot):
+                snapshots.append(dict(snapshot))
+            async def on_public(_run_id, event):
+                public.append(event)
+            actor = SessionActor('s', {}, worker_factory=lambda **_: worker,
+                                 on_state=on_state, on_public_event=on_public)
+            try:
+                result = await actor.submit('run', {}, initial_payload={
+                    '_client_runtime': {'effort': 'low'},
+                })
+                self.assertEqual(result['status'], 'succeeded')
+                self.assertTrue(any(snapshot['runtimeApplied'] and snapshot['activeRunId'] == 'run'
+                                    for snapshot in snapshots))
+                self.assertFalse(any(event.get('type') == 'client_runtime_applied' for event in public))
+            finally:
+                await actor.close()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_unapplied_runtime_does_not_replace_last_applied_or_restored_preferences(self):
+        async def exercise(restored):
+            workers = []
+            def applied(message):
+                return [{'type': 'client_runtime_applied'}, *complete_script()(message)]
+            scripts_by_worker = (
+                [[lambda _: [{'type': 'client_error', 'code': 'configuration_failed'}]],
+                 [applied]] if restored else
+                [[applied, lambda _: [{'type': 'client_error', 'code': 'configuration_failed'}]], [applied]])
+
+            def factory(**kwargs):
+                scripts = scripts_by_worker[len(workers)]
+                worker = FakeClientWorker(scripts, worker_id=len(workers))
+                workers.append(worker)
+                return worker
+
+            def payload(effort=None):
+                return {'_workflow_assets': {'runtime': {} if effort is None else {'effort': effort}}}
+
+            actor = SessionActor('session', {
+                '_client_runtime': {'effort': 'low'} if restored else {},
+            }, worker_factory=factory)
+            try:
+                with patch('runtime.config.prepare_workflow_assets', side_effect=lambda p: p['_workflow_assets']):
+                    if not restored:
+                        await actor.submit('applied', {}, initial_payload=payload('low'))
+                    with self.assertRaises(SessionActorError):
+                        await actor.submit('unapplied', {}, initial_payload=payload('high'))
+                    result = await actor.submit('inherited', {}, initial_payload=payload())
+                self.assertEqual(result['status'], 'succeeded')
+                self.assertEqual(workers[-1].sent[0]['_client_runtime']['effort'], 'low')
+                self.assertEqual(actor.snapshot()['effectiveRuntime']['effort'], 'low')
+            finally:
+                await actor.close()
+
+        for restored in (False, True):
+            with self.subTest(restored=restored):
+                asyncio.run(asyncio.wait_for(exercise(restored), 2))
+
+    def test_capacity_reclaim_protects_input_and_waits_for_process_exit_then_resumes(self):
+        async def exercise():
+            workers = []
+            exiting, exited = asyncio.Event(), asyncio.Event()
+            def factory(**kwargs):
+                worker = FakeClientWorker([complete_script('history')], worker_id=len(workers))
+                workers.append(worker)
+                if len(workers) == 1:
+                    async def terminate():
+                        exiting.set()
+                        await exited.wait()
+                        worker.terminated = True
+                    worker.terminate = terminate
+                return worker
+            manager = SessionManager(worker_factory=factory)
+            try:
+                await manager.submit('old', {}, 'one', {})
+                await manager.submit('new', {}, 'two', {})
+                manager.pin_session('old')
+                self.assertTrue(await manager.reclaim_oldest_idle())
+                self.assertTrue(workers[1].terminated)
+                self.assertFalse(workers[0].terminated)
+                manager.unpin_session('old')
+                reclaim = asyncio.create_task(manager.reclaim_oldest_idle())
+                await exiting.wait()
+                self.assertFalse(reclaim.done())
+                self.assertIs(manager._actors['old']._worker, workers[0])
+                pending = asyncio.create_task(manager.submit('old', {}, 'three', {}))
+                await asyncio.sleep(0)
+                self.assertEqual(len(workers), 2)
+                exited.set()
+                self.assertTrue(await reclaim)
+                self.assertEqual((await pending)['status'], 'succeeded')
+                self.assertEqual(workers[2].start_payload['resume'], 'history')
+            finally:
+                exited.set()
+                await manager.close_all()
+        asyncio.run(asyncio.wait_for(exercise(), 3))
+
+    def test_failed_idle_reclaim_keeps_actor_as_retry_owner(self):
+        async def exercise():
+            workers = []
+            def factory(**kwargs):
+                worker = FakeClientWorker([complete_script('preserved-history')], worker_id=len(workers))
+                workers.append(worker)
+                if len(workers) == 1:
+                    original = worker.terminate
+                    attempts = 0
+                    async def terminate():
+                        nonlocal attempts
+                        attempts += 1
+                        if attempts == 1:
+                            raise OSError('temporary termination failure')
+                        await original()
+                    worker.terminate = terminate
+                return worker
+
+            manager = SessionManager(idle_ttl_ms=10, worker_factory=factory)
+            try:
+                await manager.submit('session', {}, 'first', {})
+                actor = manager._actors['session']
+                worker = workers[0]
+                self.assertFalse(await manager.reclaim_oldest_idle())
+                self.assertIs(actor._worker, worker)
+                self.assertNotEqual(actor.state, ActorState.CLOSED)
+                await _wait_until(lambda: worker.terminated, timeout=1)
+                self.assertIsNone(actor._worker)
+                self.assertNotEqual(actor.state, ActorState.CLOSED)
+                result = await manager.submit('session', {}, 'restored', {})
+                self.assertEqual(result['status'], 'succeeded')
+                self.assertEqual(workers[1].start_payload['resume'], 'preserved-history')
+            finally:
+                await manager.close_all()
+        asyncio.run(asyncio.wait_for(exercise(), 2))
+
+    def test_cleanup_and_queued_preparation_are_not_idle_candidates(self):
+        async def exercise():
+            cleaning, release = asyncio.Event(), asyncio.Event()
+            worker = FakeClientWorker([complete_script(), complete_script()], worker_id=0)
+            manager = SessionManager(worker_factory=lambda **kw: worker)
+            async def cleanup():
+                cleaning.set()
+                await release.wait()
+            try:
+                first = asyncio.create_task(manager.submit('s', {}, 'one', {}, cleanup=cleanup))
+                await cleaning.wait()
+                self.assertFalse(await manager.reclaim_oldest_idle())
+                second = asyncio.create_task(manager.submit('s', {}, 'two', {}))
+                await asyncio.sleep(0)
+                self.assertFalse(await manager.reclaim_oldest_idle())
+                release.set()
+                await asyncio.gather(first, second)
+                self.assertTrue(await manager.reclaim_oldest_idle())
+            finally:
+                release.set()
+                await manager.close_all()
+        asyncio.run(asyncio.wait_for(exercise(), 3))
+
     def test_preparation_exception_keeps_private_cause_through_actor_boundary(self):
         from runtime.telemetry import exception_event
         async def exercise():
@@ -576,9 +917,10 @@ class SessionActorTests(unittest.TestCase):
             actor = SessionActor("session", {}, worker_factory=factory, idle_ttl_ms=20)
             result = await actor.submit("run-1", {"prompt": "one"})
             self.assertEqual(result["status"], "succeeded")
-            await _wait_until(lambda: actor.state == ActorState.CLOSED, timeout=1)
+            await _wait_until(lambda: workers[0].closed, timeout=1)
             self.assertTrue(workers[0].closed)
             self.assertTrue(actor._task is None or actor._task.done())
+            await actor.close()
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
@@ -659,7 +1001,7 @@ class SessionActorTests(unittest.TestCase):
 
             manager = SessionManager(idle_ttl_ms=10, worker_factory=factory)
             await manager.submit('s', {}, 'one', {'prompt': 'one'})
-            await _wait_until(lambda: manager.snapshots()[0]['state'] == 'closed')
+            await _wait_until(lambda: workers[0].closed)
             await manager.submit('s', {'resume': 'outdated'}, 'two', {'prompt': 'two'})
             self.assertEqual(workers[1].start_payload['resume'], 'session-1')
             await manager.close_all()

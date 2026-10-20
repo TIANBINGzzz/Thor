@@ -48,10 +48,10 @@
 ## 7. Important boundaries/interfaces
 
 - Java/Python 以 Run JWT、HTTP/SSE 及授权文件引用交互；字段与示例见 API 参考，跨系统语义见 Runtime 契约。
-- 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。模型、规则、MCP及凭据按轮热更新，Hook 校验本轮工具授权；目录、SDK环境和不支持热更新的执行选项变化时重建并恢复历史，重启恢复依赖 RunStore 和 SDK transcript。
+- 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。模型、思考预算、effort、模型环境、附加目录、规则和 MCP 按轮热更新，凭据按轮绑定清理，Hook 校验本轮工具授权；仅固定启动参数变化时重建并恢复历史，重启恢复依赖 RunStore 和 SDK transcript。
 - 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
-- `runtime/worker_pool.py` 为随机空白工作区预连接无业务身份及 MCP 的 SDK Client，首轮绑定会话后独占领取；恢复历史或固定配置不匹配时冷启动。已绑定进程不跨会话归还；空闲、创建并发、总存活上限及内存保护见配置字段。
+- `runtime/worker_pool.py` 按固定启动配置分组预连接空白 SDK Client，各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。限制及内存保护见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。
 - 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 显式管理指令、按需知识和 MCP 参数，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，`tools/campus.py` 校验业务参数并过滤响应，见 [ADR-035](doc/ADR/035-campus-query-adapter.md)。
 

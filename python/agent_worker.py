@@ -531,6 +531,9 @@ async def run_client(initial: dict[str, Any]) -> None:
                     timing.mark('bound')
                     with isolated_sdk_environment():
                         await client.configure_turn(options)
+                        # This internal marker follows successful SDK control
+                        # updates; the parent persists only non-secret settings.
+                        emit({'type': 'client_runtime_applied'})
                         timing.mark('configured')
                         timing.mark('query_begin')
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))

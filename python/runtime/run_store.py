@@ -241,6 +241,38 @@ class RunStore:
             ).fetchone()
         return row['runtime_session_ref'] if row else None
 
+    def latest_client_runtime(self, tenant_id: str, user_id: str, business_session_id: str) -> dict:
+        """只恢复非秘密执行偏好；身份和凭据必须由新请求重新授权。"""
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT metadata_json FROM runs WHERE tenant_id=? AND user_id=? AND business_session_id=? "
+                "AND json_type(metadata_json, '$.clientRuntime')='object' "
+                "ORDER BY CAST(json_extract(metadata_json, '$.clientRuntimeAppliedAt') AS INTEGER) DESC, "
+                "created_at DESC, rowid DESC LIMIT 1", (tenant_id, user_id, business_session_id)).fetchone()
+        return json.loads(row['metadata_json'])['clientRuntime'] if row else {}
+
+    def save_client_runtime(self, run_id: str, runtime: Mapping[str, Any]) -> None:
+        """保存已生效的会话参数，复用现有 Run 元数据，不写模型连接或业务 Token。"""
+        values = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns') if name in runtime}
+        with self._lock:
+            row = self._connection.execute(
+                'SELECT metadata_json,tenant_id,user_id,business_session_id FROM runs WHERE run_id=?', (run_id,)
+            ).fetchone()
+            if row is None:
+                return
+            metadata = json.loads(row['metadata_json'])
+            latest = self._connection.execute(
+                "SELECT MAX(CAST(json_extract(metadata_json, '$.clientRuntimeAppliedAt') AS INTEGER)) "
+                "FROM runs WHERE tenant_id=? AND user_id=? AND business_session_id=?",
+                (row['tenant_id'], row['user_id'], row['business_session_id']),
+            ).fetchone()[0]
+            applied_at = max(_now_ms(), int(latest or 0) + 1)
+            metadata['clientRuntime'] = values
+            metadata['clientRuntimeAppliedAt'] = applied_at
+            self._connection.execute('UPDATE runs SET metadata_json=?, updated_at=? WHERE run_id=?',
+                                      (_json(metadata), applied_at, run_id))
+            self._connection.commit()
+
     def list_runs_by_session(
         self, tenant_id: str, user_id: str, business_session_id: str, *,
         limit: int = 50, cursor: str | None = None,

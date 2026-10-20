@@ -11,6 +11,7 @@ import asyncio
 from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import inspect
+import copy
 from fnmatch import fnmatchcase
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
@@ -22,6 +23,9 @@ from typing import Any
 import claude_agent_sdk as _sdk
 from claude_agent_sdk._internal.query import SdkMcpBridge
 from runtime.runtime_settings import RUNTIME_SETTINGS
+
+# 只开放已用真实 CLI 请求验证的模型环境；进程路径、代理和配置目录仍属启动配置。
+CLIENT_HOT_ENV_KEYS = frozenset({'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_EXTRA_BODY'})
 
 
 class ClientTurnPolicy:
@@ -455,6 +459,15 @@ class ClaudeSDKClient:
         self._state = ClientState.NEW
         self._servers = dict(options.mcp_servers)
         self._model = options.model
+        self._baseline_env = dict(getattr(options, 'env', {}) or {})
+        self._turn_settings = {name: copy.deepcopy(getattr(options, name, None))
+                               for name in ('thinking', 'effort', 'add_dirs', 'permission_mode')}
+        self._hot_env = self._model_environment(self._baseline_env)
+
+    def _model_environment(self, environment):
+        # env=null 不能撤销 CLI process.env，必须逐项写回基线；空字符串撤销原本不存在的值。
+        return {key: environment.get(key, self._baseline_env.get(key, '{}' if key == 'CLAUDE_CODE_EXTRA_BODY' else ''))
+                for key in CLIENT_HOT_ENV_KEYS}
 
     @property
     def state(self) -> ClientState:
@@ -510,7 +523,7 @@ class ClaudeSDKClient:
             raise _safe_sdk_error(error) from error
 
     async def configure_turn(self, options: Any) -> None:
-        """READY 时更新模型和 MCP；同名新实例先卸载再挂载，失败后禁止复用。
+        """READY 时热更新本轮设置和 MCP；失败后禁止复用，不重放有副作用的请求。
 
         Python SDK 0.2.143 尚无公开 set_mcp_servers；私有协议适配集中于此，升级须跑真实 CLI 探针。
         """
@@ -522,6 +535,33 @@ class ClaudeSDKClient:
             if options.model != self._model:
                 await provider.set_model(options.model)
                 self._model = options.model
+            settings = {}
+            for name in ('thinking', 'effort', 'add_dirs', 'permission_mode'):
+                if not hasattr(options, name):
+                    continue
+                value = getattr(options, name)
+                if value == self._turn_settings[name]:
+                    continue
+                if name == 'thinking':
+                    thinking = value or {}
+                    budget = 0 if thinking.get('type') == 'disabled' else thinking.get('budget_tokens')
+                    await provider._query._send_control_request({'subtype': 'set_max_thinking_tokens', 'max_thinking_tokens': budget})
+                elif name == 'effort':
+                    settings['effortLevel'] = value
+                elif name == 'add_dirs':
+                    settings['permissions'] = {'allow': [], 'additionalDirectories': [str(path) for path in value or []]}
+                else:
+                    await provider.set_permission_mode(value)
+                self._turn_settings[name] = copy.deepcopy(value)
+            if hasattr(options, 'env'):
+                environment = self._model_environment(options.env or {})
+                if environment != self._hot_env:
+                    settings['env'] = environment
+                    self._hot_env = environment
+            if settings:
+                response = await provider._query._send_control_request({'subtype': 'apply_flag_settings', 'settings': settings})
+                if response.get('errors'):
+                    raise SDKExecutionError('本轮 Client 设置更新失败')
             servers = dict(options.mcp_servers)
             if servers == self._servers:
                 return

@@ -39,7 +39,7 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 
 `application.yml` 的 `runtime.timeouts`（正整数毫秒）、`runtime.limits`（正整数，`*-bytes` 为字节）及 `sse-heartbeat-ms` 必须完整声明；`application.local.yml` 按字段覆盖。启动时固定，缺失、非法或未知预算字段直接失败，修改后重启；挂载环境 YAML 时须同步新增节点。对应旧超时、大小、轮数和心跳环境变量不再读取，部署 env 及云效密钥包应删除旧字段。
 
-`execution-ms` 默认一小时，从附件准备完成后开始；Workflow 显式 `runtime.timeout_ms` / `max_turns` 优先于部署默认值。`client-idle-ms` 仅回收空闲 Client，不中断执行。`worker-start-ms` / `worker-close-ms` 同时用于 SDK 连接 / 断开，SDK 收发受执行预算约束；排队、附件准备、单次网络等待各自计时。HTTP 工具预算限制网络等待，不能保证整个多工具任务在同一时长内结束。
+`execution-ms` 默认一小时，从附件准备完成后开始；Capability / Workflow 的 `runtime.timeout_ms` 优先于部署默认值。`runtime.limits.max-turns` 统一为200，能力的 `runtime.max_turns` 可覆盖 Workflow / YAML；同会话未声明的 `max_turns`、`thinking`、`effort` 继承上轮，显式 null 重置默认值。`thinking: {type: enabled, budget_tokens: 正整数}` 指定思考预算，disabled / adaptive 只声明 type。`client-idle-ms` 从最后一次返回并清理完成后计算，只回收空闲 Client；容量压力可提前回收。`worker-start-ms` / `worker-close-ms` 同时用于 SDK 连接 / 断开，SDK 收发受执行预算约束；排队、附件准备、单次网络等待各自计时。HTTP 工具预算限制网络等待，不能保证整个多工具任务在同一时长内结束。
 
 协议/凭据安全上限、重试策略及内部清理宽限保留为代码约束；数据库访问策略仍在 `databases.json`，平台文件服务传输预算仍在 Nacos，避免两个来源同时管理同一参数。
 
@@ -64,12 +64,12 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 | --- | --- |
 | `max-idle` | 未绑定会话的预热库存上限，公共配置为6，0关闭；不是业务并发数或总进程上限。创建中的进程也占库存名额。 |
 | `max-starting` | 同时创建预热 Worker 的上限，公共配置为2，正整数；不限制按需冷启动或业务并发。 |
-| `max-live` | 全部空闲、保留、创建中及已领取 Client 的总上限，公共配置为24，0不限；不得小于 `max-idle`。达到上限先释放空白连接供业务冷启动，仍满则拒绝创建，已有连接继续执行。 |
+| `max-live` | 全部空闲、保留、创建中、已领取及关闭中的 Client 总上限，公共配置为24，0不限；不得小于 `max-idle`。容量不足可释放空白连接或回收空闲最久的已绑定 Client，关闭真正完成才释放名额；全部繁忙时拒绝创建。 |
 | `min-available-memory-mib` | 内存保留阈值，公共配置为1024；宿主机或可读取的 cgroup 剩余内存低于此值时暂停补充并释放待命进程；至少冷却30秒且恢复到阈值的2倍才补充，防止反复创建。0关闭该保护，不是业务进程硬限额。 |
 
-预热完成 Python 导入和 SDK 连接，只加载基础工具及逐轮权限 Hook，不装配业务身份、MCP 或历史。新会话原子绑定 `tenant + sub + businessSessionId` 与随机工作区，再独占领取对应空白连接；已有会话优先复用，恢复历史或固定配置不匹配时冷启动，已绑定连接永不跨会话归还。业务连接期间暂停补池；低内存只回收空白连接。Windows 本地实测6个空闲 Client 的 Python、CLI及子进程合计约2.5 GiB RSS，部署容量须按完整进程树测量。
+预热完成 Python 导入和 SDK 连接，统一 system prompt 和原生 tools 底座，不装配业务身份、MCP 或历史。仅固定启动配置参与分组，各组共享 `max-idle=6` 库存，领取前匹配。无历史新会话原子绑定 `tenant + sub + businessSessionId` 与随机工作区后独占领取；已有活跃 Client 继续复用；历史会话在回收或重启后冷启动 resume。已绑定连接不跨会话归还；回收只释放进程，保留业务历史和工作区。新输入、排队、准备、执行和清理中的 Client 不可回收。业务连接期间暂停补池；低内存只回收空白连接。Windows 本地实测6个空闲 Client 的 Python、CLI及子进程合计约2.5 GiB RSS，部署容量须按完整进程树测量。
 
-模型名称、能力规则、MCP目录与 Token 按轮更新；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。目录、SDK环境、thinking、effort、最大轮数或流式选项变化仍重建并恢复历史，workflow.env 的有效覆盖也参与指纹。SDK 0.2.143 的 MCP 热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；随机目录及 Hook 不是租户沙箱。
+模型、thinking、effort、模型端点/密钥/extra body、附加目录、权限模式及 MCP 按轮热更新，业务规则通过 Hook 动态注入；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。固定指纹只包含工作目录、最大轮数、统一流式选项及其余 SDK 环境；workflow.env 仅不可热更新的有效值参与指纹。固定项改变才重建并恢复历史。SDK 0.2.143 的部分热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；失败连接退役，不自动重放业务请求。随机目录及 Hook 不是租户沙箱。
 `ccsdk.worker_pool` 的 INFO 日志记录领取来源、库存/创建/失败计数，以及每15秒的各进程 RSS/PSS（平台不支持PSS时为空）；Actor 内部快照记录复用次数、重建原因与耗时。原始凭据不进入这些观测。内存采样不代表并发容量已验收。
 
 ## Nacos 文件服务：fileService
@@ -101,7 +101,7 @@ campusMcp:
   url: https://campus.example.internal/string_campus_brain_service/mcp
   domainName: campus.example.internal
 ```
-能力入口 `CAPABILITY.md` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。快照变化时替换适配器及 MCP 实例，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
+能力入口 `CAPABILITY.md` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。URL、Header 和业务规则变化时原位更新适配器，只有工具 Schema 变化才替换 MCP 实例，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

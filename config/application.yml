@@ -31,7 +31,7 @@ runtime:
     nacos-ms: 10000
     nacos-request-ms: 5000
   limits:
-    max-turns: 30
+    max-turns: 200
     file-max-bytes: 268435456
     sdk-buffer-bytes: 16777216
     http-body-bytes: 2097152

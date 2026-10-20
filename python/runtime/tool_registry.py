@@ -126,6 +126,7 @@ class ToolProvider:
     create: Callable | None = None
     load_assets: Callable | None = None
     create_service: Callable | None = None
+    update_service: Callable | None = None
     create_server: Callable | None = None
 
 
@@ -140,6 +141,7 @@ PROVIDERS: dict[str, ToolProvider] = {
     'business': ToolProvider(create=business.provide_tool),
     'attachments': ToolProvider(create=attachments.provide_tool),
     'campus': ToolProvider(load_assets=campus.load_campus_assets,
+                           update_service=campus.CampusQuery.configure_assets,
                            create_service=campus.CampusQuery, create_server=campus.create_campus_server),
 }
 TOOL_CATALOG = ToolCatalog()

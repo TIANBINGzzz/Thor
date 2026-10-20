@@ -87,11 +87,13 @@ async def lifespan(_: FastAPI):
     WORKER_POOL = WorkerPool(max_idle=settings.max_idle, max_starting=settings.max_starting,
                             min_available_memory_mib=settings.min_available_memory_mib,
                             max_live=settings.max_live, payload_factory=_blank_client_payload,
+                            profile_payloads=_warm_client_profiles(),
                             cleanup_workspace=_remove_unbound_workspace, observer=OBSERVATION,
                             worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
     try:
         SESSION_MANAGER = _create_session_manager()
+        WORKER_POOL.reclaim_idle = SESSION_MANAGER.reclaim_oldest_idle
         await _artifact_delivery().recover()
         yield
     finally:
@@ -477,9 +479,17 @@ def _create_session_manager() -> SessionManager:
     return SessionManager(
         on_public_event=_handle_client_public_event,
         on_observation=_record_observation if OBSERVATION.enabled else None,
+        on_state=_save_client_runtime,
         idle_ttl_ms=RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
     )
+
+
+async def _save_client_runtime(snapshot):
+    # STARTING 早于本轮配置；只有 SDK 确认应用成功后才持久化会话偏好。
+    if (snapshot.get('activeRunId') and snapshot.get('runtimeApplied') is True
+            and snapshot.get('effectiveRuntime') is not None):
+        RUN_STORE.save_client_runtime(snapshot['activeRunId'], snapshot['effectiveRuntime'])
 
 
 async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
@@ -502,7 +512,7 @@ def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) ->
                       separators=(',', ':'))
 
 
-def _client_session_directory(session_key: str) -> Path:
+def _client_session_directory(session_key: str, profile=None, *, resume=None) -> Path:
     """按已鉴权的会话键领取随机目录；已有工作区就地登记，保留工作稿与成果路径。"""
     tenant, user, kind, session_id = json.loads(session_key)
     digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
@@ -512,7 +522,7 @@ def _client_session_directory(session_key: str) -> Path:
         if (CLIENT_SESSION_ROOT / digest).is_dir():
             candidate = digest
         else:
-            reserved = WORKER_POOL.reserve_workspace() if WORKER_POOL else None
+            reserved = WORKER_POOL.reserve_workspace(profile) if WORKER_POOL and not resume else None
             candidate = Path(reserved).name if reserved else None
         try:
             workspace_id = RUN_STORE.get_or_create_workspace(
@@ -525,13 +535,30 @@ def _client_session_directory(session_key: str) -> Path:
     return directory
 
 
-def _blank_client_payload():
+def _startup_profile(execution_entry, previous=None):
+    entry, workflow = execution_entry['capability'], execution_entry['config'] or {}
+    runtime = {**(previous or {}), **workflow.get('runtime', {}), **entry.get('runtime', {})}
+    runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns') if name in runtime}
+    refs = entry.get('workflow_refs', [])
+    profile = {'cwd': str(PROJECT_ROOT), 'workflow_name': refs[0] if len(refs) == 1 else None,
+               '_client_runtime': runtime}
+    profile['_client_connection_fingerprint'] = client_connection_fingerprint(profile)
+    return profile
+
+
+def _warm_client_profiles():
+    """从可信入口发现固定启动分组，业务资产及凭据留到领取后加载。"""
+    from runtime.capabilities import CAPABILITIES
+    return [_startup_profile(load_execution_entry(ref)) for ref in CAPABILITIES]
+
+
+def _blank_client_payload(profile=None):
     """提前分配随机空白目录，SDK 连接不携带业务身份、凭据或能力。"""
     directory = (CLIENT_SESSION_ROOT / uuid.uuid4().hex).resolve()
     directories = [directory / name for name in ('.current-input', '.work', '.deliverables')]
     for path in directories:
         path.mkdir(parents=True, exist_ok=True)
-    payload = {'cwd': str(PROJECT_ROOT), 'session_directory': str(directory),
+    payload = {**(profile or {}), 'cwd': str(PROJECT_ROOT), 'session_directory': str(directory),
                'additional_directories': [str(path) for path in directories],
                'include_partial_messages': True, 'model': DEFAULT_MODEL}
     payload['_client_connection_fingerprint'] = client_connection_fingerprint(payload)
@@ -732,11 +759,23 @@ async def _execute_internal_run(
     input_workspace: Path | None = None
     session_directory: Path | None = None
     runtime_mode: str | None = None
+    session_key = None
+    pinned_manager = None
     try:
         execution_entry = execution_entry or load_execution_entry(run_request.capability_ref)
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         session_key = _client_session_key(run_request, claims) if runtime_mode == "client" else None
-        session_directory = _client_session_directory(session_key) if session_key else None
+        business = run_request.business_session_id or claims.get('businessSessionId')
+        resume = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business) if session_key and business else None
+        previous = RUN_STORE.latest_client_runtime(claims['tenant'], claims['sub'], business) if session_key and business else {}
+        if session_key:
+            if pinned_manager is None and SESSION_MANAGER:
+                pinned_manager = SESSION_MANAGER
+                pinned_manager.pin_session(session_key)
+            profile = _startup_profile(execution_entry, previous)
+            if WORKER_POOL:
+                WORKER_POOL.register_profile(profile)
+            session_directory = _client_session_directory(session_key, profile, resume=resume)
         run_base = session_directory / "runs" if session_directory else PROJECT_ROOT / ".scribe-runs" / "work"
         run_directory = (run_base / run_id).resolve()
         run_directory.mkdir(parents=True, exist_ok=True)
@@ -745,9 +784,7 @@ async def _execute_internal_run(
         await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
         attachment_files: tuple[FetchedFile, ...] = ()
         if runtime_mode == "client":
-            # A persistent Client cannot change its SDK add_dirs after connect.
-            # Prepare the shared current-input directory inside the SessionActor,
-            # which serializes this step with the actual Client query.
+            # 附件准备与本轮配置更新都在 Actor 串行区，避免清理/目录切换影响下一轮。
             worker_payload = await asyncio.to_thread(_internal_worker_payload,
                 run_request,
                 run_directory,
@@ -798,10 +835,9 @@ async def _execute_internal_run(
                 attachment_files=attachment_files,
             )
         if runtime_mode == "client":
+            worker_payload['_client_runtime'] = profile['_client_runtime']
             worker_payload["_client_connection_fingerprint"] = client_connection_fingerprint(worker_payload)
-            business = run_request.business_session_id or claims.get("businessSessionId")
-            if business:
-                worker_payload['resume'] = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business)
+            worker_payload['resume'] = resume
         if timing:
             timing.mark('assembled')
         if OBSERVATION.enabled:
@@ -875,6 +911,8 @@ async def _execute_internal_run(
             code = getattr(error, "code", None) or "runtime_error"
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
+        if pinned_manager and session_key:
+            pinned_manager.unpin_session(session_key)
         OBSERVATION.finish_run(run_id, (RUN_STORE.get_run(run_id) or {}).get('status', 'unknown'))
         if session_directory is not None and WORKER_POOL is not None:
             WORKER_POOL.release_workspace(str(session_directory))
@@ -940,10 +978,18 @@ async def internal_create_run(request: Request):
             if run.get("status") not in TERMINAL_RUN_STATUSES and run_request.run_id not in internal_tasks:
                 if timing.active:
                     RUN_TIMINGS[run_request.run_id] = timing
+                manager = SESSION_MANAGER if runtime_mode == 'client' else None
+                if manager:
+                    manager.pin_session(_client_session_key(run_request, claims))
                 internal_tasks[run_request.run_id] = asyncio.create_task(
-                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer, execution_entry=execution_entry),
+                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer,
+                                          execution_entry=execution_entry),
                     name=f"ccsdk-run:{run_request.run_id}",
                 )
+                if manager:
+                    key = _client_session_key(run_request, claims)
+                    internal_tasks[run_request.run_id].add_done_callback(
+                        lambda task, manager=manager, key=key: manager.unpin_session(key))
     except (KeyError, PermissionError, ValueError) as error:
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
     except RuntimeError:

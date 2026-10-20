@@ -49,9 +49,14 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
     if value.get('mode') is not None and value['mode'] not in {'query', 'client'}:
         raise RuntimeError(f'{label}.mode配置无效')
     thinking = value.get('thinking')
-    if thinking is not None and (not isinstance(thinking, dict) or set(thinking) != {'type'}
-                                  or thinking['type'] not in {'disabled', 'enabled', 'adaptive'}):
-        raise RuntimeError(f'{label}.thinking配置无效')
+    if thinking is not None:
+        if not isinstance(thinking, dict) or thinking.get('type') not in {'disabled', 'enabled', 'adaptive'}:
+            raise RuntimeError(f'{label}.thinking配置无效')
+        enabled = thinking['type'] == 'enabled'
+        expected = {'type', 'budget_tokens'} if enabled else {'type'}
+        if (set(thinking) != expected or (enabled and
+                (type(thinking['budget_tokens']) is not int or thinking['budget_tokens'] <= 0))):
+            raise RuntimeError(f'{label}.thinking配置无效')
     for field in ('max_turns', 'timeout_ms'):
         item = value.get(field)
         if field == 'max_turns' and item is None:

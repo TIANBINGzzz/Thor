@@ -60,7 +60,12 @@ def load_campus_assets(settings=None, directory=ASSET_ROOT):
                 row['definition_conflict'] = len(definitions[row['code']]) > 1
     prompt = read_asset_body(directory, 'CAPABILITY.md').replace('{minimum_schools}', str(minimum))
     digest.update(prompt.encode('utf-8'))
-    return {'config': config, 'catalogs': catalogs, 'prompt': prompt, 'revision': digest.hexdigest()}
+    schema = {'catalogs': list(catalogs), 'tools': {
+        name: {'description': rule['description'], 'schema': rule['schema']}
+        for name, rule in config['tools'].items()}}
+    schema_revision = hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
+    return {'config': config, 'catalogs': catalogs, 'prompt': prompt,
+            'revision': digest.hexdigest(), 'schema_revision': schema_revision}
 
 
 def _normalized(text):
@@ -92,6 +97,11 @@ class CampusQuery:
     def tool_names(self):
         """返回知识检索及已配置查询工具名，供装配层生成白名单。"""
         return ['search_knowledge', *self.assets['config']['tools']]
+
+    def configure_assets(self, assets):
+        """在两轮之间更新知识与连接；旧轮身份和调用状态不得带入新资产。"""
+        self.clear()
+        self.assets = assets
 
     def bind(self, credentials):
         """每轮重新绑定；不得用上轮身份或调用预算授权下一轮。"""

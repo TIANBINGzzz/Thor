@@ -23,7 +23,7 @@ from tools.web_search import WEB_INSTRUCTIONS
 from data_access.catalog import Catalog
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
-from runtime.claude_sdk import build_agent_options
+from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS
 from runtime.asset_registry import load_declared_asset, validate_refs
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import ConfigSnapshot
@@ -525,7 +525,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
                      for name in mcp_servers for tool in exact_tools.get(name, ['*'])]
     # Skill以受控引用按需读取，禁用SDK未登记的自动发现。
     skills = []
-    runtime = assets["runtime"]
+    runtime = {**assets["runtime"], **payload.get('_client_runtime', {})}
     sdk_env = agent_environment()
     if (runtime.get('thinking') or {}).get('type') == 'disabled':
         # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
@@ -536,8 +536,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         effort=runtime.get("effort"),
         cwd=payload.get("cwd") or Path.cwd(),
         resume=payload.get("resume"),
-        max_turns=payload.get("max_turns") or runtime.get(
-            "max_turns", RUNTIME_SETTINGS.limits.max_turns),
+        max_turns=payload.get("max_turns") or runtime.get("max_turns") or RUNTIME_SETTINGS.limits.max_turns,
         include_partial_messages=bool(payload.get("include_partial_messages")),
         # 文档核验读取页面图片会产生较大的JSONL消息，默认1MiB会在发布前中断。
         max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes,
@@ -584,16 +583,13 @@ def _connection_environment(workflow_name):
 
 def _client_connection_values(payload):
     """仅包含 SDK 连接后无法可靠热更新的选项。秘密值只参与内存哈希。"""
-    runtime = prepare_workflow_assets(payload)['runtime']
+    runtime = payload['_client_runtime'] if '_client_runtime' in payload else prepare_workflow_assets(payload)['runtime']
     effective = _connection_environment(payload.get('workflow_name'))
     environment = agent_environment(effective)
-    if (runtime.get('thinking') or {}).get('type') == 'disabled':
-        environment['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
-    return dict(cwd=str(payload.get('cwd') or Path.cwd()),
-                add_dirs=payload.get('additional_directories') or [], env=environment,
-                thinking=runtime.get('thinking'), effort=runtime.get('effort'),
-                max_turns=payload.get('max_turns') or runtime.get('max_turns', RUNTIME_SETTINGS.limits.max_turns),
-                include_partial_messages=bool(payload.get('include_partial_messages')))
+    environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
+    return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
+                max_turns=payload.get('max_turns') or runtime.get('max_turns') or RUNTIME_SETTINGS.limits.max_turns,
+                include_partial_messages=True)
 
 
 def client_connection_fingerprint(payload):
@@ -601,9 +597,25 @@ def client_connection_fingerprint(payload):
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
+def inherit_client_runtime(payload, previous=None):
+    """只继承会话执行参数；权限、工具、凭据和业务规则始终使用本轮可信资产。"""
+    assets = prepare_workflow_assets(payload)
+    declared = assets['runtime']
+    inherited = previous if previous is not None else payload.get('_client_runtime', {})
+    runtime = {name: inherited[name] for name in ('thinking', 'effort', 'max_turns') if name in inherited}
+    runtime.update({name: declared[name] for name in ('thinking', 'effort', 'max_turns') if name in declared})
+    if runtime.get('max_turns') is None:
+        runtime['max_turns'] = RUNTIME_SETTINGS.limits.max_turns
+    payload['_client_runtime'] = runtime
+    payload['_client_connection_fingerprint'] = client_connection_fingerprint(payload)
+    return runtime
+
+
 def build_client_options(payload, policy):
     """空白 Client 不加载业务 MCP、数据连接或凭据，领取后的首轮才装配。"""
-    return build_agent_options(**_client_connection_values(payload),
+    values = _client_connection_values(payload)
+    values['env'] = agent_environment(_connection_environment(payload.get('workflow_name')))
+    return build_agent_options(**values, thinking=None, effort=None, add_dirs=[],
         model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
         system_prompt='按可信服务端提供的本轮执行规则处理请求，历史能力规则不授予本轮权限。',
         tools={'type': 'preset', 'preset': 'claude_code'}, skills=[], setting_sources=[],

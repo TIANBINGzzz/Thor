@@ -159,7 +159,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         await service.call('get_school_info', {'payload': {}})
         self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second-secret')
 
-    async def test_cached_server_uses_current_binding_and_replaces_changed_revision(self):
+    async def test_cached_server_updates_assets_and_rebuilds_only_changed_schema(self):
         from runtime.tool_services import ToolServices
         assets = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
         services = ToolServices(assets, {'platformBearer': 'first'})
@@ -188,6 +188,18 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             self.connection['url'] = 'https://new.example.test/mcp'
             changed = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
             services.configure(changed, {'platformBearer': 'third'})
+            self.assertIs(services.services['campus'], service)
+            self.assertIs(services.servers()['campus'], server)
+            self.assertEqual(service.assets['config']['url'], 'https://new.example.test/mcp')
+            await service.call('get_school_info', {'payload': {}})
+            self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'third')
+            import copy
+            from unittest.mock import patch
+            updated = copy.deepcopy(service.assets)
+            updated['schema_revision'] = 'changed-schema'
+            updated['config']['tools']['get_school_info']['description'] += ' updated'
+            with patch('runtime.tool_services.load_tool_assets', return_value={'campus': updated}):
+                services.configure(changed, {'platformBearer': 'fourth'})
             self.assertIsNot(services.services['campus'], service)
             self.assertIsNot(services.servers()['campus'], server)
             with self.assertRaises(MCPAuthError):

@@ -1,6 +1,7 @@
 """会话执行索引的HTTP授权、稳定分页与公开字段契约。"""
 
 import sqlite3
+import asyncio
 import time
 import unittest
 from contextlib import closing
@@ -148,6 +149,61 @@ class SessionRunTests(unittest.TestCase):
             with RunStore(path) as store:
                 self.assertEqual(store.latest_runtime_session('t', 'u', 's'), 'sdk-second')
                 self.assertIsNone(store.latest_runtime_session('t', 'u', 'unknown'))
+
+    def test_client_preferences_survive_restart_without_credentials_or_cross_identity(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'runs.sqlite3'
+            with RunStore(path) as store:
+                for run, tenant, user, session in (
+                    ('first', 't', 'u', 's'), ('second', 't', 'u', 's'),
+                    ('foreign-tenant', 'other', 'u', 's'), ('foreign-user', 't', 'other', 's'),
+                    ('foreign-session', 't', 'u', 'other'), ('queued', 't', 'u', 's'),
+                ):
+                    with patch('runtime.run_store._now_ms', return_value=100):
+                        store.create_run(run, tenant_id=tenant, user_id=user, business_session_id=session)
+                    if run != 'queued':
+                        store.save_client_runtime(run, {'thinking': {'type': 'disabled'},
+                            'effort': 'low' if run == 'second' else 'high', 'max_turns': 200,
+                            'env': {'ANTHROPIC_AUTH_TOKEN': 'private-model-secret'},
+                            'credentials': {'platformBearer': 'private-business-secret'}})
+                store.update_status('first', 'succeeded')
+            with RunStore(path) as store:
+                self.assertEqual(store.latest_client_runtime('t', 'u', 's'),
+                    {'thinking': {'type': 'disabled'}, 'effort': 'low', 'max_turns': 200})
+                self.assertEqual(store.latest_client_runtime('t', 'u', 'unknown'), {})
+                self.assertNotIn('private-', str(store.get_run('second')))
+                store.save_client_runtime('queued', {'thinking': None, 'effort': None, 'max_turns': 200})
+                self.assertEqual(store.latest_client_runtime('t', 'u', 's'),
+                                 {'thinking': None, 'effort': None, 'max_turns': 200})
+
+    def test_client_preferences_follow_application_order_not_run_creation_order(self):
+        with RunStore(':memory:') as store:
+            with patch('runtime.run_store._now_ms', return_value=100):
+                store.create_run('created-first', tenant_id='t', user_id='u', business_session_id='s')
+                store.create_run('created-second', tenant_id='t', user_id='u', business_session_id='s')
+            with patch('runtime.run_store._now_ms', side_effect=[200, 201]):
+                store.save_client_runtime('created-second', {'effort': 'low'})
+                store.save_client_runtime('created-first', {'effort': 'high'})
+            self.assertEqual(store.latest_client_runtime('t', 'u', 's'), {'effort': 'high'})
+
+    def test_runtime_preference_is_saved_only_after_sdk_confirmation(self):
+        from unittest.mock import Mock
+        store = Mock()
+        async def exercise():
+            with patch.object(server, 'RUN_STORE', store):
+                await server._save_client_runtime({
+                    'activeRunId': 'run', 'clientState': 'running',
+                    'runtimeApplied': False, 'effectiveRuntime': {'effort': 'low'},
+                })
+                store.save_client_runtime.assert_not_called()
+                await server._save_client_runtime({
+                    'activeRunId': 'run', 'clientState': 'running',
+                    'runtimeApplied': True, 'effectiveRuntime': {'effort': 'low'},
+                })
+                store.save_client_runtime.assert_called_once_with('run', {'effort': 'low'})
+        asyncio.run(exercise())
 
     def test_old_turn_id_column_is_removed_without_losing_run_history(self):
         import tempfile

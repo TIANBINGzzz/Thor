@@ -175,7 +175,7 @@ class AgentWorkerTests(unittest.TestCase):
             self.assertEqual(len(copies),1)
             self.assertIn(str(copies[0]),options.system_prompt['append'])
         self.assertEqual(set(options.mcp_servers), {"data", "office", "documents", "artifacts"})
-        self.assertIsNone(options.max_turns)
+        self.assertEqual(options.max_turns, 200)
         self.assertEqual(options.disallowed_tools, ['WebSearch'])
         self.assertEqual(options.tools, {'type':'preset','preset':'claude_code'})
         self.assertEqual(options.setting_sources, ['project','local'])
@@ -528,6 +528,8 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(any(event['type'] == 'result' and event['ok'] for event in events))
                 self.assertTrue(any(event['type'] == 'client_error' for event in events))
                 self.assertFalse(any('message' in event for event in events if event['type'] == 'client_error'))
+                applied = [event for event in events if event['type'] == 'client_runtime_applied']
+                self.assertEqual(len(applied), int(boundary == 'cleanup'))
 
     async def test_disconnect_wrapper_keeps_provider_cause_for_private_evidence(self):
         from runtime.claude_sdk import ClaudeSDKClient, SDKCleanupError
