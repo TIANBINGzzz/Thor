@@ -87,7 +87,7 @@ class WorkerPool:
         if key is not None:
             self._profiles.pop(key, None)
             self._profiles[key] = {name: payload[name] for name in (
-                'cwd', 'workflow_name', 'max_turns', '_client_runtime', '_client_connection_fingerprint') if name in payload}
+                'cwd', 'capability_ref', 'max_turns', '_client_runtime', '_client_connection_fingerprint') if name in payload}
             if hasattr(self, '_wake'):
                 self._wake.set()
 

@@ -421,7 +421,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         with patch.object(server, 'DEFAULT_MODEL', 'test-model'):
             payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
         self.assertEqual(payload['model'], 'test-model')
-        self.assertIsNone(payload['workflow_name'])
+        self.assertNotIn('workflow_name', payload)
         from runtime.config import build_options, create_run_services
         self.assertIsNone(create_run_services(payload))
         self.assertIn('charts', build_options(payload).mcp_servers)
@@ -465,7 +465,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                 result = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
                 self.assertIn(json.dumps(body["payload"], ensure_ascii=False), result["prompt"])
                 self.assertEqual(result["model"], "test-model")
-                self.assertIsNone(result["workflow_name"])
+                self.assertNotIn("workflow_name", result)
         with patch.object(server, "_execute_internal_run", new_callable=AsyncMock):
             self.assert_public_run(self.client.post("/internal/v1/runs", json=body,
                                                    headers=self.headers("run.execute")), 202)
@@ -473,10 +473,10 @@ class RuntimeHTTPTests(unittest.TestCase):
                                         headers=self.headers("run.execute"))
             self.assertEqual(response.status_code, 409, response.text)
 
-    def test_writing_budget_comes_from_trusted_workflow_for_both_modes(self):
+    def test_writing_budget_comes_from_trusted_capability_for_both_modes(self):
         # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
-        workflow_path = Path(__file__).resolve().parents[2] / '.claude/workflows/writing-docx'
-        expected_timeout = read_manifest(workflow_path, 'workflow.json')['runtime']['timeout_ms']
+        capability_path = Path(__file__).resolve().parents[2] / '.claude/capabilities/document-writing'
+        expected_timeout = read_manifest(capability_path, 'capability.json')['runtime']['timeout_ms']
         self.assertIs(type(expected_timeout), int)
         self.assertGreater(expected_timeout, 0)
         self.assertNotEqual(expected_timeout, 500)

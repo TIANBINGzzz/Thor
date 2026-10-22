@@ -7,7 +7,7 @@ import httpx
 from unittest.mock import AsyncMock, patch
 
 from runtime.capabilities import resolve_capability
-from runtime.config import build_options, prepare_workflow_assets
+from runtime.config import build_options, prepare_capability_assets
 from runtime.deployment_config import ConfigSnapshot
 from runtime.mcp_auth import MCPAuthError
 from tools.campus import CampusQuery, create_campus_server, load_campus_assets
@@ -21,9 +21,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                                 side_effect=lambda env, **kw: {'campusMcp': dict(self.connection)}))
 
     def test_endpoint_is_frozen_and_changes_client_revision(self):
-        first = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        first = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
         self.connection['url'] = 'https://new.example.test/mcp'
-        second = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        second = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
         self.assertNotEqual(first['revision'], second['revision'])
         frozen = load_campus_assets(ConfigSnapshot(values=first['config_values']))
         self.assertEqual(frozen['revision'], first['tool_revisions']['campus'])
@@ -32,7 +32,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             'campusMcp.url': 'https://campus.example.test/string_campus_brain_service/mcp',
             'campusMcp.domainName': 'campus.example.test'})
         with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('worker must use snapshot')):
-            options = build_options({'capability_ref': 'campus-brain-query', '_workflow_assets': first,
+            options = build_options({'capability_ref': 'campus-brain-query', '_capability_assets': first,
                                      'credentials': {'platformBearer': 'test-secret'}})
         self.assertIn('campus', options.mcp_servers)
 
@@ -51,7 +51,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                 **self.connection, 'headers': {'Authorization': 'unwanted'}, 'tools': ['unwanted']},
                 'fileService': {'private': 'unwanted'}}):
             payload = {'capability_ref': 'campus-brain-query'}
-            assets = prepare_workflow_assets(payload)
+            assets = prepare_capability_assets(payload)
             campus = load_campus_assets(ConfigSnapshot(values=assets['config_values']))
         self.assertNotIn('unwanted', str(assets))
         self.assertNotIn('Authorization', campus['config']['headers'])
@@ -103,9 +103,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         return CampusQuery(load_campus_assets(), {'platformBearer': token})
 
     def test_capability_and_restricted_mount(self):
-        self.assertIsNone(resolve_capability('campus-brain-query').workflow_ref)
-        with patch.dict(os.environ, {'BUSINESS_MCP_URL': 'https://unwanted.test',
-                'CCSDK_BUSINESS_MCP_CAPABILITIES': 'campus-brain-query'}, clear=True):
+        self.assertFalse(hasattr(resolve_capability('campus-brain-query'), 'workflow_ref'))
+        with patch.dict(os.environ, {'BUSINESS_MCP_URL': 'https://unwanted.test'}, clear=True):
             before = dict(os.environ)
             payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
             options = build_options(payload)
@@ -161,7 +160,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cached_server_updates_assets_and_rebuilds_only_changed_schema(self):
         from runtime.tool_services import ToolServices
-        assets = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+        assets = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
         services = ToolServices(assets, {'platformBearer': 'first'})
         service = services.services['campus']
         server = services.servers()['campus']
@@ -179,14 +178,14 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(second_options.mcp_servers['campus']['instance'], server['instance'])
             await service.call('get_school_info', {'payload': {}})
             self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second')
-            services.configure(prepare_workflow_assets({'capability_ref': 'conversation'}), None)
+            services.configure(prepare_capability_assets({'capability_ref': 'conversation'}), None)
             self.assertEqual(services.servers(), {})
             with self.assertRaises(MCPAuthError):
                 await service.call('get_school_info', {'payload': {}})
             with self.assertRaises(MCPAuthError):
                 services.configure(assets, None)
             self.connection['url'] = 'https://new.example.test/mcp'
-            changed = prepare_workflow_assets({'capability_ref': 'campus-brain-query'})
+            changed = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
             services.configure(changed, {'platformBearer': 'third'})
             self.assertIs(services.services['campus'], service)
             self.assertIs(services.servers()['campus'], server)
@@ -358,8 +357,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
 
     def test_registered_assets_are_frozen_and_not_overridden_by_input(self):
         payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
-        prepare_workflow_assets(payload)
-        payload['_workflow_assets']['tool_revisions']['campus'] = 'changed'
+        prepare_capability_assets(payload)
+        payload['_capability_assets']['tool_revisions']['campus'] = 'changed'
         with self.assertRaisesRegex(RuntimeError, '资产已变化'):
             build_options(payload)
 

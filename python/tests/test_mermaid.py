@@ -26,8 +26,7 @@ class MermaidConfigTests(unittest.TestCase):
         self.assertNotIn('private-test-token', json.dumps(result))
 
     def test_direct_qa_keeps_existing_tool_boundary(self):
-        options = build_options({'capability_ref': 'national-excellence-data-qa',
-                                 'workflow_name': 'double-high-qa'})
+        options = build_options({'capability_ref': 'national-excellence-data-qa'})
         self.assertNotIn('charts', options.mcp_servers)
 
 

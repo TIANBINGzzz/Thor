@@ -45,7 +45,7 @@ class ImageCapabilityTests(unittest.TestCase):
         item = next(item for item in items if item['capabilityRef'] == 'image-generation')
         self.assertEqual(item['name'], '图像生成')
         self.assertTrue(item['supportsAttachments'])
-        self.assertIsNone(resolve_capability('image-generation').workflow_ref)
+        self.assertFalse(hasattr(resolve_capability('image-generation'), 'workflow_ref'))
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'image-test',
             'messageId': 'msg-test', 'businessSessionId': 'session-test',
             'capabilityRef': 'image-generation', 'input': {'text': '参考此图生成两张插画',

@@ -137,9 +137,6 @@ class Catalog:
         return [self.source(p.parent.name) for p in sorted(self.root.glob("*/source.json"))
                 if read_json(p).get("enabled") is True]
 
-    def sources_for(self, capability_ref):
-        """筛选声明支持指定能力的来源标识，不替代部署侧授权。"""
-        return [s['source_key'] for s in self.sources() if capability_ref in s.get('capabilities', [])]
 
     def schema(self, source_key, domain):
         """读取来源登记的业务域表结构，拒绝未登记业务域。"""

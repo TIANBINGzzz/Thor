@@ -6,14 +6,14 @@
 
 | 位置 | 权威内容 |
 | --- | --- |
-| `.claude/databases/<source_key>/source.json` | 来源标识、版本、启停、Capability 绑定、域知识路径和实体解析 |
+| `.claude/databases/<source_key>/source.json` | 来源标识、版本、启停、域知识路径和实体解析 |
 | `schema/<domain>.json` | 已核验表列、类型、说明、函数及内部字段 |
 | `metrics/<domain>/*.yaml` | 主题指标定义、共享参数、输出、SQL、语义及校验；pending 只记录未定义原因，不造占位 SQL |
 | `semantics/business.md`、`relationships.md` | 默认口径、单位、期间、实体关系和去重 |
-| `config/databases.json` | 连接和授权策略，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或 Workflow 环境文件 |
+| `config/databases.json` | 连接和授权策略，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或能力环境文件 |
 | `python/data_access/`、`runtime/data_services.py` | 通用执行与每 Run 装配；资产测试在 `python/tests/databases/` |
 
-Workflow 只声明 data_access=required/optional，不枚举库名；来源包绑定能力，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
+Capability 在 capability.json 中以 data.access=required/optional 和 data.sourceRefs 声明数据需求及来源，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
 
 普通会话不加载数据库；普通撰写允许未配置数据库，但配置损坏须失败；问数和预制模板要求所需来源连接可用。每 Run 冻结已登记资产及私有配置副本，分别记录知识、查询、连接与策略版本；来源配置按 Run 装配，不触发 SDK Client 重建，SDK 环境不接收连接秘密。
 
@@ -37,7 +37,7 @@ Workflow 只声明 data_access=required/optional，不枚举库名；来源包�
 
 ## 维护与验收
 
-在 python 目录用 `python -m data_access list/validate/probe`，参数见 --help；知识校验不等于真实连接成功。配置变更后排空任务并重启，镜像内配置须重建；当前没有管理网页或热更新，后续管理方案不能作为已实现能力。
+在 python 目录用 `python -m data_access list/validate/probe`，参数见 --help；知识校验不等于真实连接成功。配置变更后排空任务并重启，镜像内配置须重建；当前没有数据库管理网页或连接热更新，后续管理方案不能作为已实现能力。
 
 指标登记前用只读实库及独立基准核对 SQL、输出、对象、期间和异常语义；已定义项不因空结果失去来源依据，未定义项不因工具成功而升级。原始数据留忽略目录，必要来源确认见 [来源核验](../verification/report-source-audit.md)。
 

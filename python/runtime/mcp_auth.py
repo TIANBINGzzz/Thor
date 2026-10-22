@@ -15,24 +15,15 @@ from collections.abc import Mapping
 from typing import Any
 
 
-MCP_AUTH_RULES: dict[str, dict[str, Any]] = {
-    # 进程内适配器独立校验并在请求时绑定工具参数；SDK配置不携带业务凭据。
-    "campus": {"required": True, "transport": "sdk", "arguments": {"user_context_token": "platformBearer"}},
-    "business": {
-        "required": True,
-        "transport": "http",
-        "header": "Authorization",
-        "prefix": "Bearer ",
-    },
-    "data": {"required": False, "transport": "sdk"},
-    "office": {"required": False, "transport": "stdio"},
-    "documents": {"required": False, "transport": "sdk"},
-    "attachments": {"required": False, "transport": "sdk"},
-    "images": {"required": False, "transport": "sdk"},
-    "charts": {"required": False, "transport": "sdk"},
-    "web": {"required": False, "transport": "sdk"},
-    "artifacts": {"required": False, "transport": "stdio"},
-}
+from runtime.tool_catalog import auth_rule
+
+
+def _rule(ref):
+    try:
+        return auth_rule(ref)
+    except RuntimeError:
+        raise MCPAuthError('MCP 未注册或凭据规则无效') from None
+
 
 _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -67,7 +58,7 @@ def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = 
     """
     if not isinstance(mcp_ref, str) or not mcp_ref.strip():
         raise MCPAuthError("mcp_ref must be a non-empty string")
-    rule = MCP_AUTH_RULES.get(mcp_ref)
+    rule = _rule(mcp_ref)
     if rule is None:
         raise MCPAuthError(f"MCP 未注册：{mcp_ref}")
     if not isinstance(server, Mapping):
@@ -131,7 +122,7 @@ class MCPArgumentBinding:
 
     def __init__(self, mcp_ref, credentials):
         """校验已登记 MCP 的参数映射并保存本轮必需凭据。"""
-        rule = MCP_AUTH_RULES.get(mcp_ref, {})
+        rule = _rule(mcp_ref)
         mapping = rule.get('arguments')
         if not rule.get('required') or not isinstance(mapping, dict) or not mapping:
             raise MCPAuthError('MCP 未配置参数凭据映射')

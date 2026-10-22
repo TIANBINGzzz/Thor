@@ -10,12 +10,40 @@
     {
       "ref": "generate",
       "description": "按需生成或编辑一张图片，保存PNG并返回路径。reference_paths可选1至3张本轮授权参考图。生成图不能作为真实成果照片或数据证据；完成后用Read查看。",
-      "inputSchema": {"type": "object", "properties": {
-        "prompt": {"type": "string", "minLength": 1},
-        "output_path": {"type": "string"},
-        "size": {"type": "string"},
-        "reference_paths": {"type": "array", "maxItems": 3, "items": {"type": "string"}}
-      }, "required": ["prompt", "output_path"], "additionalProperties": false}
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "output_path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "string"
+          },
+          "reference_paths": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "prompt",
+          "output_path"
+        ],
+        "additionalProperties": false
+      }
     }
-  ]
+  ],
+  "category": "image",
+  "auth": {
+    "required": false
+  },
+  "displayKeys": {
+    "generate": "image.generate"
+  }
 }

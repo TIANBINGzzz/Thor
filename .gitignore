@@ -2,7 +2,7 @@ node_modules/
 .env
 .env.local
 /config/application.local.yml
-**/workflow.env
+**/capability.env
 deploy/*.env
 deploy/environments.local.md
 *.secret.json

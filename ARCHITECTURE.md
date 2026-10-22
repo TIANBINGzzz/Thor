@@ -20,23 +20,23 @@
 | `python/runtime/` | 协议、鉴权、装配、Actor、存储、文件传输与事件 |
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
 | `python/data_access/` | 来源授权、连接、查询校验及结果 |
-| `python/workflows/writing_docx/` | 可信模板与指南加载、参考副本 |
-| `.claude/` | Capability / Workflow 入口、Skill、工具规则、模板及数据库知识 |
+| `python/runtime/template_assets.py` | 可信模板与指南加载、参考副本 |
+| `.claude/` | Capability 入口、Skill、工具规则、模板及数据库知识 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
 | `config/`、`doc/` | 部署配置；契约、决策及必要核验记录 |
 
 ## 4. Subsystem responsibilities
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
-- `capabilities.py` 从 `capabilities/<名称>/CAPABILITY.md` 注册能力，`config.py` 统一装配选定入口与 `workflows/<名称>/WORKFLOW.md`；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。元数据只在服务端使用，Skill 仅注入用途及按需读取路径，详细资产不整包进入 Prompt；有状态工具通过 `tool_services.py` 逐 Run 绑定和清理。新增或删除能力需重启注册目录；没有 JS 工作流运行器或通用 DAG 引擎。
-- `.claude/tools/<名称>/tool.json` 声明 Tool 契约，`tool_registry.py` 统一校验并登记受信任 Provider；工具工厂留在各自 `python/tools/` 模块。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
+- `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`，`config.py` 装配同目录 `CAPABILITY.md`、Skill、模板及数据源声明；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。Skill 仅注入用途及按需读取路径；有状态工具通过 `tool_services.py` 逐 Run 绑定和清理。没有 Workflow 目录、JS 工作流运行器或通用 DAG 引擎，也未引入资产版本快照系统。
+- `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、MCP 连接、凭据目标和显示规则。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
 
 ## 5. Dependency directions
 
-入口 -> Runtime -> SDK Worker -> 模型 / MCP；核心运行时不依赖前端。流程知识留 Workflow，共享数据库知识留数据库包；授权来自可信控制面和配置，发现资产不授予权限。
+入口 -> Runtime -> SDK Worker -> 模型 / MCP；核心运行时不依赖前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面和部署策略，发现资产不授予权限。
 
 ## 6. Architectural invariants
 
@@ -49,7 +49,7 @@
 
 - Java/Python 以 Run JWT、HTTP/SSE 及授权文件引用交互；字段与示例见 API 参考，跨系统语义见 Runtime 契约。
 - 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。模型、思考预算、effort、模型环境、附加目录、规则和 MCP 按轮热更新，凭据按轮绑定清理，Hook 校验本轮工具授权；仅固定启动参数变化时重建并恢复历史，重启恢复依赖 RunStore 和 SDK transcript。
-- 能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。
+- 公开能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。`asset_management.py` 提供独立管理 JWT 保护的资产目录、校验和新建能力接口，只组合已登记工具、Skill 和来源；Java 管理页面需另行接入。工具连接及数据库授权仍由部署端维护。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 按固定启动配置分组预连接空白 SDK Client，各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。限制及内存保护见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。
@@ -58,7 +58,7 @@
 ## 8. Cross-cutting concerns
 
 - 安全：bypassPermissions 和单容器不构成租户沙箱；生产授权、撤销及文件/进程/网络隔离仍需独立验收。
-- 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果和成果；终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
+- 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果、成果及管理端新建能力（`capabilities/`）；后者与源码能力合并发现、禁止重名覆盖，复用源码 Skill。终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
 - 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；不采集浏览器接收/渲染或 Java 阶段。拉取接口用独立观测 JWT。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
 - 部署：单副本、单 HTTP worker；默认数据库配置随私有源码及镜像交付，模型/JWT 密钥由运行环境注入；数据卷保留。操作与回滚见部署说明。
@@ -71,6 +71,6 @@
 | HTTP 字段及示例 | [API 参考](doc/python-api.html)；校验：`python/runtime/protocol.py`、`auth.py` |
 | 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
-| 执行规则 | [问数](.claude/workflows/double-high-qa/WORKFLOW.md)、[撰写](.claude/workflows/writing-docx/WORKFLOW.md) |
+| 执行规则 | [问数](.claude/capabilities/national-excellence-data-qa/CAPABILITY.md)、[撰写](.claude/capabilities/document-writing/CAPABILITY.md) |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |
 | 启动、构建和发布 | [部署说明](deploy/README.md)、`package.json`、`requirements.txt` |

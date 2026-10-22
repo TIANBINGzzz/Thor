@@ -26,7 +26,7 @@ from runtime.config import (
     isolated_sdk_environment,
     load_runtime_environment,
     missing_environment,
-    prepare_workflow_assets,
+    prepare_capability_assets,
 )
 from runtime.claude_sdk import (
     ClientState,
@@ -330,7 +330,7 @@ async def _receive_client_response(
     command: dict[str, Any],
     streaming: dict[str, str],
     command_queue: asyncio.Queue[dict[str, Any]],
-    direct_workflow: bool,
+    direct_capability: bool,
     deadline: float | None,
     chart_delivery: ChartDelivery | None = None,
     mcp_errors: list | None = None,
@@ -397,7 +397,7 @@ async def _receive_client_response(
                         stage = 'first_' + event['type']
                         timing.mark(stage)
                     event = mcp_result_event(event, mcp_errors)
-                    (chart_delivery.emit if chart_delivery else emit)(direct_workflow_event(event) if direct_workflow else event)
+                    (chart_delivery.emit if chart_delivery else emit)(direct_capability_event(event) if direct_capability else event)
                 if normalized.kind == "result":
                     completed = True
                     return response
@@ -435,7 +435,7 @@ async def run_client(initial: dict[str, Any]) -> None:
         emit_performance(timing)
         emit(event)
 
-    load_runtime_environment(initial.get("workflow_name"))
+    load_runtime_environment(initial.get("capability_ref"))
     missing = missing_environment()
     if missing:
         emit({"type": "client_error", "code": "configuration_error"})
@@ -510,8 +510,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                 deadline = time.monotonic() + timeout_value / 1000
                 async with asyncio.timeout(timeout_value / 1000):
                     # 工具工厂在私有 Worker 环境中取配置，连接/查询时才切换 SDK 白名单。
-                    load_runtime_environment(command.get('workflow_name'))
-                    assets = prepare_workflow_assets(command)
+                    load_runtime_environment(command.get('capability_ref'))
+                    assets = prepare_capability_assets(command)
                     if tool_services is None:
                         tool_services = ToolServices(assets, command.get('credentials'))
                     else:
@@ -526,7 +526,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                             artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                             chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
                             mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
-                    direct_workflow = options.tools == [] and options.strict_mcp_config
+                    direct_capability = options.tools == [] and options.strict_mcp_config
                     policy.bind(options)
                     timing.mark('bound')
                     with isolated_sdk_environment():
@@ -539,7 +539,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
                         timing.mark('query_sent')
                         response = await _receive_client_response(
-                            client, command, streaming, command_queue, direct_workflow, deadline,
+                            client, command, streaming, command_queue, direct_capability, deadline,
                             chart_delivery, mcp_errors, timing, tool_scope,
                         )
                 outcome = {"type": "client_run_cancelled" if response.cancelled else "client_run_completed",
@@ -597,7 +597,7 @@ async def run_client(initial: dict[str, Any]) -> None:
         await asyncio.gather(reader_task, return_exceptions=True)
 
 
-def direct_workflow_event(event: dict[str, Any]) -> dict[str, Any]:
+def direct_capability_event(event: dict[str, Any]) -> dict[str, Any]:
     """接收 Worker 事件，清空 direct 模式初始化事件中的 Skill、Agent 和命令列表，返回处理后的事件。"""
     if event.get("type") != "init":
         return event
@@ -615,7 +615,7 @@ async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
     timing = Timing('worker_run')
     timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
-    load_runtime_environment(payload.get("workflow_name"))
+    load_runtime_environment(payload.get("capability_ref"))
     missing = missing_environment()
     if missing:
         raise RuntimeError(f"请先在项目根目录的 .env 中配置：{', '.join(missing)}")
@@ -627,7 +627,7 @@ async def run(payload: dict[str, Any]) -> None:
     tool_services = None
     policy = ClientTurnPolicy()
     try:
-        tool_services = ToolServices(prepare_workflow_assets(payload), payload.get('credentials'))
+        tool_services = ToolServices(prepare_capability_assets(payload), payload.get('credentials'))
         prompt = payload['prompt']
         if data_services:
             await data_services.bind(payload)
@@ -637,7 +637,7 @@ async def run(payload: dict[str, Any]) -> None:
         options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
                                 mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
                                 turn_policy=policy)
-        direct_workflow = options.tools == [] and options.strict_mcp_config
+        direct_capability = options.tools == [] and options.strict_mcp_config
         timing.mark('bound')
         with isolated_sdk_environment():
             timing.mark('query_begin')
@@ -648,7 +648,7 @@ async def run(payload: dict[str, Any]) -> None:
                         stage = 'first_' + event['type']
                         timing.mark(stage)
                     event = mcp_result_event(event, mcp_errors)
-                    chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
+                    chart_delivery.emit(direct_capability_event(event) if direct_capability else event)
     finally:
         policy.clear()
         timing.mark('completed')

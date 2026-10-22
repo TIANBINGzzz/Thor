@@ -71,5 +71,5 @@ class ImageToolTests(unittest.IsolatedAsyncioTestCase):
             options = build_options({'capability_ref': 'conversation'})
             self.assertIn('images', options.mcp_servers)
             self.assertNotIn('image-secret', options.system_prompt['append'])
-            qa = build_options({'workflow_name': 'double-high-qa', 'capability_ref': 'national-excellence-data-qa'})
+            qa = build_options({'capability_ref': 'national-excellence-data-qa'})
             self.assertNotIn('images', qa.mcp_servers)

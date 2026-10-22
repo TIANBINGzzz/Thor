@@ -1,7 +1,7 @@
 """Shared runtime configuration for the Python Agent SDK worker.
 
-Workflow-owned policy lives under ``.claude/workflows``. Secrets remain in the
-process environment and are never copied into prompts or workflow files.
+Capability-owned policy lives under ``.claude/capabilities``. Secrets remain in the
+process environment and are never copied into prompts or capability files.
 """
 
 from __future__ import annotations
@@ -31,12 +31,12 @@ from runtime.runtime_settings import RUNTIME_SETTINGS, load_model_settings
 from runtime.prompt_documents import MAX_DOCUMENT_TOTAL_BYTES
 from runtime.tool_services import ToolServices, load_tool_assets
 from runtime.tool_registry import build_registered_tools
+from runtime.mcp_providers import load_mcp_connections
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-WORKFLOWS_ROOT = PROJECT_ROOT / ".claude" / "workflows"
 MODEL_SETTINGS = load_model_settings()
 REQUIRED_ENV = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")
-WORKFLOW_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+ASSET_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 BASE_PROCESS_ENV_KEYS = {
     "PATH",
     "PATHEXT",
@@ -78,11 +78,10 @@ WORKER_CONFIG_ENV_KEYS = {
     "CCSDK_RENDER_IMAGE",
     "CCSDK_DATABASES_FILE",
     "BUSINESS_MCP_URL",
-    "CCSDK_BUSINESS_MCP_CAPABILITIES",
     "CCSDK_CLIENT_CAPABILITIES",
     "CCSDK_ENABLE_TIMING",
 }
-DEFAULT_WORKFLOW_ENV_FILE = "workflow.env"
+DEFAULT_CAPABILITY_ENV_FILE = "capability.env"
 
 DATABASE_APPEND = (
     "涉及数据库事实时先调用 mcp__data__list_data_sources，并以明确的source_key和domain调用工具。"
@@ -122,33 +121,31 @@ NO_WEB_APPEND = (
     "WebFetch 只能抓取用户提供的确切 URL，不能用来搜索或发现网页。"
     "禁止猜测 URL、编造搜索结果、链接、引用或访问日期。"
 )
-DIRECT_WORKFLOW_APPEND = (
-    "当前请求已经由应用后端确定性路由到本 workflow。直接使用已挂载的 MCP 工具完成用户问题，"
-    "不要再次调用 Skill、Workflow、Task，不要启动子代理，也不要重复判断或转发 workflow。"
+DIRECT_CAPABILITY_APPEND = (
+    "当前请求已经由应用后端路由到本能力。直接使用已挂载的 MCP 工具完成用户问题，"
+    "不要再次调用 Skill、Workflow、Task，不要启动子代理，也不要重复判断或转发能力。"
 )
 
 
-_workflow_environment_original = {}
+_capability_environment_original = {}
 
 
-def load_runtime_environment(workflow_name: str | None = None) -> None:
-    """依次加载根配置、本机覆盖及所选流程环境；本机文件不随部署交付。"""
-    # 持久 Worker 切换能力时先撤销上轮流程覆盖，避免把私有配置带到下一能力。
-    for key, value in _workflow_environment_original.items():
+def load_runtime_environment(capability_ref: str | None = None) -> None:
+    """加载根配置及能力私有环境；切换能力时先撤销上轮覆盖。"""
+    for key, value in _capability_environment_original.items():
         if value is None:
             os.environ.pop(key, None)
         else:
             os.environ[key] = value
-    _workflow_environment_original.clear()
-    load_dotenv(PROJECT_ROOT / ".env", override=True)
-    load_dotenv(PROJECT_ROOT / ".env.local", override=True)
-    workflow_config = load_workflow_config(workflow_name)
-    if workflow_config:
-        env_path = workflow_environment_path(workflow_config)
+    _capability_environment_original.clear()
+    load_dotenv(PROJECT_ROOT / '.env', override=True)
+    load_dotenv(PROJECT_ROOT / '.env.local', override=True)
+    if capability_ref:
+        entry = capability_entry(resolve_capability(capability_ref).directory)
+        env_path = capability_environment_path(entry)
         if env_path.is_file():
-            _workflow_environment_original.update({key: os.environ.get(key) for key in dotenv_values(env_path)})
+            _capability_environment_original.update({key: os.environ.get(key) for key in dotenv_values(env_path)})
             load_dotenv(env_path, override=True)
-
 
 def missing_environment() -> list[str]:
     """检查当前进程中的必需模型配置，返回缺失的环境变量名称列表。"""
@@ -216,91 +213,29 @@ def _select_environment(allowed: set[str], environ=None) -> dict[str, str]:
     }
 
 
-def _safe_workflow_name(value: Any) -> str | None:
-    """校验内部流程标识，不把任意路径当作执行入口。"""
-    if value is None:
-        return None
-    name = str(value).strip()
-    if not name:
-        return None
-    if not WORKFLOW_NAME.fullmatch(name):
-        raise RuntimeError(f"workflow 名称不合法：{name}")
-    return name
+def capability_environment_path(entry: dict[str, Any]) -> Path:
+    """能力私有环境仅从固定文件读取，不接受请求路径。"""
+    directory = Path(entry['_directory']).resolve()
+    path = (directory / DEFAULT_CAPABILITY_ENV_FILE).resolve()
+    if not path.is_relative_to(directory):
+        raise RuntimeError('能力环境文件路径越界')
+    return path
 
 
-def workflow_environment_path(workflow_config: dict[str, Any]) -> Path:
-    """根据 Workflow 配置解析环境文件路径，返回流程目录内的绝对路径，越界时抛出异常。"""
-    directory = Path(str(workflow_config["_directory"])).resolve()
-    env_value = workflow_config.get("env_file", DEFAULT_WORKFLOW_ENV_FILE)
-    if not isinstance(env_value, str) or not env_value.strip():
-        raise RuntimeError("workflow env_file 配置无效")
-    env_path = (directory / env_value.strip()).resolve()
-    try:
-        env_path.relative_to(directory)
-    except ValueError as error:
-        raise RuntimeError("workflow 环境文件路径越界") from error
-    return env_path
-
-
-def load_workflow_config(workflow_name: str | None, *, workflows_root: Path = WORKFLOWS_ROOT) -> dict[str, Any] | None:
-    """接收 Workflow 名称，读取并校验同名目录的 WORKFLOW.md，返回带目录信息的配置字典。
-
-    未指定流程时返回 None；入口缺失、路径或配置非法时立即失败。
-    """
-    safe_name = _safe_workflow_name(workflow_name)
-    if safe_name is None:
-        return None
-    workflows_root = Path(workflows_root).resolve()
-    directory = (workflows_root / safe_name).resolve()
-    try:
-        directory.relative_to(workflows_root)
-    except ValueError as error:
-        raise RuntimeError("workflow 配置路径越界") from error
-    if not directory.is_dir():
-        raise RuntimeError(f"workflow 不存在：{safe_name}")
-    config = load_declared_asset(directory, "workflow.json", "WORKFLOW.md", safe_name,
-                                 required_fields=("description",))
-    allowed = {'ref', 'description', 'execution', 'runtime', 'env_file', 'data_access',
-               'data_context_topics', 'templates', 'skillRefs', '_body', '_directory'}
-    if set(config) - allowed:
-        raise RuntimeError('workflow 存在未知配置字段')
-    if not isinstance(config.get('execution', {}), dict) or set(config.get('execution', {})) - {'mode'}:
-        raise RuntimeError('workflow execution配置无效')
-    if config.get('execution', {}).get('mode', 'agent') not in {'agent', 'direct'}:
-        raise RuntimeError('workflow execution.mode配置无效')
-    from runtime.capabilities import _validate_runtime
-    _validate_runtime(config.get('runtime', {}), f'Workflow {safe_name}.runtime')
-    config['skills'] = list(validate_refs(config.get('skillRefs', []), 'skillRefs'))
-    if config.get('execution', {}).get('mode') == 'direct' and config['skills']:
-        raise RuntimeError('direct模式不能登记需要Read的Skill')
-    if 'data_sources' in config or config.get('data_access') not in {None, 'required', 'optional'}:
-        raise RuntimeError("workflow 只声明 data_access 工具需求，来源绑定由数据库包管理")
-    config["_directory"] = str(directory)
-    return config
-
-
-def is_direct_workflow(workflow_config: dict[str, Any] | None) -> bool:
+def is_direct_capability(capability_config: dict[str, Any] | None) -> bool:
     """检查输入配置的 execution.mode，返回是否采用 direct 执行模式。"""
-    execution = workflow_config.get("execution") if workflow_config else None
+    execution = capability_config.get("execution") if capability_config else None
     return isinstance(execution, dict) and execution.get("mode") == "direct"
 
 
-def runtime_mode_for(capability_ref: str | None, workflow_config: dict[str, Any] | None = None, *, capability_config=None) -> str:
-    """接收能力标识和可选 Workflow 配置，返回 query 或 client 生命周期模式。
-
-    优先读取流程配置，其次检查部署侧 Client 能力白名单，其余默认使用 query。
-    """
-
-    capability = str(capability_ref or "conversation").strip()
+def runtime_mode_for(capability_ref: str | None, *, capability_config=None) -> str:
+    """能力声明运行方式，未声明时读取部署侧 Client 白名单。"""
+    capability = str(capability_ref or 'conversation').strip()
     entry = capability_config if capability_config is not None else capability_entry(resolve_capability(capability).directory)
-    runtime = {**(workflow_config or {}).get("runtime", {}), **entry.get("runtime", {})}
-    if isinstance(runtime, dict) and runtime.get("mode") is not None:
-        mode = str(runtime.get("mode")).strip()
-        if mode in {"query", "client"}:
-            return mode
-        raise RuntimeError("workflow runtime.mode 配置无效")
-    return "client" if capability in _csv_environment("CCSDK_CLIENT_CAPABILITIES") else "query"
-
+    runtime = entry.get('runtime', {})
+    if runtime.get('mode') is not None:
+        return runtime['mode']
+    return 'client' if capability in _csv_environment('CCSDK_CLIENT_CAPABILITIES') else 'query'
 
 def _csv_environment(name: str) -> set[str]:
     """读取部署侧逗号分隔白名单，空项不授予权限。"""
@@ -311,12 +246,11 @@ def _csv_environment(name: str) -> set[str]:
     }
 
 
-def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, template=None) -> str:
+def capability_prompt_documents(capability_config: dict[str, Any] | None = None, *, template=None) -> str:
     """合并流程正文、按需Skill引用和所选模板指南，限制提示词总量。"""
-    if not workflow_config:
+    if not capability_config:
         return ""
-    validate_refs(workflow_config.get('skills', []), 'skills')
-    sections = [f"### Workflow: WORKFLOW.md\n{workflow_config['_body']}"]
+    sections = [f"### Capability: CAPABILITY.md\n{capability_config['_body']}"]
     def append(title, entries):
         """将经过边界校验的正文加入本轮指令。"""
         for entry in entries:
@@ -326,13 +260,13 @@ def workflow_prompt_documents(workflow_config: dict[str, Any] | None = None, *, 
         append(f"所选模板说明（{template['template_key']}）", template['_documents'])
     content = "\n\n".join(sections)
     if len(content.encode('utf-8')) > MAX_DOCUMENT_TOTAL_BYTES:
-        raise RuntimeError('workflow 文档总量超过限制')
+        raise RuntimeError('能力文档总量超过限制')
     return content
 
 
 def skill_assets(names, *, root: Path | None = None):
     """只暴露已选 Skill 的用途与读取路径，正文按需读取。"""
-    if (not isinstance(names, list) or any(not isinstance(name, str) or not WORKFLOW_NAME.fullmatch(name) for name in names)
+    if (not isinstance(names, list) or any(not isinstance(name, str) or not ASSET_NAME.fullmatch(name) for name in names)
             or len(set(names)) != len(names)):
         raise RuntimeError('skills配置无效')
     entries = []
@@ -351,68 +285,52 @@ def skill_assets(names, *, root: Path | None = None):
 
 
 def load_execution_entry(capability_ref):
-    """冻结本轮本地能力及流程声明，供HTTP校验和执行共用；此处不访问Nacos。"""
+    """HTTP 校验和执行共用本轮可信能力入口。"""
     capability = resolve_capability(capability_ref)
-    entry = capability_entry(capability.directory)
-    workflow_refs = entry.get('workflow_refs', [])
-    workflow = load_workflow_config(
-        workflow_refs[0], workflows_root=Path(entry['_workflow_root'])) if workflow_refs else None
-    return {'capability': entry, 'config': workflow}
+    return {'capability': capability_entry(capability.directory)}
 
-
-def prepare_workflow_assets(payload):
-    """冻结所选入口、配置引用和资产版本；不把连接元数据送入模型。"""
-    selection = [payload.get('workflow_name'), payload.get('capability_ref'), payload.get('_template_key')]
-    if (payload.get('_workflow_assets') or {}).get('selection') != selection:
-        from workflows.writing_docx.template_assets import load_template
+def prepare_capability_assets(payload):
+    """保留本轮已解析配置与资产摘要，不新增持久化快照或版本仓库。"""
+    selection = [payload.get('capability_ref'), payload.get('_template_key')]
+    if (payload.get('_capability_assets') or {}).get('selection') != selection:
+        from runtime.template_assets import load_template
         local = payload.get('_execution_entry') or load_execution_entry(payload.get('capability_ref'))
         entry = local['capability']
-        workflow_refs = entry.get('workflow_refs', [])
-        if payload.get('workflow_name') not in (None, *(workflow_refs or [None])):
-            raise RuntimeError('能力与Workflow引用不匹配')
-        workflow = local['config']
         template_key = payload.get('_template_key')
-        template = load_template(template_key, payload.get('capability_ref')) if template_key is not None else None
-        if template and template_key not in (workflow or {}).get('templates', {}):
-            raise DataError('TEMPLATE_FORBIDDEN')
-        settings = ConfigSnapshot()
+        template = load_template(template_key, payload.get('capability_ref'), entry=entry) if template_key is not None else None
+        environment = _connection_environment(payload.get('capability_ref'), entry=entry)
+        settings = ConfigSnapshot(environment)
         tool_assets = load_tool_assets(entry, settings)
-        # 业务适配器只允许替换入口中的业务参数，不负责系统策略。
+        mcp_connections = load_mcp_connections(entry, settings, environment=environment)
         bodies = [value['prompt'] for value in tool_assets.values() if value.get('prompt')]
         content = '\n\n'.join(bodies or [entry['_body']])
-        skills_root = Path(entry['_skill_root'])
-        content += '\n' + workflow_prompt_documents(workflow, template=template)
-        skill_refs = list(dict.fromkeys([
-            *entry.get('skill_refs', []),
-            *((workflow or {}).get('skills', [])),
-        ]))
-        skills = skill_assets(skill_refs, root=skills_root)
+        if template:
+            content += '\n' + '\n\n'.join(f"### 所选模板说明（{template_key}）：{doc['name']}\n{doc['text']}" for doc in template['_documents'])
+        skills = skill_assets(entry.get('skill_refs', []), root=Path(entry['_skill_root']))
         content += '\n' + skills['prompt']
-        skill_revision = skills['revision']
         content += '\n本轮当前日期：' + date.today().isoformat()
         if len(content.encode('utf-8')) > MAX_DOCUMENT_TOTAL_BYTES:
             raise RuntimeError('能力文档总量超过限制')
-        runtime = {**(workflow or {}).get('runtime', {}), **entry.get('runtime', {})}
+        runtime = entry.get('runtime', {})
         revisions = {name: value['revision'] for name, value in tool_assets.items()}
         sources = sorted(set(template['source_roles'].values())) if template else None
         revision = template['_revision'] if template else None
         config_values = settings.export()
-        payload['_workflow_assets'] = {'selection': selection, 'config': workflow, 'capability': entry, 'prompt': content,
+        payload['_capability_assets'] = {'selection': selection, 'capability': entry, 'prompt': content,
             'tool_revisions': revisions, 'runtime': runtime, 'config_values': config_values,
+            'mcp_connections': mcp_connections,
             'template_revision': revision, 'template_sources': sources,
-            'revision': fingerprint([workflow, entry, content, revision, revisions, runtime, config_values, skill_revision])}
-    return payload['_workflow_assets']
-
+            'revision': fingerprint([entry, content, revision, revisions, runtime, config_values, mcp_connections, skills['revision']])}
+    return payload['_capability_assets']
 
 def data_source_keys(payload):
     """按能力和模板缩小已授权来源，不由连接存在与否扩大权限。"""
-    assets = prepare_workflow_assets(payload)
-    workflow = assets['config'] or {}
-    mode = workflow.get('data_access')
+    assets = prepare_capability_assets(payload)
+    data = assets['capability'].get('data', {})
+    mode = data.get('access')
     if mode is None:
         return []
-    catalog = Catalog()
-    sources = catalog.sources_for(payload.get('capability_ref'))
+    sources = list(data.get('sourceRefs', []))
     if assets['template_sources'] is not None:
         selected = assets['template_sources']
         if not selected or not set(selected) <= set(sources):
@@ -434,14 +352,14 @@ def create_run_services(payload):
         return None
     # 执行器会加载 SQLAlchemy/SQL 解析器，只在本轮确实绑定数据来源时导入。
     from runtime.data_services import RunServices
-    workflow = prepare_workflow_assets(payload)['config'] or {}
-    return RunServices(sources, context_topics=workflow.get('data_context_topics'))
+    entry = prepare_capability_assets(payload)['capability']
+    return RunServices(sources, context_topics=entry.get('data', {}).get('contextTopics'))
 
 
 def build_system_prompt(
     extra: str = "",
     database_enabled: bool = False,
-    workflow_config: dict[str, Any] | None = None,
+    capability_config: dict[str, Any] | None = None,
     template=None,
     prompt_documents: str | None = None,
     web_search_enabled: bool = False,
@@ -453,14 +371,14 @@ def build_system_prompt(
         USER_FACING_APPEND,
         CAPABILITY_BOUNDARY_APPEND,
         ANSWER_REQUIREMENTS_APPEND,
-        (PREPARED_DATABASE_APPEND if (workflow_config or {}).get('data_context_topics') is not None
+        (PREPARED_DATABASE_APPEND if (capability_config or {}).get('data', {}).get('contextTopics') is not None
          else DATABASE_APPEND) if database_enabled else "没有可靠证据时明确说明不确定性。",
     ]
-    documents = prompt_documents if prompt_documents is not None else workflow_prompt_documents(workflow_config, template=template)
+    documents = prompt_documents if prompt_documents is not None else capability_prompt_documents(capability_config, template=template)
     if documents:
         parts.append(documents)
-    if is_direct_workflow(workflow_config):
-        parts.append(DIRECT_WORKFLOW_APPEND)
+    if is_direct_capability(capability_config):
+        parts.append(DIRECT_CAPABILITY_APPEND)
     parts.extend([LANGUAGE_APPEND, WEB_INSTRUCTIONS if web_search_enabled else NO_WEB_APPEND])
     if extra.strip():
         parts.append(extra.strip())
@@ -478,28 +396,28 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
     """
-    assets = prepare_workflow_assets(payload)
-    workflow_config = assets['config']
-    direct_workflow = is_direct_workflow(workflow_config)
+    assets = prepare_capability_assets(payload)
+    capability_config = assets['capability']
+    direct_capability = is_direct_capability(capability_config)
     capability_ref = str(
-        payload.get("capability_ref") or payload.get("workflow_name") or "conversation"
+        payload.get("capability_ref") or "conversation"
     ).strip()
     model = payload.get('model') or MODEL_SETTINGS.default
     data_services = data_services or create_run_services(payload)
     database_enabled = data_services is not None
     registered_template = assets['template_revision'] is not None
     entry = assets['capability']
-    restricted_tools = direct_workflow or is_direct_workflow(entry)
+    restricted_tools = direct_capability
     session_directory = payload.get("session_directory")
     work_directory = payload.get("work_directory")
     deliverables_directory = payload.get("deliverables_directory")
     artifact_enabled = bool(session_directory and work_directory and deliverables_directory)
     prompt_append = payload.get("system_prompt_append") or ""
     if registered_template:
-        from workflows.writing_docx.template_assets import load_template, stage_template
+        from runtime.template_assets import load_template, stage_template
         if not artifact_enabled:
             raise DataError('TEMPLATE_WORKSPACE_REQUIRED')
-        template = load_template(payload['_template_key'], payload.get('capability_ref'))
+        template = load_template(payload['_template_key'], payload.get('capability_ref'), entry=entry)
         if template['_revision'] != assets['template_revision']:
             raise DataError('TEMPLATE_MISMATCH')
         template_path = stage_template(template, work_directory)
@@ -517,7 +435,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         'artifact_enabled': artifact_enabled, 'session_directory': session_directory,
         'work_directory': work_directory, 'deliverables_directory': deliverables_directory,
         'capability_ref': capability_ref,
-        'business_capabilities': _csv_environment('CCSDK_BUSINESS_MCP_CAPABILITIES'),
+        'mcp_connections': assets['mcp_connections'],
         'input_directory': payload.get('input_directory'), 'cwd': payload.get('cwd'),
         'additional_directories': payload.get('additional_directories'),
         'provided_tools': set(tool_services.services),
@@ -533,7 +451,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     # Skill以受控引用按需读取，禁用SDK未登记的自动发现。
     skills = []
     runtime = {**assets["runtime"], **payload.get('_client_runtime', {})}
-    sdk_env = agent_environment()
+    sdk_env = agent_environment(_connection_environment(payload.get('capability_ref'), entry=entry))
     if (runtime.get('thinking') or {}).get('type') == 'disabled':
         # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
         sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
@@ -553,7 +471,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
                        "snapshot": runtime.get('system_prompt_snapshot', True)} if runtime.get("prompt_mode") == "custom" else build_system_prompt(
             prompt_append,
             database_enabled,
-            workflow_config,
+            capability_config,
             prompt_documents=assets['prompt'],
             web_search_enabled='web' in mcp_servers,
             snapshot=runtime.get('system_prompt_snapshot', True),
@@ -576,18 +494,18 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     return options
 
 
-def _connection_environment(workflow_name):
+def _connection_environment(capability_ref, *, entry=None):
     """在副本中重放 Worker 的 dotenv 覆盖与插值，父进程不加载流程私有环境。"""
     environment = dict(os.environ)
-    for key, value in _workflow_environment_original.items():
+    for key, value in _capability_environment_original.items():
         if value is None:
             environment.pop(key, None)
         else:
             environment[key] = value
     paths = [PROJECT_ROOT / '.env', PROJECT_ROOT / '.env.local']
-    workflow = load_workflow_config(workflow_name)
-    if workflow:
-        paths.append(workflow_environment_path(workflow))
+    if entry is not None or capability_ref:
+        entry = entry if entry is not None else capability_entry(resolve_capability(capability_ref).directory)
+        paths.append(capability_environment_path(entry))
     for path in paths:
         values = {}
         for key, value in dotenv_values(path, interpolate=False).items():
@@ -599,14 +517,15 @@ def _connection_environment(workflow_name):
 
 def _client_connection_values(payload):
     """仅包含 SDK 连接后无法可靠热更新的选项。秘密值只参与内存哈希。"""
-    runtime = payload['_client_runtime'] if '_client_runtime' in payload else prepare_workflow_assets(payload)['runtime']
-    effective = _connection_environment(payload.get('workflow_name'))
+    runtime = payload['_client_runtime'] if '_client_runtime' in payload else prepare_capability_assets(payload)['runtime']
+    effective = _connection_environment(payload.get('capability_ref'))
     environment = agent_environment(effective)
     environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
     return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
                 max_turns=payload.get('max_turns') or runtime.get('max_turns') or RUNTIME_SETTINGS.limits.max_turns,
                 system_prompt=_shared_system_prompt(runtime),
-                include_partial_messages=True)
+                include_partial_messages=True,
+                extra_args={'replay-user-messages': None})
 
 
 def client_connection_fingerprint(payload):
@@ -616,7 +535,7 @@ def client_connection_fingerprint(payload):
 
 def inherit_client_runtime(payload, previous=None):
     """只继承会话执行参数；权限、工具、凭据和业务规则始终使用本轮可信资产。"""
-    assets = prepare_workflow_assets(payload)
+    assets = prepare_capability_assets(payload)
     declared = assets['runtime']
     inherited = previous if previous is not None else payload.get('_client_runtime', {})
     fields = ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot')
@@ -633,7 +552,7 @@ def inherit_client_runtime(payload, previous=None):
 def build_client_options(payload, policy):
     """空白 Client 不加载业务 MCP、数据连接或凭据，领取后的首轮才装配。"""
     values = _client_connection_values(payload)
-    values['env'] = agent_environment(_connection_environment(payload.get('workflow_name')))
+    values['env'] = agent_environment(_connection_environment(payload.get('capability_ref')))
     return build_agent_options(**values, thinking=None, effort=None, add_dirs=[],
         model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
         verbatim_prompts=True,

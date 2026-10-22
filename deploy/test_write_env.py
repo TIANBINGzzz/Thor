@@ -57,6 +57,15 @@ class DeploymentEnvironmentTests(unittest.TestCase):
         decoded = writer.parse_bundle(json.dumps(environment))
         self.assertEqual({key: decoded[key] for key in observation}, observation)
 
+    def test_asset_management_secret_survives_deployment_allowlist_and_bundle(self):
+        environment = {key: value for key, value in self.environment().items()
+                       if key in writer.RUNTIME_KEYS}
+        environment['CCSDK_ASSET_JWT_SECRET'] = 'test-asset-management-secret'
+        rendered = dict(line.split('=', 1) for line in writer.render(environment).splitlines())
+        self.assertEqual(rendered.get('CCSDK_ASSET_JWT_SECRET'), environment['CCSDK_ASSET_JWT_SECRET'])
+        decoded = writer.parse_bundle(json.dumps(environment))
+        self.assertEqual(decoded['CCSDK_ASSET_JWT_SECRET'], environment['CCSDK_ASSET_JWT_SECRET'])
+
     def test_obsolete_runtime_budgets_are_not_written_or_accepted_in_bundle(self):
         for key in ('CCSDK_RUN_EXECUTION_TIMEOUT_MS', 'CCSDK_CLIENT_QUEUE_TIMEOUT_MS',
                     'CCSDK_FILE_MAX_BYTES', 'SCRIBE_MAX_TURNS'):

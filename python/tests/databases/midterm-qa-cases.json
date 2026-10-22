@@ -7,7 +7,7 @@
   "template_key": "szpt-midterm",
   "year": "2026",
   "cutoff": "2026-09-18",
-  "source": ".claude/workflows/writing-docx/templates/szpt-midterm/writing-guide.md",
+  "source": ".claude/capabilities/document-writing/templates/szpt-midterm/writing-guide.md",
   "cases": [
     {"id":"Q01","section":"G02","question":"列出授权项目的名称、级别和建设起止时间，区分国家级、市级及其他项目，并核实各项目2026年度阶段原名。","checks":["有效项目与授权范围","精确匹配年度","不沿用模板对象"],"query_ids":["project_catalog","stage_catalog"]},
     {"id":"Q02","section":"G02","question":"2026年度各国双高专业群三级任务总数、已完成数、完成率和平均进度分别是多少？同时说明进度缺失数量。","checks":["进度至少100才完成","空进度计0并披露","完成率和平均进度区分"],"query_ids":["task_progress_summary"]},

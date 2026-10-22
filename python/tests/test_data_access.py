@@ -15,7 +15,7 @@ from data_access.context import DataContext, DataError
 from data_access.executor import Executor
 from runtime.data_services import RunServices
 from data_access.sql_policy import validate_sql
-from workflows.writing_docx.template_assets import load_template
+from runtime.template_assets import load_template
 from runtime.config import worker_environment, isolated_sdk_environment, data_source_keys
 
 
@@ -31,7 +31,13 @@ class DataAccessTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         from runtime.capabilities import CAPABILITIES
-        self.enterContext(patch.dict(CAPABILITIES, {'qa': replace(CAPABILITIES['document-writing'], ref='qa')}))
+        self.enterContext(patch('runtime.capabilities.load_capabilities', return_value={**dict(CAPABILITIES), 'qa': replace(CAPABILITIES['document-writing'], ref='qa')}))
+        from runtime.capabilities import capability_entry
+        entry = capability_entry(CAPABILITIES['document-writing'].directory)
+        entry['data'] = {'access':'optional','sourceRefs':['first','second']}
+        original = capability_entry
+        self.enterContext(patch('runtime.config.capability_entry', side_effect=lambda directory:
+            deepcopy(entry) if str(directory) == str(CAPABILITIES['qa'].directory) else original(directory)))
         self.config_path = self.root/'config/databases.json'
         self.env = {'CCSDK_DATABASES_FILE': str(self.config_path)}
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
@@ -271,13 +277,16 @@ class DataAccessTests(unittest.TestCase):
         with patch.dict('os.environ',self.env), patch('runtime.config.Catalog',return_value=self.catalog):
             self.config_path.unlink()
             self.assertEqual(data_source_keys({'capability_ref':'conversation'}),[])
-            writing={'workflow_name':'writing-docx','capability_ref':'qa'}
+            writing={'capability_ref':'qa'}
             self.assertEqual(data_source_keys(writing),[])
             self.config_path.write_text('{broken')
             with self.assertRaisesRegex(DataError,'CONFIG_INVALID'): data_source_keys(writing)
 
     def test_optional_writing_discovers_configured_sources_and_template_requires_them(self):
-        payload={'workflow_name':'writing-docx','capability_ref':'qa'}
+        payload={'capability_ref':'qa'}
+        from runtime.capabilities import capability_entry
+        def entry_for_template():
+            return capability_entry(Path('.claude/capabilities/document-writing'))
         with patch('runtime.config.Catalog',return_value=self.catalog), patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
             config=json.loads(self.config_path.read_text())
@@ -287,7 +296,7 @@ class DataAccessTests(unittest.TestCase):
             locked={**payload,'capability_ref':'document-writing','_template_key':'szpt-midterm'}
             with self.assertRaisesRegex(DataError,'SOURCE_FORBIDDEN'):
                 data_source_keys(locked)
-            with patch.object(self.catalog,'sources_for',return_value=['schoolDoubleHigh','second']):
+            with patch('runtime.config.capability_entry', return_value={**entry_for_template(), 'data': {'access':'optional','sourceRefs':['schoolDoubleHigh','second']}}):
                 self.assertEqual(data_source_keys(locked),['schoolDoubleHigh'])
                 with self.assertRaises(DataError):
                     Executor(self.context,self.env,self.catalog,data_source_keys(locked))
@@ -369,7 +378,6 @@ class DataAccessTests(unittest.TestCase):
         values = {**self.env, 'FIRST_DB_SECRET':'first-secret',
                   'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
         with patch.dict('os.environ', values, clear=True), \
-             patch('runtime.config.load_workflow_config', return_value={'data_access':'required'}), \
              patch('runtime.data_services.Catalog', return_value=self.catalog), \
              patch('runtime.config.Catalog', return_value=self.catalog):
             selected = worker_environment()

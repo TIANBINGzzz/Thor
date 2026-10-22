@@ -12,7 +12,7 @@ from unittest.mock import patch
 from claude_agent_sdk import AssistantMessage, StreamEvent, TextBlock, ToolUseBlock
 
 import agent_worker
-from agent_worker import direct_workflow_event, event_from_stream, events_from_assistant
+from agent_worker import direct_capability_event, event_from_stream, events_from_assistant
 from runtime.claude_sdk import ClientState, SDKMessage, build_agent_options
 from runtime.config import (
     build_options,
@@ -21,10 +21,10 @@ from runtime.config import (
     agent_environment,
     MODEL_SETTINGS,
     worker_environment,
-    load_workflow_config,
+    load_execution_entry,
     load_runtime_environment,
-    workflow_environment_path,
-    workflow_prompt_documents,
+    capability_environment_path,
+    capability_prompt_documents,
 )
 
 
@@ -63,10 +63,10 @@ class AgentWorkerTests(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             self.assertIsNone(create_run_services({}))
             capability = resolve_capability("national-excellence-data-qa")
-            config = load_workflow_config("double-high-qa")
-            self.assertEqual(config["data_access"], "required")
+            config = load_execution_entry("national-excellence-data-qa")["capability"]
+            self.assertEqual(config["data"]["access"], "required")
             self.assertNotIn("data_sources", config)
-            options = build_options({"workflow_name": capability.workflow_ref, "capability_ref": capability.ref})
+            options = build_options({"capability_ref": capability.ref})
         self.assertEqual(options.tools, [])
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
@@ -80,8 +80,8 @@ class AgentWorkerTests(unittest.TestCase):
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         with patch.dict('os.environ', values, clear=True), tempfile.TemporaryDirectory() as folder:
             for payload in ({}, {'capability_ref': 'conversation'}, {'capability_ref': 'chart-generation'},
-                            {'capability_ref': 'document-writing', 'workflow_name': 'writing-docx'},
-                            {'capability_ref': 'document-writing', 'workflow_name': 'writing-docx',
+                            {'capability_ref': 'document-writing'},
+                            {'capability_ref': 'document-writing',
                              '_template_key': 'szpt-midterm', 'session_directory': folder,
                              'work_directory': str(Path(folder) / 'work'),
                              'deliverables_directory': str(Path(folder) / 'output')}):
@@ -107,8 +107,7 @@ class AgentWorkerTests(unittest.TestCase):
                     continue
                 with self.subTest(capability=capability.ref):
                     options = build_options({'capability_ref': capability.ref,
-                                             'credentials': {'platformBearer': 'test-business-token'},
-                                             'workflow_name': capability.workflow_ref})
+                                             'credentials': {'platformBearer': 'test-business-token'}})
                     self.assertNotIn('web', options.mcp_servers)
                     self.assertNotIn('mcp__web__search', options.allowed_tools)
                     self.assertIn('WebSearch', options.disallowed_tools)
@@ -149,15 +148,14 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('business-secret', str(options.mcp_servers['web']))
 
     def test_database_prompt_starts_from_prepared_context_and_query_definitions(self):
-        config = load_workflow_config("double-high-qa")
-        prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
+        config = load_execution_entry("national-excellence-data-qa")["capability"]
+        prompt = build_system_prompt(database_enabled=True, capability_config=config)["append"]
         self.assertNotIn("t_hpm_project", prompt)
         self.assertNotIn("schoolDoubleHigh", prompt)
         self.assertIn("本轮database_context由程序", prompt)
         self.assertIn("先find_query_specs", prompt)
         self.assertNotIn("先调用 mcp__data__list_data_sources", prompt)
-        services = create_run_services({'workflow_name': 'double-high-qa',
-                                        'capability_ref': 'national-excellence-data-qa'})
+        services = create_run_services({'capability_ref': 'national-excellence-data-qa'})
         self.assertEqual(services.context_topics, ['schema', 'relationships', 'business'])
         from data_access.catalog import Catalog
         topics = Catalog().domain("schoolDoubleHigh", "hpm")[1]["documents"]
@@ -168,7 +166,7 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_fixed_template_uses_general_harness_and_stages_source(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict("os.environ", {}, clear=True):
-            options = build_options({"workflow_name":"writing-docx", "capability_ref":"document-writing",
+            options = build_options({"capability_ref":"document-writing",
                 "_template_key":"szpt-midterm", "session_directory":directory,
                 "work_directory":str(Path(directory)/'work'), "deliverables_directory":str(Path(directory)/'output')})
             copies=list(Path(directory).rglob('template.docx'))
@@ -184,14 +182,13 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn('mcp__artifacts__publish_file',options.system_prompt['append'])
 
     def test_regular_writing_without_configured_database_keeps_common_instructions(self):
-        with patch.dict('os.environ',{},clear=True), patch('runtime.config.Catalog') as catalog:
-            catalog.return_value.sources_for.return_value=[]
-            options=build_options({'workflow_name':'writing-docx','capability_ref':'document-writing'})
+        with patch.dict('os.environ',{},clear=True), patch('data_access.connections.load_config', return_value={}):
+            options=build_options({'capability_ref':'document-writing'})
         self.assertNotIn('data',options.mcp_servers)
         self.assertNotIn('reports',options.mcp_servers)
         self.assertNotIn('prepare_report_data',options.system_prompt['append'])
         self.assertEqual(options.skills,[])
-        self.assertIn('WORKFLOW.md', options.system_prompt['append'])
+        self.assertIn('在工作目录维护一份简短工作笔记', options.system_prompt['append'])
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
@@ -203,24 +200,24 @@ class AgentWorkerTests(unittest.TestCase):
             prompt = build_system_prompt(database_enabled=True)["append"]
         self.assertNotIn("t_hpm_project", prompt)
 
-    def test_workflow_config_rejects_path_traversal(self):
-        with self.assertRaises(RuntimeError):
-            load_workflow_config("../outside")
+    def test_capability_config_rejects_path_traversal(self):
+        with self.assertRaises(ValueError):
+            load_execution_entry("../outside")
 
-    def test_unknown_workflow_is_rejected(self):
+    def test_unknown_capability_is_rejected(self):
         for name in ("does-not-exist", "database-qa"):
-            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "workflow 不存在"):
-                load_workflow_config(name)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "capability_not_found"):
+                load_execution_entry(name)
 
-    def test_workflow_credentials_are_not_in_prompt(self):
+    def test_capability_credentials_are_not_in_prompt(self):
         values = {
             "DB_HOST": "192.0.2.10",
             "DB_USER": "qa_user",
             "DB_PASSWORD": "do-not-leak",
         }
         with patch.dict("os.environ", values, clear=True):
-            config = load_workflow_config("double-high-qa")
-            prompt = build_system_prompt(database_enabled=True, workflow_config=config)["append"]
+            config = load_execution_entry("national-excellence-data-qa")["capability"]
+            prompt = build_system_prompt(database_enabled=True, capability_config=config)["append"]
         self.assertNotIn("do-not-leak", prompt)
 
     def test_database_credentials_are_not_passed_to_agent_process(self):
@@ -277,8 +274,10 @@ class AgentWorkerTests(unittest.TestCase):
             })
         self.assertNotIn("business", options.mcp_servers)
 
-        values["CCSDK_BUSINESS_MCP_CAPABILITIES"] = "conversation"
-        with patch.dict("os.environ", values, clear=True):
+        from runtime.capabilities import capability_entry, resolve_capability
+        configured = capability_entry(resolve_capability('conversation').directory)
+        configured['tools'].append('business')
+        with patch.dict("os.environ", values, clear=True), patch('runtime.config.capability_entry', return_value=configured):
             options = build_options({
                 "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},
@@ -296,30 +295,31 @@ class AgentWorkerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             binary = Path(directory) / 'officecli'
             binary.touch()
-            with patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH': str(binary), 'PATH': 'previous'}, clear=True):
+            with patch('runtime.config.PROJECT_ROOT', Path(directory)), \
+                 patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH': str(binary), 'PATH': 'previous'}, clear=True):
                 options = build_options({})
                 self.assertEqual(options.mcp_servers['office']['command'], str(binary))
                 self.assertTrue(options.env['PATH'].startswith(directory))
 
-    def test_workflow_documents_are_loaded_from_declared_paths(self):
-        config = load_workflow_config("double-high-qa")
-        documents = workflow_prompt_documents(config)
+    def test_capability_documents_are_loaded_from_declared_paths(self):
+        config = load_execution_entry("national-excellence-data-qa")["capability"]
+        documents = capability_prompt_documents(config)
         self.assertIn("问数流程", documents)
         self.assertNotIn("HPM 术语与指标语义层", documents)
 
-    def test_workflow_environment_path_is_colocated(self):
-        config = load_workflow_config("double-high-qa")
-        path = workflow_environment_path(config)
-        self.assertEqual(path.name, "workflow.env")
-        self.assertEqual(path.parent.name, "double-high-qa")
+    def test_capability_environment_path_is_colocated(self):
+        config = load_execution_entry("national-excellence-data-qa")["capability"]
+        path = capability_environment_path(config)
+        self.assertEqual(path.name, "capability.env")
+        self.assertEqual(path.parent.name, "national-excellence-data-qa")
 
     def test_common_instructions_are_injected_with_only_selected_template_guide(self):
-        from workflows.writing_docx.template_assets import load_template
-        config=load_workflow_config('writing-docx')
-        common=workflow_prompt_documents(config)
+        from runtime.template_assets import load_template
+        config=load_execution_entry('document-writing')['capability']
+        common=capability_prompt_documents(config)
         template=load_template('szpt-midterm','document-writing')
-        selected=workflow_prompt_documents(config,template=template)
-        self.assertEqual(config.get('skills'), ['document-review'])
+        selected=capability_prompt_documents(config,template=template)
+        self.assertEqual(config.get('skill_refs'), ['document-review'])
         instructions=config['_body']
         self.assertIn(instructions,common)
         self.assertIn(common,selected)
@@ -327,21 +327,22 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('writing-guide.md',common)
         self.assertIn(template['_documents'][0]['text'].strip(),selected)
         self.assertEqual(selected.count(instructions),1)
-        config['skills']=['../outside']
-        with self.assertRaises(RuntimeError):workflow_prompt_documents(config,template=template)
+        from runtime.config import skill_assets
+        with self.assertRaises(RuntimeError):
+            skill_assets(['../outside'])
 
-    def test_selected_workflow_environment_is_loaded_after_root_defaults(self):
+    def test_selected_capability_environment_is_loaded_after_root_defaults(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / '.env').write_text('FLOW_VALUE=root\n', encoding='utf-8')
             (root / '.env.local').write_text('FLOW_VALUE=local\n', encoding='utf-8')
-            env_file = root / 'workflow.env'
-            env_file.write_text('FLOW_VALUE=workflow\n', encoding='utf-8')
+            env_file = root / 'capability.env'
+            env_file.write_text('FLOW_VALUE=capability\n', encoding='utf-8')
             with patch.dict('os.environ', {}, clear=True), patch('runtime.config.PROJECT_ROOT', root), \
-                 patch('runtime.config.workflow_environment_path', return_value=env_file):
+                 patch('runtime.config.capability_environment_path', return_value=env_file):
                 try:
-                    load_runtime_environment('double-high-qa')
-                    self.assertEqual(os.environ['FLOW_VALUE'], 'workflow')
+                    load_runtime_environment('national-excellence-data-qa')
+                    self.assertEqual(os.environ['FLOW_VALUE'], 'capability')
                     load_runtime_environment()
                     self.assertEqual(os.environ['FLOW_VALUE'], 'local')
                 finally:
@@ -406,8 +407,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(events[0]["type"], "text")
         self.assertEqual(events[0]["text"], "直接输出")
 
-    def test_direct_workflow_hides_disabled_capabilities_from_init(self):
-        event = direct_workflow_event({
+    def test_direct_capability_hides_disabled_capabilities_from_init(self):
+        event = direct_capability_event({
             "type": "init",
             "tools": 2,
             "skills": ["example-skill"],
@@ -441,7 +442,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
              patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
              patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
-                            prepare_workflow_assets=lambda _: {}, ToolServices=fail_tools, emit=events.append):
+                            prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=events.append):
             await agent_worker.main()
         self.assert_private_exception(events, 'ValueError')
         self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
@@ -461,7 +462,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                      patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
                      patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                                     missing_environment=lambda: [], create_run_services=lambda _: None,
-                                    prepare_workflow_assets=lambda _: {}, ToolServices=fail_tools, emit=emit):
+                                    prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=emit):
                     await agent_worker.main()
                 self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
                 self.assertFalse(any(event['type'] == 'diagnostic' for event in events))
@@ -512,7 +513,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                 with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}, clear=True), \
                      patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
                                     missing_environment=lambda: [], create_run_services=lambda _: Data(),
-                                    prepare_workflow_assets=lambda _: {},
+                                    prepare_capability_assets=lambda _: {},
                                     ToolServices=lambda *args: SimpleNamespace(clear=lambda: None),
                                     build_client_options=lambda *args: SimpleNamespace(),
                                     build_options=lambda *args, **kw: build_agent_options(tools=[], strict_mcp_config=True),

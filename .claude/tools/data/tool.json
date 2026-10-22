@@ -1,5 +1,23 @@
 {
-  "ref": "data", "version": 1, "implementation": "data", "transport": "sdk", "lifecycle": "per_run",
-  "scope": "namespace", "description": "访问本轮获准的数据服务",
-  "operations": []
+  "ref": "data",
+  "version": 1,
+  "implementation": "data",
+  "transport": "sdk",
+  "lifecycle": "per_run",
+  "scope": "namespace",
+  "description": "访问本轮获准的数据服务",
+  "operations": [],
+  "category": "data",
+  "auth": {
+    "required": false
+  },
+  "displayKeys": {
+    "list_data_sources": "data.sources",
+    "describe_data_source": "data.describe",
+    "resolve_entities": "data.resolve",
+    "find_query_specs": "data.prepare",
+    "execute_query_spec": "data.query",
+    "execute_readonly_sql": "data.query",
+    "read_query_result": "data.read"
+  }
 }

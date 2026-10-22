@@ -28,11 +28,12 @@ class RunServices:
         """释放旧上下文后绑定可信 Run，核对模板版本与来源并准备所需数据。"""
         await self.close()
         context = DataContext.from_payload(payload)
-        from workflows.writing_docx.template_assets import load_template
-        template = load_template(context.template_key, context.capability_ref) if context.template_key else None
+        from runtime.template_assets import load_template
+        entry = (payload.get('_capability_assets') or {}).get('capability')
+        template = load_template(context.template_key, context.capability_ref, entry=entry) if context.template_key else None
         selected = self.source_keys
         if template:
-            expected = (payload.get('_workflow_assets') or {}).get('template_revision')
+            expected = (payload.get('_capability_assets') or {}).get('template_revision')
             if expected is not None and expected != template['_revision']:
                 raise DataError('TEMPLATE_MISMATCH')
             selected = tuple(sorted(set(template['source_roles'].values())))

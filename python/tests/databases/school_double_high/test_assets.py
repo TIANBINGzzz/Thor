@@ -71,15 +71,15 @@ class AssetContractTests(unittest.TestCase):
         self.assertEqual(sum(map(len,self.tables.values())),160)
         self.assertNotIn('province_high_flag_', self.tables['t_hpm_project'])
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
-        for workflow in ('double-high-qa','writing-docx'):
-            config=read_manifest(ROOT/f'.claude/workflows/{workflow}', 'workflow.json')
-            self.assertNotIn('data_sources',config)
-        self.assertEqual(self.source['capabilities'],['national-excellence-data-qa','document-writing'])
+        for capability in ('national-excellence-data-qa','document-writing'):
+            config=read_manifest(ROOT/f'.claude/capabilities/{capability}', 'capability.json')
+            self.assertEqual(config['data']['sourceRefs'], ['schoolDoubleHigh'])
+        self.assertNotIn('capabilities', self.source)
 
     def test_template_guide_references_metrics_and_source_keeps_all_tables(self):
         from docx import Document
-        from workflows.writing_docx.template_assets import load_template
-        root=ROOT/'.claude/workflows/writing-docx/templates/szpt-midterm'
+        from runtime.template_assets import load_template
+        root=ROOT/'.claude/capabilities/document-writing/templates/szpt-midterm'
         guide=(root/'writing-guide.md').read_text(encoding='utf-8')
         referenced=set(re.findall(r'`([a-z][a-z0-9_]+)`',guide))
         self.assertTrue(referenced)

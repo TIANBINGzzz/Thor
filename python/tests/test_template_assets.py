@@ -11,10 +11,10 @@ from unittest.mock import patch
 from docx import Document
 
 from data_access.context import DataError
-from runtime.config import build_options, prepare_workflow_assets, workflow_prompt_documents
+from runtime.config import build_options, prepare_capability_assets, capability_prompt_documents
 from runtime.data_services import RunServices
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
-from workflows.writing_docx.template_assets import load_template, stage_template
+from runtime.template_assets import load_template, stage_template
 
 
 class TemplateDocumentTests(unittest.TestCase):
@@ -22,11 +22,12 @@ class TemplateDocumentTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        self.directory = self.root / 'workflow'
+        self.directory = self.root / 'capability'
         self.directory.mkdir()
-        self.workflow = {'name':'writing-docx', '_directory':str(self.directory),
+        self.capability = {'name':'document-writing', '_directory':str(self.directory),
                          '_body':'COMMON_RULES',
-                         'templates':{}, 'data_access':'optional'}
+                         'templates':{}, 'data':{'access':'optional','sourceRefs':['source-a']},
+                         'tools':['office','documents','artifacts'], '_skill_root':str(self.root/'skills')}
         for name in ('alpha','beta'):
             directory = self.directory / 'templates' / name
             directory.mkdir(parents=True)
@@ -39,35 +40,34 @@ class TemplateDocumentTests(unittest.TestCase):
                 'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
                 'report':{'file_name':'report.docx'}})
             (directory/'writing-guide.md').write_text('REPORT_ADAPTER\n'+name.upper()+'_GUIDE',encoding='utf-8')
-            self.workflow['templates'][name] = f'templates/{name}/template.json'
+            self.capability['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
-                            ('runtime.config.load_workflow_config', None)]:
-            patcher = patch(name, return_value=self.workflow) if value is None else patch(name,value)
+                            ('runtime.config.capability_entry', None)]:
+            patcher = patch(name, return_value=self.capability) if value is None else patch(name,value)
             patcher.start(); self.addCleanup(patcher.stop)
-        patcher = patch('workflows.writing_docx.template_assets.load_template', side_effect=self.load)
+        patcher = patch('runtime.template_assets.load_template', side_effect=self.load)
         patcher.start(); self.addCleanup(patcher.stop)
 
     @staticmethod
     def save(path, data):
         path.write_text(json.dumps(data),encoding='utf-8')
 
-    def load(self, name, capability):
-        return load_template(name,capability,self.directory/'templates')
+    def load(self, name, capability, *, entry=None):
+        return load_template(name,capability,entry=entry or self.capability)
 
     def payload(self, name=None):
-        payload={'workflow_name':'writing-docx','capability_ref':'document-writing'}
+        payload={'capability_ref':'document-writing'}
         if name is not None: payload['_template_key']=name
         return payload
 
     def test_selected_guide_only_and_no_template_for_uploaded_reference(self):
         for name, present, absent in [('alpha','ALPHA_GUIDE','BETA_GUIDE'),('beta','BETA_GUIDE','ALPHA_GUIDE')]:
-            prompt=prepare_workflow_assets(self.payload(name))['prompt']
+            prompt=prepare_capability_assets(self.payload(name))['prompt']
             self.assertIn('COMMON_RULES',prompt)
             self.assertIn('REPORT_ADAPTER',prompt)
             self.assertIn(present,prompt)
             self.assertNotIn(absent,prompt)
-        with patch('runtime.config.Catalog') as catalog, patch.dict('os.environ',{},clear=True):
-            catalog.return_value.sources_for.return_value=[]
+        with patch('data_access.connections.load_config',return_value={}), patch.dict('os.environ',{},clear=True):
             options=build_options(self.payload())
         self.assertIn('COMMON_RULES',options.system_prompt['append'])
         for marker in ('ALPHA_GUIDE','BETA_GUIDE','REPORT_ADAPTER'):
@@ -85,38 +85,38 @@ class TemplateDocumentTests(unittest.TestCase):
         self.save(directory/'template.json',config)
         (directory/'second.md').write_text('SECOND_GUIDE')
         (directory/'unregistered.md').write_text('HIDDEN_GUIDE')
-        prompt=prepare_workflow_assets(self.payload('alpha'))['prompt']
+        prompt=prepare_capability_assets(self.payload('alpha'))['prompt']
         self.assertIn('SECOND_GUIDE',prompt)
         self.assertNotIn('ALPHA_GUIDE',prompt)
         self.assertNotIn('HIDDEN_GUIDE',prompt)
 
     def test_guide_mutation_changes_next_run_revision_but_not_frozen_prompt(self):
         payload=self.payload('alpha')
-        before=deepcopy(prepare_workflow_assets(payload))
+        before=deepcopy(prepare_capability_assets(payload))
         (self.directory/'templates/alpha/writing-guide.md').write_text('UPDATED_GUIDE')
-        self.assertEqual(prepare_workflow_assets(payload),before)
-        after=prepare_workflow_assets(self.payload('alpha'))
+        self.assertEqual(prepare_capability_assets(payload),before)
+        after=prepare_capability_assets(self.payload('alpha'))
         self.assertNotEqual(before['revision'],after['revision'])
         self.assertNotEqual(before['template_revision'],after['template_revision'])
         self.assertIn('UPDATED_GUIDE',after['prompt'])
         # Reusing the same business payload with a new selection cannot reuse the old guide.
         payload['_template_key']='beta'
-        self.assertIn('BETA_GUIDE',prepare_workflow_assets(payload)['prompt'])
+        self.assertIn('BETA_GUIDE',prepare_capability_assets(payload)['prompt'])
 
     def test_rules_refresh_per_turn_without_rebuilding_connection(self):
         from runtime.config import client_connection_fingerprint
         old=self.payload('alpha')
         before=client_connection_fingerprint(old)
         json.dumps(old)
-        self.workflow['_body'] = 'CHANGED_COMMON'
+        self.capability['_body'] = 'CHANGED_COMMON'
         self.assertEqual(before,client_connection_fingerprint(old))
         new=self.payload('alpha')
         self.assertEqual(before,client_connection_fingerprint(new))
-        self.assertIn('CHANGED_COMMON',prepare_workflow_assets(new)['prompt'])
-        self.assertNotIn('CHANGED_COMMON',prepare_workflow_assets(old)['prompt'])
+        self.assertIn('CHANGED_COMMON',prepare_capability_assets(new)['prompt'])
+        self.assertNotIn('CHANGED_COMMON',prepare_capability_assets(old)['prompt'])
         beta=self.payload('beta')
         self.assertEqual(before,client_connection_fingerprint(beta))
-        self.assertIn('BETA_GUIDE',prepare_workflow_assets(beta)['prompt'])
+        self.assertIn('BETA_GUIDE',prepare_capability_assets(beta)['prompt'])
 
     def test_invalid_guides_are_rejected_before_agent_start(self):
         directory=self.directory/'templates/alpha'
@@ -128,7 +128,7 @@ class TemplateDocumentTests(unittest.TestCase):
                 changed=deepcopy(original); changed['assets']['writing_guide']=names
                 self.save(directory/'template.json',changed)
                 with self.assertRaisesRegex(DataError,'TEMPLATE_DOCUMENT_INVALID'):
-                    prepare_workflow_assets(self.payload('alpha'))
+                    prepare_capability_assets(self.payload('alpha'))
         self.save(directory/'template.json',original)
         for content in ('', 'a'*(MAX_DOCUMENT_BYTES+1)):
             (directory/'writing-guide.md').write_text(content)
@@ -141,7 +141,7 @@ class TemplateDocumentTests(unittest.TestCase):
         template=self.load('alpha','document-writing')
         template['_documents']=[{'name':str(n),'text':'a'*23000} for n in range(4)]
         with self.assertRaisesRegex(RuntimeError,'总量'):
-            workflow_prompt_documents(self.workflow,template=template)
+            capability_prompt_documents(self.capability,template=template)
 
     def test_disabled_or_wrong_capability_template_is_rejected(self):
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
@@ -149,7 +149,7 @@ class TemplateDocumentTests(unittest.TestCase):
         path=self.directory/'templates/alpha/template.json'
         config=json.loads(path.read_text()); config['enabled']=False; self.save(path,config)
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
-            prepare_workflow_assets(self.payload('alpha'))
+            prepare_capability_assets(self.payload('alpha'))
 
     def test_staged_copy_is_repeatable_and_never_overwrites_edits(self):
         template=self.load('alpha','document-writing')
@@ -206,7 +206,7 @@ class TemplateDocumentTests(unittest.TestCase):
 
     def test_source_change_after_prompt_freeze_rejects_agent_start(self):
         payload=self.payload('alpha')
-        prepare_workflow_assets(payload)
+        prepare_capability_assets(payload)
         payload.update(session_directory=str(self.root/'session'),work_directory=str(self.root/'session/work'),
                        deliverables_directory=str(self.root/'session/output'))
         (self.directory/'templates/alpha/writing-guide.md').write_text('NEW_RULES')

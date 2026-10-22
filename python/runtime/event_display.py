@@ -1,34 +1,9 @@
 """公共事件显示字典：空名称只隐藏状态提示，不丢弃事件和业务数据。"""
 
+from runtime.tool_catalog import display_key
+
 # 精确匹配已登记工具，不从工具参数、命令、模型文字推导对外名称。
-TOOL_KEYS = {
-    'mcp__campus__search_knowledge': 'data.prepare',
-    'mcp__campus__get_school_info': 'data.resolve',
-    'mcp__campus__get_indicator_metrics': 'data.query',
-    'mcp__campus__get_norm_metrics': 'data.query',
-    'mcp__data__list_data_sources': 'data.sources',
-    'mcp__data__describe_data_source': 'data.describe',
-    'mcp__data__resolve_entities': 'data.resolve',
-    'mcp__data__find_query_specs': 'data.prepare',
-    'mcp__data__execute_query_spec': 'data.query',
-    'mcp__data__execute_readonly_sql': 'data.query',
-    'mcp__data__read_query_result': 'data.read',
-    'mcp__office__officecli': 'document.process',
-    'mcp__documents__render': 'document.preview',
-    'mcp__documents__read_pdf': 'document.read',
-    'mcp__images__generate': 'image.generate',
-    'mcp__charts__build_mermaid': 'chart.generate',
-    'mcp__artifacts__publish_file': 'file.publish',
-    'Read': 'file.read',
-    'Write': 'file.write',
-    'Edit': 'file.edit',
-    'Glob': 'file.find',
-    'Grep': 'file.search',
-    'Bash': 'task.execute',
-    'TodoWrite': 'task.plan',
-    'Skill': 'task.skill',
-    'mcp__web__search': 'web.search',
-}
+NATIVE_TOOL_KEYS = {'Read': 'file.read', 'Write': 'file.write', 'Edit': 'file.edit', 'Glob': 'file.find', 'Grep': 'file.search', 'Bash': 'task.execute', 'TodoWrite': 'task.plan', 'Skill': 'task.skill'}
 TOOL_DISPLAY_NAMES = {
     'data.sources': '',
     'data.describe': '了解数据内容',
@@ -125,7 +100,9 @@ class ToolCallDisplays:
         calls = self.runs.setdefault(run_id, {})
         key = calls.get(call)
         if raw.get('type') == 'tool_use' or key is None:
-            key = TOOL_KEYS.get(raw.get('name'), 'other')
+            key = NATIVE_TOOL_KEYS.get(raw.get('name'), display_key(raw.get('name')))
+            if key not in TOOL_DISPLAY_NAMES:
+                key = 'other'
         if call[1]:
             calls[call] = key
         return {'toolKey': key, 'displayName': TOOL_DISPLAY_NAMES[key]}

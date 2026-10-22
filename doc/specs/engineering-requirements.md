@@ -34,9 +34,9 @@
 
 ### 当前状态与待明确项
 
-- **部分实现，2026-09-07 源码核对**：`python/runtime/mcp_auth.py` 的 `MCP_AUTH_RULES` 已有选择性注入、缺凭据失败和配置复制；`python/runtime/config.py` 用 `CCSDK_BUSINESS_MCP_CAPABILITIES` 控制业务 MCP 挂载。当前是代码内规则表，不是外部配置中心。
+- **Python 实现核对，2026-10-22**：凭据规则集中在可信 `.claude/tools/*/tool.json.auth`，MCP 由能力 `toolRefs` 选择；`mcp_auth.py` 逐轮注入副本、缺凭据失败，不修改全局环境。HTTP/stdio 使用通用 Provider，进程内校园适配器保留可信参数绑定；不是外部配置中心。
 - **本地实现核对，2026-10-20**：`tool_services.py` 按轮绑定和清理凭据，只有 Schema 变化才重挂 MCP；`claude_sdk.py` 热更新模型、思考、effort、模型环境和目录，Hook 校验本轮工具授权。业务 Token 不参与固定指纹，回收仅释放进程，新请求重新授权后恢复历史。缓存适配器的换 Token、清理、缺 Token 拒绝及真实 CLI 同名替换/工具撤销已通过本地测试；并发预热和历史恢复采用本地模型协议桩，不据此声称 Java、真实业务工具或生产撤销链路已验收。
-- Java 不在本仓库，本次未核对其真实透传链路；运行中 Token 到期/撤销、是否终止或要求重新授权，以及全部日志/持久化出口的泄漏回归仍需明确和验证。
+- 2026-10-22 已静态核对外部 Java 主链路；校园入口仍有正文 Token 特例，尚不满足第1项。运行中 Token 到期/撤销策略及全链路日志、持久化泄漏仍须独立验收，本轮未改 Java。
 
 ## REQ-002：前端触发 Capability，执行资产保持内部化
 
@@ -62,6 +62,7 @@
 ### 当前状态与待明确项
 
 - **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
+- 2026-10-22 撰写与双高规则、模板和来源声明已直接归入 Capability，删除旧 Workflow 装配。独立管理 JWT 可组合已登记资产新建能力；普通 Run 输入不能修改资产。未新增版本快照系统，第6项完整配置追溯、Java 管理界面及授权仍有差距。
 - 本地测试前端及模拟 Java 服务已移除；Runtime 不提供本地会话/上传接口或测试身份文件直读。会话检索使用独立 session.read，仅返回公开 Run 摘要。
 - 模板参数与装配边界见[模板契约](ccsdk-runtime-interface.md#34-业务-payload)，查询口径维护在[数据库包](../../.claude/databases/schoolDoubleHigh/)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
 - 校双高来源已按用户授权阶段性向已认证租户/用户共享；具体策略、business_tenant_id 和恢复限制见[数据库管理](data-source-connections.md#字段与配置)。来源发现不授权，selected 项目范围不能扩大为全校。

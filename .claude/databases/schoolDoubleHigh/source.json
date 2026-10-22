@@ -3,10 +3,6 @@
   "name": "校双高数据库",
   "version": 2,
   "enabled": true,
-  "capabilities": [
-    "national-excellence-data-qa",
-    "document-writing"
-  ],
   "domains": {
     "hpm": {
       "metrics": "metrics/hpm",
@@ -21,7 +17,10 @@
           "id_field": "project_id",
           "name_field": "project_name",
           "parameter": "project_id",
-          "context_fields": ["level_name", "national_flag"]
+          "context_fields": [
+            "level_name",
+            "national_flag"
+          ]
         },
         "task_project": {
           "query_id": "task_project_candidates",

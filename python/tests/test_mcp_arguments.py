@@ -12,7 +12,7 @@ class MCPArgumentTests(unittest.TestCase):
                            'arguments': {'user_context_token': 'platformBearer'}},
                  'second': {'required': True, 'transport': 'sdk',
                             'arguments': {'identity': 'platformBearer'}}}
-        with patch.dict(mcp_auth.MCP_AUTH_RULES, rules):
+        with patch.object(mcp_auth, 'auth_rule', side_effect=rules.__getitem__):
             a = mcp_auth.MCPArgumentBinding('first', {'platformBearer': 'one'})
             b = mcp_auth.MCPArgumentBinding('second', {'platformBearer': 'two'})
             source = {'payload': {'year': 2025}}
@@ -36,8 +36,8 @@ class MCPArgumentTests(unittest.TestCase):
             mcp_auth.MCPArgumentBinding('unknown', {'platformBearer': 'one'})
         with self.assertRaises(mcp_auth.MCPAuthError):
             mcp_auth.MCPArgumentBinding('campus', {})
-        with patch.dict(mcp_auth.MCP_AUTH_RULES, {'invalid': {
-                'required': True, 'transport': 'sdk', 'arguments': {'token': 'userInput'}}}):
+        with patch.object(mcp_auth, 'auth_rule', return_value={
+                'required': True, 'transport': 'sdk', 'arguments': {'token': 'userInput'}}):
             with self.assertRaises(mcp_auth.MCPAuthError):
                 mcp_auth.MCPArgumentBinding('invalid', {'platformBearer': 'one'})
 

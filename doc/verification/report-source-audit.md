@@ -1,6 +1,6 @@
 # 双高模板来源核验
 
-本文合并原 SQL 核验、逐页阅读和旧位置清单中仍有效的来源证据与未决项，不是执行规则或当期实绩；2026-09-22 仅整理历史记录，未重新查库或渲染。撰写以 [共同规则](../../.claude/workflows/writing-docx/WORKFLOW.md)及所选 [模板指南](../../.claude/workflows/writing-docx/templates/szpt-midterm/writing-guide.md)为准，本文不自动注入 Prompt。
+本文合并原 SQL 核验、逐页阅读和旧位置清单中仍有效的来源证据与未决项，不是执行规则或当期实绩；2026-09-22 仅整理历史记录，未重新查库或渲染。撰写以 [共同规则](../../.claude/capabilities/document-writing/CAPABILITY.md)及所选 [模板指南](../../.claude/capabilities/document-writing/templates/szpt-midterm/writing-guide.md)为准，本文不自动注入 Prompt。
 
 ## 来源与确认范围
 
@@ -8,7 +8,7 @@
 | --- | --- |
 | 《深圳职业技术学院双高计划中期自评报告数据来源模板.docx》 | SHA-256：b76e05c6786a438f5292ff1c8159a2f3242323208749ab7d49780f25a1b407b5；2026-09-15 只读渲染为 90 页，以下页码指此原件物理页 |
 | 用户重新提供的《深圳职业技术学院双高计划中期自评报告.docx》 | SHA-256：5525eeb5e346873493c5468cc4fb6328bc5a0552d49bdf6e799b3e6da357270e；原 SQL 段落按 document.xml 全部 w:p 从 1 计数 |
-| 运行模板 szpt-midterm | 原六章、40 表、4 分节；文件与指纹以 [template.json](../../.claude/workflows/writing-docx/templates/szpt-midterm/template.json) 为准；学校/专业群、日期、数值与成果均不能沿用为当前事实 |
+| 运行模板 szpt-midterm | 原六章、40 表、4 分节；文件与指纹以 [template.json](../../.claude/capabilities/document-writing/templates/szpt-midterm/template.json) 为准；学校/专业群、日期、数值与成果均不能沿用为当前事实 |
 
 已阅读物理页 1-5、9-16、20-34 及第 35 页表 3-12 顶部；贡献度表 4 及之后、两个专业群完整章节、措施/经验/问题和附件尚未完成逐页来源确认。来源结构确认、SQL 实库验证、用户确认和成稿验收是四件不同的事。
 

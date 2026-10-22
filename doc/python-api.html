@@ -49,6 +49,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok": true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
+<tr><td>资产管理</td><td><code>/internal/v1/assets</code></td><td>独立管理 JWT 授权；查询可组合资产，校验或新建能力。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Python 自动上传已发布成果；Java 按 artifactId 获取状态，按 fileId 关联业务消息。</td></tr>
 <tr><td>会话执行索引</td><td><code>GET /internal/v1/sessions/{businessSessionId}/runs</code></td><td>按授权业务会话分页查询执行摘要；不管理标题和消息。</td></tr>
 <tr><td>输入文件</td><td>Python 调用平台文件服务</td><td>Java先校验附件权限；Python按fileService配置下载fileId。显式配置Broker时才走POST代理流/一次性URL，见输入文件章节。</td></tr>
@@ -260,10 +261,31 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>image-generation</td><td>复用通用执行配置</td><td>支持</td><td>文字或参考图生成PNG，逐张发布为Artifact。</td></tr>
 <tr><td>conversation</td><td>通用对话配置</td><td>支持</td><td>日常交流、总结和问答。</td></tr>
 <tr><td>chart-generation</td><td>复用通用执行配置</td><td>支持</td><td>使用明确提供的数据生成正文内 Mermaid 图表，不依赖问数或数据库。</td></tr>
-<tr><td>document-writing</td><td><code>writing-docx</code></td><td>支持</td><td>文档撰写、修改和 Word 交付物生成。</td></tr>
-<tr><td>national-excellence-data-qa</td><td><code>double-high-qa</code></td><td>不支持</td><td>国双高项目、任务、资金和绩效问数。</td></tr>
+<tr><td>document-writing</td><td>能力内规则、可选模板、工具与数据源</td><td>支持</td><td>文档撰写、修改和 Word 交付物生成。</td></tr>
+<tr><td>national-excellence-data-qa</td><td>能力内 direct 策略与数据源</td><td>支持</td><td>国双高项目、任务、资金和绩效问数。</td></tr>
 </tbody></table>
 <div class="note">Java 不提交 Workflow 名称、Skill 列表、MCP 地址、模型、工具参数或工作目录。未知能力返回 <code>400 capability_not_found</code>。</div></section>
+
+<section id="asset-management"><h2>资产管理 · 可信控制面</h2>
+<p>这些接口由服务端管理后台调用，与 Run 执行授权分开。配置独立环境密钥 <code>CCSDK_ASSET_JWT_SECRET</code>，不得与执行或观测密钥相同；未配置则关闭。Bearer JWT 使用 HS256，issuer 为 <code>string-ai-center-service</code>，audience 为 <code>ccsdk-runtime-assets</code>，scope 仅为 <code>assets.manage</code>，包含 sub、jti、iat、exp，有效期最多五分钟。</p>
+<table><thead><tr><th>接口</th><th>输入和结果</th></tr></thead><tbody>
+<tr><td>GET /internal/v1/assets/catalog</td><td>返回 tools（ref、description、category、transport、operations）、skills（ref、description）和 dataSources（ref、name、domains）；不返回连接、凭据或鉴权目标。</td></tr>
+<tr><td>POST /internal/v1/assets/capabilities/validate</td><td>校验 manifest 与 prompt，成功返回公开能力摘要，不发布。</td></tr>
+<tr><td>POST /internal/v1/assets/capabilities</td><td>同样校验，成功创建能力并返回 201 与公开摘要；已存在返回 409，不覆盖。</td></tr>
+</tbody></table>
+<p>正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、execution、runtime、data。工具、Skill 和来源必须已经登记；业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
+<div class="code-wrap"><div class="code-label">管理请求 · 组合既有资产</div><button class="copy" type="button">复制</button><pre>{
+  "manifest": {
+    "ref": "business-report",
+    "title": "业务报告",
+    "description": "根据授权数据撰写业务报告",
+    "toolRefs": ["data", "documents", "office", "artifacts"],
+    "execution": {"mode": "agent"},
+    "data": {"access": "required", "sourceRefs": ["schoolDoubleHigh"]}
+  },
+  "prompt": "根据获准数据撰写；不得编造业务事实。"
+}</pre></div>
+<p>创建后能力可立即发现，文件保存在 <code>.scribe-runs/capabilities/</code>，标准部署由现有数据卷持久化；与源码 <code>.claude/capabilities/</code> 共同组成目录，名称冲突拒绝装配，不能覆盖内置能力。Java 仍须另行注册、开通并授权；来源声明不扩大部署侧数据权限。此接口不接收代码、MCP 连接、工具私有配置或模板文件，不提供现有能力覆盖及资产版本系统。</p></section>
 
 <section id="mermaid-charts"><h2>图表生成 · Mermaid 正文</h2>
 <p>用于把用户明确提供的文字或表格数据转换为图表，并与解释文字穿插显示。选择 <code>chart-generation</code>；普通 <code>conversation</code> 也可请求这些图表。数据不足时模型会询问，不能将缺失数值补成 0。附件沿用 attachmentRefs 的文件准备链路；允许附件不代表所有文件格式都能提取数据。</p>
@@ -482,7 +504,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td>payload.toolKey</td><td>仅工具事件包含，稳定的公开工具分类，例如 data.query；不是内部工具名，也不授予调用权限。</td><td>可用于选择图标。多次查询可能有相同 toolKey，不能用它区分每次调用。</td></tr>
 <tr><td>payload.toolCallId</td><td>上游提供时返回，标识这一次工具调用。</td><td>同一 Run 内结合 scope 关联开始、进行中和结束；不同 Run 不共用调用记录。</td></tr>
 </tbody></table>
-<p>字典集中在 <code>python/runtime/event_display.py</code>：TOOL_KEYS 对应内部工具与公开 toolKey，TOOL_DISPLAY_NAMES 维护工具名称，PHASE_DISPLAY_NAMES 维护阶段名称，EVENT_DISPLAY_NAMES 维护其余事件名称。把名称设为空字符串即可隐藏状态提示。修改后重启或重新部署 Python；回放也按当前字典显示，未知工具固定为 toolKey=other、displayName=""。内部 toolName 不再对外返回，旧记录回放同样移除它；没有公开分类的旧工具事件默认隐藏。</p>
+<p>MCP 操作到公开 toolKey 的映射由可信 <code>.claude/tools/*/tool.json.displayKeys</code> 维护，按当前资产解析；内置 SDK 工具映射及安全中文名称仍在 <code>python/runtime/event_display.py</code>，代码修改需重新部署。TOOL_DISPLAY_NAMES 维护工具名称，PHASE_DISPLAY_NAMES 维护阶段名称，EVENT_DISPLAY_NAMES 维护其余事件名称。把名称设为空字符串即可隐藏状态提示。回放也按当前映射显示，未知工具固定为 toolKey=other、displayName=""。内部 toolName 不再对外返回，旧记录回放同样移除它；没有公开分类的旧工具事件默认隐藏。</p>
 <p>例如查询工具的名称是“查询业务数据”；开始、进行中、结束分别由 status=started/running/finished 表示，结束是否报错看 isError。前端可呈现“查询业务数据 · 处理中 / 已完成 / 失败”，不需要把内部 MCP 名称发给浏览器。名称为空时也需关闭之前已经显示的同一次调用状态。</p>
 <div class="code-wrap"><div class="code-label">事件 JSON · 查询工具开始</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
@@ -809,7 +831,7 @@ Accept: application/octet-stream</pre></div>
 <p>Client 输入位于 .scribe-runs/client-sessions/&lt;scopeHash&gt;/.current-input/，Query 输入位于 .scribe-runs/work/&lt;runId&gt;/input/。文件全部准备完成后才查询 SDK；失败、取消及终态清理输入，不删除远端原件。工作稿另存 .work/，交付快照按发布生命周期保留。</p>
 <p>独立部署可显式配置 CCSDK_FILE_BROKER_URL 使用 POST Broker，保留代理流/一次性 URL 校验；平台下载失败不自动切换。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-file-broker-模块">Runtime 文件规范</a>。</p>
 <h3>大小和独立超时</h3>
-<p>部署预算统一由 <code>config/application.yml</code> 的 <code>runtime.timeouts</code>、<code>runtime.limits</code> 配置；默认执行一小时，Workflow 显式预算优先。旧超时与文件大小环境变量不再读取；单位、覆盖及重启要求见 <a href="../config/README.md">配置参考</a>。</p>
+<p>部署预算统一由 <code>config/application.yml</code> 的 <code>runtime.timeouts</code>、<code>runtime.limits</code> 配置；默认执行一小时，Capability 显式预算优先。旧超时与文件大小环境变量不再读取；单位、覆盖及重启要求见 <a href="../config/README.md">配置参考</a>。</p>
 <p>文件准备超时通过 run.failed 返回 file_broker_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。平台下载还受 fileService.maxFileBytes 和 timeoutSeconds 约束，分别与 Runtime 对应上限取较小值。显式 Broker 的授权 Token 由接入方保证有效，Python 不自动刷新。</p></section>
 
 <section id="errors"><h2>错误响应</h2>

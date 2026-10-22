@@ -1,5 +1,29 @@
 {
-  "ref": "office", "version": 1, "implementation": "office", "transport": "stdio", "lifecycle": "per_run",
-  "scope": "namespace", "description": "通过 OfficeCLI 编辑文档",
-  "operations": []
+  "ref": "office",
+  "version": 1,
+  "implementation": "stdio-mcp",
+  "transport": "stdio",
+  "lifecycle": "per_run",
+  "scope": "namespace",
+  "description": "通过 OfficeCLI 编辑文档",
+  "operations": [],
+  "category": "document",
+  "auth": {
+    "required": false
+  },
+  "displayKeys": {
+    "officecli": "document.process"
+  },
+  "connection": {
+    "command": {
+      "env": "CCSDK_OFFICECLI_PATH",
+      "default": "officecli"
+    },
+    "args": [
+      "mcp"
+    ],
+    "env": {
+      "OFFICECLI_SKIP_UPDATE": "1"
+    }
+  }
 }

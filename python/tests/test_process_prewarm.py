@@ -227,7 +227,7 @@ def options(*args, **kwargs):
     return build_agent_options(tools=[], strict_mcp_config=True)
 worker.load_runtime_environment = lambda _: None
 worker.missing_environment = lambda: []
-worker.prepare_workflow_assets = lambda _: {}
+worker.prepare_capability_assets = lambda _: {}
 worker.create_run_services = lambda _: None
 worker.ToolServices = lambda *args: SimpleNamespace(clear=lambda: None)
 worker.build_client_options = lambda *args: build_agent_options(tools=[], strict_mcp_config=True)

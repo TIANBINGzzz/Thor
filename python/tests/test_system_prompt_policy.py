@@ -50,7 +50,7 @@ class SnapshotConfigTests(unittest.TestCase):
 
     def test_snapshot_inherits_overrides_and_separates_only_fixed_groups(self):
         assets = {'runtime': {}}
-        with patch('runtime.config.prepare_workflow_assets', return_value=assets):
+        with patch('runtime.config.prepare_capability_assets', return_value=assets):
             first = {}
             self.assertIs(inherit_client_runtime(first)['system_prompt_snapshot'], True)
             restored = {}
@@ -63,7 +63,7 @@ class SnapshotConfigTests(unittest.TestCase):
     def test_startup_profiles_and_run_store_preserve_snapshot(self):
         import server
         from runtime.run_store import RunStore
-        profile = server._startup_profile({'capability': {'runtime': {}}, 'config': None},
+        profile = server._startup_profile({'capability': {'ref': 'conversation', 'runtime': {}}},
                                           {'system_prompt_snapshot': False})
         self.assertIs(profile['_client_runtime']['system_prompt_snapshot'], False)
         with TemporaryDirectory() as directory:

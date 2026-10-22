@@ -3,8 +3,31 @@
   "title": "文档撰写",
   "description": "起草、修改与生成 Word 文档",
   "supportsAttachments": true,
-  "workflowRefs": ["writing-docx"],
-  "skillRefs": [],
-  "toolRefs": ["documents", "office", "images", "artifacts", "business", "data", "web"],
-  "execution": {"mode": "agent"}
+  "skillRefs": [
+    "document-review"
+  ],
+  "toolRefs": [
+    "documents",
+    "office",
+    "images",
+    "artifacts",
+    "data",
+    "web"
+  ],
+  "execution": {
+    "mode": "agent"
+  },
+  "runtime": {
+    "mode": "client",
+    "timeout_ms": 7200000
+  },
+  "templates": {
+    "szpt-midterm": "templates/szpt-midterm/template.json"
+  },
+  "data": {
+    "access": "optional",
+    "sourceRefs": [
+      "schoolDoubleHigh"
+    ]
+  }
 }

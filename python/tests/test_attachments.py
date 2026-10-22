@@ -24,7 +24,7 @@ class AttachmentTests(unittest.TestCase):
                             'CCSDK_IMAGE_BASE_URL': 'https://model.test', 'CCSDK_IMAGE_API_KEY': 'test-key'}):
                         self.assertTrue(capability.supports_attachments)
                         options = build_options({'capability_ref': capability.ref,
-                            'workflow_name': capability.workflow_ref, 'input_directory': folder,
+                            'input_directory': folder,
                             'credentials': {'platformBearer': 'test-token'}})
                         self.assertIn('attachments', options.mcp_servers)
                         self.assertIn('mcp__attachments__read', options.allowed_tools)

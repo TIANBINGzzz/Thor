@@ -414,9 +414,9 @@ class SessionActor:
                     if command.initial_payload is not None:
                         # 每轮热装配工具、规则及凭据；只有连接固定项变化才重建。
                         initial = {**command.initial_payload, **prepared}
-                        if '_workflow_assets' in initial:
+                        if '_capability_assets' in initial:
                             inherit_client_runtime(initial, self._applied_runtime)
-                            for key in ('_workflow_assets', '_client_runtime', '_client_connection_fingerprint'):
+                            for key in ('_capability_assets', '_client_runtime', '_client_connection_fingerprint'):
                                 payload[key] = initial[key]
                         fingerprint = initial.get('_client_connection_fingerprint')
                         if self.client_connection_fingerprint != (str(fingerprint) if fingerprint is not None else None):

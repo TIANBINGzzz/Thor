@@ -2,31 +2,33 @@
 
 from pathlib import Path
 from hashlib import sha256
-from data_access.catalog import PROJECT_ROOT, asset_path, key, read_json
+from data_access.catalog import asset_path, key, read_json
 from data_access.context import DataError, fingerprint
-from runtime.asset_registry import read_manifest
+from runtime.capabilities import capability_entry, resolve_capability
 from runtime.prompt_documents import read_documents
 
-TEMPLATES = PROJECT_ROOT / ".claude/workflows/writing-docx/templates"
 
 
 def document_digest(path):
     """计算模板文件字节的 SHA-256 摘要，用于冻结和核验实际版本。"""
     return sha256(path.read_bytes()).hexdigest()
 
-def load_template(template_key, capability_ref, root=TEMPLATES):
-    """校验模板登记与能力范围，加载指南和原稿并计算本轮资产版本。"""
+def load_template(template_key, capability_ref, *, entry=None):
+    """只加载能力明确登记的模板；数据角色必须属于能力声明的来源。"""
     template_key = key(template_key)
-    if Path(root).resolve()==TEMPLATES.resolve():
-        registry=read_manifest(TEMPLATES.parent, 'workflow.json').get('templates', {})
-        if (template_key not in registry
-                or registry[template_key] != f'templates/{key(template_key)}/template.json'):
-            raise DataError('TEMPLATE_FORBIDDEN')
-    directory = asset_path(Path(root), f"{key(template_key)}/template.json").parent
+    entry = entry if entry is not None else capability_entry(resolve_capability(capability_ref).directory)
+    relative = entry.get('templates', {}).get(template_key)
+    if relative is None:
+        raise DataError('TEMPLATE_FORBIDDEN')
+    directory = asset_path(Path(entry['_directory']), relative).parent
     template = read_json(directory / "template.json")
     if (template.get("template_key") != template_key or template.get("enabled") is not True
             or capability_ref not in template.get("capabilities", [])):
         raise DataError("TEMPLATE_FORBIDDEN")
+    roles = (template.get('data') or {}).get('source_roles')
+    if (not isinstance(roles, dict) or not roles
+            or not set(roles.values()) <= set(entry.get('data', {}).get('sourceRefs', []))):
+        raise DataError('SOURCE_FORBIDDEN')
     assets = template.get("assets") or {}
     data = template.get("data") or {}
     report = template.get("report") or {}

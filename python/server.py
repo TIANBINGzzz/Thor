@@ -21,10 +21,11 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_workflow_assets, client_connection_fingerprint
+from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint
 from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
+from runtime.asset_management import create_asset_router
 from runtime.protocol import AgentRunRequest, ProtocolError
 from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
@@ -132,6 +133,7 @@ async def _shutdown_runtime():
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.include_router(create_asset_router())
 
 
 @app.middleware("http")
@@ -536,11 +538,10 @@ def _client_session_directory(session_key: str, profile=None, *, resume=None) ->
 
 
 def _startup_profile(execution_entry, previous=None):
-    entry, workflow = execution_entry['capability'], execution_entry['config'] or {}
-    runtime = {**(previous or {}), **workflow.get('runtime', {}), **entry.get('runtime', {})}
+    entry = execution_entry['capability']
+    runtime = {**(previous or {}), **entry.get('runtime', {})}
     runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot') if name in runtime}
-    refs = entry.get('workflow_refs', [])
-    profile = {'cwd': str(PROJECT_ROOT), 'workflow_name': refs[0] if len(refs) == 1 else None,
+    profile = {'cwd': str(PROJECT_ROOT), 'capability_ref': entry['ref'],
                '_client_runtime': runtime}
     profile['_client_connection_fingerprint'] = client_connection_fingerprint(profile)
     return profile
@@ -553,7 +554,7 @@ def _warm_client_profiles():
 
 
 def _blank_client_payload(profile=None):
-    """提前分配随机空白目录，SDK 连接不携带业务身份、凭据或能力。"""
+    """按能力选择启动环境，空白连接不加载业务规则、工具、身份或凭据。"""
     directory = (CLIENT_SESSION_ROOT / uuid.uuid4().hex).resolve()
     directories = [directory / name for name in ('.current-input', '.work', '.deliverables')]
     for path in directories:
@@ -615,7 +616,7 @@ def _runtime_mode_for_request(run_request: AgentRunRequest, execution_entry=None
     local = execution_entry or load_execution_entry(run_request.capability_ref)
     if run_request.business_session_id:
         return "client"
-    mode = runtime_mode_for(run_request.capability_ref, local['config'], capability_config=local['capability'])
+    mode = runtime_mode_for(run_request.capability_ref, capability_config=local['capability'])
     return mode
 
 
@@ -652,7 +653,7 @@ def _internal_worker_payload(
     session_directory: Path | None = None,
     attachment_files: tuple[FetchedFile, ...] = (),
     claims: dict[str, Any] | None = None,
-    workflow_assets: dict[str, Any] | None = None,
+    capability_assets: dict[str, Any] | None = None,
     execution_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
@@ -690,23 +691,17 @@ def _internal_worker_payload(
         prompt = (
             f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
         )
-    local = workflow_assets or execution_entry or load_execution_entry(run_request.capability_ref)
-    workflow_refs = local['capability'].get('workflow_refs', [])
-    workflow_name = workflow_refs[0] if len(workflow_refs) == 1 else None
+    local = capability_assets or execution_entry or load_execution_entry(run_request.capability_ref)
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
         "_template_key": template_key,
-        "_execution_entry": {key: local[key] for key in ("capability", "config")},
+        "_execution_entry": {key: local[key] for key in ("capability",)},
         "_data_identity": {"tenant_id": (claims or {}).get("tenant"), "user_id": (claims or {}).get("sub")},
         "_data_run_directory": str(run_directory),
         "prompt": prompt,
         "run_id": run_request.run_id,
         "business_session_id": run_request.business_session_id,
         "message_id": run_request.message_id,
-        "workflow_name": workflow_name,
-        # Keep the Java capability binding available to the worker even when
-        # the capability is not backed by a directory workflow.  MCP auth and
-        # other runtime policy are keyed by this stable reference.
         "capability_ref": run_request.capability_ref or "conversation",
         "model": model,
         "resume": None,
@@ -723,9 +718,9 @@ def _internal_worker_payload(
         "deliverables_directory": str(deliverables_directory),
         "runtime_mode": runtime_mode,
     }
-    if workflow_assets is not None:
-        payload['_workflow_assets'] = workflow_assets
-    assets = prepare_workflow_assets(payload)
+    if capability_assets is not None:
+        payload['_capability_assets'] = capability_assets
+    assets = prepare_capability_assets(payload)
     # 执行预算使用本轮冻结的合并配置，业务输入不能覆盖且附件准备后不重读。
     payload["timeout_ms"] = assets['runtime'].get("timeout_ms", RUN_EXECUTION_TIMEOUT_MS)
     credentials = run_request.credentials.to_dict(include_secret=True)
@@ -810,7 +805,7 @@ async def _execute_internal_run(
                     runtime_mode=runtime_mode,
                     session_directory=session_directory,
                     attachment_files=prepared_files,
-                    workflow_assets=worker_payload['_workflow_assets'],
+                    capability_assets=worker_payload['_capability_assets'],
                 )
                 if timing:
                     timing.mark('prepared')
@@ -842,7 +837,7 @@ async def _execute_internal_run(
             timing.mark('assembled')
         if OBSERVATION.enabled:
             try:
-                OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(telemetry.sanitize(worker_payload.get('_workflow_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
+                OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(telemetry.sanitize(worker_payload.get('_capability_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
             except Exception as error:
                 LOGGER.warning("观测配置摘要失败：%s", type(error).__name__)
         async def consume_agent() -> None:

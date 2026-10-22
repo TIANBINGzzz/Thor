@@ -6,7 +6,7 @@
 
 ## 本地开发
 
-安装 `requirements.txt`，从 `.env.example` 准备 `.env` 并配置模型和 Runtime JWT；本机代理等差异写 `.env.local`，加载顺序为 `.env`、`.env.local`、所选 Workflow 的 `workflow.env`。前两者均不提交、不进入镜像，部署不携带本机覆盖。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
+安装 `requirements.txt`，从 `.env.example` 准备 `.env` 并配置模型和 Runtime JWT；本机代理等差异写 `.env.local`，加载顺序为 `.env`、`.env.local`、所选能力的 `capability.env`。前两者均不提交、不进入镜像，部署不携带本机覆盖。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
 
 回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，参数见 `--help`；单元测试不能代替真实模型、Java 授权和成稿验收。
 
@@ -35,7 +35,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 - Compose 路线需要 Docker、Compose >=2.30、flock、tar、sha256sum 及相应主机权限。镜像固定容器内端口 4310，外部访问通过映射配置；127.0.0.1 在容器中指容器自身，代理、数据库和文件服务地址须实际可达。
 - Nacos 启动与认证字段见 [配置说明](../config/README.md#配置加载与注入)。各环境可只读挂载自己的 `application.yml`；host 网络可用 `127.0.0.1:8848`，bridge 网络连接宿主机时使用 `host.docker.internal:8848` 和 `host-gateway` 映射。确认 env-file 中没有旧的 `CCSDK_NACOS_*` 覆盖部署 YAML。
 - CCSDK_BIND_IP 默认主机回环；跨机访问绑定内网并限制来源。SSE 反向代理关闭缓冲、配置长连接超时；JWT 时钟、issuer/audience 和共享密钥与 Java 一致。
-- 单副本、单 HTTP worker；命名卷保存 `.scribe-runs/` 的记录、SDK 历史和文件。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 `docker compose down -v`，改卷名不会迁移数据。
+- 单副本、单 HTTP worker；命名卷保存 `.scribe-runs/` 的记录、SDK 历史、文件和管理端新建能力。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 `docker compose down -v`，改卷名不会迁移数据。
 
 模型、超时和资源预算统一配置在 `config/application.yml` 的 `runtime` 下，字段及本地覆盖见 [配置字段](../config/README.md)。发布新代码前，已有部署挂载的 YAML 须补齐 `models`、`timeouts`、`limits`、`sse-heartbeat-ms`，并清理 env/云效密钥包中的旧字段；缺失时启动失败，不读取旧 env 作为回退。Windows 本地渲染镜像也须按前述命令重建，以接收调用方传入的渲染预算。
 

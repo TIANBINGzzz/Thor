@@ -1,5 +1,23 @@
 {
-  "ref": "business", "version": 1, "implementation": "business", "transport": "http", "lifecycle": "per_run",
-  "scope": "namespace", "description": "访问受控业务 MCP",
-  "operations": []
+  "ref": "business",
+  "version": 1,
+  "implementation": "http-mcp",
+  "transport": "http",
+  "lifecycle": "per_run",
+  "scope": "namespace",
+  "description": "访问受控业务 MCP",
+  "operations": [],
+  "category": "integration",
+  "auth": {
+    "required": true,
+    "header": "Authorization",
+    "prefix": "Bearer "
+  },
+  "displayKeys": {},
+  "optional": true,
+  "connection": {
+    "url": {
+      "env": "BUSINESS_MCP_URL"
+    }
+  }
 }

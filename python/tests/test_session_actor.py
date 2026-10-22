@@ -306,13 +306,13 @@ class SessionActorTests(unittest.TestCase):
                 return worker
 
             def payload(effort=None):
-                return {'_workflow_assets': {'runtime': {} if effort is None else {'effort': effort}}}
+                return {'_capability_assets': {'runtime': {} if effort is None else {'effort': effort}}}
 
             actor = SessionActor('session', {
                 '_client_runtime': {'effort': 'low'} if restored else {},
             }, worker_factory=factory)
             try:
-                with patch('runtime.config.prepare_workflow_assets', side_effect=lambda p: p['_workflow_assets']):
+                with patch('runtime.config.prepare_capability_assets', side_effect=lambda p: p['_capability_assets']):
                     if not restored:
                         await actor.submit('applied', {}, initial_payload=payload('low'))
                     with self.assertRaises(SessionActorError):

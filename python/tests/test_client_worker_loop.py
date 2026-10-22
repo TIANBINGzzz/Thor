@@ -93,7 +93,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
         provider, data = Provider(), Data()
         with patch.multiple(agent_worker, load_runtime_environment=lambda _: None, missing_environment=lambda: [],
-                            prepare_workflow_assets=lambda _: {}, ToolServices=services,
+                            prepare_capability_assets=lambda _: {}, ToolServices=services,
                             create_run_services=lambda _: data,
                             build_client_options=lambda *a: build_agent_options(),
                             build_options=lambda *a, **kw: build_agent_options(),

@@ -100,13 +100,13 @@ class ConnectionFingerprintTests(unittest.TestCase):
     def test_queued_turn_inherits_latest_settings_without_freezing_old_inheritance(self):
         from unittest.mock import patch
         from runtime.config import inherit_client_runtime
-        payload = {'_workflow_assets': {'runtime': {'effort': 'low'}}}
-        with patch('runtime.config.prepare_workflow_assets', side_effect=lambda value: value['_workflow_assets']):
+        payload = {'_capability_assets': {'runtime': {'effort': 'low'}}}
+        with patch('runtime.config.prepare_capability_assets', side_effect=lambda value: value['_capability_assets']):
             inherit_client_runtime(payload, {'thinking': {'type': 'disabled'}, 'max_turns': 7})
             latest = {'thinking': {'type': 'enabled', 'budget_tokens': 2048}, 'effort': 'high', 'max_turns': 9}
             runtime = inherit_client_runtime(payload, latest)
             self.assertEqual(runtime, {**latest, 'effort': 'low', 'system_prompt_snapshot': True})
-            self.assertEqual(payload['_workflow_assets']['runtime'], {'effort': 'low'})
+            self.assertEqual(payload['_capability_assets']['runtime'], {'effort': 'low'})
 
     def test_enabled_thinking_requires_and_preserves_sdk_budget(self):
         from runtime.capabilities import _validate_runtime
@@ -124,7 +124,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
         from runtime.claude_sdk import ClientTurnPolicy
         assets = {'runtime': {'max_turns': None}}
         payload = {}
-        with patch('runtime.config.prepare_workflow_assets', return_value=assets):
+        with patch('runtime.config.prepare_capability_assets', return_value=assets):
             runtime = inherit_client_runtime(payload, {'max_turns': 7})
             self.assertEqual(runtime['max_turns'], 200)
             self.assertEqual(build_client_options(payload, ClientTurnPolicy()).max_turns, 200)
@@ -148,10 +148,10 @@ class ConnectionFingerprintTests(unittest.TestCase):
         from runtime.config import client_connection_fingerprint
         from unittest.mock import patch
         assets = {'runtime': {}}
-        with patch('runtime.config.prepare_workflow_assets', return_value=assets):
+        with patch('runtime.config.prepare_capability_assets', return_value=assets):
             base = {'cwd': '.', 'additional_directories': ['workspace'], 'model': 'a'}
             first = client_connection_fingerprint(base)
-            changed = {**base, 'model': 'b', 'capability_ref': 'other',
+            changed = {**base, 'model': 'b', 'capability_ref': 'chart-generation',
                        'credentials': {'platformBearer': 'changed'}}
             self.assertEqual(first, client_connection_fingerprint(changed))
             assets['runtime'] = {'thinking': {'type': 'disabled'}}
@@ -162,6 +162,56 @@ class ConnectionFingerprintTests(unittest.TestCase):
             self.assertNotEqual(first, client_connection_fingerprint(base))
 
 class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_private_capability_environment_matches_prewarmed_client(self):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        import server
+        from runtime import capabilities
+        from runtime.worker_pool import WorkerPool
+        from tests.test_worker_pool import until
+
+        class Worker:
+            alive = False
+            awaiting_connection = False
+            process = None
+
+            async def preconnect(self, payload):
+                self.initial = payload
+                self.alive = True
+
+            async def terminate(self):
+                self.alive = False
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            private = root / 'capability.env'
+            binary = root / 'bin' / 'officecli'
+            binary.parent.mkdir()
+            binary.touch()
+            private.write_text(f'CCSDK_OFFICECLI_PATH={binary.as_posix()}\n', encoding='utf-8')
+            entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
+            with patch('runtime.config.PROJECT_ROOT', root), \
+                 patch('runtime.config.capability_environment_path', return_value=private), \
+                 patch.object(server, 'CLIENT_SESSION_ROOT', root / 'clients'):
+                profile = server._startup_profile({'capability': entry})
+                pool = WorkerPool(max_idle=1, max_starting=1, profile_payloads=[{
+                    **profile, 'credentials': {'platformBearer': 'must-not-prewarm'},
+                    'context': {'tenantId': 'must-not-prewarm'}}],
+                    payload_factory=server._blank_client_payload, worker_factory=Worker)
+                pool.start()
+                try:
+                    await until(lambda: pool.snapshot()['ready'] == 1)
+                    directory = pool.reserve_workspace(profile)
+                    self.assertIsNotNone(directory)
+                    worker = await pool.acquire(initial_payload={**profile, 'session_directory': directory})
+                    self.assertEqual(pool.snapshot()['hits'], 1)
+                    self.assertNotIn('credentials', worker.initial)
+                    self.assertNotIn('context', worker.initial)
+                    await worker.terminate()
+                finally:
+                    await pool.close()
+
     async def test_new_fixed_group_rebalances_shared_inventory(self):
         from runtime.worker_pool import WorkerPool
         from tests.test_worker_pool import until
@@ -363,45 +413,45 @@ class WorkflowEnvironmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)
             (root / '.env').write_text('ANTHROPIC_BASE_URL=http://base.test\nSCRIBE_MAX_TURNS=30\n')
-            path = root / 'workflow.env'
+            path = root / 'capability.env'
             path.write_text('ANTHROPIC_BASE_URL=http://flow.test\nSCRIBE_MAX_TURNS=8\n'
                             'ANTHROPIC_AUTH_TOKEN=${PROBE_AUTH}-flow\n')
             with patch.object(config, 'PROJECT_ROOT', root), \
-                 patch.object(config, '_workflow_environment_original', {}), \
+                 patch.object(config, '_capability_environment_original', {}), \
                  patch.dict(os.environ, {'PROBE_AUTH': 'synthetic'}), \
-                 patch.object(config, 'load_workflow_config', side_effect=lambda name: {'env': True} if name else None), \
-                 patch.object(config, 'workflow_environment_path', return_value=path), \
-                 patch.object(config, 'prepare_workflow_assets', return_value={'runtime': {}}):
+                 patch.object(config, 'capability_entry', return_value={'_directory': str(path.parent)}), \
+                 patch.object(config, 'capability_environment_path', return_value=path), \
+                 patch.object(config, 'prepare_capability_assets', return_value={'runtime': {}}):
                 before = dict(os.environ)
                 base = config.client_connection_fingerprint({})
-                selected = config.client_connection_fingerprint({'workflow_name': 'flow'})
+                selected = config.client_connection_fingerprint({'capability_ref': 'conversation'})
                 self.assertEqual(base, selected)
                 self.assertEqual(before, dict(os.environ))
                 try:
-                    config.load_runtime_environment('flow')
-                    values = config._client_connection_values({'workflow_name': 'flow'})
+                    config.load_runtime_environment('conversation')
+                    values = config._client_connection_values({'capability_ref': 'conversation'})
                     self.assertNotIn('ANTHROPIC_AUTH_TOKEN', values['env'])
                     self.assertEqual(values['max_turns'], config.RUNTIME_SETTINGS.limits.max_turns)
                     self.assertNotIn('ANTHROPIC_BASE_URL', values['env'])
-                    self.assertEqual(selected, config.client_connection_fingerprint({'workflow_name': 'flow'}))
+                    self.assertEqual(selected, config.client_connection_fingerprint({'capability_ref': 'conversation'}))
                     self.assertEqual(base, config.client_connection_fingerprint({}))
                 finally:
                     config.load_runtime_environment(None)
 
-    def test_switch_removes_prior_workflow_values_and_restores_inherited_values(self):
+    def test_switch_removes_prior_capability_values_and_restores_inherited_values(self):
         import os
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
         from runtime import config
         with tempfile.TemporaryDirectory() as root, patch.dict(os.environ, {'FLOW_BASE': 'inherited'}):
-            path = Path(root) / 'workflow.env'
+            path = Path(root) / 'capability.env'
             path.write_text('FLOW_BASE=selected\nFLOW_ONLY=private\n')
             with patch.object(config, 'PROJECT_ROOT', Path(root)), \
-                 patch.object(config, 'load_workflow_config', side_effect=lambda name: {'env': True} if name else None), \
-                 patch.object(config, 'workflow_environment_path', return_value=path):
+                 patch.object(config, 'capability_entry', return_value={'_directory': str(path.parent)}), \
+                 patch.object(config, 'capability_environment_path', return_value=path):
                 try:
-                    config.load_runtime_environment('first')
+                    config.load_runtime_environment('conversation')
                     self.assertEqual(os.environ['FLOW_BASE'], 'selected')
                     config.load_runtime_environment(None)
                     self.assertEqual(os.environ['FLOW_BASE'], 'inherited')

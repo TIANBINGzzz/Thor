@@ -1,4 +1,4 @@
-"""声明式 Capability、Workflow 与 Skill 资产注册表。"""
+"""声明式 Capability 与 Skill 资产注册表。"""
 
 from __future__ import annotations
 
