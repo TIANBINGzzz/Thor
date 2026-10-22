@@ -43,6 +43,7 @@ from runtime.tool_services import ToolServices
 from runtime.mcp_auth import MCPAuthError
 from runtime.telemetry import Timing, exception_event
 from runtime.runtime_settings import RUNTIME_SETTINGS
+from runtime.protocol import SteeringRequest
 DEFAULT_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
 
 # 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
@@ -380,6 +381,27 @@ async def _receive_client_response(
                     if not response.cancelled and client.state == ClientState.RUNNING:
                         await client.interrupt()
                     emit({'type': 'client_control_ack', 'run_id': _client_command_run_id(command), 'op': 'interrupt'})
+                elif command_type == 'client_steer':
+                    ack = {'type': 'client_steer_ack', 'run_id': _client_command_run_id(command_value),
+                           'message_id': command_value.get('message_id')}
+                    if not current_run or response.cancelled or client.state != ClientState.RUNNING:
+                        emit({**ack, 'status': 'rejected', 'code': 'run_not_active'})
+                    else:
+                        try:
+                            steering = SteeringRequest.from_dict({
+                                'messageId': command_value.get('message_id'),
+                                'input': {'text': command_value.get('text')},
+                            })
+                        except ValueError:
+                            emit({**ack, 'status': 'rejected', 'code': 'invalid_steering'})
+                        else:
+                            try:
+                                await client.steer(steering.text, steering.message_id,
+                                    session_id=str(command.get('session_id') or 'default'))
+                            except BaseException:
+                                emit({**ack, 'status': 'unknown', 'code': 'sdk_steering_failed'})
+                                raise
+                            emit({**ack, 'status': 'delivered'})
                 elif command_type in {'client_query', 'client_interrupt', 'client_cancel'}:
                     emit({'type': 'client_error', 'run_id': _client_command_run_id(command_value), 'code': 'client_busy'})
             if next_task in done:
@@ -388,6 +410,9 @@ async def _receive_client_response(
                 except StopAsyncIteration as error:
                     raise SDKError("Claude SDK response stream 提前结束") from error
                 normalized = normalize_message(message)
+                if normalized.kind == 'steering':
+                    emit({'type': 'client_steer_ack', 'run_id': _client_command_run_id(command),
+                          'message_id': normalized.data['messageId'], 'status': 'applied'})
                 if timing is not None:
                     timing.mark('first_message')
                 if normalized.session_id:
@@ -399,6 +424,7 @@ async def _receive_client_response(
                     event = mcp_result_event(event, mcp_errors)
                     (chart_delivery.emit if chart_delivery else emit)(direct_capability_event(event) if direct_capability else event)
                 if normalized.kind == "result":
+                    response.close_requested |= not getattr(client, 'reusable', True)
                     completed = True
                     return response
                 next_task = asyncio.create_task(iterator.__anext__(), name="ccsdk-client-response")
@@ -487,6 +513,10 @@ async def run_client(initial: dict[str, Any]) -> None:
                 emit({"type": "client_error", "code": _client_error_code(error)} if error else
                      {"type": "client_closed", "state": client.state.value})
                 return
+            if command_type == 'client_steer':
+                emit({'type': 'client_steer_ack', 'run_id': _client_command_run_id(command),
+                      'message_id': command.get('message_id'), 'status': 'rejected', 'code': 'run_not_active'})
+                continue
             if command_type != "client_query":
                 emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
                 continue
@@ -538,6 +568,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         timing.mark('query_begin')
                         await client.query(str(prompt or ""), session_id=str(command.get("session_id") or "default"))
                         timing.mark('query_sent')
+                        emit({'type': 'client_input_ready', 'run_id': run_id})
                         response = await _receive_client_response(
                             client, command, streaming, command_queue, direct_capability, deadline,
                             chart_delivery, mcp_errors, timing, tool_scope,
@@ -575,6 +606,9 @@ async def run_client(initial: dict[str, Any]) -> None:
                     if tool_services is not None:
                         tool_services.clear()
             # 终态是下一轮的放行屏障，必须排在工具、凭据清理之后。
+            if not getattr(client, 'reusable', True):
+                # 未确认的运行中输入不能把残留会话交给后续 Run；普通 SDK 失败沿用原终态事件。
+                outcome['reusable'] = False
             if failed or response.close_requested:
                 await disconnect()
             terminal(outcome, timing)

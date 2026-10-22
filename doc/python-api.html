@@ -48,6 +48,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
 <tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok": true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 File Broker 可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
+<tr><td>消息引导</td><td><code>/internal/v1/runs/{runId}/steer</code>、<code>/internal/v1/runs/{runId}/steering/{messageId}</code></td><td>将文本补充要求追加到活动 Run；不创建下一 Run。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
 <tr><td>资产管理</td><td><code>/internal/v1/assets</code></td><td>独立管理 JWT 授权；查询可组合资产，校验或新建能力。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Python 自动上传已发布成果；Java 按 artifactId 获取状态，按 fileId 关联业务消息。</td></tr>
@@ -406,6 +407,39 @@ xychart-beta
 <tr><td>lastSequence</td><td>Run 当前已持久化的最大事件序号；0 表示尚无事件。它用于了解事件进度，不是 SDK resume 标识。续传应使用 Java 已成功处理的事件序号，不能直接用查询所得值跳过未消费事件。</td></tr>
 <tr><td>error</td><td>可选；Run 失败时保存的稳定错误码。</td></tr>
 </tbody></table></section>
+
+<section id="steering"><h2>运行中消息引导</h2>
+<p>引导与排队创建下一条消息是不同操作。Java 持久化并调度的下一条消息继续使用 <code>POST /internal/v1/runs</code> 创建新 Run；需要补充当前任务要求时调用本接口，沿用原 <code>runId</code> 并使用新的 <code>messageId</code>。默认不打断当前工具调用，待工具结束后由 SDK 在会话消息边界处理补充。要停止当前执行，调用<a href="#control">cancel</a>；之后的业务消息再创建新 Run。</p>
+<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/steer</code></div>
+<p>必须使用单独的 <code>run.steer</code> scope。JWT 绑定当前 Run 的身份、租户、业务会话和 capabilityRef，并将新的 <code>messageId</code> 写入同名 Claim。此 Token 不能代替 <code>run.execute</code>，普通执行 Token 也不能引导。引导请求不消费 <code>jti</code>；相同请求可用相同 JWT 重试。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;scope=run.steer 且 messageId=message_02 的 Run JWT&gt;
+Content-Type: application/json</pre></div>
+<div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
+  "messageId": "message_02",
+  "input": {
+    "text": "补充要求：按学院统计，并列出同比变化"
+  }
+}</pre></div>
+<p>只接收非空文本，最多 16,384 字符，每 Run 最多 100 条；messageId 不能复用该 Run 的触发消息。附件、凭据、执行配置以及以 <code>/</code> 或 <code>!</code> 开头的命令不接受。引导要求持久 Client：带 businessSessionId 的 Run 使用此模式；无会话的独立 query 模式不支持引导。只有活动 Run 的 SDK 输入就绪后才可提交；排队、文件准备、保存文件、取消及 Run 终态期间的新引导返回 <code>409</code>。该接口不修改 Capability、工具权限或凭据。</p>
+<div class="code-wrap"><div class="code-label">Response 202 · accepted</div><button class="copy" type="button">复制</button><pre>{
+  "steering": {
+    "runId": "run_01",
+    "messageId": "message_02",
+    "status": "accepted",
+    "code": null
+  }
+}</pre></div>
+<p>相同 <code>runId</code>/<code>messageId</code>/文本重试返回当前回执和 <code>200</code>，不会再次发送；同一标识对应不同文本返回 <code>409</code>。控制超时或 Runtime 重启后的未确认输入为 <code>unknown</code>，不可自动重发；Java 应查询回执并依业务决定是否另建 Run。</p>
+<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/steering/{messageId}</code></div>
+<p>使用 <code>run.read</code> / <code>run.execute</code> 查询本 Run 任一回执，或使用 messageId 与请求路径完全绑定的 <code>run.steer</code> Token 查询该条回执。查询不消费 <code>jti</code>。</p>
+<table><thead><tr><th>状态</th><th>含义</th></tr></thead><tbody>
+<tr><td>accepted</td><td>Python 已持久接收请求。</td></tr>
+<tr><td>delivered</td><td>补充文本已写入当前 SDK Client。</td></tr>
+<tr><td>applied</td><td>SDK 以消息 UUID 回显，确认已纳入会话；不保证模型会遵从内容。</td></tr>
+<tr><td>rejected</td><td>补充文本未发送，例如 Run 已离开活动状态。</td></tr>
+<tr><td>unknown</td><td>无法确认 SDK 是否纳入；查询回执，不换新 messageId 自动重发。同 ID 的幂等重试只返回回执。活动 Run 中迟到的 UUID 确认可更新为 applied。</td></tr>
+</tbody></table>
+<p>状态变化以 <code>agent-events/v1</code> 的 <code>steering.accepted</code>、<code>steering.delivered</code>、<code>steering.applied</code>、<code>steering.rejected</code>、<code>steering.unknown</code> 事件通知。事件仅含 messageId、状态、稳定错误码及显示名称，不含引导正文。</p></section>
 
 <section id="session-runs"><h2>按业务会话查询执行记录</h2>
 <p>用于查询<strong>某个业务会话在 Python Runtime 中发起过哪些执行，以及每次执行的当前状态</strong>。例如用户重新打开会话时，Java 可通过此接口取得 Run 列表，再按 <code>messageId</code> 关联自己保存的业务消息，显示“执行中”“已完成”或“失败”等状态。</p>
@@ -801,12 +835,14 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>jti</td><td>JWT 唯一标识</td><td>创建和 interrupt 请求防重放；幂等 cancel、查询、SSE 和 Artifact GET 不消费。</td></tr>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
-<tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话，不再校验 <code>messageId</code>。</td></tr>
-<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.control</code>、<code>run.cancel</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
+<tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话；引导另绑定新 messageId，普通 Run 查询与控制不绑定触发消息 ID。</td></tr>
+<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.steer</code>、<code>run.control</code>、<code>run.cancel</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
 </tbody></table>
 <table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
 <tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
 <tr><td>查询、SSE、Artifact GET</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>创建消息引导</td><td><code>run.steer</code></td><td>不消费；JWT messageId 必须等于本次引导请求的 messageId</td></tr>
+<tr><td>查询消息引导回执</td><td><code>run.read</code>、<code>run.execute</code>，或绑定该 messageId 的 <code>run.steer</code></td><td>不消费</td></tr>
 <tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>interrupt 消费；cancel 不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>

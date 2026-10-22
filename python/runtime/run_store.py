@@ -20,6 +20,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from runtime.event_display import with_display_name
+
 
 RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 STATUSES = {"queued", "running", "waiting", "succeeded", "failed", "cancelled"}
@@ -118,6 +120,15 @@ class RunStore:
                     record_json TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
+                CREATE TABLE IF NOT EXISTS run_steering (
+                    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+                    message_id TEXT NOT NULL,
+                    request_hash TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    code TEXT,
+                    PRIMARY KEY (run_id, message_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_run_steering_status ON run_steering(status);
                 CREATE INDEX IF NOT EXISTS idx_runs_session_created
                     ON runs(tenant_id, user_id, business_session_id, created_at DESC, run_id DESC);
                 CREATE TABLE IF NOT EXISTS session_workspaces (
@@ -441,6 +452,131 @@ class RunStore:
             self._connection.commit()
             row = self._connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return self._run_row(row)
+
+    def get_steering(self, run_id: str, message_id: str) -> dict[str, Any] | None:
+        """读取文本不落盘的引导回执，只返回状态和稳定错误码。"""
+        run_id = _validate_run_id(run_id)
+        message_id = _validate_run_id(message_id)
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT run_id,message_id,status,code FROM run_steering WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+        return self._steering_row(row) if row else None
+
+    def create_steering(self, run_id: str, message_id: str, text: str) -> tuple[dict[str, Any], bool]:
+        """原子记录引导请求与 accepted 事件；重复标识仅允许同一文本摘要。"""
+        run_id = _validate_run_id(run_id)
+        message_id = _validate_run_id(message_id)
+        if not isinstance(text, str) or not text.strip() or "\x00" in text:
+            raise ValueError("steering text is invalid")
+        request_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        with self._lock:
+            existing = self._connection.execute(
+                "SELECT run_id,message_id,request_hash,status,code FROM run_steering WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+            if existing:
+                if existing["request_hash"] != request_hash:
+                    raise ValueError("steering_message_conflict")
+                return self._steering_row(existing), False
+            count = self._connection.execute(
+                "SELECT COUNT(*) FROM run_steering WHERE run_id=?", (run_id,),
+            ).fetchone()[0]
+            if count >= 100:
+                raise ValueError("steering_limit_reached")
+            try:
+                self._connection.execute(
+                    "INSERT INTO run_steering(run_id,message_id,request_hash,status,code) VALUES(?,?,?,?,NULL)",
+                    (run_id, message_id, request_hash, "accepted"),
+                )
+                self._append_steering_event(run_id, message_id, 'accepted')
+            except BaseException:
+                self._connection.rollback()
+                raise
+            row = self._connection.execute(
+                "SELECT run_id,message_id,status,code FROM run_steering WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+        return self._steering_row(row), True
+
+    def update_steering(
+        self, run_id: str, message_id: str, status: str, *, code: str | None = None,
+    ) -> dict[str, Any] | None:
+        """更新引导回执并同步追加脱敏事件，拒绝回退和不确定后的重放。"""
+        run_id = _validate_run_id(run_id)
+        message_id = _validate_run_id(message_id)
+        if status not in {"delivered", "applied", "rejected", "unknown"}:
+            raise ValueError("unsupported steering status")
+        if code is not None and (not isinstance(code, str) or not RUN_ID.fullmatch(code)):
+            raise ValueError("invalid steering code")
+        allowed = {
+            "accepted": {"delivered", "rejected", "unknown"},
+            "delivered": {"applied", "unknown"},
+            "unknown": {"applied"},
+            "applied": set(),
+            "rejected": set(),
+        }
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT run_id,message_id,status,code FROM run_steering WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+            if row is None:
+                return None
+            current = row["status"]
+            run = self.get_run(run_id)
+            if current == status or run['status'] in {'succeeded', 'failed', 'cancelled'}:
+                return self._steering_row(row)
+            if status not in allowed.get(current, set()):
+                # Worker 确认与控制超时可交错，迟到状态不能覆盖更强的确认。
+                return self._steering_row(row)
+            try:
+                self._connection.execute(
+                    "UPDATE run_steering SET status=?,code=? WHERE run_id=? AND message_id=?",
+                    (status, code, run_id, message_id),
+                )
+                self._append_steering_event(run_id, message_id, status, code)
+            except BaseException:
+                self._connection.rollback()
+                raise
+            updated = self._connection.execute(
+                "SELECT run_id,message_id,status,code FROM run_steering WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+        return self._steering_row(updated)
+
+    def settle_steering(self, run_id: str | None = None, *, code: str = "run_ended") -> list[dict[str, Any]]:
+        """将进程不再能确认的 accepted/delivered 引导标为 unknown，不重放文本。"""
+        if run_id is not None:
+            run_id = _validate_run_id(run_id)
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT run_id,message_id FROM run_steering WHERE status IN ('accepted','delivered')"
+                + (" AND run_id=?" if run_id else "") + " ORDER BY rowid",
+                (run_id,) if run_id else (),
+            ).fetchall()
+            settled = []
+            for row in rows:
+                result = self.update_steering(row["run_id"], row["message_id"], "unknown", code=code)
+                if result:
+                    settled.append(result)
+        return settled
+
+    def _append_steering_event(self, run_id: str, message_id: str, status: str, code: str | None = None) -> None:
+        """与回执同事务写入公共事件，正文只保留在 SDK 会话历史中。"""
+        payload = {'messageId': message_id, 'status': status}
+        if code:
+            payload['code'] = code
+        self.append_event(run_id, with_display_name({
+            'protocolVersion': 'agent-events/v1', 'runId': run_id,
+            'type': f'steering.{status}', 'payload': payload,
+        }))
+
+    @staticmethod
+    def _steering_row(row: sqlite3.Row) -> dict[str, Any]:
+        return {"runId": row["run_id"], "messageId": row["message_id"],
+                "status": row["status"], "code": row["code"]}
 
 
     def update_runtime_session_ref(self, run_id: str, value: str | None) -> dict[str, Any]:

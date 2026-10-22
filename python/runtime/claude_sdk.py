@@ -8,10 +8,11 @@ provider object model and exception hierarchy out of application code.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass, replace
 from enum import Enum
 import inspect
 import copy
+import uuid
 from fnmatch import fnmatchcase
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
@@ -384,6 +385,22 @@ async def _close_iterator(iterator: Any, timeout_ms: int = RUNTIME_SETTINGS.time
         await asyncio.wait_for(result, timeout_ms / 1000)
 
 
+def _add_response_usage(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    """合并每段回复的 usage 数值；不用于连接累计的 model_usage 或 total_cost_usd。"""
+    merged = copy.deepcopy(previous)
+    for key, value in current.items():
+        old = merged.get(key)
+        if isinstance(value, dict):
+            merged[key] = _add_response_usage(old if isinstance(old, dict) else {}, value)
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            merged[key] = (old if isinstance(old, (int, float)) else 0) + value
+        elif isinstance(value, list):
+            merged[key] = (old if isinstance(old, list) else []) + copy.deepcopy(value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def _validate_timeout(timeout_ms: int | None, name: str) -> None:
     """检查指定名称的超时参数是否为正整数或 None；无返回值，非法值抛出配置错误。"""
     if timeout_ms is not None and (
@@ -464,6 +481,9 @@ class ClaudeSDKClient:
         self._turn_settings = {name: copy.deepcopy(getattr(options, name))
                                for name in ('thinking', 'effort', 'add_dirs', 'permission_mode')}
         self._hot_env = self._model_environment(self._baseline_env)
+        self._steering_messages: dict[str, str] = {}
+        self._steered = False
+        self._interrupted = False
 
     def _model_environment(self, environment):
         # env=null 不能撤销 CLI process.env，必须逐项写回基线；空字符串撤销原本不存在的值。
@@ -474,6 +494,11 @@ class ClaudeSDKClient:
     def state(self) -> ClientState:
         """返回当前 Client 生命周期状态，无额外输入。"""
         return self._state
+
+    @property
+    def reusable(self) -> bool:
+        """未确认的输入或带引导的中断必须退役连接，避免下一 Run 领取残留回复。"""
+        return not self._steering_messages and not (self._interrupted and self._steered)
 
     def _claim_owner(self) -> None:
         """绑定或校验当前 asyncio Task 的独占操作权；无返回值，跨 Task 调用时报错。"""
@@ -607,6 +632,9 @@ class ClaudeSDKClient:
         self._require_state({ClientState.READY})
         if not isinstance(prompt, str) or not prompt.strip():
             raise SDKConfigurationError("Client query prompt 不能为空")
+        if not self.reusable:
+            raise SDKExecutionError("Claude Client 仍有未收敛的引导输入")
+        self._steered = self._interrupted = False
         provider = self._provider
         if provider is None:
             self._state = ClientState.FAILED
@@ -630,6 +658,45 @@ class ClaudeSDKClient:
             self._provider = None
             raise _safe_sdk_error(error) from error
 
+    async def steer(self, text: str, message_id: str, *, session_id: str = "default") -> str:
+        """将文本补充要求写入正在运行的 SDK 会话并返回其关联 UUID。"""
+        self._claim_owner()
+        self._require_state({ClientState.RUNNING})
+        if not isinstance(text, str) or not text.strip() or not isinstance(message_id, str) or not message_id.strip():
+            raise SDKConfigurationError("steering text and message id are required")
+        provider = self._provider
+        if provider is None:
+            self._state = ClientState.FAILED
+            raise SDKExecutionError("Claude Client provider 不存在")
+        message_uuid = str(uuid.uuid4())
+
+        async def input_stream():
+            yield {
+                "type": "user",
+                "uuid": message_uuid,
+                "session_id": session_id,
+                "parent_tool_use_id": None,
+                "message": {"role": "user", "content": text},
+            }
+
+        self._steering_messages[message_uuid] = message_id
+        self._steered = True
+        try:
+            await _await_with_timeout(provider.query(input_stream(), session_id=session_id), self._query_timeout_ms)
+        except BaseException as error:
+            self._state = ClientState.FAILED
+            cleanup_error = await _disconnect_provider(provider, self._disconnect_timeout_ms)
+            self._provider = None
+            if isinstance(error, asyncio.CancelledError):
+                raise
+            if isinstance(error, asyncio.TimeoutError):
+                raise SDKTimeoutError("Claude SDK steering query 超时") from error
+            failure = _safe_sdk_error(error)
+            if cleanup_error is not None:
+                failure.__cause__ = cleanup_error
+            raise failure from error
+        return message_uuid
+
     def receive_response(self, *, timeout_ms: int | None = None) -> AsyncIterator[SDKMessage]:
         """接收可选响应总时限，返回 SDKMessage 异步迭代器；未指定时使用实例默认时限。"""
         self._claim_owner()
@@ -651,6 +718,7 @@ class ClaudeSDKClient:
         completed = False
         primary_error: BaseException | None = None
         deadline = None if timeout_ms is None else time.monotonic() + timeout_ms / 1000
+        response_totals: dict[str, Any] = {}
         try:
             iterator = provider.receive_response().__aiter__()
             while True:
@@ -663,7 +731,26 @@ class ClaudeSDKClient:
                 except StopAsyncIteration as error:
                     raise SDKExecutionError("Claude SDK response stream 提前结束") from error
                 message = normalize_message(raw)
+                if message.kind == "user" and message.uuid in self._steering_messages:
+                    message = SDKMessage(
+                        kind="steering",
+                        data={"messageId": self._steering_messages.pop(message.uuid), "status": "applied"},
+                        session_id=message.session_id,
+                        parent_tool_use_id=message.parent_tool_use_id,
+                        uuid=message.uuid,
+                    )
                 if message.kind == "result":
+                    response_totals = _add_response_usage(response_totals, {
+                        key: message.data[key] for key in ('num_turns', 'duration_ms', 'duration_api_ms', 'usage')
+                        if message.data.get(key) is not None
+                    })
+                    # SDK 的便捷迭代器遇到每个 Result 就结束；补充输入尚未被 CLI
+                    # 回显时继续读取下一段回复，不能把它遗留给下一业务 Run。
+                    if self._steering_messages and not self._interrupted and not message.data.get("is_error"):
+                        await _close_iterator(iterator, self._disconnect_timeout_ms)
+                        iterator = provider.receive_response().__aiter__()
+                        continue
+                    message = replace(message, data={**message.data, **response_totals})
                     completed = True
                     self._state = ClientState.READY
                 yield message
@@ -708,6 +795,7 @@ class ClaudeSDKClient:
         """请求底层 Client 中断当前生成，无额外输入和返回值；调用后仍需消费回复至结束。"""
         self._claim_owner()
         self._require_state({ClientState.RUNNING})
+        self._interrupted = True
         provider = self._provider
         if provider is None:
             self._state = ClientState.FAILED

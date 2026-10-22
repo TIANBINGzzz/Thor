@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 PROTOCOL = "agent-run/v1"
 MAX_TEXT_LENGTH = 1_000_000
+MAX_STEERING_TEXT_LENGTH = 16_384
 MAX_TOKEN_LENGTH = 16_384
 MAX_PAYLOAD_BYTES = 65_536
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
@@ -124,6 +125,41 @@ class Input:
 
 
 @dataclass(frozen=True)
+class SteeringRequest:
+    """当前 Run 的文本补充要求；不携带附件、凭据或执行配置。"""
+
+    message_id: str
+    text: str
+
+    @classmethod
+    def from_dict(cls, value: Any) -> "SteeringRequest":
+        """校验运行中引导请求，拒绝空文本、命令前缀和越权字段。"""
+        data = _object(value, "steering")
+        _keys(data, {"messageId", "input"}, "steering")
+        message_id = _id(data.get("messageId"), "messageId") or ""
+        input_data = _object(data.get("input"), "input")
+        _keys(input_data, {"text"}, "input")
+        text = input_data.get("text")
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or "\x00" in text
+            or len(text) > MAX_STEERING_TEXT_LENGTH
+            or text.lstrip().startswith(("/", "!"))
+        ):
+            raise ProtocolError("steering.input.text is invalid")
+        try:
+            text.encode("utf-8")
+        except UnicodeEncodeError as error:
+            raise ProtocolError("steering.input.text must be valid UTF-8") from error
+        return cls(message_id=message_id, text=text)
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为内部请求形状；只返回业务文本和消息标识。"""
+        return {"messageId": self.message_id, "input": {"text": self.text}}
+
+
+@dataclass(frozen=True)
 class Credentials:
     platform_bearer: str | None = field(default=None, repr=False)
 
@@ -197,4 +233,7 @@ class AgentRunRequest:
             result["credentials"] = self.credentials.to_dict(include_secret=True)
         return {key: value for key, value in result.items() if value not in (None, {})}
 
-__all__ = ["AgentRunRequest", "AttachmentRef", "Credentials", "Input", "PROTOCOL", "ProtocolError"]
+__all__ = [
+    "AgentRunRequest", "AttachmentRef", "Credentials", "Input", "SteeringRequest",
+    "PROTOCOL", "ProtocolError",
+]

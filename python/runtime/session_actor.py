@@ -146,6 +146,8 @@ class SessionActor:
         self._reclaim_retry_handle: asyncio.TimerHandle | None = None
         self._reclaim_retry_delay = 0.1
         self._runtime_applied = False
+        self._accepts_steering = False
+        self._steering_commands: dict[str, _Command] = {}
         # 只保存 SDK 已确认生效的会话偏好；待应用配置失败时不能污染后续继承。
         self._applied_runtime = dict(self._initial_payload.get('_client_runtime') or {})
 
@@ -237,6 +239,19 @@ class SessionActor:
                     cleanup_task.cancel()
                     await asyncio.gather(cleanup_task, return_exceptions=True)
             raise
+
+    def can_steer(self, run_id: str) -> bool:
+        """仅当前 SDK 输入就绪的 Run 可接收补充；准备、清理和取消均关闭入口。"""
+        return (self._active_run_id == run_id and self._state == ActorState.RUNNING
+                and self._accepts_steering and not self._close_requested
+                and run_id not in self._cancel_requested)
+
+    async def steer(self, run_id: str, message_id: str, text: str) -> dict[str, Any]:
+        """通过所属邮箱补充当前 Run，等 Worker 确认发送，不中断工具调用。"""
+        if not self.can_steer(run_id):
+            raise SessionActorError('当前 Run 不接受引导', code='run_not_steerable')
+        command = await self._enqueue('steer', run_id, {'message_id': message_id, 'text': text})
+        return await command.future
 
     async def interrupt(self, run_id: str) -> None:
         """接收 Run 标识并提交中断命令，等待处理完成；准备阶段改为取消，无返回值。"""
@@ -365,6 +380,8 @@ class SessionActor:
                     # Task；失败回收例外，必须留下 Actor 作为重试 owner。
                     if reclaimed and self._commands.empty() and not self._pending_runs:
                         return
+                elif command.kind == 'steer':
+                    self._resolve(command, {'status': 'rejected', 'code': 'run_not_active'})
                 elif command.kind in {"interrupt", "cancel"}:
                     self._resolve_error(command, SessionActorError("当前没有活动 Run", code="no_active_run"))
         except asyncio.CancelledError:
@@ -388,6 +405,7 @@ class SessionActor:
         assert command.run_id is not None
         self._cancel_idle_timer()
         self._active_run_id = command.run_id
+        self._accepts_steering = False
         self._active_run_started_at = int(time.time() * 1000)
         self._streaming_state = "waiting"
         self._runtime_applied = False
@@ -484,6 +502,7 @@ class SessionActor:
                 failure.__cause__ = error
             self._resolve_run_error(command, failure)
         finally:
+            self._accepts_steering = False
             command.timing.mark('completed')
             await self._emit_performance(command.run_id, command.timing.event())
             self._cancel_requested.discard(command.run_id)
@@ -598,12 +617,19 @@ class SessionActor:
         )
         next_task: asyncio.Task[Any] | None = asyncio.create_task(worker.next_event(), name="ccsdk-actor-event")
         command_task: asyncio.Task[Any] | None = asyncio.create_task(self._commands.get(), name="ccsdk-actor-command")
+        simultaneous_command: _Command | None = None
 
         async def handle_control(value):
-            nonlocal deadline
+            nonlocal deadline, simultaneous_command
+            simultaneous_command = None
             if value.kind == 'close' or (value.kind == 'cancel' and value.run_id == run_id):
                 deadline = min(deadline or float('inf'), time.monotonic() + self._control_timeout_ms / 1000)
-            await self._handle_active_command(value, run_id, worker)
+            try:
+                await self._handle_active_command(value, run_id, worker)
+            except Exception:
+                if value.kind != 'steer':
+                    self._resolve_error(value, SessionActorError('Client 控制失败', code='worker_control_error'))
+                raise
 
         try:
             while True:
@@ -621,7 +647,7 @@ class SessionActor:
                 if next_task in done:
                     event = next_task.result()
                     next_task = asyncio.create_task(worker.next_event(), name="ccsdk-actor-event")
-                    simultaneous_command: _Command | None = None
+                    simultaneous_command = None
                     if command_task in done:
                         simultaneous_command = command_task.result()
                         command_task = asyncio.create_task(self._commands.get(), name="ccsdk-actor-command")
@@ -632,6 +658,21 @@ class SessionActor:
                     event_type = event.get("type")
                     self._last_event_at = int(time.time() * 1000)
                     self._updated_at = self._last_event_at
+                    if event_type in {'client_input_ready', 'client_steer_ack'}:
+                        if event.get('run_id') == run_id:
+                            if event_type == 'client_input_ready':
+                                self._accepts_steering = True
+                            else:
+                                message_id = event.get('message_id')
+                                pending = self._steering_commands.get(message_id)
+                                if pending is not None and event.get('status') in {'delivered', 'applied', 'rejected', 'unknown'}:
+                                    await self._on_public_event(run_id, event)
+                                    self._resolve(pending, {key: event[key] for key in ('status', 'code') if key in event})
+                                    if event['status'] in {'applied', 'rejected'}:
+                                        self._steering_commands.pop(message_id, None)
+                        if simultaneous_command is not None:
+                            await handle_control(simultaneous_command)
+                        continue
                     if event_type in {"client_ready", "client_control_ack"}:
                         if simultaneous_command is not None:
                             await handle_control(simultaneous_command)
@@ -644,6 +685,7 @@ class SessionActor:
                             await handle_control(simultaneous_command)
                         continue
                     if event_type in {"client_run_completed", "client_run_cancelled", "client_error"}:
+                        self._accepts_steering = False
                         session_id = event.get("session_id") or event.get("sessionId")
                         if session_id:
                             self._last_session_id = str(session_id)
@@ -654,10 +696,13 @@ class SessionActor:
                         elif simultaneous_command is not None and simultaneous_command.kind == "run":
                             self._pending_runs.append(simultaneous_command)
                         elif simultaneous_command is not None:
-                            self._resolve_error(
-                                simultaneous_command,
-                                SessionActorError("当前 Run 已结束", code="run_not_active"),
-                            )
+                            if simultaneous_command.kind == 'steer':
+                                self._resolve(simultaneous_command, {'status': 'rejected', 'code': 'run_not_active'})
+                            else:
+                                self._resolve_error(simultaneous_command, SessionActorError('当前 Run 已结束', code='run_not_active'))
+                        simultaneous_command = None
+                        if event.get('reusable') is False:
+                            await self._discard_worker('steering_unconfirmed')
                         if event_type == "client_run_completed":
                             return _RunOutcome("succeeded", self._last_session_id)
                         if event_type == "client_run_cancelled":
@@ -666,6 +711,8 @@ class SessionActor:
                     if event_type == "worker_exit":
                         raise ClientWorkerError("Client worker 已退出")
                     if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance', 'diagnostic', 'assistant_turn'}:
+                        if event_type in {'result', 'error'}:
+                            self._accepts_steering = False
                         if event_type == 'text' and isinstance(event.get('text'), str) and event['text'].strip():
                             timing.mark('first_text')
                         session_id = event.get("sessionId")
@@ -687,12 +734,28 @@ class SessionActor:
                 command_task = asyncio.create_task(self._commands.get(), name="ccsdk-actor-command")
                 await handle_control(command_value)
         finally:
+            self._accepts_steering = False
+            if simultaneous_command is not None:
+                self._commands.put_nowait(simultaneous_command)
+            # 等待 Worker/回调时，邮箱读取可能已完成，不能丢掉已出队命令。
+            if command_task is not None and command_task.done() and not command_task.cancelled():
+                self._commands.put_nowait(command_task.result())
             for task in (next_task, command_task):
                 if task is not None and not task.done():
                     task.cancel()
             pending = [task for task in (next_task, command_task) if task is not None]
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
+            for message_id, steering in list(self._steering_commands.items()):
+                try:
+                    await self._on_public_event(run_id, {'type': 'client_steer_ack', 'run_id': run_id,
+                        'message_id': message_id, 'status': 'unknown', 'code': 'run_ended'})
+                except Exception as error:
+                    # 回执出口故障不能覆盖已确定的 Run 结果，也不能阻断其他等待者收尾。
+                    LOGGER.warning('引导收尾回执失败：%s', type(error).__name__)
+                finally:
+                    self._resolve(steering, {'status': 'unknown', 'code': 'run_ended'})
+                    self._steering_commands.pop(message_id, None)
 
     async def _close_worker(self) -> None:
         """确认 Worker 退出才关闭 Actor；失败保留管理归属、容量并安排重试。"""
@@ -762,6 +825,16 @@ class SessionActor:
         command_type = command_value.kind
         if command_type == "run":
             self._pending_runs.append(command_value)
+            return
+        if command_type == 'steer':
+            if command_value.future.cancelled():
+                return
+            if command_value.run_id != run_id or not self.can_steer(run_id):
+                self._resolve(command_value, {'status': 'rejected', 'code': 'run_not_active'})
+                return
+            message_id = command_value.payload['message_id']
+            self._steering_commands[message_id] = command_value
+            await worker.send({'type': 'client_steer', 'run_id': run_id, **command_value.payload})
             return
         if command_type == "interrupt":
             if command_value.run_id == run_id:

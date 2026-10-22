@@ -26,7 +26,7 @@ from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verif
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.asset_management import create_asset_router
-from runtime.protocol import AgentRunRequest, ProtocolError
+from runtime.protocol import AgentRunRequest, ProtocolError, SteeringRequest
 from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
@@ -63,6 +63,7 @@ RUNTIME_JWT_ISSUER = os.environ.get(
 RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe-runs" / "runs.sqlite3")))
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
 internal_cancellations: dict[str, asyncio.Task[Any]] = {}
+internal_steering_tasks: dict[tuple[str, str], asyncio.Task[Any]] = {}
 pending_terminals: dict[str, dict[str, Any]] = {}
 ARTIFACT_DELIVERY: ArtifactDelivery | None = None
 TOOL_DISPLAYS = ToolCallDisplays()
@@ -93,6 +94,7 @@ async def lifespan(_: FastAPI):
                             worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
     try:
+        RUN_STORE.settle_steering(code='runtime_restarted')
         SESSION_MANAGER = _create_session_manager()
         WORKER_POOL.reclaim_idle = SESSION_MANAGER.reclaim_oldest_idle
         await _artifact_delivery().recover()
@@ -129,6 +131,11 @@ async def _shutdown_runtime():
         task.cancel()
     if cancellations:
         await asyncio.gather(*cancellations, return_exceptions=True)
+    steering = list(internal_steering_tasks.values())
+    for task in steering:
+        task.cancel()
+    if steering:
+        await asyncio.gather(*steering, return_exceptions=True)
     SESSION_MANAGER = None
 
 
@@ -237,6 +244,7 @@ def _authorize_internal(
     *,
     allowed_scopes: set[str],
     consume_jti: bool,
+    message_id: str | None = None,
 ) -> dict[str, Any]:
     """校验请求 JWT、允许权限及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
     if not RUNTIME_JWT_SECRET:
@@ -253,6 +261,7 @@ def _authorize_internal(
             business_session_id=run.get("businessSessionId"),
             tenant_id=run.get("tenantId"),
             user_id=run.get("userId"),
+            message_id=message_id,
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
             expected_scope=allowed_scopes,
@@ -440,6 +449,10 @@ def _record_exception(run_id: str, error: Exception) -> None:
 
 async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
     """分流私有观测、产物和公共事件，暂存终态直到文件交付收尾。"""
+    if raw.get('type') == 'client_steer_ack':
+        if raw.get('run_id') == run_id:
+            await _update_steering(run_id, raw['message_id'], raw['status'], raw.get('code'))
+        return
     if raw.get('type') in {'performance', 'diagnostic', 'assistant_turn'}:
         _record_observation(run_id, raw)
         return
@@ -472,7 +485,13 @@ async def _finish_run(run_id: str, event: dict[str, Any]) -> None:
     current = RUN_STORE.get_run(run_id)
     if current and current['status'] not in TERMINAL_RUN_STATUSES:
         status = {'run.completed': 'succeeded', 'run.failed': 'failed', 'run.cancelled': 'cancelled'}[event['type']]
+        sequence = current['lastSequence']
+        RUN_STORE.settle_steering(run_id)
+        steering_events = RUN_STORE.events_after(run_id, sequence)
+        # 结算回执和封闭状态之间不让出协程，迟到确认不能出现在 Run 终态后。
         RUN_STORE.update_status(run_id, status, error=event.get('payload', {}).get('code'))
+        for stored in steering_events:
+            await _notify_stored_event(stored)
         await _publish_internal_event(run_id, event)
 
 
@@ -1007,6 +1026,101 @@ async def internal_create_run(request: Request):
     )
 
 
+async def _update_steering(run_id: str, message_id: str, status: str, code: str | None = None):
+    """回执与事件先原子落盘，再通知 SSE；重复或迟到状态不重复发事件。"""
+    run = RUN_STORE.get_run(run_id)
+    if run is None:
+        return None
+    record = RUN_STORE.update_steering(run_id, message_id, status, code=code)
+    events = RUN_STORE.events_after(run_id, run['lastSequence'])
+    for event in events:
+        await _notify_stored_event(event)
+    return record
+
+
+async def _dispatch_steering(actor, run_id: str, steering: SteeringRequest, accepted_events):
+    """已接受的输入独立于 HTTP 连接；超时不确定时不自动重投。"""
+    try:
+        for event in accepted_events:
+            await _notify_stored_event(event)
+        outcome = await asyncio.wait_for(
+            actor.steer(run_id, steering.message_id, steering.text),
+            RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000,
+        )
+        await _update_steering(run_id, steering.message_id, outcome['status'], outcome.get('code'))
+    except asyncio.CancelledError:
+        await _update_steering(run_id, steering.message_id, 'unknown', 'runtime_stopping')
+        raise
+    except SessionActorError as error:
+        rejected = error.code in {'run_not_steerable', 'run_not_active', 'session_actor_closed'}
+        await _update_steering(run_id, steering.message_id, 'rejected' if rejected else 'unknown',
+                               'run_not_active' if rejected else 'steering_failed')
+    except asyncio.TimeoutError:
+        await _update_steering(run_id, steering.message_id, 'unknown', 'control_timeout')
+    except Exception:
+        await _update_steering(run_id, steering.message_id, 'unknown', 'steering_failed')
+
+
+def _steering_task_done(key, task):
+    if internal_steering_tasks.get(key) is task:
+        internal_steering_tasks.pop(key, None)
+    if not task.cancelled() and task.exception() is not None:
+        LOGGER.warning('引导回执结算失败：%s', type(task.exception()).__name__)
+
+
+@app.post('/internal/v1/runs/{run_id}/steer')
+async def internal_steer_run(run_id: str, request: Request):
+    """仅追加文本到活动 Run，独立 run.steer 授权绑定本次业务 messageId。"""
+    try:
+        steering = SteeringRequest.from_dict(await _small_json(request, INTERNAL_BODY_BYTES))
+        run = RUN_STORE.get_run(run_id)
+        if run is None:
+            return _plain('Run 不存在', 404)
+        _authorize_internal(request, run, allowed_scopes={'run.steer'}, consume_jti=False,
+                            message_id=steering.message_id)
+        if steering.message_id == run['metadata'].get('messageId'):
+            return _plain('steering_message_conflict', 409)
+        existing = RUN_STORE.get_steering(run_id, steering.message_id)
+        actor = SESSION_MANAGER.actor_for_run(run_id) if SESSION_MANAGER is not None else None
+        if existing is None and (run['status'] != 'running' or actor is None or not actor.can_steer(run_id)):
+            return _plain('run_not_steerable', 409)
+        record, created = RUN_STORE.create_steering(run_id, steering.message_id, steering.text)
+        if created:
+            # accepted 落盘至后台任务登记之间不 await，断开请求也不能遗留可重复发送的输入。
+            key = (run_id, steering.message_id)
+            task = asyncio.create_task(_dispatch_steering(
+                actor, run_id, steering, RUN_STORE.events_after(run_id, run['lastSequence'])),
+                name=f'ccsdk-steer:{run_id}:{steering.message_id}')
+            internal_steering_tasks[key] = task
+            task.add_done_callback(lambda done: _steering_task_done(key, done))
+    except _InternalAuthError as error:
+        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
+    except ValueError as error:
+        code = str(error)
+        return _plain(code, 409 if code in {'steering_message_conflict', 'steering_limit_reached'} else 400)
+    return JSONResponse({'steering': record}, status_code=202 if created else 200,
+                        headers={'cache-control': 'no-store'})
+
+
+@app.get('/internal/v1/runs/{run_id}/steering/{message_id}')
+async def internal_get_steering(run_id: str, message_id: str, request: Request):
+    """终态后仍可查回执；run.steer 只能查询签名绑定的那条补充消息。"""
+    try:
+        run = RUN_STORE.get_run(run_id)
+        if run is None:
+            return _plain('Run 不存在', 404)
+        try:
+            _authorize_internal(request, run, allowed_scopes={'run.read', 'run.execute'}, consume_jti=False)
+        except _InternalAuthError:
+            _authorize_internal(request, run, allowed_scopes={'run.steer'}, consume_jti=False, message_id=message_id)
+        record = RUN_STORE.get_steering(run_id, message_id)
+    except _InternalAuthError as error:
+        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
+    except ValueError:
+        return _plain('引导标识无效', 400)
+    return JSONResponse({'steering': record}, headers={'cache-control': 'no-store'}) if record else _plain('引导不存在', 404)
+
+
 @app.get("/internal/v1/sessions/{business_session_id}/runs")
 def internal_session_runs(
     business_session_id: str, request: Request,
@@ -1108,10 +1222,17 @@ async def internal_run_events(
                     continue
                 if event["sequence"] <= cursor:
                     continue
-                cursor = event["sequence"]
-                yield format_event(event)
-                if event["type"] in {"run.completed", "run.failed", "run.cancelled"}:
-                    return
+                # 多个生产者的通知可能交错；先按持久化序号补齐缺口，再推进游标。
+                while event['sequence'] > cursor:
+                    batch = ([event] if event['sequence'] == cursor + 1 else
+                             RUN_STORE.events_after(run_id, cursor, limit=min(500, event['sequence'] - cursor)))
+                    if not batch:
+                        break
+                    for stored in batch:
+                        cursor = stored['sequence']
+                        yield format_event(stored)
+                        if stored['type'] in {'run.completed', 'run.failed', 'run.cancelled'}:
+                            return
         finally:
             async with internal_runs_lock:
                 subscribers = internal_subscribers.get(run_id)

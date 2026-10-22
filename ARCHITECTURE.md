@@ -43,6 +43,7 @@
 - 前端只触发 Capability；省略能力归一为 conversation，本轮授权与上轮界面选择分开。Workflow、Skill、模型、MCP 及连接均为内部组成。
 - 业务 Token、Run JWT、模型密钥用途分离，凭据不进入模型输入、公共事件或持久化日志；按 MCP 注入规则见工程要求。
 - 业务会话、Run、SDK session、Client 和 SSE 连接生命周期分开；断开订阅不取消 Run，resume 不撤销工具副作用。
+- Java 负责持久化消息与下一 Run 排队；文本引导只追加到活动 Run 的 SDK 会话，不新建 Run、不改变当前授权，默认不打断在途工具。停止仍走 cancel。
 - 公共事件脱敏，状态显示由 `event_display.py` 统一维护；显示名称不授予工具权限。配置快照、结果引用及文件状态不得跨身份或 Run 串用。
 
 ## 7. Important boundaries/interfaces
