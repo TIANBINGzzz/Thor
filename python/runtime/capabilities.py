@@ -43,7 +43,7 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
         return {}
     if not isinstance(value, dict):
         raise RuntimeError(f'{label}配置无效')
-    allowed = {'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms'}
+    allowed = {'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms', 'system_prompt_snapshot'}
     if set(value) - allowed:
         raise RuntimeError(f'{label}存在未知字段')
     if value.get('mode') is not None and value['mode'] not in {'query', 'client'}:
@@ -67,6 +67,8 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
         raise RuntimeError(f'{label}.effort配置无效')
     if value.get('prompt_mode') is not None and value['prompt_mode'] not in {'default', 'custom'}:
         raise RuntimeError(f'{label}.prompt_mode配置无效')
+    if 'system_prompt_snapshot' in value and type(value['system_prompt_snapshot']) is not bool:
+        raise RuntimeError(f'{label}.system_prompt_snapshot配置无效')
     return value
 
 

@@ -97,7 +97,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
         self.assertEqual(options.effort, 'low')
         self.assertEqual(options.max_turns, 8)
-        self.assertIsInstance(options.system_prompt, str)
+        self.assertEqual(options.system_prompt['type'], 'custom')
 
     def service(self, token='test-secret'):
         return CampusQuery(load_campus_assets(), {'platformBearer': token})

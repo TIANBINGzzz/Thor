@@ -7,7 +7,6 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from uuid import uuid4
 from unittest.mock import patch
 
@@ -26,6 +25,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
         app = FastAPI()
         stage = {'name': '', 'tool': None, 'requests': []}
         hits = []
+        validations = []
         model_started, tool_started, tool_cleaned = (asyncio.Event() for _ in range(3))
         tool_scope = SDKToolScope()
         with tempfile.TemporaryDirectory() as directory:
@@ -35,8 +35,17 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
             async def model(request: Request, path: str):
                 data = await request.json()
                 if not data.get('tools'):
-                    return JSONResponse({'type': 'error', 'error': {
-                        'type': 'invalid_request_error', 'message': 'local probe'}}, status_code=400)
+                    # 新 CLI 切换自定义模型时先发无工具的模型可用性校验。
+                    if data['model'] == 'probe-new-gateway-model':
+                        valid = path == 'changed/v1/messages' and request.headers.get('authorization') == 'Bearer changed-probe'
+                        validations.append(valid)
+                        if not valid:
+                            return JSONResponse({'type': 'error', 'error': {'type': 'not_found_error',
+                                'message': 'Model is available only at the new gateway with the new token'}}, status_code=404)
+                    return JSONResponse({'id': 'msg_validation', 'type': 'message', 'role': 'assistant',
+                        'model': data['model'], 'content': [{'type': 'text', 'text': 'OK.'}],
+                        'stop_reason': 'end_turn', 'stop_sequence': None,
+                        'usage': {'input_tokens': 1, 'output_tokens': 1}})
                 stage['requests'].append({'model': data['model'],
                     'tools': [item['name'] for item in data['tools']],
                     'thinking': data.get('thinking'), 'effort': data.get('output_config', {}).get('effort'),
@@ -121,7 +130,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     ('B', {'probe': server('B')}, 'mcp__probe__probe', 'probe-second-model'),
                     ('DENY', {}, 'Bash', 'probe-second-model')]:
                     stage.update(name=name, tool=tool, requests=[])
-                    turn = SimpleNamespace(model=model_name, mcp_servers=servers, tools=[],
+                    turn = build_agent_options(model=model_name, mcp_servers=servers, tools=[],
+                        env=options.env, permission_mode='bypassPermissions',
                         system_prompt='CONTEXT_' + name,
                         allowed_tools=['mcp__probe__probe'] if servers else [], disallowed_tools=[])
                     policy.bind(turn)
@@ -145,16 +155,18 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(hits, ['A', 'B'])
 
                 # 验证 SDK 私有设置真正改变模型请求，并能清除上轮环境覆盖。
+                changed_env = {'ANTHROPIC_BASE_URL': f'http://127.0.0.1:{port}/changed',
+                    'ANTHROPIC_AUTH_TOKEN': 'changed-probe', 'CLAUDE_CODE_EXTRA_BODY': '{"probe_marker":"hot"}'}
                 for name, model_name, thinking, effort, env in [
-                    ('HOT_ON', 'claude-sonnet-4-5', {'type': 'enabled', 'budget_tokens': 2048}, 'low',
-                     {'ANTHROPIC_BASE_URL': f'http://127.0.0.1:{port}/changed',
-                      'ANTHROPIC_AUTH_TOKEN': 'changed-probe', 'CLAUDE_CODE_EXTRA_BODY': '{"probe_marker":"hot"}'}),
+                    ('HOT_GATEWAY', 'probe-new-gateway-model', {'type': 'adaptive'}, 'low', changed_env),
+                    ('HOT_ON', 'claude-sonnet-4-5', {'type': 'enabled', 'budget_tokens': 2048}, 'low', changed_env),
                     ('HOT_LOW', 'claude-sonnet-4-6', {'type': 'adaptive'}, 'low', {}),
                     ('HOT_OFF', 'claude-sonnet-4-6', {'type': 'disabled'}, 'high', {}),
                     ('HOT_RESET', 'claude-sonnet-4-6', None, None, {}),
                 ]:
                     stage.update(name=name, tool=None, requests=[], auth='changed-probe' if env else 'local-probe')
-                    turn = SimpleNamespace(model=model_name, thinking=thinking, effort=effort, env=env,
+                    turn = build_agent_options(model=model_name, thinking=thinking, effort=effort, env=env,
+                        permission_mode='bypassPermissions',
                         mcp_servers={}, tools=[], allowed_tools=[], disallowed_tools=[],
                         system_prompt='CONTEXT_' + name)
                     policy.bind(turn)
@@ -169,8 +181,11 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(request['path'], 'changed/v1/messages' if env else 'v1/messages')
                     self.assertEqual(request['marker'], 'hot' if env else None)
                     self.assertEqual(request['thinking']['type'],
-                                     {'HOT_ON': 'enabled', 'HOT_LOW': 'adaptive',
+                                     {'HOT_GATEWAY': 'adaptive', 'HOT_ON': 'enabled', 'HOT_LOW': 'adaptive',
                                       'HOT_OFF': 'disabled', 'HOT_RESET': 'adaptive'}[name])
+                    if name == 'HOT_GATEWAY':
+                        self.assertTrue(validations)
+                        self.assertTrue(all(validations))
                     if name == 'HOT_ON':
                         self.assertEqual(request['thinking']['budget_tokens'], 2048)
                     if name != 'HOT_ON':

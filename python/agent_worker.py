@@ -625,6 +625,7 @@ async def run(payload: dict[str, Any]) -> None:
     # secrets loaded for configuration construction out of the provider CLI.
     timeout_ms = payload.get("timeout_ms", payload.get("timeoutMs", DEFAULT_TIMEOUT_MS))
     tool_services = None
+    policy = ClientTurnPolicy()
     try:
         tool_services = ToolServices(prepare_workflow_assets(payload), payload.get('credentials'))
         prompt = payload['prompt']
@@ -634,7 +635,8 @@ async def run(payload: dict[str, Any]) -> None:
         chart_delivery = ChartDelivery(emit)
         mcp_errors = []
         options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
-                                mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
+                                mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
+                                turn_policy=policy)
         direct_workflow = options.tools == [] and options.strict_mcp_config
         timing.mark('bound')
         with isolated_sdk_environment():
@@ -648,6 +650,7 @@ async def run(payload: dict[str, Any]) -> None:
                     event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_workflow_event(event) if direct_workflow else event)
     finally:
+        policy.clear()
         timing.mark('completed')
         emit_performance(timing)
         if tool_services is not None:

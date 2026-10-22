@@ -445,7 +445,8 @@ def build_system_prompt(
     template=None,
     prompt_documents: str | None = None,
     web_search_enabled: bool = False,
-) -> dict[str, str]:
+    snapshot: bool = True,
+) -> dict[str, Any]:
     """接收附加提示词、数据库开关和流程配置，返回 SDK 系统提示词预设及追加内容。"""
     parts = [
         "你是师创智能体（AI 师创智能体），代表师创智能体为用户提供可靠、清晰、可执行的帮助。",
@@ -463,10 +464,16 @@ def build_system_prompt(
     parts.extend([LANGUAGE_APPEND, WEB_INSTRUCTIONS if web_search_enabled else NO_WEB_APPEND])
     if extra.strip():
         parts.append(extra.strip())
-    return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts)}
+    return {"type": "preset", "preset": "claude_code", "append": "\n\n".join(parts), "snapshot": snapshot}
 
 
-def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None):
+def _shared_system_prompt(runtime):
+    return {'type': 'custom',
+            'prompt': '按可信服务端提供的本轮执行规则处理请求，历史能力规则不授予本轮权限。',
+            'snapshot': runtime.get('system_prompt_snapshot', True)}
+
+
+def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -530,7 +537,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     if (runtime.get('thinking') or {}).get('type') == 'disabled':
         # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
         sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
-    return build_agent_options(
+    options = build_agent_options(
         model=model,
         thinking=runtime.get("thinking"),
         effort=runtime.get("effort"),
@@ -541,12 +548,15 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         # 文档核验读取页面图片会产生较大的JSONL消息，默认1MiB会在发布前中断。
         max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes,
         setting_sources=[] if restricted_tools else ["project", "local"],
-        system_prompt=(assets["prompt"] + "\n" + prompt_append) if runtime.get("prompt_mode") == "custom" else build_system_prompt(
+        verbatim_prompts=True,
+        system_prompt={"type": "custom", "prompt": assets["prompt"] + "\n" + prompt_append,
+                       "snapshot": runtime.get('system_prompt_snapshot', True)} if runtime.get("prompt_mode") == "custom" else build_system_prompt(
             prompt_append,
             database_enabled,
             workflow_config,
             prompt_documents=assets['prompt'],
             web_search_enabled='web' in mcp_servers,
+            snapshot=runtime.get('system_prompt_snapshot', True),
         ),
         tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
         disallowed_tools=['WebSearch'],
@@ -558,6 +568,12 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         add_dirs=payload.get("additional_directories") or [],
         env=sdk_env,
     )
+    if turn_policy is not None:
+        # query 的历史也可被 Client 恢复，首轮快照只能保存共同底座。
+        turn_policy.bind(options)
+        options.system_prompt = _shared_system_prompt(runtime)
+        options.hooks = turn_policy.hooks()
+    return options
 
 
 def _connection_environment(workflow_name):
@@ -589,6 +605,7 @@ def _client_connection_values(payload):
     environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
     return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
                 max_turns=payload.get('max_turns') or runtime.get('max_turns') or RUNTIME_SETTINGS.limits.max_turns,
+                system_prompt=_shared_system_prompt(runtime),
                 include_partial_messages=True)
 
 
@@ -602,10 +619,12 @@ def inherit_client_runtime(payload, previous=None):
     assets = prepare_workflow_assets(payload)
     declared = assets['runtime']
     inherited = previous if previous is not None else payload.get('_client_runtime', {})
-    runtime = {name: inherited[name] for name in ('thinking', 'effort', 'max_turns') if name in inherited}
-    runtime.update({name: declared[name] for name in ('thinking', 'effort', 'max_turns') if name in declared})
+    fields = ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot')
+    runtime = {name: inherited[name] for name in fields if name in inherited}
+    runtime.update({name: declared[name] for name in fields if name in declared})
     if runtime.get('max_turns') is None:
         runtime['max_turns'] = RUNTIME_SETTINGS.limits.max_turns
+    runtime.setdefault('system_prompt_snapshot', True)
     payload['_client_runtime'] = runtime
     payload['_client_connection_fingerprint'] = client_connection_fingerprint(payload)
     return runtime
@@ -617,7 +636,7 @@ def build_client_options(payload, policy):
     values['env'] = agent_environment(_connection_environment(payload.get('workflow_name')))
     return build_agent_options(**values, thinking=None, effort=None, add_dirs=[],
         model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
-        system_prompt='按可信服务端提供的本轮执行规则处理请求，历史能力规则不授予本轮权限。',
+        verbatim_prompts=True,
         tools={'type': 'preset', 'preset': 'claude_code'}, skills=[], setting_sources=[],
         strict_mcp_config=True, mcp_servers={}, disallowed_tools=['WebSearch'],
         permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes)

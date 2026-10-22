@@ -69,7 +69,11 @@ Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；�
 
 预热完成 Python 导入和 SDK 连接，统一 system prompt 和原生 tools 底座，不装配业务身份、MCP 或历史。仅固定启动配置参与分组，各组共享 `max-idle=6` 库存，领取前匹配。无历史新会话原子绑定 `tenant + sub + businessSessionId` 与随机工作区后独占领取；已有活跃 Client 继续复用；历史会话在回收或重启后冷启动 resume。已绑定连接不跨会话归还；回收只释放进程，保留业务历史和工作区。新输入、排队、准备、执行和清理中的 Client 不可回收。业务连接期间暂停补池；低内存只回收空白连接。Windows 本地实测6个空闲 Client 的 Python、CLI及子进程合计约2.5 GiB RSS，部署容量须按完整进程树测量。
 
-模型、thinking、effort、模型端点/密钥/extra body、附加目录、权限模式及 MCP 按轮热更新，业务规则通过 Hook 动态注入；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。固定指纹只包含工作目录、最大轮数、统一流式选项及其余 SDK 环境；workflow.env 仅不可热更新的有效值参与指纹。固定项改变才重建并恢复历史。SDK 0.2.143 的部分热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；失败连接退役，不自动重放业务请求。随机目录及 Hook 不是租户沙箱。
+模型、thinking、effort、模型端点/密钥/extra body、附加目录、权限模式及 MCP 按轮热更新，业务规则通过 Hook 动态注入；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。固定指纹包含工作目录、最大轮数、统一主提示词及其 snapshot、统一流式选项及其余 SDK 环境；workflow.env 仅不可热更新的有效值参与指纹。固定项改变才重建并恢复历史。SDK 0.2.171 的部分热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；失败连接退役，不自动重放业务请求。随机目录及 Hook 不是租户沙箱。
+
+Capability / Workflow 可声明 `runtime.system_prompt_snapshot`，只接受布尔值，未声明沿用会话值，首次默认 true。对应 SDK custom / preset system prompt 的 `snapshot`：true 在恢复后沿用首轮主提示词，false 每次请求重建（适合更新统一底座后恢复）；SDK 的 compact / 新会话会更新快照。它是连接初始化项，变更会重建 Client，不能原地替换活跃连接的主提示词。query 与持久 Client 均使用统一主提示词底座，能力业务规则继续通过每轮 Hook 更新，不依赖 snapshot。
+
+所有业务输入启用 SDK `verbatim_prompts`，`@路径` 和 `/命令` 作为原文传递；附件继续通过授权工具显式读取，不依赖 CLI 自动展开。
 `ccsdk.worker_pool` 的 INFO 日志记录领取来源、库存/创建/失败计数，以及每15秒的各进程 RSS/PSS（平台不支持PSS时为空）；Actor 内部快照记录复用次数、重建原因与耗时。原始凭据不进入这些观测。内存采样不代表并发容量已验收。
 
 ## Nacos 文件服务：fileService

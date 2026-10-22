@@ -253,7 +253,7 @@ class RunStore:
 
     def save_client_runtime(self, run_id: str, runtime: Mapping[str, Any]) -> None:
         """保存已生效的会话参数，复用现有 Run 元数据，不写模型连接或业务 Token。"""
-        values = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns') if name in runtime}
+        values = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot') if name in runtime}
         with self._lock:
             row = self._connection.execute(
                 'SELECT metadata_json,tenant_id,user_id,business_session_id FROM runs WHERE run_id=?', (run_id,)

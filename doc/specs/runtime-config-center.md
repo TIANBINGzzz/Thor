@@ -73,7 +73,7 @@
 | 池的 SDK 固定配置 | 新建库存使用新指纹；旧库存领取时不匹配则淘汰冷启，旧版本创建任务完成时不得进入新库存；预留目录不因更新而删除已绑定会话数据。 |
 | Token / Nacos业务节点 | 保持既有逐 Run 绑定、结束清理及 Nacos 独立快照；Token 不入配置库、不修改全局环境、不随 Client 跨 Run 保留。 |
 
-SDK 0.2.143 的公开 API 没有通用 options/env 重载及 `set_mcp_servers`；现有 MCP 更新依赖项目集中适配的私有协议，升级继续要求真实 CLI 验证。配置中心不会扩大 SDK 原地更新能力。
+SDK 0.2.171 的公开 API 没有通用 options/env 重载及 `set_mcp_servers`；现有 MCP 更新依赖项目集中适配的私有协议，升级继续要求真实 CLI 验证。system prompt 的 snapshot 控制恢复后的提示词来源，不提供活跃连接的主提示词 setter，配置方式见[Runtime 配置](../../config/README.md#runtime-预连接-client-池)。配置中心不会扩大 SDK 原地更新能力。
 
 主模型始终通过显式 `options.model` / `set_model` 指定，避免默认模型同时注入 `ANTHROPIC_MODEL` 导致修改默认值误触发固定配置重建；SDK模型别名仍进入环境和固定指纹。运行测试须核验这一调整的真实CLI行为。
 

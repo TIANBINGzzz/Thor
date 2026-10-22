@@ -36,7 +36,8 @@ class ClientTurnPolicy:
 
     def bind(self, options):
         prompt = options.system_prompt
-        self._context = prompt.get('append', '') if isinstance(prompt, dict) else str(prompt or '')
+        self._context = (prompt.get('prompt' if prompt.get('type') == 'custom' else 'append', '')
+                         if isinstance(prompt, dict) else str(prompt or ''))
         self._restricted = options.tools == []
         self._allowed = tuple(options.allowed_tools or ())
         self._denied = tuple(options.disallowed_tools or ())
@@ -459,8 +460,8 @@ class ClaudeSDKClient:
         self._state = ClientState.NEW
         self._servers = dict(options.mcp_servers)
         self._model = options.model
-        self._baseline_env = dict(getattr(options, 'env', {}) or {})
-        self._turn_settings = {name: copy.deepcopy(getattr(options, name, None))
+        self._baseline_env = dict(options.env)
+        self._turn_settings = {name: copy.deepcopy(getattr(options, name))
                                for name in ('thinking', 'effort', 'add_dirs', 'permission_mode')}
         self._hot_env = self._model_environment(self._baseline_env)
 
@@ -525,20 +526,15 @@ class ClaudeSDKClient:
     async def configure_turn(self, options: Any) -> None:
         """READY 时热更新本轮设置和 MCP；失败后禁止复用，不重放有副作用的请求。
 
-        Python SDK 0.2.143 尚无公开 set_mcp_servers；私有协议适配集中于此，升级须跑真实 CLI 探针。
+        Python SDK 0.2.171 尚无公开 set_mcp_servers；私有协议适配集中于此，升级须跑真实 CLI 探针。
         """
         self._claim_owner()
         self._require_state({ClientState.READY})
 
         async def configure():
             provider = self._provider
-            if options.model != self._model:
-                await provider.set_model(options.model)
-                self._model = options.model
             settings = {}
             for name in ('thinking', 'effort', 'add_dirs', 'permission_mode'):
-                if not hasattr(options, name):
-                    continue
                 value = getattr(options, name)
                 if value == self._turn_settings[name]:
                     continue
@@ -553,15 +549,18 @@ class ClaudeSDKClient:
                 else:
                     await provider.set_permission_mode(value)
                 self._turn_settings[name] = copy.deepcopy(value)
-            if hasattr(options, 'env'):
-                environment = self._model_environment(options.env or {})
-                if environment != self._hot_env:
-                    settings['env'] = environment
-                    self._hot_env = environment
+            environment = self._model_environment(options.env)
+            if environment != self._hot_env:
+                settings['env'] = environment
+                self._hot_env = environment
             if settings:
                 response = await provider._query._send_control_request({'subtype': 'apply_flag_settings', 'settings': settings})
                 if response.get('errors'):
                     raise SDKExecutionError('本轮 Client 设置更新失败')
+            # 新模型会触发网关可用性校验，必须先应用本轮端点和凭据。
+            if options.model != self._model:
+                await provider.set_model(options.model)
+                self._model = options.model
             servers = dict(options.mcp_servers)
             if servers == self._servers:
                 return

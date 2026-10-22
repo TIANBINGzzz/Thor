@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKExecutionError
+from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKExecutionError, build_agent_options
 
 
 class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
@@ -65,17 +65,17 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
         bridge.aclose = AsyncMock()
         query._send_control_request = AsyncMock(return_value={'errors': {}})
         provider = SimpleNamespace(_query=query, set_model=AsyncMock())
-        client = ClaudeSDKClient(SimpleNamespace(model='old', mcp_servers={'probe': old}))
+        client = ClaudeSDKClient(build_agent_options(model='old', mcp_servers={'probe': old}))
         client._provider = provider
         client._state = ClientState.READY
-        await client.configure_turn(SimpleNamespace(model='new', mcp_servers={'probe': new}))
+        await client.configure_turn(build_agent_options(model='new', mcp_servers={'probe': new}))
         self.assertIs(query.sdk_mcp_servers['probe'], new['instance'])
         bridge.aclose.assert_awaited_once()
         provider.set_model.assert_awaited_once_with('new')
         calls = query._send_control_request.await_args_list
         self.assertEqual(calls[0].args[0]['servers'], {})
         fresh = query._sdk_mcp_bridges['probe']
-        await client.configure_turn(SimpleNamespace(model='new', mcp_servers={'probe': new}))
+        await client.configure_turn(build_agent_options(model='new', mcp_servers={'probe': new}))
         self.assertIs(query._sdk_mcp_bridges['probe'], fresh)
         self.assertEqual(query._send_control_request.await_count, 2)
         await fresh.aclose()
@@ -87,11 +87,11 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
             _send_control_request=AsyncMock(return_value={'errors': {'business': 'private'}}),
             sdk_mcp_servers={}, _sdk_mcp_bridges={}),
             disconnect=AsyncMock(), set_model=AsyncMock())
-        client = ClaudeSDKClient(SimpleNamespace(model='same', mcp_servers={}))
+        client = ClaudeSDKClient(build_agent_options(model='same', mcp_servers={}))
         client._provider = provider
         client._state = ClientState.READY
         with self.assertRaises(SDKExecutionError):
-            await client.configure_turn(SimpleNamespace(model='same', mcp_servers={'business': {'type': 'http', 'url': 'http://invalid'}}))
+            await client.configure_turn(build_agent_options(model='same', mcp_servers={'business': {'type': 'http', 'url': 'http://invalid'}}))
         self.assertEqual(client.state, ClientState.FAILED)
         with self.assertRaises(SDKExecutionError):
             await client.query('should never run')
@@ -105,7 +105,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
             inherit_client_runtime(payload, {'thinking': {'type': 'disabled'}, 'max_turns': 7})
             latest = {'thinking': {'type': 'enabled', 'budget_tokens': 2048}, 'effort': 'high', 'max_turns': 9}
             runtime = inherit_client_runtime(payload, latest)
-            self.assertEqual(runtime, {**latest, 'effort': 'low'})
+            self.assertEqual(runtime, {**latest, 'effort': 'low', 'system_prompt_snapshot': True})
             self.assertEqual(payload['_workflow_assets']['runtime'], {'effort': 'low'})
 
     def test_enabled_thinking_requires_and_preserves_sdk_budget(self):

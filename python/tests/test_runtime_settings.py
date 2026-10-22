@@ -122,17 +122,16 @@ class RuntimeSettingsTests(unittest.TestCase):
     client-idle-ms: 3456
 ''', encoding='utf-8')
             script = '''import sys
-from types import SimpleNamespace
 from runtime import runtime_settings
 runtime_settings.RUNTIME_SETTINGS = runtime_settings.load_runtime_settings(sys.argv[1])
 import server, agent_worker
 from runtime.process import ClientWorkerProcess
-from runtime.claude_sdk import ClaudeSDKClient
+from runtime.claude_sdk import ClaudeSDKClient, build_agent_options
 assert server.RUN_EXECUTION_TIMEOUT_MS == agent_worker.DEFAULT_TIMEOUT_MS == 4200000
 assert server._create_session_manager()._idle_ttl_ms == 3456
 worker = ClientWorkerProcess()
 assert (worker.start_timeout_ms, worker.close_timeout_ms) == (2345, 678)
-client = ClaudeSDKClient(SimpleNamespace(mcp_servers={}, model='test'))
+client = ClaudeSDKClient(build_agent_options(model='test'))
 assert (client._connect_timeout_ms, client._disconnect_timeout_ms) == (2345, 678)
 assert client._query_timeout_ms == client._receive_timeout_ms == 4200000
 '''

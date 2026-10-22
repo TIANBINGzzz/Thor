@@ -538,7 +538,7 @@ def _client_session_directory(session_key: str, profile=None, *, resume=None) ->
 def _startup_profile(execution_entry, previous=None):
     entry, workflow = execution_entry['capability'], execution_entry['config'] or {}
     runtime = {**(previous or {}), **workflow.get('runtime', {}), **entry.get('runtime', {})}
-    runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns') if name in runtime}
+    runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot') if name in runtime}
     refs = entry.get('workflow_refs', [])
     profile = {'cwd': str(PROJECT_ROOT), 'workflow_name': refs[0] if len(refs) == 1 else None,
                '_client_runtime': runtime}
