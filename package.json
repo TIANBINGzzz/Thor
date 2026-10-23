@@ -17,10 +17,5 @@
   "type": "module",
   "engines": {
     "node": ">=22"
-  },
-  "overrides": {
-    "@modelcontextprotocol/node": {
-      "@hono/node-server": "^2.1.0"
-    }
   }
 }
