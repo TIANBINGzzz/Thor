@@ -265,7 +265,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                      patch.object(server, "FileBroker", side_effect=broker), \
                      patch.object(server, "stream_agent", side_effect=AssertionError("SDK must not start")):
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url="http://runtime") as client:
-                        run_headers = headers(["run.execute", "run.cancel"])
+                        run_headers = headers("run.execute")
                         response = await client.post("/internal/v1/runs", json=body, headers=run_headers)
                         self.assertEqual(response.status_code, 202)
                         await asyncio.wait_for(started.wait(), 1)

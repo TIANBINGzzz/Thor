@@ -517,13 +517,27 @@ class RuntimeHTTPTests(unittest.TestCase):
         for identity in ({"sub": "other-user"}, {"tenant": "other-tenant"}):
             for method, suffix, scope in (
                 ("GET", "", "run.read"), ("GET", "/events", "run.read"),
-                ("GET", "/artifacts", "run.read"), ("POST", "/control", "run.control"),
-                ("POST", "/cancel", "run.cancel"),
+                ("GET", "/artifacts", "run.read"), ("POST", "/control", "run.execute"),
+                ("POST", "/cancel", "run.execute"),
             ):
                 with self.subTest(identity=identity, suffix=suffix):
                     response = self.client.request(method, "/internal/v1/runs/run-test" + suffix,
                                                    headers=self.headers(scope, **identity), json={"option": "cancel"})
                     self.assertEqual(response.status_code, 401, response.text)
+
+    def test_run_scope_uses_read_for_queries_and_execute_for_mutations(self):
+        self.seed("succeeded")
+        run_path = "/internal/v1/runs/run-test"
+        self.assertEqual(self.client.get(run_path, headers=self.headers("run.read")).status_code, 200)
+        self.assertEqual(self.client.get(run_path, headers=self.headers("run.execute")).status_code, 200)
+        for suffix, scope, body in (
+            ("/steer", "run.steer", {"messageId": "steer-1", "input": {"text": "补充"}}),
+            ("/control", "run.control", {"option": "cancel"}),
+            ("/cancel", "run.cancel", None),
+        ):
+            with self.subTest(suffix=suffix, scope=scope):
+                response = self.client.post(run_path + suffix, headers=self.headers(scope), json=body)
+                self.assertEqual(response.status_code, 401, response.text)
 
     def test_business_token_cannot_replace_runtime_header(self):
         response = self.client.post("/internal/v1/runs", json=self.body)
@@ -553,12 +567,12 @@ class RuntimeHTTPTests(unittest.TestCase):
         for body in ({"op": "cancel"}, {}, {"option": "pause"}, {"option": "cancel", "op": "cancel"}, {"option": 1}):
             with self.subTest(body=body):
                 response = self.client.post("/internal/v1/runs/run-test/control", json=body,
-                                            headers=self.headers("run.control"))
+                                            headers=self.headers("run.execute"))
                 self.assertEqual(response.status_code, 400, response.text)
         self.assertEqual(self.store.get_run("run-test")["status"], "running")
 
     def test_cancel_reuses_creation_jwt_but_interrupt_still_rejects_replay(self):
-        headers = self.headers(["run.execute", "run.read", "run.cancel"])
+        headers = self.headers("run.execute")
         with patch.object(server, "_execute_internal_run", new_callable=AsyncMock):
             created = self.client.post('/internal/v1/runs', json=self.body, headers=headers)
         self.assertEqual(created.status_code, 202)
@@ -589,7 +603,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             manager = SimpleNamespace(actor_for_run=lambda _: SimpleNamespace(active_run_id='run-test'), cancel=cancel)
             with patch.object(server, 'SESSION_MANAGER', manager), patch.object(server, 'internal_tasks', {'run-test': task}):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://runtime') as client:
-                    headers = self.headers('run.cancel')
+                    headers = self.headers('run.execute')
                     first = asyncio.create_task(client.post('/internal/v1/runs/run-test/cancel', headers=headers))
                     await entered.wait()
                     second = asyncio.create_task(client.post('/internal/v1/runs/run-test/control', headers=headers, json={'option': 'cancel'}))
@@ -615,7 +629,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                     raise server.SessionActorError('Run ended', code='run_not_active')
                 manager = SimpleNamespace(actor_for_run=lambda _: SimpleNamespace(active_run_id='run-test'), cancel=cancel)
                 with patch.object(server, 'SESSION_MANAGER', manager):
-                    response = self.client.post('/internal/v1/runs/run-test/cancel', headers=self.headers('run.cancel'))
+                    response = self.client.post('/internal/v1/runs/run-test/cancel', headers=self.headers('run.execute'))
                 self.assertEqual(response.status_code, 200, response.text)
                 self.assertEqual(response.json()['run']['status'], status)
 
@@ -632,8 +646,8 @@ class RuntimeHTTPTests(unittest.TestCase):
             settings = SimpleNamespace(timeouts=SimpleNamespace(worker_control_ms=10))
             with patch.object(server, 'SESSION_MANAGER', manager), patch.object(server, 'RUNTIME_SETTINGS', settings):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://runtime') as client:
-                    headers = self.headers('run.cancel')
-                    for retry_headers in (headers, self.headers('run.cancel')):
+                    headers = self.headers('run.execute')
+                    for retry_headers in (headers, self.headers('run.execute')):
                         response = await client.post('/internal/v1/runs/run-test/cancel', headers=retry_headers)
                         self.assertEqual(response.status_code, 504, response.text)
                         self.assertEqual(self.store.get_run('run-test')['status'], 'running')
@@ -653,7 +667,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                           {'iat': int(time.time()) - 120, 'exp': int(time.time()) - 60}):
             with self.subTest(overrides=overrides):
                 response = self.client.post('/internal/v1/runs/run-test/cancel',
-                    headers=self.headers(**{'scope': 'run.cancel', **overrides}))
+                                            headers=self.headers(**{'scope': 'run.execute', **overrides}))
                 self.assertEqual(response.status_code, 401, response.text)
         self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
 
@@ -667,7 +681,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                                               interrupt=AsyncMock(), cancel=AsyncMock()) if mode == "actor" else None
                     with patch.object(server, "SESSION_MANAGER", manager):
                         response = self.client.post("/internal/v1/runs/run-test" + suffix,
-                                                    json={"option": option}, headers=self.headers("run.control"))
+                                                    json={"option": option}, headers=self.headers("run.execute"))
                     self.assert_public_run(response)
 
     def test_events_and_artifacts_expose_only_their_own_data(self):

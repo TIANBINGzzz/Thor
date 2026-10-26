@@ -1070,14 +1070,13 @@ def _steering_task_done(key, task):
 
 @app.post('/internal/v1/runs/{run_id}/steer')
 async def internal_steer_run(run_id: str, request: Request):
-    """仅追加文本到活动 Run，独立 run.steer 授权绑定本次业务 messageId。"""
+    """仅追加文本到活动 Run；复用绑定该 Run 的写权限令牌。"""
     try:
         steering = SteeringRequest.from_dict(await _small_json(request, INTERNAL_BODY_BYTES))
         run = RUN_STORE.get_run(run_id)
         if run is None:
             return _plain('Run 不存在', 404)
-        _authorize_internal(request, run, allowed_scopes={'run.steer'}, consume_jti=False,
-                            message_id=steering.message_id)
+        _authorize_internal(request, run, allowed_scopes={'run.execute'}, consume_jti=False)
         if steering.message_id == run['metadata'].get('messageId'):
             return _plain('steering_message_conflict', 409)
         existing = RUN_STORE.get_steering(run_id, steering.message_id)
@@ -1104,15 +1103,12 @@ async def internal_steer_run(run_id: str, request: Request):
 
 @app.get('/internal/v1/runs/{run_id}/steering/{message_id}')
 async def internal_get_steering(run_id: str, message_id: str, request: Request):
-    """终态后仍可查回执；run.steer 只能查询签名绑定的那条补充消息。"""
+    """终态后仍可用 Run 读权限查询引导回执。"""
     try:
         run = RUN_STORE.get_run(run_id)
         if run is None:
             return _plain('Run 不存在', 404)
-        try:
-            _authorize_internal(request, run, allowed_scopes={'run.read', 'run.execute'}, consume_jti=False)
-        except _InternalAuthError:
-            _authorize_internal(request, run, allowed_scopes={'run.steer'}, consume_jti=False, message_id=message_id)
+        _authorize_internal(request, run, allowed_scopes={'run.read', 'run.execute'}, consume_jti=False)
         record = RUN_STORE.get_steering(run_id, message_id)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
@@ -1307,7 +1303,7 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         _authorize_internal(
             request,
             run,
-            allowed_scopes={"run.cancel", "run.control"},
+            allowed_scopes={"run.execute"},
             consume_jti=option != "cancel",
         )
     except _InternalAuthError as error:

@@ -37,8 +37,9 @@ class ReferenceParser(HTMLParser):
                      'API 文档仅在完整开发仓库校验，不随发布源码或镜像交付')
 class APIReferenceTests(unittest.TestCase):
     def setUp(self):
+        self.source = (Path(__file__).resolve().parents[2] / 'doc/python-api.html').read_text(encoding='utf-8')
         self.page = ReferenceParser()
-        self.page.feed((Path(__file__).resolve().parents[2] / 'doc/python-api.html').read_text(encoding='utf-8'))
+        self.page.feed(self.source)
 
     def test_all_runtime_routes_are_documented(self):
         text = re.sub(r'\{[^}]+\}', '{}', '\n'.join(self.page.text))
@@ -46,6 +47,18 @@ class APIReferenceTests(unittest.TestCase):
             with self.subTest(path=route.path):
                 self.assertTrue(re.sub(r'\{[^}]+\}', '{}', route.path) in text,
                                 f'Undocumented route: {route.path}')
+
+    def test_run_authorization_docs_follow_read_write_scopes(self):
+        steering = re.search(r'<section id="steering">.*?</section>', self.source, re.S).group()
+        control = re.search(r'<section id="control">.*?</section>', self.source, re.S).group()
+        auth = re.search(r'<section id="auth">.*?</section>', self.source, re.S).group()
+        self.assertIn('<code>run.execute</code>', steering)
+        self.assertIn('<code>run.read</code>', steering)
+        for obsolete_scope in ('run.steer', 'run.control', 'run.cancel'):
+            with self.subTest(scope=obsolete_scope):
+                self.assertNotIn(f'<code>{obsolete_scope}</code>', self.source)
+        self.assertIn('<code>run.execute</code>', control)
+        self.assertIn('<code>run.read</code>', auth)
 
     def test_full_run_request_examples_follow_current_protocol(self):
         count = 0

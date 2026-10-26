@@ -431,8 +431,8 @@ xychart-beta
 <section id="steering"><h2>运行中消息引导</h2>
 <p>引导与排队创建下一条消息是不同操作。Java 持久化并调度的下一条消息继续使用 <code>POST /internal/v1/runs</code> 创建新 Run；需要补充当前任务要求时调用本接口，沿用原 <code>runId</code> 并使用新的 <code>messageId</code>。默认不打断当前工具调用，待工具结束后由 SDK 在会话消息边界处理补充。要停止当前执行，调用<a href="#control">cancel</a>；之后的业务消息再创建新 Run。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/steer</code></div>
-<p>必须使用单独的 <code>run.steer</code> scope。JWT 绑定当前 Run 的身份、租户、业务会话和 capabilityRef，并将新的 <code>messageId</code> 写入同名 Claim。此 Token 不能代替 <code>run.execute</code>，普通执行 Token 也不能引导。引导请求不消费 <code>jti</code>；相同请求可用相同 JWT 重试。</p>
-<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;scope=run.steer 且 messageId=message_02 的 Run JWT&gt;
+<p>使用原 Run 的 <code>run.execute</code> JWT，不需要单独签发引导权限。JWT 仍绑定 Run、身份、租户、业务会话和 capabilityRef；正文里的新 <code>messageId</code> 标识这条补充消息，不要求改写原 Run JWT 的 messageId。引导不消费 <code>jti</code>，相同请求可复用原 JWT 重试。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;原 Run 的 run.execute JWT&gt;
 Content-Type: application/json</pre></div>
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
   "messageId": "message_02",
@@ -451,7 +451,7 @@ Content-Type: application/json</pre></div>
 }</pre></div>
 <p>相同 <code>runId</code>/<code>messageId</code>/文本重试返回当前回执和 <code>200</code>，不会再次发送；同一标识对应不同文本返回 <code>409</code>。控制超时或 Runtime 重启后的未确认输入为 <code>unknown</code>，不可自动重发；Java 应查询回执并依业务决定是否另建 Run。</p>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/steering/{messageId}</code></div>
-<p>使用 <code>run.read</code> / <code>run.execute</code> 查询本 Run 任一回执，或使用 messageId 与请求路径完全绑定的 <code>run.steer</code> Token 查询该条回执。查询不消费 <code>jti</code>。</p>
+<p>使用 <code>run.read</code> 或 <code>run.execute</code> 查询本 Run 任一回执。查询不消费 <code>jti</code>。</p>
 <table><thead><tr><th>状态</th><th>含义</th></tr></thead><tbody>
 <tr><td>accepted</td><td>Python 已持久接收请求。</td></tr>
 <tr><td>delivered</td><td>补充文本已写入当前 SDK Client。</td></tr>
@@ -801,7 +801,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
-<p>使用 <code>run.control</code> 或 <code>run.cancel</code> scope。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，但每次仍校验签名、有效期、权限及身份/Run 绑定。</p>
+<p>控制与取消使用绑定该 Run 的 <code>run.execute</code> scope。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，创建 Run 时已使用过的执行 JWT 仍可用于停止；每次均校验签名、有效期、权限及身份/Run 绑定。</p>
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
   "option": "interrupt"
 }</pre></div>
@@ -812,7 +812,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 </tbody></table>
 <p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
-<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，需要 <code>run.cancel</code> 或 <code>run.control</code>。两种入口按 runId 合并在途取消，允许复用有效且含取消权限的创建 JWT；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
+<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，使用 <code>run.execute</code>。两种入口按 runId 合并在途取消；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -855,15 +855,15 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>jti</td><td>JWT 唯一标识</td><td>创建和 interrupt 请求防重放；幂等 cancel、查询、SSE 和 Artifact GET 不消费。</td></tr>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
-<tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话；引导另绑定新 messageId，普通 Run 查询与控制不绑定触发消息 ID。</td></tr>
-<tr><td>scope</td><td>最小权限</td><td>单 Run 使用 <code>run.execute</code>、<code>run.read</code>、<code>run.steer</code>、<code>run.control</code>、<code>run.cancel</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
+<tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话；引导正文使用新的 <code>messageId</code>，且不能复用触发消息 ID，普通 Run 查询与控制不绑定触发消息 ID。</td></tr>
+<tr><td>scope</td><td>读写权限</td><td>Run 写操作使用 <code>run.execute</code>，读取使用 <code>run.read</code> 或 <code>run.execute</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
 </tbody></table>
 <table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
 <tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
 <tr><td>查询、SSE、Artifact GET</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
-<tr><td>创建消息引导</td><td><code>run.steer</code></td><td>不消费；JWT messageId 必须等于本次引导请求的 messageId</td></tr>
-<tr><td>查询消息引导回执</td><td><code>run.read</code>、<code>run.execute</code>，或绑定该 messageId 的 <code>run.steer</code></td><td>不消费</td></tr>
-<tr><td>控制、取消</td><td><code>run.control</code> 或 <code>run.cancel</code></td><td>interrupt 消费；cancel 不消费</td></tr>
+<tr><td>创建消息引导</td><td><code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>查询消息引导回执</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
+<tr><td>控制、取消</td><td><code>run.execute</code></td><td>interrupt 消费；cancel 不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
 <div class="note"><code>credentials.platformBearer</code> 是下游业务 Token，不是 Runtime 鉴权 Token。Python 不从它推导身份或权限，也不把它写入 Prompt、事件、日志或持久化数据。</div></section>

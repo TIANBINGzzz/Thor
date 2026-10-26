@@ -37,7 +37,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - Run 查询返回公开状态、最大事件序号及稳定错误码，不返回身份和 SDK 元数据；业务会话检索只返回公开执行摘要，不代替 Java 的会话/消息存储。
 - 会话检索按 JWT 的 tenant、sub、businessSessionId 过滤，独立使用 session.read。按 createdAt/runId 倒序分页，cursor 原样传回，不能作为权限依据；分页不是数据库快照。无记录不证明 Java 会话不存在。
 - **排队与引导是两种消息路径**：Java 持久化业务消息并排队时，按原有 `POST /internal/v1/runs` 创建下一条 Run；运行中补充当前要求使用 `POST /internal/v1/runs/{runId}/steer`，沿用同一个 Run，不创建 Run。Python 仅在 SDK 已接收本轮输入且仍处于执行中时接受文本引导；默认不打断在途工具调用，SDK 在合适的消息边界处理补充。需要立即停止使用现有 cancel，之后的新消息另建 Run。
-- 引导使用单独的 `run.steer` Run JWT，签名绑定原 Run、tenant、sub、businessSessionId、capabilityRef 和新的 messageId。请求仅允许文本，不接受附件、凭据或执行配置。回执 `accepted` 表示已持久接收，`delivered` 表示已写入 SDK 会话，`applied` 表示 SDK 以 UUID 回显确认已纳入会话，不保证模型遵从；`rejected` 表示未发送，`unknown` 表示不能确认，需查询回执，不自动重发。相同 runId/messageId/文本重试幂等，不同文本冲突。Run 结束、排队、准备文件、保存文件和取消期间不接受新引导。
+- 引导复用绑定原 Run、tenant、sub、businessSessionId 和 capabilityRef 的 `run.execute` JWT；正文中的新 messageId 只标识补充消息，不要求改写原 Run JWT。它与排队创建新 Run 是不同消息路径；引导仅允许文本，不接受附件、凭据或执行配置。回执 `accepted` 表示已持久接收，`delivered` 表示已写入 SDK 会话，`applied` 表示 SDK 以 UUID 回显确认已纳入会话，不保证模型遵从；`rejected` 表示未发送，`unknown` 表示不能确认，需查询回执，不自动重发。相同 runId/messageId/文本重试幂等，不同文本冲突。Run 结束、排队、准备文件、保存文件和取消期间不接受新引导。
 - cancel 按 runId 幂等取消排队或活动 Run，两种取消入口合并在途请求；重复取消不重复发送 SDK 命令，已结束 Run 不变。HTTP 断开或控制超时不撤销已接受的取消，504 后查询状态或重试；取消不抢先宣告活动执行终态。interrupt 不是暂停/恢复，文件准备期取消准备，持久 Client 模型期请求 SDK 中断、独立执行期停止任务。
 - 持久 Client 正常取消后读至 SDK Result，等待进程内工具收尾并清理本轮凭据，再复用于同业务会话的下一 Run；带引导的中断、尚有未确认输入、收尾超时或异常时销毁 Worker，后续 Run 重建并恢复历史，不重投引导。取消确认不表示新 Run 已可执行，同会话仍串行。
 - 控制不删除业务会话、已有文件或已完成工具副作用；断开 SSE 不取消执行，继续对话创建新 Run。
@@ -62,8 +62,8 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 ## 7. 鉴权模块
 
 - Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
-- 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导另校验新 messageId，普通查询与控制不绑定触发消息的 messageId。
-- 创建用 run.execute，读取用 run.read/run.execute，引导用 run.steer，控制用 run.control/run.cancel；创建和 interrupt 消耗 jti，读取、引导和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
+- 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导正文携带新 messageId，Python 校验其格式及不与触发消息冲突；普通查询与控制不绑定触发消息的 messageId。
+- 创建、引导、控制和取消统一使用 run.execute；读取使用 run.read/run.execute。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
 - credentials.platformBearer 是不透明业务 Token，仅按服务端规则注入获准 MCP；不是 Runtime 身份来源，不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
 - scope、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
 
