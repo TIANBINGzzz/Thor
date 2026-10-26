@@ -33,4 +33,4 @@ def provide_tool(definition, context):
     work = context.get('work_directory') or context.get('cwd') or Path.cwd()
     dirs = [*(context.get('additional_directories') or []),
             *(item for item in (context.get('work_directory'), context.get('deliverables_directory')) if item)]
-    return definition.ref, create_document_server(work, dirs), ''
+    return definition.ref, create_document_server(work, dirs)

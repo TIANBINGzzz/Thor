@@ -33,18 +33,10 @@ def read_manifest(directory: Path, filename: str) -> dict:
     return value
 
 
-def read_asset_body(directory: Path, filename: str) -> str:
+def read_asset_body(directory: Path, filename: str, *, asset_root=None) -> str:
     """读取资产 Markdown 正文。"""
-    path = directory / filename
-    if not path.is_file():
-        raise RuntimeError(f"资产正文不存在：{path}")
-    try:
-        body = path.read_text(encoding="utf-8").strip()
-        if not body or len(body.encode("utf-8")) > 24_000:
-            raise RuntimeError("资产正文为空或超限")
-        return body
-    except (OSError, UnicodeError) as error:
-        raise RuntimeError(f"资产正文无法读取：{path}") from error
+    from runtime.prompt_documents import read_documents
+    return read_documents(directory, [filename], asset_root=asset_root)[0]['text'].strip()
 
 
 def load_declared_asset(
@@ -54,6 +46,7 @@ def load_declared_asset(
     expected_ref: str,
     *,
     required_fields: tuple[str, ...] = (),
+    asset_root=None,
 ) -> dict:
     """统一读取并校验带 JSON 声明和 Markdown 正文的执行资产。"""
     directory = Path(directory).resolve()
@@ -65,7 +58,7 @@ def load_declared_asset(
             raise RuntimeError(f"资产元数据无效：{directory / manifest_filename}")
     return {
         **manifest,
-        "_body": read_asset_body(directory, body_filename),
+        "_body": read_asset_body(directory, body_filename, asset_root=asset_root),
         "_directory": str(directory),
     }
 

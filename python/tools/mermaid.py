@@ -134,4 +134,4 @@ def create_chart_server(on_generated=None):
 
 def provide_tool(definition, context):
     """创建本轮图表正文 Tool。"""
-    return definition.ref, create_chart_server(on_generated=context.get('chart_sink')), ''
+    return definition.ref, create_chart_server(on_generated=context.get('chart_sink'))

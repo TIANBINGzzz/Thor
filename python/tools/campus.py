@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
-from runtime.asset_registry import read_asset_body, read_manifest
+from runtime.asset_registry import read_manifest
 from runtime.deployment_config import ConfigSnapshot
 
 
@@ -58,13 +58,11 @@ def load_campus_assets(settings=None, directory=ASSET_ROOT):
                 definitions.setdefault(row['code'], set()).add(row['name'])
             for row in catalogs[kind]:
                 row['definition_conflict'] = len(definitions[row['code']]) > 1
-    prompt = read_asset_body(directory, 'CAPABILITY.md').replace('{minimum_schools}', str(minimum))
-    digest.update(prompt.encode('utf-8'))
     schema = {'catalogs': list(catalogs), 'tools': {
         name: {'description': rule['description'], 'schema': rule['schema']}
         for name, rule in config['tools'].items()}}
     schema_revision = hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
-    return {'config': config, 'catalogs': catalogs, 'prompt': prompt,
+    return {'config': config, 'catalogs': catalogs,
             'revision': digest.hexdigest(), 'schema_revision': schema_revision}
 
 

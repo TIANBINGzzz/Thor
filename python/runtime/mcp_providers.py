@@ -54,4 +54,4 @@ def load_mcp_connections(entry, settings, *, catalog=None, environment=None):
 def provide_mcp(definition, context):
     """创建已解析 MCP 配置；凭据随后由统一鉴权层逐轮注入副本。"""
     connection = context['mcp_connections'].get(definition.ref)
-    return (definition.ref, connection, '') if connection is not None else None
+    return (definition.ref, connection) if connection is not None else None

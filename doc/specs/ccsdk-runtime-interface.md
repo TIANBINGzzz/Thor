@@ -8,6 +8,8 @@
 
 Java 授权业务身份、Capability、会话和文件；Python 解析可信执行资产、准备输入、管理 SDK 历史并交付结果。Workflow、Skill、模型、MCP 地址、工具权限及工作目录不能由浏览器覆盖；持续约束见 [工程要求](engineering-requirements.md)。
 
+提示词管理采用[显式归属与统一装配](../ADR/036-explicit-prompt-assembly.md)。独立管理 JWT 可预览已登记能力或未发布草稿的项目指令，接口与字段见 [API 参考](../python-api.html#asset-management)；预览的假定工具组合不授予 Run 权限，不包含本轮私有数据，也不代表工具连接已通过验证。
+
 ## 2. 通用约定
 
 Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标识一次执行，messageId 关联业务消息，businessSessionId 关联业务会话；SDK session_id 只在 Python 内部管理，不返回业务接口或替代上述标识。

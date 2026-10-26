@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from jsonschema import Draft202012Validator, SchemaError
 from runtime.asset_registry import ENTRY_NAME, read_manifest, validate_refs
+from runtime.prompt_documents import read_documents
 
 TOOLS_ROOT = Path(__file__).resolve().parents[2] / '.claude/tools'
 
@@ -32,6 +33,7 @@ class ToolDefinition:
     connection: dict
     optional: bool
     display_keys: dict
+    instructions: tuple[dict, ...]
 
     def operation(self, ref: str) -> ToolOperation:
         """按操作引用查找声明。"""
@@ -52,7 +54,7 @@ class ToolCatalog:
         """读取单个 Tool manifest 并校验运行时契约。"""
         directory = directory.resolve()
         value = read_manifest(directory, 'tool.json')
-        allowed = {'ref', 'version', 'implementation', 'transport', 'lifecycle', 'scope', 'description', 'operations', 'category', 'auth', 'connection', 'optional', 'displayKeys'}
+        allowed = {'ref', 'version', 'implementation', 'transport', 'lifecycle', 'scope', 'description', 'operations', 'category', 'auth', 'connection', 'optional', 'displayKeys', 'instructionRefs'}
         if set(value) - allowed or value.get('ref') != directory.name:
             raise RuntimeError(f'工具 manifest 字段或名称无效：{directory}')
         ref = value.get('ref')
@@ -133,7 +135,8 @@ class ToolCatalog:
             raise RuntimeError(f'工具显示规则无效：{ref}')
         return ToolDefinition(ref, implementation, value['lifecycle'], scope, tuple(parsed),
                               value['transport'], category, description, auth, connection,
-                              value.get('optional', False), display)
+                              value.get('optional', False), display,
+                              tuple(read_documents(directory, value.get('instructionRefs', []), asset_root=self.root)))
 
     def resolve(self, ref: str) -> ToolDefinition:
         """按 Tool 引用返回声明。"""

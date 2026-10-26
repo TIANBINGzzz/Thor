@@ -123,3 +123,78 @@ class AssetManagementTests(unittest.TestCase):
                 result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=self.headers())
                 self.assertEqual(result.status_code, 400, result.text)
                 self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_preview_draft_is_not_published_and_includes_required_skill(self):
+        body = self.body()
+        body['manifest'].update(skillRefs=['document-review'], requiredSkillRefs=['document-review'])
+        result = self.client.post('/internal/v1/assets/capabilities/preview', json=body, headers=self.headers())
+        self.assertEqual(result.status_code, 200, result.text)
+        view = result.json()
+        self.assertIn(body['prompt'], view['text'])
+        self.assertIn('字号、加粗和数字前缀不等于标题级别', view['text'])
+        self.assertIn('work_directory', view['runtimeSlots'])
+        self.assertFalse(view['assumptions']['availabilityChecked'])
+        self.assertEqual(view['deferredSkills'], [])
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_preview_existing_template_is_offline_and_matches_compiler(self):
+        from runtime.capabilities import capability_entry, CAPABILITIES
+        from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
+        from runtime.template_assets import load_template
+        entry = capability_entry(CAPABILITIES['document-writing'].directory)
+        template = load_template('szpt-midterm', entry['ref'], entry=entry)
+        active = ['documents', 'office', 'artifacts', 'data']
+        expected = assemble_prompt(load_prompt_assets(entry, template=template), active_tools=active, preview=True)
+        fail = AssertionError('preview must not access runtime configuration or external systems')
+        with patch('runtime.nacos_config.fetch_config', side_effect=fail), \
+             patch('data_access.connections.load_config', side_effect=fail), \
+             patch('runtime.tool_registry.build_registered_tools', side_effect=fail), \
+             patch('runtime.config.prepare_capability_assets', side_effect=fail):
+            result = self.client.post('/internal/v1/assets/capabilities/preview', headers=self.headers(), json={
+                'capabilityRef': entry['ref'], 'templateKey': 'szpt-midterm', 'activeToolRefs': active})
+        self.assertEqual(result.status_code, 200, result.text)
+        view = result.json()
+        self.assertEqual(view['text'], expected['text'])
+        self.assertIn('template_path', view['runtimeSlots'])
+        self.assertTrue(any(item['kind'] == 'template' for item in view['sections']))
+        self.assertNotIn('asset-secret', result.text)
+        self.assertNotIn(str(Path.cwd()), result.text)
+
+    def test_preview_requires_management_auth_and_rejects_untrusted_options(self):
+        path = '/internal/v1/assets/capabilities/preview'
+        selection = {'capabilityRef': 'conversation'}
+        for headers in ({}, self.headers(secret='run-secret'), self.headers(scope='run.execute')):
+            self.assertEqual(self.client.post(path, json=selection, headers=headers).status_code, 401)
+        for change in ({'credentials': {'platformBearer': 'DO_NOT_ECHO'}}, {'runtime_values': {}},
+                       {'activeToolRefs': ['campus']}, {'activeToolRefs': 'office'},
+                       {'activeToolRefs': ['office', 'office']}, {'capabilityRef': '../escape'},
+                       {'templateKey': 'missing'}, {'manifest': self.body()['manifest']}):
+            with self.subTest(change=change):
+                result = self.client.post(path, json={**selection, **change}, headers=self.headers())
+                self.assertEqual(result.status_code, 400, result.text)
+                self.assertNotIn('DO_NOT_ECHO', result.text)
+        self.assertEqual(self.client.post(path, json={'capabilityRef': 'missing'}, headers=self.headers()).status_code, 404)
+
+    def test_preview_uses_managed_assets_and_does_not_connect_campus(self):
+        body = self.body()
+        self.assertEqual(self.client.post('/internal/v1/assets/capabilities', json=body,
+                         headers=self.headers()).status_code, 201)
+        for ref, expected in (('business-report', body['prompt']), ('campus-brain-query', '5')):
+            with self.subTest(ref=ref), patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('offline')):
+                result = self.client.post('/internal/v1/assets/capabilities/preview',
+                    json={'capabilityRef': ref}, headers=self.headers())
+                self.assertEqual(result.status_code, 200, result.text)
+                self.assertIn(expected, result.json()['text'])
+
+    def test_validate_and_create_reject_broken_prompt_dependencies(self):
+        for change, prompt in (({'requiredSkillRefs': ['document-review']}, '正文'), ({}, '{{missing}}'),
+                               ({'skillRefs': ['document-review'], 'toolRefs': ['office'], 'data': {}}, '正文')):
+            for endpoint in ('validate', 'preview', ''):
+                body = self.body()
+                body['manifest'].update(change)
+                body['prompt'] = prompt
+                with self.subTest(endpoint=endpoint, change=change):
+                    result = self.client.post('/internal/v1/assets/capabilities' + ('/' + endpoint if endpoint else ''),
+                        json=body, headers=self.headers())
+                    self.assertEqual(result.status_code, 400, result.text)
+        self.assertEqual(list(self.root.iterdir()), [])

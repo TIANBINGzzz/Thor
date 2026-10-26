@@ -113,4 +113,4 @@ def provide_tool(definition, context):
     server = create_image_server(work, base_url=base, api_key=key,
                                  model=os.environ.get('CCSDK_IMAGE_MODEL', 'qwen-image-3.0'),
                                  additional_dirs=context.get('additional_directories'))
-    return definition.ref, server, ''
+    return definition.ref, server

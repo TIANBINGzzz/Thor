@@ -11,7 +11,8 @@ from unittest.mock import patch
 from docx import Document
 
 from data_access.context import DataError
-from runtime.config import build_options, prepare_capability_assets, capability_prompt_documents
+from runtime.config import build_options, prepare_capability_assets
+from runtime.prompt_assembly import load_prompt_assets
 from runtime.data_services import RunServices
 from runtime.prompt_documents import MAX_DOCUMENT_BYTES, read_documents
 from runtime.template_assets import load_template, stage_template
@@ -90,6 +91,20 @@ class TemplateDocumentTests(unittest.TestCase):
         self.assertNotIn('ALPHA_GUIDE',prompt)
         self.assertNotIn('HIDDEN_GUIDE',prompt)
 
+    def test_same_file_cannot_be_injected_as_instruction_and_template_via_alias(self):
+        self.capability['instructionRefs'] = ['./templates/alpha/writing-guide.md']
+        template = self.load('alpha', 'document-writing')
+        with self.assertRaisesRegex(RuntimeError, '重复'):
+            load_prompt_assets(self.capability, template=template)
+
+    def test_human_only_template_owner_is_rejected_even_with_an_ordinary_guide_name(self):
+        import shutil
+        target = self.directory / 'templates/not_for_model/alpha'
+        shutil.copytree(self.directory / 'templates/alpha', target)
+        self.capability['templates']['alpha'] = 'templates/not_for_model/alpha/template.json'
+        with self.assertRaisesRegex(DataError, 'TEMPLATE_DOCUMENT_INVALID'):
+            self.load('alpha', 'document-writing')
+
     def test_guide_mutation_changes_next_run_revision_but_not_frozen_prompt(self):
         payload=self.payload('alpha')
         before=deepcopy(prepare_capability_assets(payload))
@@ -141,7 +156,7 @@ class TemplateDocumentTests(unittest.TestCase):
         template=self.load('alpha','document-writing')
         template['_documents']=[{'name':str(n),'text':'a'*23000} for n in range(4)]
         with self.assertRaisesRegex(RuntimeError,'总量'):
-            capability_prompt_documents(self.capability,template=template)
+            load_prompt_assets(self.capability,template=template)
 
     def test_disabled_or_wrong_capability_template_is_rejected(self):
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):

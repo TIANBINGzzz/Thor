@@ -31,5 +31,8 @@
   },
   "displayKeys": {
     "search": "web.search"
-  }
+  },
+  "instructionRefs": [
+    "TOOL.md"
+  ]
 }

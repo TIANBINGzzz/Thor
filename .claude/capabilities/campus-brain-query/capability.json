@@ -22,5 +22,11 @@
     },
     "prompt_mode": "custom",
     "effort": "low"
+  },
+  "promptVariables": {
+    "minimum_schools": {
+      "toolRef": "campus",
+      "field": "minimum_schools"
+    }
   }
 }

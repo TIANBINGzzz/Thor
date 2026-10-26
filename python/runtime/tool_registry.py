@@ -14,7 +14,6 @@ from tools import artifacts, attachments, campus, data, documents, images, merma
 class RegisteredTools:
     """保存一轮工具装配结果。"""
     servers: dict[str, object] = field(default_factory=dict)
-    prompt_append: str = ""
     exact_tools: dict[str, list[str]] = field(default_factory=dict)
 
 
@@ -72,18 +71,16 @@ def build_registered_tools(entry: dict, context: dict) -> RegisteredTools:
         provided = provider.create(definition, context)
         if provided is None:
             continue
-        name, server, prompt = provided
+        name, server = provided
         result.servers[name] = server
         result.exact_tools[name] = (['*'] if definition.scope == 'namespace'
                                     else [operation.ref for operation in definition.operations])
-        result.prompt_append += prompt
     attachment = None if 'attachments' in result.servers or not context.get('input_directory') else PROVIDERS['attachments'].create(
         TOOL_CATALOG.resolve('attachments'), context)
     if attachment is not None:
-        name, server, prompt = attachment
+        name, server = attachment
         result.servers[name] = server
         result.exact_tools[name] = [operation.ref for operation in TOOL_CATALOG.resolve('attachments').operations]
-        result.prompt_append += prompt
     provided = set(context.get('provided_tools', ()))
     missing = set(entry.get('required_tools', [])) - (set(result.servers) | provided)
     if missing:

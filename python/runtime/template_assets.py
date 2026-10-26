@@ -33,7 +33,7 @@ def load_template(template_key, capability_ref, *, entry=None):
     data = template.get("data") or {}
     report = template.get("report") or {}
     try:
-        documents = read_documents(directory, [assets["writing_guide"]])
+        documents = read_documents(directory, [assets["writing_guide"]], asset_root=entry['_directory'])
     except RuntimeError as error:
         raise DataError('TEMPLATE_DOCUMENT_INVALID') from error
     except (KeyError, TypeError):

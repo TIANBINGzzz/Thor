@@ -29,5 +29,11 @@
     "sourceRefs": [
       "schoolDoubleHigh"
     ]
-  }
+  },
+  "instructionRefs": [
+    "instructions/writing.md"
+  ],
+  "requiredSkillRefs": [
+    "document-review"
+  ]
 }

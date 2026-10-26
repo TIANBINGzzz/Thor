@@ -311,16 +311,21 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
 
     def test_school_minimum_config_controls_schema_and_prompt(self):
         from tools.campus import ASSET_ROOT
+        from runtime.capabilities import capability_entry, SKILLS_ROOT
+        from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
         import tempfile
         import shutil
         with tempfile.TemporaryDirectory() as directory:
-            root = __import__('pathlib').Path(directory)
+            root = __import__('pathlib').Path(directory) / ASSET_ROOT.name
             shutil.copytree(ASSET_ROOT, root, dirs_exist_ok=True)
             path = root / 'assets/campus.json'
             config = json.loads(path.read_text(encoding='utf-8'));config['minimum_schools'] = 12
             path.write_text(json.dumps(config), encoding='utf-8')
             assets = load_campus_assets(directory=root)
-            self.assertIn('至少 12', assets['prompt'])
+            entry = capability_entry(root, skills_root=SKILLS_ROOT)
+            prompt = assemble_prompt(load_prompt_assets(entry), active_tools=entry['tools'], preview=True)['text']
+            self.assertIn('至少 12', prompt)
+            self.assertNotIn('prompt', assets)
             self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 12)
 
     def test_batch_lookup_retains_ambiguous_candidates(self):

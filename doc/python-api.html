@@ -270,11 +270,12 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <section id="asset-management"><h2>资产管理 · 可信控制面</h2>
 <p>这些接口由服务端管理后台调用，与 Run 执行授权分开。配置独立环境密钥 <code>CCSDK_ASSET_JWT_SECRET</code>，不得与执行或观测密钥相同；未配置则关闭。Bearer JWT 使用 HS256，issuer 为 <code>string-ai-center-service</code>，audience 为 <code>ccsdk-runtime-assets</code>，scope 仅为 <code>assets.manage</code>，包含 sub、jti、iat、exp，有效期最多五分钟。</p>
 <table><thead><tr><th>接口</th><th>输入和结果</th></tr></thead><tbody>
-<tr><td>GET /internal/v1/assets/catalog</td><td>返回 tools（ref、description、category、transport、operations）、skills（ref、description）和 dataSources（ref、name、domains）；不返回连接、凭据或鉴权目标。</td></tr>
+<tr><td>GET /internal/v1/assets/catalog</td><td>返回 tools（ref、description、category、transport、operations）、skills（ref、description、toolRefs）和 dataSources（ref、name、domains）；不返回连接、凭据或鉴权目标。</td></tr>
 <tr><td>POST /internal/v1/assets/capabilities/validate</td><td>校验 manifest 与 prompt，成功返回公开能力摘要，不发布。</td></tr>
+<tr><td>POST /internal/v1/assets/capabilities/preview</td><td>离线预览已登记能力或未发布草稿的有效项目指令；返回正文、分段来源、加载/排除原因、按需 Skill 和运行时占位。</td></tr>
 <tr><td>POST /internal/v1/assets/capabilities</td><td>同样校验，成功创建能力并返回 201 与公开摘要；已存在返回 409，不覆盖。</td></tr>
 </tbody></table>
-<p>正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、execution、runtime、data。工具、Skill 和来源必须已经登记；业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
+<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。工具、Skill 和来源必须已经登记；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
 <div class="code-wrap"><div class="code-label">管理请求 · 组合既有资产</div><button class="copy" type="button">复制</button><pre>{
   "manifest": {
     "ref": "business-report",
@@ -286,7 +287,26 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
   },
   "prompt": "根据获准数据撰写；不得编造业务事实。"
 }</pre></div>
-<p>创建后能力可立即发现，文件保存在 <code>.scribe-runs/capabilities/</code>，标准部署由现有数据卷持久化；与源码 <code>.claude/capabilities/</code> 共同组成目录，名称冲突拒绝装配，不能覆盖内置能力。Java 仍须另行注册、开通并授权；来源声明不扩大部署侧数据权限。此接口不接收代码、MCP 连接、工具私有配置或模板文件，不提供现有能力覆盖及资产版本系统。</p></section>
+<p>创建后能力可立即发现，文件保存在 <code>.scribe-runs/capabilities/</code>，标准部署由现有数据卷持久化；与源码 <code>.claude/capabilities/</code> 共同组成目录，名称冲突拒绝装配，不能覆盖内置能力。Java 仍须另行注册、开通并授权；来源声明不扩大部署侧数据权限。此接口不接收代码、MCP 连接、工具私有配置或模板文件，不提供现有能力覆盖及资产版本系统。</p>
+<h3>预览输入与结果</h3>
+<p>已登记能力使用 <code>{"capabilityRef":"document-writing","templateKey":"szpt-midterm"}</code>；templateKey 可省略，只接受该能力登记的模板。草稿使用与校验相同的 <code>{"manifest":{…},"prompt":"…"}</code>，不发布。两种输入均可附加 <code>activeToolRefs</code> 字符串数组；缺省假定声明工具及允许的附件工具全部可用，显式数组必须为其子集且包含必需工具。未知能力返回 404，非法组合、缺少必载 Skill 工具或模板越权返回 400。</p>
+<table><thead><tr><th>返回字段</th><th>含义</th></tr></thead><tbody>
+<tr><td>text / sections</td><td>装配后的项目指令及有序分段；每段包含 kind、source、reason、load、text、runtimeSlots。</td></tr>
+<tr><td>omitted / deferredSkills</td><td>未加载分段及原因；按需 Skill 的来源列表，其正文未注入，模型只收到用途和读取提示。</td></tr>
+<tr><td>activeToolRefs / assumptions</td><td>假定挂载的工具和排除范围；availabilityChecked 恒为 false，不代表连通、凭据或授权检查通过。</td></tr>
+<tr><td>runtimeSlots / sharedSystemPrompt</td><td>运行时才能补全的路径等槽位；持久 SDK 历史的共同系统底座，业务指令由逐轮 Hook 注入。</td></tr>
+<tr><td>scope / revision / dataContext</td><td>scope 为 project_instructions；revision 是当前内容摘要，不是发布版本。数据部分仅列来源引用/上下文主题，loaded 为 false。</td></tr>
+</tbody></table>
+<p>预览不实例化 Provider、不连接 MCP/Nacos/数据库、不读取部署凭据；实际运行按真正挂载的工具使用同一编译器。SDK 自带系统提示词/工具 Schema、用户输入、附件正文、查询结果、本轮 database_context 和服务端附加上下文不在预览内。未决槽位显示为 <code>&lt;运行时:名称&gt;</code>；正文编译成功不保证模型执行质量。普通 Run 或公开能力目录不提供这些内部指令。</p>
+<h3>执行资产的配置归属</h3>
+<table><thead><tr><th>位置</th><th>配置与加载</th></tr></thead><tbody>
+<tr><td>.claude/prompts/</td><td>共同规则、日期、模式边界及受控路径说明，由编译器显式加载；default/custom 均保留共同规则。</td></tr>
+<tr><td>capabilities/&lt;ref&gt;/</td><td>CAPABILITY.md 是业务入口；capability.json 的 instructionRefs 按顺序引用同目录内 Markdown，业务流程化指引放 instructions/，不因此成为确定性 Workflow。</td></tr>
+<tr><td>skills/&lt;ref&gt;/</td><td>SKILL.md 维护可复用方法；skill.json 的 toolRefs 声明工具依赖。能力 skillRefs 默认按需，requiredSkillRefs 注入全文一次；direct 没有 Read，只能使用必载 Skill。</td></tr>
+<tr><td>tools/&lt;ref&gt;/</td><td>tool.json 的 instructionRefs 引用工具说明，只有实际挂载该工具才注入。Provider 返回工具实例，不拼接业务提示词。</td></tr>
+<tr><td>模板 / 数据库包</td><td>模板仍由 template.json.assets 加载所选指南；source.json.domains 的语义按既有数据工具或本轮上下文提供，不复制进模板或能力。</td></tr>
+</tbody></table>
+<p>instructionRefs 是无重复的相对 Markdown 路径数组，禁止越界、CAPABILITY.md 重复引用及 not_for_model 材料；每文件最多 24KB，加载和渲染正文最多 80KB。源码能力可声明 <code>promptVariables: {"minimum_schools":{"toolRef":"campus","field":"minimum_schools"}}</code>，以 <code>{{minimum_schools}}</code> 替换已登记 toolConfig JSON 的顶层数值/布尔字段；拒绝秘密字段、环境/连接解析与表达式。管理 API 仅创建两文件能力，不接受 instructionRefs、promptVariables 或其配套文件，复用已登记 Skill 时可声明 requiredSkillRefs。</p></section>
 
 <section id="mermaid-charts"><h2>图表生成 · Mermaid 正文</h2>
 <p>用于把用户明确提供的文字或表格数据转换为图表，并与解释文字穿插显示。选择 <code>chart-generation</code>；普通 <code>conversation</code> 也可请求这些图表。数据不足时模型会询问，不能将缺失数值补成 0。附件沿用 attachmentRefs 的文件准备链路；允许附件不代表所有文件格式都能提取数据。</p>

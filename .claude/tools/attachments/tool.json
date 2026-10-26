@@ -31,5 +31,8 @@
   "auth": {
     "required": false
   },
-  "displayKeys": {}
+  "displayKeys": {},
+  "instructionRefs": [
+    "TOOL.md"
+  ]
 }

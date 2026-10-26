@@ -274,7 +274,7 @@ class DataAccessTests(unittest.TestCase):
             Executor(self.context,self.env,self.catalog,['first'])
 
     def test_conversation_and_optional_writing_without_config_and_malformed_config(self):
-        with patch.dict('os.environ',self.env), patch('runtime.config.Catalog',return_value=self.catalog):
+        with patch.dict('os.environ',self.env):
             self.config_path.unlink()
             self.assertEqual(data_source_keys({'capability_ref':'conversation'}),[])
             writing={'capability_ref':'qa'}
@@ -287,7 +287,7 @@ class DataAccessTests(unittest.TestCase):
         from runtime.capabilities import capability_entry
         def entry_for_template():
             return capability_entry(Path('.claude/capabilities/document-writing'))
-        with patch('runtime.config.Catalog',return_value=self.catalog), patch.dict('os.environ',self.env):
+        with patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
             config=json.loads(self.config_path.read_text())
             del config['sources']['second']
@@ -378,8 +378,7 @@ class DataAccessTests(unittest.TestCase):
         values = {**self.env, 'FIRST_DB_SECRET':'first-secret',
                   'SECOND_DB_SECRET':'second-secret', 'UNREGISTERED_SECRET':'not-forwarded'}
         with patch.dict('os.environ', values, clear=True), \
-             patch('runtime.data_services.Catalog', return_value=self.catalog), \
-             patch('runtime.config.Catalog', return_value=self.catalog):
+             patch('runtime.data_services.Catalog', return_value=self.catalog):
             selected = worker_environment()
             self.assertEqual(selected['CCSDK_DATABASES_FILE'],self.env['CCSDK_DATABASES_FILE'])
             self.assertNotIn('FIRST_DB_SECRET', selected)

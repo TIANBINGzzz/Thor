@@ -21,6 +21,7 @@
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
 | `python/data_access/` | 来源授权、连接、查询校验及结果 |
 | `python/runtime/template_assets.py` | 可信模板与指南加载、参考副本 |
+| `python/runtime/prompt_assembly.py` | 显式提示词资产的统一加载、过滤、渲染及来源说明 |
 | `.claude/` | Capability 入口、Skill、工具规则、模板及数据库知识 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
 | `config/`、`doc/` | 部署配置；契约、决策及必要核验记录 |
@@ -28,7 +29,7 @@
 ## 4. Subsystem responsibilities
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
-- `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`，`config.py` 装配同目录 `CAPABILITY.md`、Skill、模板及数据源声明；`direct` 为受限 SDK Run，`agent` 由 Agent 自主执行。Skill 仅注入用途及按需读取路径；有状态工具通过 `tool_services.py` 逐 Run 绑定和清理。没有 Workflow 目录、JS 工作流运行器或通用 DAG 引擎，也未引入资产版本快照系统。
+- `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`；`prompt_assembly.py` 加载公共规则、能力正文和显式指引、所选模板、Skill 及实际挂载工具的指引。Skill 默认仅注入用途和读取路径，`requiredSkillRefs` 显式注入全文；声明不授予工具权限。`config.py` 将同一装配结果用于 default/custom 模式及逐轮 Hook；有状态工具由 `tool_services.py` 绑定清理。`direct` 是受限 SDK Run，`agent` 自主执行；没有 Workflow 目录、通用 DAG 引擎或新增资产版本快照系统。
 - `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、MCP 连接、凭据目标和显示规则。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
@@ -50,7 +51,7 @@
 
 - Java/Python 以 Run JWT、HTTP/SSE 及授权文件引用交互；字段与示例见 API 参考，跨系统语义见 Runtime 契约。
 - 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。模型、思考预算、effort、模型环境、附加目录、规则和 MCP 按轮热更新，凭据按轮绑定清理，Hook 校验本轮工具授权；仅固定启动参数变化时重建并恢复历史，重启恢复依赖 RunStore 和 SDK transcript。
-- 公开能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。`asset_management.py` 提供独立管理 JWT 保护的资产目录、校验和新建能力接口，只组合已登记工具、Skill 和来源；Java 管理页面需另行接入。工具连接及数据库授权仍由部署端维护。
+- 公开能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。`asset_management.py` 提供独立管理 JWT 保护的目录、校验、新建及有效指令预览接口，只组合已登记资产。预览复用编译器，标明假定工具、来源、排除原因和运行时占位，不实例化 Provider 或连接业务系统；Java 管理页面需另行接入。工具连接及数据库授权由部署端维护。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 按固定启动配置分组预连接空白 SDK Client，各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。限制及内存保护见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。

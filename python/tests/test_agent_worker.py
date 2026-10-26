@@ -16,7 +16,6 @@ from agent_worker import direct_capability_event, event_from_stream, events_from
 from runtime.claude_sdk import ClientState, SDKMessage, build_agent_options
 from runtime.config import (
     build_options,
-    build_system_prompt,
     create_run_services,
     agent_environment,
     MODEL_SETTINGS,
@@ -24,8 +23,13 @@ from runtime.config import (
     load_execution_entry,
     load_runtime_environment,
     capability_environment_path,
-    capability_prompt_documents,
 )
+from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
+
+
+def compiled_prompt(entry, *, template=None):
+    return assemble_prompt(load_prompt_assets(entry, template=template),
+                           active_tools=entry['tools'], preview=True)['text']
 
 
 class AgentWorkerTests(unittest.TestCase):
@@ -149,7 +153,7 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_database_prompt_starts_from_prepared_context_and_query_definitions(self):
         config = load_execution_entry("national-excellence-data-qa")["capability"]
-        prompt = build_system_prompt(database_enabled=True, capability_config=config)["append"]
+        prompt = compiled_prompt(config)
         self.assertNotIn("t_hpm_project", prompt)
         self.assertNotIn("schoolDoubleHigh", prompt)
         self.assertIn("本轮database_context由程序", prompt)
@@ -192,12 +196,14 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_database_prompt_does_not_read_table_scope_from_environment(self):
         with patch.dict("os.environ", {"DB_ALLOWED_TABLES": "secret_table"}, clear=True):
-            prompt = build_system_prompt(database_enabled=True)["append"]
+            prompt = compiled_prompt(load_execution_entry('national-excellence-data-qa')['capability'])
         self.assertNotIn("secret_table", prompt)
 
     def test_database_prompt_does_not_assume_hpm_for_generic_database(self):
         with patch.dict("os.environ", {}, clear=True):
-            prompt = build_system_prompt(database_enabled=True)["append"]
+            entry = load_execution_entry('conversation')['capability']
+            entry['tools'] = ['data']
+            prompt = compiled_prompt(entry)
         self.assertNotIn("t_hpm_project", prompt)
 
     def test_capability_config_rejects_path_traversal(self):
@@ -217,7 +223,7 @@ class AgentWorkerTests(unittest.TestCase):
         }
         with patch.dict("os.environ", values, clear=True):
             config = load_execution_entry("national-excellence-data-qa")["capability"]
-            prompt = build_system_prompt(database_enabled=True, capability_config=config)["append"]
+            prompt = compiled_prompt(config)
         self.assertNotIn("do-not-leak", prompt)
 
     def test_database_credentials_are_not_passed_to_agent_process(self):
@@ -303,7 +309,7 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_capability_documents_are_loaded_from_declared_paths(self):
         config = load_execution_entry("national-excellence-data-qa")["capability"]
-        documents = capability_prompt_documents(config)
+        documents = compiled_prompt(config)
         self.assertIn("问数流程", documents)
         self.assertNotIn("HPM 术语与指标语义层", documents)
 
@@ -316,20 +322,18 @@ class AgentWorkerTests(unittest.TestCase):
     def test_common_instructions_are_injected_with_only_selected_template_guide(self):
         from runtime.template_assets import load_template
         config=load_execution_entry('document-writing')['capability']
-        common=capability_prompt_documents(config)
+        common=compiled_prompt(config)
         template=load_template('szpt-midterm','document-writing')
-        selected=capability_prompt_documents(config,template=template)
+        selected=compiled_prompt(config,template=template)
         self.assertEqual(config.get('skill_refs'), ['document-review'])
         instructions=config['_body']
         self.assertIn(instructions,common)
-        self.assertIn(common,selected)
+        self.assertIn('在工作目录维护一份简短工作笔记',common)
+        self.assertIn('在工作目录维护一份简短工作笔记',selected)
         self.assertNotIn('szpt-midterm',common)
         self.assertNotIn('writing-guide.md',common)
         self.assertIn(template['_documents'][0]['text'].strip(),selected)
         self.assertEqual(selected.count(instructions),1)
-        from runtime.config import skill_assets
-        with self.assertRaises(RuntimeError):
-            skill_assets(['../outside'])
 
     def test_selected_capability_environment_is_loaded_after_root_defaults(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -74,5 +74,8 @@
   },
   "displayKeys": {
     "build_mermaid": "chart.generate"
-  }
+  },
+  "instructionRefs": [
+    "TOOL.md"
+  ]
 }

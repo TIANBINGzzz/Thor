@@ -133,4 +133,4 @@ def create_data_server(services):
 def provide_tool(definition, context):
     """绑定本轮已准备的数据服务；未声明数据需求时不挂载。"""
     services = context.get('data_services')
-    return (definition.ref, create_data_server(services), '') if services is not None else None
+    return (definition.ref, create_data_server(services)) if services is not None else None

@@ -19,5 +19,8 @@
     "execute_query_spec": "data.query",
     "execute_readonly_sql": "data.query",
     "read_query_result": "data.read"
-  }
+  },
+  "instructionRefs": [
+    "TOOL.md"
+  ]
 }

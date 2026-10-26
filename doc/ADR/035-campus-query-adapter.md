@@ -14,7 +14,7 @@
 
 ## 决策
 - 新增 campus-brain-query Capability，复用现有 Agent/会话，不新增 Workflow 或 Java 响应分支，不接入双高数据库。
-- 工具 Schema 不暴露 Token；通用 Runtime 的 `MCP_AUTH_RULES.arguments` 在发送请求副本时映射当前 Run 凭据，业务能力不维护 Token 字段。此限定例外同步至 REQ-001；连接通过可信资产中的配置引用交由公共解析器注入，不维护能力专用 Nacos 读取器，见[配置字段](../../config/README.md)，其余静态Header、Schema、学校数量及知识记录由服务端资产确定。
+- 工具 Schema 不暴露 Token；通用 Runtime 按可信 `tool.json.auth.arguments` 在发送请求副本时映射当前 Run 凭据，业务能力不维护 Token 字段。此限定例外同步至 REQ-001；连接通过可信资产中的配置引用交由公共解析器注入，不维护能力专用 Nacos 读取器，见[配置字段](../../config/README.md)，其余静态Header、Schema、学校数量及知识记录由服务端资产确定。
 - 每轮绑定凭据、预算和身份；Client 续用时更新工具及凭据，Token 变化不进入连接指纹，也不因此重建 Client。只挂载校园工具，关闭内置工具及隐式 Skill/MCP 发现。
 - 仅放行本校与匿名统计字段；原始上游错误不进入模型或日志。请求不重试、不跟随重定向。未来上游改用 Header 时可移除参数绑定，保持业务协议不变。
 
@@ -22,6 +22,7 @@
 
 ## 后果与验证
 - 2026-09-23 真实只读验证：本校身份、预置群体及常模返回成功；7所拒绝，8/11/12所成功，远端描述仍写12。minimum_schools 独立配置默认8，Schema与指令共同读取。
+- 2026-10-26：上述为历史取数证据；当前阈值以能力资产为准。工具加载器只处理 Schema/数据，能力正文由 promptVariables 显式引用同一数值并统一编译，见[ADR-036](036-explicit-prompt-assembly.md)，本轮未重跑校园实库。
 - 详细回归结果及未决边界见[校园验收](../verification/campus-query.md)。Java当前认证上下文、真实授权与撤销、上游日志策略仍需独立验收。
 
 ## 工程要求检查

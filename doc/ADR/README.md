@@ -25,6 +25,7 @@
 | [033](033-business-session-continuity.md) | 跨能力会话连续性 | 已采纳 | Python 历史续接和重启恢复已验证；前端选择持久化未改 |
 | [034](034-private-run-observation.md) | 私有开发观测 | 已采纳 | 本地观测已验证；部署状态以目标环境实测为准 |
 | [035](035-campus-query-adapter.md) | 校园问数的受控 MCP 适配 | 已采纳 | Python 已接入；真实验收及生产边界见正文 |
+| [036](036-explicit-prompt-assembly.md) | 提示词显式归属与统一装配 | 已采纳 | Python 装配和离线管理预览已接入；Java 页面及业务质量未验收 |
 
 ## 已移除的正文
 

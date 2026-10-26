@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from collections.abc import Mapping
 from pathlib import Path
 
-from runtime.asset_registry import ENTRY_NAME, load_declared_asset, read_asset_body, read_manifest, validate_refs
+from runtime.asset_registry import ENTRY_NAME, read_asset_body, read_manifest, validate_refs
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
 
 CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities'
@@ -72,7 +72,8 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
 def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> dict:
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
-               'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates'}
+               'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
+               'instructionRefs', 'requiredSkillRefs', 'promptVariables'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -102,8 +103,6 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     execution = manifest.get('execution', {})
     if not isinstance(execution, dict) or set(execution) - {'mode'} or execution.get('mode', 'agent') not in ('agent', 'direct'):
         raise RuntimeError('execution.mode 配置无效')
-    if execution.get('mode') == 'direct' and skills:
-        raise RuntimeError('direct模式不能登记需要Read的Skill')
     data = manifest.get('data', {})
     if (not isinstance(data, dict) or set(data) - {'access', 'sourceRefs', 'contextTopics'}
             or (data and data.get('access') not in ('optional', 'required'))):
@@ -130,12 +129,10 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
                 or not target.is_relative_to(directory.resolve()) or not target.is_file()
                 or target.name != 'template.json'):
             raise RuntimeError('能力模板路径无效')
-    for ref in skills:
-        skill_dir = skills_root / ref
-        if not (skill_dir / 'skill.json').is_file() or not (skill_dir / 'SKILL.md').is_file():
-            raise RuntimeError(f'Skill 不存在：{ref}')
-        load_declared_asset(skill_dir, 'skill.json', 'SKILL.md', ref, required_fields=('description',))
-    return {**manifest, 'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
+    from runtime.prompt_assembly import validate_prompt_manifest
+    variables = validate_prompt_manifest(directory, manifest, skills_root)
+    return {**manifest, '_prompt_variables': variables,
+            'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
             'skill_refs': list(skills), 'tools': list(tools),
             'required_tools': list(required), 'tool_config': configs,
             '_body': read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),

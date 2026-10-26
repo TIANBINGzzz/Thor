@@ -153,15 +153,6 @@ def provide_tool(definition, context):
     """为本轮受控工作目录挂载成果发布工具。"""
     if not context.get('artifact_enabled'):
         return None
-    prompt = ("\n当前执行的受控工作目录：" + str(context['work_directory'])
-              + "\n当前执行的交付目录：" + str(context['deliverables_directory'])
-              + "\n生成文件时使用工作目录下的绝对路径；不要写入项目根目录、猜测目录或扫描其他会话。"
-              "用户要求生成文档、报告而未指定格式时，默认交付真正的Word（.docx）；用户明确指定其他格式时遵从。"
-              "生成Word时使用 mcp__office__officecli 创建和编辑，不能用Write写Markdown冒充Word或交付.docx.md；此时Write只用于草稿和操作JSON。"
-              "核对最终文稿内容和所需字数后，调用 mcp__artifacts__publish_file 提交最终文件；该工具不转换格式。"
-              "工具回执仅确认文件已提交，上传与下载状态由系统文件卡片展示。回复不得复述pending、待上传、后台上传中，"
-              "也不得声称上传完成或可下载；不要自行生成下载链接。最终回复用一两句话说明文稿名称和必要内容，"
-              "不重复完整目录或内部操作过程，不输出服务器本地路径；提交失败必须如实说明。")
     server = create_artifact_server(context['session_directory'], context['work_directory'],
                                     context['deliverables_directory'], on_published=context.get('artifact_sink'))
-    return definition.ref, server, prompt
+    return definition.ref, server
