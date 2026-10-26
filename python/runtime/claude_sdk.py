@@ -81,16 +81,20 @@ def create_sdk_mcp_server(*args: Any, **kwargs: Any) -> Any:
     return _sdk.create_sdk_mcp_server(*args, **kwargs)
 
 
-def sdk_tool(*args: Any, **kwargs: Any) -> Any:
+def sdk_tool(*args: Any, run_only=False, **kwargs: Any) -> Any:
     """注册工具时捕获所属 Client 的调用边界，缓存的 MCP 跨轮沿用该边界。"""
     decorate = _sdk.tool(*args, **kwargs)
     scope = _tool_scope.get()
     if scope is None:
         return decorate
+    generation = scope.generation
 
     def register(handler):
         @wraps(handler)
         async def invoke(*args, **kwargs):
+            # 有状态公共工具逐轮重绑；能力处理器捕获本轮 Context，不能跨轮复用。
+            if run_only and generation != scope.generation:
+                return {'isError': True, 'content': [{'type': 'text', 'text': '本轮执行已结束'}]}
             return await scope.call(handler, *args, **kwargs)
         return decorate(invoke)
     return register
@@ -104,6 +108,7 @@ class SDKToolScope:
 
     def __init__(self):
         self.active = False
+        self.generation = 0
         self._handlers = set()
         self._calls = set()
 
@@ -119,6 +124,7 @@ class SDKToolScope:
     def start(self):
         if self._handlers or self._calls:
             raise SDKExecutionError('上一轮工具尚未结束')
+        self.generation += 1
         self.active = True
 
     async def call(self, handler, *args, **kwargs):

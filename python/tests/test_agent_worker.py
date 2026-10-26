@@ -451,6 +451,36 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
         self.assert_private_exception(events, 'ValueError')
         self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
 
+    async def test_query_cleanup_failure_clears_credentials_and_preserves_primary_error(self):
+        from runtime.claude_sdk import SDKTimeoutError
+        for query_fails in (False, True):
+            cleaned = []
+            async def stream(*args, **kwargs):
+                if query_fails:
+                    raise ValueError('primary')
+                if False:
+                    yield
+            async def drain(**kwargs):
+                raise SDKTimeoutError('cleanup')
+            async def close():
+                cleaned.append('data')
+            async def bind(payload):
+                pass
+            scope = agent_worker.SDKToolScope()
+            scope.drain = drain
+            with self.subTest(query_fails=query_fails), patch.multiple(
+                    agent_worker, load_runtime_environment=lambda _: None, missing_environment=lambda: [],
+                    create_run_services=lambda _: SimpleNamespace(bind=bind, close=close, prepare_prompt=lambda p: p),
+                    prepare_capability_assets=lambda _: {},
+                    ToolServices=lambda *args: SimpleNamespace(clear=lambda: cleaned.append('credentials')),
+                    SDKToolScope=lambda: scope, stream_query=stream, emit=lambda event: None,
+                    build_options=lambda *args, **kw: build_agent_options(tools=[], strict_mcp_config=True)), \
+                    self.assertRaisesRegex(ValueError if query_fails else SDKTimeoutError,
+                                           'primary' if query_fails else 'cleanup'):
+                await agent_worker.run({'prompt': 'test'})
+            self.assertEqual(set(cleaned), {'data', 'credentials'})
+            self.assertFalse(scope.active)
+
     async def test_diagnostic_disabled_or_write_failure_preserves_safe_query_error(self):
         payload = {'prompt': 'test', 'credentials': {'platformBearer': 'business-private-value'}}
         for enabled in (False, True):

@@ -19,6 +19,7 @@
 | `python/server.py`、`agent_worker.py` | HTTP/SSE 入口、Run 调度及 SDK 子进程 |
 | `python/runtime/` | 协议、鉴权、装配、Actor、存储、文件传输与事件 |
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
+| `python/capability_packs/<capabilityRef>/` | 随部署交付的能力业务代码；`pack.json` 登记 Schema，`operations.py` 提供动作，必要时设内部 Service |
 | `python/data_access/` | 来源授权、连接、查询校验及结果 |
 | `python/runtime/template_assets.py` | 可信模板与指南加载、参考副本 |
 | `python/runtime/prompt_assembly.py` | 显式提示词资产的统一加载、过滤、渲染及来源说明 |
@@ -31,13 +32,14 @@
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
 - `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`；`prompt_assembly.py` 加载公共规则、能力正文和显式指引、所选模板、Skill 及实际挂载工具的指引。Skill 默认仅注入用途和读取路径，`requiredSkillRefs` 显式注入全文；声明不授予工具权限。`config.py` 将同一装配结果用于 default/custom 模式及逐轮 Hook；有状态工具由 `tool_services.py` 绑定清理。`direct` 是受限 SDK Run，`agent` 自主执行；没有 Workflow 目录、通用 DAG 引擎或新增资产版本快照系统。
 - `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、MCP 连接、凭据目标和显示规则。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
+- 源码能力可用 `operationRefs` 选择同名代码包的业务动作；目录发现和预览只读静态声明，Worker 经 `capability_packs/registry.py` 加载代码，`capability_operations.py` 校验输入输出并适配为 `capability_ops` MCP Tool。操作复用本轮数据、文档及成果 Service，使用数据不必向模型开放通用数据 Tool；不为业务场景新建 Provider。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
 
 ## 5. Dependency directions
 
-入口 -> Runtime -> SDK Worker -> 模型 / MCP；核心运行时不依赖前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面和部署策略，发现资产不授予权限。
+入口 -> Runtime -> SDK Worker -> 模型 / MCP；能力业务代码 -> 本轮通用 Service，核心运行时不依赖具体能力实现或前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面和部署策略，发现资产不授予权限。
 
 ## 6. Architectural invariants
 
@@ -46,6 +48,7 @@
 - 业务会话、Run、SDK session、Client 和 SSE 连接生命周期分开；断开订阅不取消 Run，resume 不撤销工具副作用。
 - Java 负责持久化消息与下一 Run 排队；文本引导只追加到活动 Run 的 SDK 会话，不新建 Run、不改变当前授权，默认不打断在途工具。停止仍走 cancel。
 - 公共事件脱敏，状态显示由 `event_display.py` 统一维护；显示名称不授予工具权限。配置快照、结果引用及文件状态不得跨身份或 Run 串用。
+- 能力代码是可信部署代码，不是沙箱插件；持久化能力不得引用代码包。代码指纹只检测准备/加载时变更，不保存源码快照；部署后不在线改代码，变更须重启 Worker。Operation 绑定本轮上下文，取消和收尾完成前不得复用，详见 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
 
 ## 7. Important boundaries/interfaces
 

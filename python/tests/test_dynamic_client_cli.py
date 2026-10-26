@@ -54,7 +54,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     'context': 'CONTEXT_' + stage['name'] in json.dumps(data)})
                 tool = stage['tool'] if len(stage['requests']) == 1 else None
                 hang = stage['name'] == 'CANCEL_MODEL'
-                arguments = {'command': f'echo forbidden > "{side_effect.as_posix()}"'} if tool == 'Bash' else {}
+                arguments = ({'command': f'echo forbidden > "{side_effect.as_posix()}"'} if tool == 'Bash'
+                             else stage.get('arguments', {}))
                 if tool == 'Write':
                     arguments = {'file_path': str(stage['target']), 'content': 'local probe'}
                 blocks = [{'type': 'tool_use', 'id': 'toolu_' + uuid4().hex,
@@ -153,6 +154,54 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     tool_scope.stop()
                     await tool_scope.drain(timeout_ms=1000)
                 self.assertEqual(hits, ['A', 'B'])
+
+                # 真实代码包经过 SDK bridge 同名替换，切换能力后仅使用新 Run 上下文。
+                from capability_packs.registry import pack_digest
+                from runtime.capability_operations import build_operation_server
+                from tests.test_capability_operations import create_pack, operation
+                packs = Path(directory) / 'packs'
+                for ref in ('alpha-capability', 'beta-capability'):
+                    create_pack(packs, [operation()], '''
+                        async def calculate(context, args):
+                            return {'answer': context.capability_ref + ':' + context.run_id}
+                    ''', ref=ref)
+                for ref in ('alpha-capability', 'beta-capability', None):
+                    name = ref or 'REVOKE_OPERATION'
+                    stage.update(name=name, tool='mcp__capability_ops__calculate',
+                                 arguments={'value': 'probe'}, requests=[])
+                    tool_scope.start()
+                    servers = {}
+                    if ref:
+                        with patch('capability_packs.registry.PACK_ROOT', packs), tool_scope.capture():
+                            namespace, server_config, _ = build_operation_server({'ref': ref,
+                                'operation_refs': ['calculate'], '_operation_package_digest': pack_digest(ref)},
+                                {'run_id': 'run-' + ref})
+                        servers[namespace] = server_config
+                    turn = build_agent_options(model='probe-second-model', mcp_servers=servers, tools=[],
+                        env=options.env, permission_mode='bypassPermissions', system_prompt='CONTEXT_' + name,
+                        allowed_tools=['mcp__capability_ops__calculate'] if ref else [], disallowed_tools=[])
+                    policy.bind(turn)
+                    try:
+                        with isolated_sdk_environment():
+                            await client.configure_turn(turn)
+                            await client.query('Perform the operation probe for ' + name)
+                            messages = [message.to_dict() async for message in client.receive_response()]
+                        self.assertIs(client._provider, provider)
+                        serialized = json.dumps(messages, ensure_ascii=False)
+                        if ref:
+                            self.assertIn(ref + ':run-' + ref, serialized)
+                        else:
+                            self.assertNotIn('mcp__capability_ops__calculate', stage['requests'][0]['tools'])
+                            results = [block for message in messages if message['kind'] == 'user'
+                                       for block in message['data']['content'] if block['type'] == 'tool_result']
+                            self.assertTrue(results)
+                            self.assertTrue(all(result.get('is_error') for result in results))
+                            self.assertNotIn('beta-capability:run-beta-capability', serialized)
+                    finally:
+                        policy.clear()
+                        tool_scope.stop(cancel=True)
+                        await tool_scope.drain(timeout_ms=1000)
+                stage.pop('arguments')
 
                 # 验证 SDK 私有设置真正改变模型请求，并能清除上轮环境覆盖。
                 changed_env = {'ANTHROPIC_BASE_URL': f'http://127.0.0.1:{port}/changed',

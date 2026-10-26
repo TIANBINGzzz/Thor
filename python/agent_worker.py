@@ -448,6 +448,16 @@ async def _receive_client_response(
                 raise
 
 
+async def _drain_run_tools(tool_scope, data_services, deadline):
+    """收尾有统一时限；工具超时也必须撤销数据连接，随后退役 Worker。"""
+    try:
+        await tool_scope.drain(timeout_ms=max(0, (deadline - time.monotonic()) * 1000))
+    finally:
+        if data_services is not None:
+            async with asyncio.timeout(max(0, deadline - time.monotonic())):
+                await data_services.close()
+
+
 async def run_client(initial: dict[str, Any]) -> None:
     """接收初始配置并持有一个 SDK Client，串行处理标准输入命令，将回复和控制结果写入 JSONL；无返回值。"""
 
@@ -590,10 +600,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                 tool_scope.stop(cancel=failed)
                 cleanup_deadline = response.stop_deadline or (time.monotonic() + RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
                 try:
-                    async with asyncio.timeout_at(cleanup_deadline):
-                        await tool_scope.drain(timeout_ms=max(0, (cleanup_deadline - time.monotonic()) * 1000))
-                        if data_services:
-                            await data_services.close()
+                    await _drain_run_tools(tool_scope, data_services, cleanup_deadline)
                 except (asyncio.TimeoutError, SDKTimeoutError) as error:
                     emit_diagnostic(error, timing, command, scope='worker_client_cleanup')
                     outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
@@ -659,7 +666,9 @@ async def run(payload: dict[str, Any]) -> None:
     # secrets loaded for configuration construction out of the provider CLI.
     timeout_ms = payload.get("timeout_ms", payload.get("timeoutMs", DEFAULT_TIMEOUT_MS))
     tool_services = None
+    tool_scope = SDKToolScope()
     policy = ClientTurnPolicy()
+    primary_error = None
     try:
         tool_services = ToolServices(prepare_capability_assets(payload), payload.get('credentials'))
         prompt = payload['prompt']
@@ -668,9 +677,13 @@ async def run(payload: dict[str, Any]) -> None:
             prompt = data_services.prepare_prompt(prompt)
         chart_delivery = ChartDelivery(emit)
         mcp_errors = []
-        options = build_options(payload, data_services=data_services, artifact_sink=emit, chart_sink=chart_delivery.record,
-                                mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
-                                turn_policy=policy)
+        tool_scope.start()
+        with tool_scope.capture():
+            options = build_options(payload, data_services=data_services,
+                                    artifact_sink=lambda event: emit(event) if tool_scope.active else None,
+                                    chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
+                                    mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
+                                    turn_policy=policy)
         direct_capability = options.tools == [] and options.strict_mcp_config
         timing.mark('bound')
         with isolated_sdk_environment():
@@ -683,14 +696,24 @@ async def run(payload: dict[str, Any]) -> None:
                         timing.mark(stage)
                     event = mcp_result_event(event, mcp_errors)
                     chart_delivery.emit(direct_capability_event(event) if direct_capability else event)
+    except BaseException as error:
+        primary_error = error
+        raise
     finally:
         policy.clear()
-        timing.mark('completed')
-        emit_performance(timing)
-        if tool_services is not None:
-            tool_services.clear()
-        if data_services:
-            await data_services.close()
+        tool_scope.stop(cancel=True)
+        try:
+            await _drain_run_tools(tool_scope, data_services,
+                time.monotonic() + RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+        except Exception as error:
+            if primary_error is None:
+                raise
+            emit_diagnostic(error, timing, payload, scope='worker_query_cleanup')
+        finally:
+            if tool_services is not None:
+                tool_services.clear()
+            timing.mark('completed')
+            emit_performance(timing)
 
 
 async def main() -> None:

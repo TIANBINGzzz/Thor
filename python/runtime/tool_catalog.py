@@ -174,6 +174,8 @@ def display_key(name):
     parts = name.split('__', 2)
     if len(parts) != 3:
         return 'other'
+    if parts[1] == 'capability_ops':
+        return 'capability.operation'
     try:
         return TOOL_CATALOG.resolve(parts[1]).display_keys.get(parts[2], 'other')
     except RuntimeError:
