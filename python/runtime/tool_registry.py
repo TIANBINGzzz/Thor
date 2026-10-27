@@ -15,6 +15,7 @@ class RegisteredTools:
     """保存一轮工具装配结果。"""
     servers: dict[str, object] = field(default_factory=dict)
     exact_tools: dict[str, list[str]] = field(default_factory=dict)
+    auth_refs: set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ def validate_tool_provider(definition):
 
 
 def build_registered_tools(entry: dict, context: dict) -> RegisteredTools:
-    """解析 Tool manifest 并通过 Provider 注册本轮 MCP。"""
+    """装配共享 Tool 与能力显式登记的 Operation MCP。"""
     selected = TOOL_CATALOG.resolve_many(entry.get('tools', []))
     result = RegisteredTools()
     for definition in selected:
@@ -65,6 +66,7 @@ def build_registered_tools(entry: dict, context: dict) -> RegisteredTools:
         if definition.lifecycle == 'per_client':
             if definition.ref not in context.get('provided_tools', ()):
                 raise RuntimeError(f'有状态工具未准备：{definition.ref}')
+            result.auth_refs.add(definition.ref)
             continue
         if provider.create is None:
             raise RuntimeError(f'工具实现缺少单轮工厂：{definition.ref}')
@@ -72,17 +74,31 @@ def build_registered_tools(entry: dict, context: dict) -> RegisteredTools:
         if provided is None:
             continue
         name, server = provided
+        if name in result.servers:
+            raise RuntimeError('工具服务名称冲突')
         result.servers[name] = server
+        result.auth_refs.add(definition.ref)
         result.exact_tools[name] = (['*'] if definition.scope == 'namespace'
                                     else [operation.ref for operation in definition.operations])
     attachment = None if 'attachments' in result.servers or not context.get('input_directory') else PROVIDERS['attachments'].create(
         TOOL_CATALOG.resolve('attachments'), context)
     if attachment is not None:
         name, server = attachment
+        if name in result.servers:
+            raise RuntimeError('工具服务名称冲突')
         result.servers[name] = server
+        result.auth_refs.add('attachments')
         result.exact_tools[name] = [operation.ref for operation in TOOL_CATALOG.resolve('attachments').operations]
     provided = set(context.get('provided_tools', ()))
     missing = set(entry.get('required_tools', [])) - (set(result.servers) | provided)
     if missing:
         raise RuntimeError('能力必需工具未配置：' + ', '.join(sorted(missing)))
+    if entry.get('operation_refs'):
+        from runtime.capability_operations import build_operation_server
+
+        name, server, operation_names = build_operation_server(entry, context)
+        if name in result.servers:
+            raise RuntimeError('能力 Operation 服务名称冲突')
+        result.servers[name] = server
+        result.exact_tools[name] = operation_names
     return result

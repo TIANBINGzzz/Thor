@@ -268,6 +268,14 @@ def _shared_system_prompt(runtime):
             'snapshot': runtime.get('system_prompt_snapshot', True)}
 
 
+def _merge_mcp_servers(registered_servers, client_servers):
+    """合并本轮与 Client 工具时拒绝同名遮蔽，避免复用连接指向错误处理器。"""
+    collisions = set(registered_servers) & set(client_servers)
+    if collisions:
+        raise RuntimeError('MCP 服务名称冲突')
+    return {**registered_servers, **client_servers}
+
+
 def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
@@ -305,17 +313,27 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         'chart_sink': chart_sink, 'artifact_sink': artifact_sink,
         'artifact_enabled': artifact_enabled, 'session_directory': session_directory,
         'work_directory': work_directory, 'deliverables_directory': deliverables_directory,
+        'run_id': payload.get('run_id'),
         'capability_ref': capability_ref,
         'mcp_connections': assets['mcp_connections'],
         'input_directory': payload.get('input_directory'), 'cwd': payload.get('cwd'),
         'additional_directories': payload.get('additional_directories'),
         'provided_tools': set(tool_services.services),
     })
-    mcp_servers = {**registered.servers, **tool_services.servers(on_error=mcp_error_sink)}
-    mcp_servers = inject_mcp_authentication(mcp_servers, credentials)
+    mcp_servers = _merge_mcp_servers(
+        registered.servers, tool_services.servers(on_error=mcp_error_sink))
+    # 只有静态 Tool Catalog 中登记的 MCP 才有凭据规则；能力 Operation
+    # 使用独立 namespace，不能借用另一个 MCP 的 Token 接收配置。
+    auth_refs = registered.auth_refs | set(tool_services.services)
+    secured = inject_mcp_authentication(
+        {ref: mcp_servers[ref] for ref in auth_refs}, credentials,
+        allowed_refs=sorted(auth_refs))
+    mcp_servers.update(secured)
     if artifact_enabled:
         runtime_values.update(work_directory=str(work_directory), deliverables_directory=str(deliverables_directory))
-    effective_prompt = assemble_prompt(assets['prompt_assets'], active_tools=list(mcp_servers),
+    prompt_tool_refs = set(assets['prompt_assets']['tools'])
+    active_prompt_tools = [name for name in mcp_servers if name in prompt_tool_refs]
+    effective_prompt = assemble_prompt(assets['prompt_assets'], active_tools=active_prompt_tools,
         runtime_values=runtime_values, extra=payload.get('system_prompt_append') or '')
     exact_tools = registered.exact_tools
     exact_tools.update({name: service.tool_names()

@@ -108,7 +108,8 @@ class AssetManagementTests(unittest.TestCase):
         self.assertEqual(list(self.root.iterdir()), [])
 
     def test_invalid_assets_never_become_visible(self):
-        for change in ({'ref': '../escape'}, {'workflowRefs': []}, {'toolRefs': ['missing']},
+        for change in ({'ref': '../escape'}, {'workflowRefs': []}, {'operationRefs': ['calculate']},
+                       {'toolRefs': ['missing']},
                        {'toolConfig': {'office': '../outside'}},
                        {'data': {'access': 'required', 'sourceRefs': ['missing']}},
                        {'runtime': None}, {'runtime': {'mode': []}},

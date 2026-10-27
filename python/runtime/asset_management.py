@@ -83,7 +83,17 @@ def _preview(entry, *, active_tools=None, template_key=None):
     active = assets['tools'] if active_tools is None else active_tools
     compiled = assemble_prompt(assets, active_tools=active, preview=True)
     slots = sorted({slot for item in compiled['sections'] for slot in item['runtimeSlots']})
+    operations = []
+    if entry.get('operation_refs'):
+        from capability_packs.registry import read_pack_manifest
+        definitions = {item.ref: item for item in read_pack_manifest(entry['ref']).operations}
+        for ref in entry['operation_refs']:
+            item = definitions[ref]
+            operations.append({'ref': ref, 'toolName': 'mcp__capability_ops__' + ref,
+                               'description': item.description, 'inputSchema': item.input_schema,
+                               'outputSchema': item.output_schema})
     return {**compiled, 'capabilityRef': entry['ref'], 'templateKey': template_key,
+            'operations': operations,
             'scope': 'project_instructions', 'runtimeSlots': slots,
             'sharedSystemPrompt': shared_system_prompt(),
             'assumptions': {'activeToolRefs': compiled['activeToolRefs'], 'availabilityChecked': False,

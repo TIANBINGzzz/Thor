@@ -8,6 +8,11 @@ from runtime.config import build_options, build_client_options, client_connectio
 
 
 class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        # 提示词/SDK 装配单测使用离线可信配置，不依赖校园配置中心的可用性。
+        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+            'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}))
+
     async def test_custom_prompt_is_injected_as_current_turn_rules(self):
         options = build_options({'capability_ref': 'campus-brain-query',
                                  'credentials': {'platformBearer': 'test-secret'}})

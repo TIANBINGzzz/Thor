@@ -25,6 +25,7 @@ TOOL_DISPLAY_NAMES = {
     'task.execute': '',
     'task.plan': '',
     'task.skill': '',
+    'capability.operation': '执行能力操作',
     'web.search': '正在联网搜索',
     'other': '',
 }

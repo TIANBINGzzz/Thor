@@ -6,6 +6,23 @@ from runtime.claude_sdk import SDKExecutionError, SDKTimeoutError, SDKToolScope,
 
 
 class SDKToolScopeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_run_only_tool_cannot_reuse_previous_turn_context(self):
+        scope = SDKToolScope()
+        calls = []
+        scope.start()
+        with scope.capture():
+            @sdk_tool('operation', 'probe', {}, run_only=True)
+            async def operation(args):
+                calls.append('first-run')
+                return {'content': []}
+        await operation.handler({})
+        scope.stop()
+        await scope.drain(timeout_ms=1000)
+        scope.start()
+        self.assertTrue((await operation.handler({}))['isError'])
+        self.assertEqual(calls, ['first-run'])
+        scope.stop()
+
     async def test_cancel_waits_for_handler_cleanup_and_reuses_cached_tool(self):
         scope = SDKToolScope()
         started, cleaning, released = (asyncio.Event() for _ in range(3))

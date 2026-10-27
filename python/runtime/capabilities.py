@@ -73,7 +73,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
                'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
-               'instructionRefs', 'requiredSkillRefs', 'promptVariables'}
+               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -92,6 +92,16 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
         raise RuntimeError('能力工具声明无效') from error
     if not set(required) <= set(tools):
         raise RuntimeError('能力工具声明无效')
+    operation_refs = validate_refs(manifest.get('operationRefs', []), 'operationRefs')
+    if operation_refs:
+        # 持久化能力只允许声明式资产；业务 Python 必须随可信 Runtime 部署。
+        source_root = CAPABILITIES_ROOT.resolve()
+        if not directory.resolve().is_relative_to(source_root):
+            raise RuntimeError('持久化能力不能引用代码包')
+        from capability_packs.registry import read_pack_manifest
+        pack = read_pack_manifest(manifest['ref'])
+        if not set(operation_refs) <= {operation.ref for operation in pack.operations}:
+            raise RuntimeError('能力 Operation 未在代码包中登记')
     configs = manifest.get('toolConfig', {})
     if not isinstance(configs, dict) or not set(configs) <= set(tools):
         raise RuntimeError('工具配置未登记')
@@ -108,8 +118,8 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
             or (data and data.get('access') not in ('optional', 'required'))):
         raise RuntimeError('能力 data 配置无效')
     sources = validate_refs(data.get('sourceRefs', []), 'data.sourceRefs')
-    if data and ('data' not in tools or not sources):
-        raise RuntimeError('数据能力必须声明 data 工具和来源')
+    if data and (not sources or ('data' not in tools and not operation_refs)):
+        raise RuntimeError('数据能力必须声明来源及 data 工具或业务 Operation')
     from data_access.catalog import Catalog
     catalog = Catalog()
     for source in sources:
@@ -135,6 +145,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
             'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
             'skill_refs': list(skills), 'tools': list(tools),
             'required_tools': list(required), 'tool_config': configs,
+            'operation_refs': list(operation_refs),
             '_body': read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
             '_skill_root': str(skills_root.resolve())}
 
