@@ -430,6 +430,31 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                     with self.subTest(fields=fields), self.assertRaises(RuntimeError):
                         capability_entry(directory, skills_root=root / 'skills')
 
+    async def test_operation_can_use_declared_internal_service_without_exposing_it(self):
+        from types import SimpleNamespace
+        from runtime.capability_operations import build_operation_server
+
+        with tempfile.TemporaryDirectory() as temporary:
+            packs = Path(temporary) / 'packs'
+            create_pack(packs, [operation()], '''
+                async def calculate(context, args):
+                    service = context.services.require('example')
+                    return {'answer': await service.calculate(args['value'])}
+            ''')
+            service = SimpleNamespace(calculate=__import__('unittest').mock.AsyncMock(return_value='service-result'))
+            tool_services = SimpleNamespace(services={'example': service})
+            with patch('capability_packs.registry.PACK_ROOT', packs), \
+                 patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kwargs: kwargs):
+                _, server, _ = build_operation_server(
+                    {'ref': 'demo-capability', 'operation_refs': ['calculate'],
+                     'service_refs': ['example']},
+                    {'run_id': 'run-service', 'operation_services': tool_services})
+                result = await server['tools'][0].handler({'value': 'ok'})
+
+            self.assertEqual(json.loads(result['content'][0]['text']), {'answer': 'service-result'})
+            service.calculate.assert_awaited_once_with('ok')
+            self.assertEqual(server['tools'][0].name, 'calculate')
+
     async def test_cancelled_operations_finish_before_next_run_can_start(self):
         from capability_packs.registry import load_pack
         from runtime.capability_operations import build_operation_server

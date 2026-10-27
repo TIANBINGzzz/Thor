@@ -105,7 +105,7 @@ campusMcp:
   url: https://campus.example.internal/string_campus_brain_service/mcp
   domainName: campus.example.internal
 ```
-能力入口 `CAPABILITY.md` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。URL、Header 和业务规则变化时原位更新适配器，只有工具 Schema 变化才替换 MCP 实例，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
+能力入口 `capability.json` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。校园资产由 `python/capability_packs/campus-brain-query/operations.py` 的内部 Service 装配，业务 Operation 复用该 Service，Agent 不直接挂载 `campus`。URL、Header 和业务规则变化时原位更新 Service，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
 
 ## 访问策略：sources.schoolDoubleHigh.policy
 

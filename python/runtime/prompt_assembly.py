@@ -33,11 +33,13 @@ def prompt_variables(directory, manifest):
     for name, binding in bindings.items():
         if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', name)
                 or name in SLOTS or not isinstance(binding, dict)
-                or set(binding) != {'toolRef', 'field'}):
+                or set(binding) not in ({'toolRef', 'field'}, {'serviceRef', 'field'})):
             raise RuntimeError('提示词变量绑定无效')
-        ref, field = binding['toolRef'], binding['field']
+        ref, field = binding.get('toolRef', binding.get('serviceRef')), binding['field']
+        declared_refs = (manifest.get('toolRefs', manifest.get('tools', []))
+                         if 'toolRef' in binding else manifest.get('serviceRefs', []))
         if (not isinstance(ref, str) or ref not in manifest.get('toolConfig', {})
-                or ref not in manifest.get('toolRefs', manifest.get('tools', []))
+                or ref not in declared_refs
                 or not isinstance(field, str) or not ENTRY_NAME.fullmatch(field)
                 or re.search(r'token|secret|password|credential|connection|header|env|key|auth', field, re.I)):
             raise RuntimeError('提示词变量来源未登记')

@@ -27,6 +27,10 @@ OperationHandler = Callable[["CapabilityContext", dict[str, Any]], Any]
 _SCHEMA_REGISTRY = Registry()
 
 
+class OperationInputError(ValueError):
+    """业务实现可向模型返回的参数或业务条件错误，不标记为上游故障。"""
+
+
 @dataclass(frozen=True)
 class OperationDefinition:
     """一个可由能力显式登记的业务 Operation。"""
@@ -39,6 +43,7 @@ class OperationDefinition:
     execute: OperationHandler | None = None
     input_validator: Any = None
     output_validator: Any = None
+    display_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -47,6 +52,26 @@ class CapabilityPack:
 
     ref: str
     operations: tuple[OperationDefinition, ...]
+    services: tuple[str, ...] = ()
+    load_service_assets: Callable | None = None
+    create_service: Callable | None = None
+    update_service: Callable | None = None
+    specialize_operations: Callable | None = None
+
+
+class CapabilityServices:
+    """仅向代码包提供能力 manifest 明确选择的内部 Service。"""
+
+    def __init__(self, refs, services):
+        self._allowed = frozenset(refs)
+        available = services.services if hasattr(services, 'services') else services
+        available = available if isinstance(available, dict) else {}
+        self._services = {ref: available[ref] for ref in self._allowed if ref in available}
+
+    def require(self, ref):
+        if ref not in self._allowed or ref not in self._services:
+            raise RuntimeError('capability_service_unavailable')
+        return self._services[ref]
 
 
 class CapabilityData:
@@ -139,12 +164,14 @@ class CapabilityContext:
 
     run_id: str
     capability_ref: str
+    services: CapabilityServices
     data: CapabilityData | None = None
     documents: CapabilityDocuments | None = None
     artifacts: CapabilityArtifacts | None = None
     input_directory: Path | None = None
     work_directory: Path | None = None
     deliverables_directory: Path | None = None
+    mcp_error_sink: Callable | None = None
 
     @classmethod
     def from_runtime(cls, entry: dict[str, Any], context: dict[str, Any]):
@@ -171,12 +198,15 @@ class CapabilityContext:
         return cls(
             run_id=run_id,
             capability_ref=entry["ref"],
+            services=CapabilityServices(entry.get('service_refs', ()),
+                                        context.get('operation_services')),
             data=CapabilityData(context.get("data_services")) if context.get("data_services") else None,
             documents=CapabilityDocuments(roots) if roots else None,
             artifacts=artifact,
             input_directory=paths["input_directory"],
             work_directory=paths["work_directory"],
             deliverables_directory=paths["deliverables_directory"],
+            mcp_error_sink=context.get('mcp_error_sink'),
         )
 
 
@@ -221,17 +251,24 @@ def _schema(value, label):
 
 def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
     """仅校验静态 pack.json；能力目录和提示词预览不得导入 Python 代码。"""
-    if (not isinstance(value, dict) or set(value) != {"ref", "operations"}
+    if (not isinstance(value, dict) or set(value) - {"ref", "operations", "services"}
+            or not {'ref', 'operations'} <= set(value)
             or value.get("ref") != ref):
         raise RuntimeError("能力代码包声明无效")
+    services = value.get('services', [])
+    if (not isinstance(services, list) or
+            any(not isinstance(item, str) or not ENTRY_NAME.fullmatch(item) for item in services) or
+            len(set(services)) != len(services)):
+        raise RuntimeError('能力 Service 依赖声明无效')
     definitions = value.get("operations")
     if not isinstance(definitions, list) or not definitions:
         raise RuntimeError("能力代码包操作数量无效")
     seen = set()
     operations = []
     for item in definitions:
-        if not isinstance(item, dict) or set(item) != {
-                "ref", "description", "inputSchema", "outputSchema", "handler"}:
+        if (not isinstance(item, dict) or set(item) - {
+                "ref", "description", "inputSchema", "outputSchema", "handler", "displayKey"}
+                or not {"ref", "description", "inputSchema", "outputSchema", "handler"} <= set(item)):
             raise RuntimeError("能力代码包操作声明无效")
         operation_ref = item.get("ref")
         description = item.get("description")
@@ -239,7 +276,10 @@ def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
         _ref(operation_ref, "Operation 引用")
         if (operation_ref in seen or not isinstance(description, str) or not description.strip()
                 or not isinstance(handler_name, str)
-                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", handler_name)):
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", handler_name)
+                or ('displayKey' in item and
+                    (not isinstance(item['displayKey'], str) or
+                     not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', item['displayKey'])))):
             raise RuntimeError("Operation 声明重复或说明无效")
         input_schema, output_schema = item.get("inputSchema"), item.get("outputSchema")
         _schema(input_schema, "Operation 输入")
@@ -247,9 +287,10 @@ def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
         operations.append(OperationDefinition(
             operation_ref, description, input_schema, output_schema, handler_name,
             input_validator=Draft202012Validator(input_schema, registry=_SCHEMA_REGISTRY),
-            output_validator=Draft202012Validator(output_schema, registry=_SCHEMA_REGISTRY)))
+            output_validator=Draft202012Validator(output_schema, registry=_SCHEMA_REGISTRY),
+            display_key=item.get('displayKey')))
         seen.add(operation_ref)
-    return CapabilityPack(ref, tuple(operations))
+    return CapabilityPack(ref, tuple(operations), tuple(services))
 
 
 def validate_pack(pack, ref: str) -> CapabilityPack:
@@ -301,6 +342,8 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
             raise RuntimeError("Operation 未在能力代码包中登记")
         selected.append(available[ref])
     capability_context = CapabilityContext.from_runtime(entry, context)
+    if callable(pack.specialize_operations):
+        selected = pack.specialize_operations(capability_context, selected)
     registered = []
     for operation in selected:
         spec = operation
@@ -328,7 +371,11 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
                 return {"content": [{"type": "text", "text": text}]}
             except asyncio.CancelledError:
                 raise
+            except OperationInputError as error:
+                return {"isError": True, "content": [{"type": "text", "text": str(error)}]}
             except Exception:
+                if capability_context.mcp_error_sink is not None:
+                    capability_context.mcp_error_sink()
                 return _error("OPERATION_FAILED")
 
         registered.append(invoke)

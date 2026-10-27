@@ -1,8 +1,9 @@
 """校园 MCP 的受控 SDK 适配；业务词表和参数范围由显式资产提供。"""
 
 import asyncio
+from copy import deepcopy
 import csv
-import hashlib
+from dataclasses import replace
 import json
 import math
 import re
@@ -10,46 +11,51 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
 from runtime.asset_registry import read_manifest
 from runtime.deployment_config import ConfigSnapshot
+from runtime.capability_operations import OperationInputError
+from runtime.tool_services import service_asset_revision
 
 
-class CampusInputError(ValueError):
+class CampusInputError(OperationInputError):
     """可直接向模型反馈的本地参数校验错误；不包含上游正文。"""
 
 
-ASSET_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities/campus-brain-query'
+ASSET_ROOT = Path(__file__).resolve().parents[3] / '.claude/capabilities/campus-brain-query'
 
 
-def load_campus_assets(settings=None, directory=ASSET_ROOT):
+def load_campus_assets(settings=None, directory=ASSET_ROOT, config_path=None, *, operations=None):
     """只读取登记文件；知识保留在服务端内存，不整表注入提示词。"""
     directory = Path(directory).resolve()
     entry = read_manifest(directory, 'capability.json')
-    config_path = (directory / entry['toolConfig']['campus']).resolve()
-    if not config_path.is_relative_to(Path(directory).resolve()):
+    config_path = (directory / (config_path or entry['toolConfig']['campus'])).resolve()
+    if not config_path.is_relative_to(directory):
         raise RuntimeError('校园工具资产路径无效')
     raw = config_path.read_bytes()
     config = json.loads(raw)
-    connection = (settings or ConfigSnapshot()).resolve(config.pop('connection'))
+    settings = settings or ConfigSnapshot()
+    connection = settings.resolve(config.pop('connection'))
     validate_http_connection(connection)
     config.update(connection)
     minimum = config['minimum_schools']
     if type(minimum) is not int or minimum < 1:
         raise RuntimeError('常模最少学校数量配置无效')
+    if operations is None:
+        from capability_packs.registry import read_pack_manifest
+        operations = read_pack_manifest('campus-brain-query').operations
+    definitions = {operation.ref: operation for operation in operations}
+    for name, rule in config['tools'].items():
+        # 内部 Service 和 Agent Tool 使用同一份接口定义；资产只保留业务规则。
+        rule['schema'] = deepcopy(definitions[name].input_schema['properties']['payload'])
     norm = config['tools']['get_norm_metrics']
     norm['schema']['properties']['schools']['minItems'] = minimum
-    norm['description'] = norm['description'].format(minimum_schools=minimum)
     catalogs = {}
-    digest = hashlib.sha256(raw)
-    digest.update(json.dumps(connection, sort_keys=True).encode('utf-8'))
     for kind, name in config['catalogs'].items():
         path = (config_path.parent / name).resolve()
         if not path.is_relative_to(config_path.parent) or path.suffix != '.csv':
             raise RuntimeError('校园知识资产路径无效')
-        digest.update(path.read_bytes())
         with path.open(encoding='utf-8', newline='') as stream:
             catalogs[kind] = [{**row, 'analysis': kind} for row in csv.DictReader(stream)]
         if kind != 'schools':
@@ -58,12 +64,8 @@ def load_campus_assets(settings=None, directory=ASSET_ROOT):
                 definitions.setdefault(row['code'], set()).add(row['name'])
             for row in catalogs[kind]:
                 row['definition_conflict'] = len(definitions[row['code']]) > 1
-    schema = {'catalogs': list(catalogs), 'tools': {
-        name: {'description': rule['description'], 'schema': rule['schema']}
-        for name, rule in config['tools'].items()}}
-    schema_revision = hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
     return {'config': config, 'catalogs': catalogs,
-            'revision': digest.hexdigest(), 'schema_revision': schema_revision}
+            'revision': service_asset_revision(directory, config_path.relative_to(directory), settings)}
 
 
 def _normalized(text):
@@ -91,10 +93,6 @@ class CampusQuery:
         self.assets = assets
         self._lock = asyncio.Lock()
         self.bind(credentials)
-
-    def tool_names(self):
-        """返回知识检索及已配置查询工具名，供装配层生成白名单。"""
-        return ['search_knowledge', *self.assets['config']['tools']]
 
     def configure_assets(self, assets):
         """在两轮之间更新知识与连接；旧轮身份和调用状态不得带入新资产。"""
@@ -228,40 +226,53 @@ class CampusQuery:
         return await call_mcp_tool(self.assets['config'], name, arguments)
 
 
-def create_campus_server(service, *, on_error=None):
-    """按服务资产注册知识检索与查询工具，统一隔离上游错误正文。"""
-    def wrap(handler):
-        """为工具处理器绑定 MCP 结果编码与分级错误反馈。"""
-        async def invoke(arguments):
-            """执行处理器；仅透出本地输入提示，其他错误返回固定文本。"""
-            try:
-                result = await handler(arguments)
-                return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
-            except CampusInputError as error:
-                return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
-            except ValueError:
-                if on_error:
-                    on_error()
-                return {'isError': True, 'content': [{'type': 'text', 'text': '查询条件或本轮身份无效，请核对指标、年份、学校集合及调用预算。'}]}
-            except Exception:
-                if on_error:
-                    on_error()
-                return {'isError': True, 'content': [{'type': 'text', 'text': '查询服务暂时不可用或返回未支持的数据，未自动重试。'}]}
-        return invoke
+def search_knowledge(context, arguments):
+    return context.services.require('campus').search(arguments)
 
-    async def search(arguments):
-        """把 MCP 检索参数交给服务的本地登记词表检索。"""
-        return service.search(arguments)
-    tools = [sdk_tool('search_knowledge', '批量检索指标或常模学校；常模指标用 norm_analysis。多个候选直接选最贴近名称的一项，同样合理时取首项，不停下来澄清；回答展示所选全称。', {
-        'type': 'object', 'properties': {'kind': {'type': 'string', 'enum': list(service.assets['catalogs'])},
-        'query': {'anyOf': [{'type': 'string', 'minLength': 1, 'maxLength': 200},
-            {'type': 'array', 'items': {'type': 'string', 'minLength': 1, 'maxLength': 200}, 'minItems': 1, 'maxItems': 30}]},
-        'offset': {'type': 'integer', 'minimum': 0}},
-        'required': ['kind', 'query'], 'additionalProperties': False})(wrap(search))]
-    for name, rule in service.assets['config']['tools'].items():
-        async def call(arguments, tool_name=name):
-            """固定本次注册的工具名，避免循环回调串用最后一个名称。"""
-            return await service.call(tool_name, arguments)
-        tools.append(sdk_tool(name, rule['description'], {'type': 'object',
-            'properties': {'payload': rule['schema']}, 'required': ['payload'], 'additionalProperties': False})(wrap(call)))
-    return create_sdk_mcp_server('campus', version='1.0.0', tools=tools)
+
+async def get_school_info(context, arguments):
+    return await context.services.require('campus').call('get_school_info', arguments)
+
+
+async def get_indicator_metrics(context, arguments):
+    return await context.services.require('campus').call('get_indicator_metrics', arguments)
+
+
+async def get_norm_metrics(context, arguments):
+    return await context.services.require('campus').call('get_norm_metrics', arguments)
+
+
+def load_service_assets(service_ref, settings, directory, config_path, operations):
+    """按 Capability 资产引用装入校园 MCP 配置和知识表。"""
+    if service_ref != 'campus' or not isinstance(config_path, str):
+        raise RuntimeError('campus_service_asset_invalid')
+    return load_campus_assets(settings, directory=directory, config_path=config_path,
+                              operations=operations)
+
+
+def create_service(service_ref, assets, credentials, operations):
+    if service_ref != 'campus':
+        raise RuntimeError('campus_service_invalid')
+    return CampusQuery(assets, credentials)
+
+
+def update_service(service_ref, service, assets):
+    if service_ref != 'campus' or not isinstance(service, CampusQuery):
+        raise RuntimeError('campus_service_invalid')
+    service.configure_assets(assets)
+
+
+def specialize_operations(context, operations):
+    """将已验证业务配置的最少学校数同步到当轮 Operation Schema。"""
+    service = context.services.require('campus')
+    minimum = service.assets['config']['minimum_schools']
+    specialized = []
+    for operation in operations:
+        schema = json.loads(json.dumps(operation.input_schema))
+        description = operation.description
+        if operation.ref == 'get_norm_metrics':
+            schema['properties']['payload']['properties']['schools']['minItems'] = minimum
+            description = description.replace('至少 8 所', f'至少 {minimum} 所')
+        specialized.append(replace(operation, description=description, input_schema=schema,
+                                   input_validator=Draft202012Validator(schema)))
+    return specialized

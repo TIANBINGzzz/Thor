@@ -1,10 +1,11 @@
 {
   "ref": "campus",
   "version": 1,
-  "implementation": "campus",
+  "implementation": "capability-pack",
   "transport": "sdk",
   "lifecycle": "per_client",
   "scope": "namespace",
+  "serviceRef": "campus",
   "description": "访问校园大脑查询服务",
   "operations": [],
   "category": "data",
@@ -13,11 +14,5 @@
     "arguments": {
       "user_context_token": "platformBearer"
     }
-  },
-  "displayKeys": {
-    "search_knowledge": "data.prepare",
-    "get_school_info": "data.resolve",
-    "get_indicator_metrics": "data.query",
-    "get_norm_metrics": "data.query"
   }
 }

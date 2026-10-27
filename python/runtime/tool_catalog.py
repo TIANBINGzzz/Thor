@@ -33,6 +33,7 @@ class ToolDefinition:
     connection: dict
     optional: bool
     display_keys: dict
+    service_ref: str | None
     instructions: tuple[dict, ...]
 
     def operation(self, ref: str) -> ToolOperation:
@@ -54,7 +55,7 @@ class ToolCatalog:
         """读取单个 Tool manifest 并校验运行时契约。"""
         directory = directory.resolve()
         value = read_manifest(directory, 'tool.json')
-        allowed = {'ref', 'version', 'implementation', 'transport', 'lifecycle', 'scope', 'description', 'operations', 'category', 'auth', 'connection', 'optional', 'displayKeys', 'instructionRefs'}
+        allowed = {'ref', 'version', 'implementation', 'transport', 'lifecycle', 'scope', 'description', 'operations', 'category', 'auth', 'connection', 'optional', 'displayKeys', 'instructionRefs', 'serviceRef'}
         if set(value) - allowed or value.get('ref') != directory.name:
             raise RuntimeError(f'工具 manifest 字段或名称无效：{directory}')
         ref = value.get('ref')
@@ -130,12 +131,20 @@ class ToolCatalog:
             raise RuntimeError(f'MCP Provider配置无效：{ref}')
         if value['transport'] == 'sdk' and connection:
             raise RuntimeError(f'SDK工具不能声明MCP连接：{ref}')
+        service_ref = value.get('serviceRef')
+        if implementation == 'capability-pack':
+            if (not isinstance(service_ref, str) or not ENTRY_NAME.fullmatch(service_ref)
+                    or value['transport'] != 'sdk' or value['lifecycle'] != 'per_client'
+                    or scope != 'namespace' or operations):
+                raise RuntimeError(f'能力 Service 配置无效：{ref}')
+        elif service_ref is not None:
+            raise RuntimeError(f'普通 Tool 不能声明 Service 引用：{ref}')
         display = value.get('displayKeys', {})
         if not isinstance(display, dict) or any(not isinstance(k, str) or not ENTRY_NAME.fullmatch(k) or not isinstance(v, str) for k, v in display.items()):
             raise RuntimeError(f'工具显示规则无效：{ref}')
         return ToolDefinition(ref, implementation, value['lifecycle'], scope, tuple(parsed),
                               value['transport'], category, description, auth, connection,
-                              value.get('optional', False), display,
+                              value.get('optional', False), display, service_ref,
                               tuple(read_documents(directory, value.get('instructionRefs', []), asset_root=self.root)))
 
     def resolve(self, ref: str) -> ToolDefinition:
@@ -175,7 +184,8 @@ def display_key(name):
     if len(parts) != 3:
         return 'other'
     if parts[1] == 'capability_ops':
-        return 'capability.operation'
+        from capability_packs.registry import operation_display_key
+        return operation_display_key(parts[2]) or 'capability.operation'
     try:
         return TOOL_CATALOG.resolve(parts[1]).display_keys.get(parts[2], 'other')
     except RuntimeError:

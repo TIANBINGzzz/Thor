@@ -52,6 +52,7 @@ class AssetManagementTests(unittest.TestCase):
                          headers=self.headers()).status_code, 409)
         catalog = self.client.get('/internal/v1/assets/catalog', headers=self.headers()).json()
         self.assertIn('office', {tool['ref'] for tool in catalog['tools']})
+        self.assertNotIn('campus', {tool['ref'] for tool in catalog['tools']})
         self.assertIn('schoolDoubleHigh', {source['ref'] for source in catalog['dataSources']})
         self.assertNotIn('connection', json.dumps(catalog))
         self.assertNotIn('auth', json.dumps(catalog))

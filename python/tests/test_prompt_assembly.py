@@ -39,10 +39,11 @@ class PromptAssemblyTests(unittest.TestCase):
         self.assertNotIn('交付DOCX/PDF前必须用Read读取项目根目录', assets['prompt'])
 
     def test_campus_loader_does_not_render_capability_prompt(self):
-        from tools.campus import load_campus_assets
+        from capability_packs.registry import _directory, _load_module
+        loader = _load_module(_directory('campus-brain-query')).load_campus_assets
         with patch('runtime.nacos_config.fetch_config', return_value={
                 'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}):
-            loaded = load_campus_assets()
+            loaded = loader()
         self.assertNotIn('prompt', loaded)
 
     def test_effective_tool_guidance_matches_runtime_and_omits_unmounted_tools(self):
@@ -127,11 +128,11 @@ class PromptAssetValidationTests(unittest.TestCase):
         self.directory = self.root / 'not_for_model-host/capabilities/example'
         self.directory.mkdir(parents=True)
         (self.directory / 'config.json').write_text('{"limit":3}', encoding='utf-8')
-        self.manifest.update(toolRefs=['campus'], toolConfig={'campus': 'config.json'},
-            promptVariables={'limit': {'toolRef': 'campus', 'field': 'limit'}})
+        self.manifest.update(toolRefs=['business'], toolConfig={'business': 'config.json'},
+            promptVariables={'limit': {'toolRef': 'business', 'field': 'limit'}})
         self.body = '阈值 {{limit}}'
         self.assertIn('阈值 3', assemble_prompt(load_prompt_assets(self.entry()),
-                      active_tools=['campus'], preview=True)['text'])
+                      active_tools=['business'], preview=True)['text'])
 
     def test_skill_dependencies_do_not_grant_tools_and_direct_requires_preloaded_skills(self):
         self.manifest['skillRefs'] = ['../outside']
@@ -155,14 +156,14 @@ class PromptAssetValidationTests(unittest.TestCase):
     def test_variables_use_only_registered_numeric_fields_without_connections(self):
         path = self.directory / 'config.json'
         path.write_text('{"limit":3,"api_key":123,"connection":"env:SECRET"}', encoding='utf-8')
-        self.manifest.update(toolRefs=['campus'], toolConfig={'campus': 'config.json'},
-            promptVariables={'limit': {'toolRef': 'campus', 'field': 'limit'}})
+        self.manifest.update(toolRefs=['business'], toolConfig={'business': 'config.json'},
+            promptVariables={'limit': {'toolRef': 'business', 'field': 'limit'}})
         self.body = '阈值 {{limit}}'
         assets = load_prompt_assets(self.entry())
-        self.assertIn('阈值 3', assemble_prompt(assets, active_tools=['campus'], preview=True)['text'])
-        for binding in ({'toolRef': 'campus', 'field': 'connection'}, {'toolRef': 'campus', 'field': 'api_key'},
+        self.assertIn('阈值 3', assemble_prompt(assets, active_tools=['business'], preview=True)['text'])
+        for binding in ({'toolRef': 'business', 'field': 'connection'}, {'toolRef': 'business', 'field': 'api_key'},
                         {'env': 'SECRET'}, {'toolRef': 'office', 'field': 'limit'},
-                        {'toolRef': 'campus', 'field': '../limit'}):
+                        {'toolRef': 'business', 'field': '../limit'}):
             self.manifest['promptVariables']['limit'] = binding
             with self.subTest(binding=binding), self.assertRaises(RuntimeError):
                 self.entry()

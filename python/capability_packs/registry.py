@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+from functools import lru_cache
 from pathlib import Path
 import sys
 from threading import RLock
@@ -50,7 +51,7 @@ def _pack_manifest(directory: Path, ref: str):
 
 def _read_pack_manifest(directory: Path, ref: str):
     value = read_manifest(directory, "pack.json")
-    if set(value) != {"ref", "operations"} or value.get("ref") != ref:
+    if set(value) - {'ref', 'operations', 'services'} or value.get("ref") != ref:
         raise RuntimeError("能力代码包声明无效")
     from runtime.capability_operations import manifest_pack
 
@@ -65,6 +66,21 @@ def read_pack_manifest(ref: str):
             return _MANIFESTS[directory]
         validate_pack_reference(ref)
         return _pack_manifest(directory, ref)
+
+
+@lru_cache(maxsize=1)
+def _operation_display_keys(root):
+    """静态显示索引随进程缓存，事件处理不扫描磁盘或导入业务代码。"""
+    keys = {}
+    for path in root.glob('*/pack.json'):
+        for operation in read_pack_manifest(path.parent.name).operations:
+            keys.setdefault(operation.ref, set()).add(operation.display_key)
+    # 不同能力的同名操作分类不一致时使用通用显示，避免误报业务状态。
+    return {ref: next(iter(values)) for ref, values in keys.items() if len(values) == 1}
+
+
+def operation_display_key(operation_ref):
+    return _operation_display_keys(Path(PACK_ROOT).resolve()).get(operation_ref)
 
 
 def _load_module(directory: Path) -> ModuleType:
@@ -127,4 +143,34 @@ def _bind_pack(directory: Path, ref: str):
         if not callable(handler):
             raise RuntimeError("能力 Operation 执行器未登记")
         bound.append(replace(operation, execute=handler))
-    return validate_pack(replace(pack, operations=tuple(bound)), ref)
+    return validate_pack(replace(
+        pack,
+        operations=tuple(bound),
+        load_service_assets=getattr(module, 'load_service_assets', None),
+        create_service=getattr(module, 'create_service', None),
+        update_service=getattr(module, 'update_service', None),
+        specialize_operations=getattr(module, 'specialize_operations', None),
+    ), ref)
+
+
+def load_pack_service_assets(capability_ref, service_ref, settings, directory, config_path):
+    """加载代码包声明的 Service 资产；只在实际执行装配时导入包代码。"""
+    pack = load_pack(capability_ref)
+    if service_ref not in pack.services or not callable(pack.load_service_assets):
+        raise RuntimeError('能力 Service 资产未登记')
+    return pack.load_service_assets(service_ref, settings, directory, config_path,
+                                    pack.operations)
+
+
+def create_pack_service(capability_ref, service_ref, assets, credentials):
+    pack = load_pack(capability_ref)
+    if service_ref not in pack.services or not callable(pack.create_service):
+        raise RuntimeError('能力 Service 工厂未登记')
+    return pack.create_service(service_ref, assets, credentials, pack.operations)
+
+
+def update_pack_service(capability_ref, service_ref, service, assets):
+    pack = load_pack(capability_ref)
+    if service_ref not in pack.services or not callable(pack.update_service):
+        raise RuntimeError('能力 Service 更新器未登记')
+    return pack.update_service(service_ref, service, assets)
