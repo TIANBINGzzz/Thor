@@ -156,7 +156,6 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(hits, ['A', 'B'])
 
                 # 真实代码包经过 SDK bridge 同名替换，切换能力后仅使用新 Run 上下文。
-                from capability_packs.registry import pack_digest
                 from runtime.capability_operations import build_operation_server
                 from tests.test_capability_operations import create_pack, operation
                 packs = Path(directory) / 'packs'
@@ -174,7 +173,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     if ref:
                         with patch('capability_packs.registry.PACK_ROOT', packs), tool_scope.capture():
                             namespace, server_config, _ = build_operation_server({'ref': ref,
-                                'operation_refs': ['calculate'], '_operation_package_digest': pack_digest(ref)},
+                                'operation_refs': ['calculate']},
                                 {'run_id': 'run-' + ref})
                         servers[namespace] = server_config
                     turn = build_agent_options(model='probe-second-model', mcp_servers=servers, tools=[],

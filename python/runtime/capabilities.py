@@ -93,17 +93,15 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     if not set(required) <= set(tools):
         raise RuntimeError('能力工具声明无效')
     operation_refs = validate_refs(manifest.get('operationRefs', []), 'operationRefs')
-    operation_package_digest = None
     if operation_refs:
         # 持久化能力只允许声明式资产；业务 Python 必须随可信 Runtime 部署。
         source_root = CAPABILITIES_ROOT.resolve()
         if not directory.resolve().is_relative_to(source_root):
             raise RuntimeError('持久化能力不能引用代码包')
-        from capability_packs.registry import pack_digest, read_pack_manifest
+        from capability_packs.registry import read_pack_manifest
         pack = read_pack_manifest(manifest['ref'])
         if not set(operation_refs) <= {operation.ref for operation in pack.operations}:
             raise RuntimeError('能力 Operation 未在代码包中登记')
-        operation_package_digest = pack_digest(manifest['ref'])
     configs = manifest.get('toolConfig', {})
     if not isinstance(configs, dict) or not set(configs) <= set(tools):
         raise RuntimeError('工具配置未登记')
@@ -148,7 +146,6 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
             'skill_refs': list(skills), 'tools': list(tools),
             'required_tools': list(required), 'tool_config': configs,
             'operation_refs': list(operation_refs),
-            '_operation_package_digest': operation_package_digest,
             '_body': read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
             '_skill_root': str(skills_root.resolve())}
 

@@ -18,7 +18,7 @@
 - 业务实现归 `python/capability_packs/<capabilityRef>/`，`pack.json` 登记输入/输出 Schema 和处理器，`operations.py` 提供同步或异步动作；有内部复用需求才建 Service。知识、模板、Prompt 仍归 `.claude/`，不将数据库口径写进通用 Python。
 - 源码能力显式选择同名包的 `operationRefs`；Worker 统一适配为 MCP Tool，复用本轮 Service、Schema 校验、授权 Hook 和事件。确定步骤写在 Operation 内，Agent 决定调用时机；提示词不保证必定调用，不引入 Workflow/DAG。
 - 目录发现及有效内容预览不 import 业务代码；管理 API 只组合既有声明资产，不能上传 Python、指定模块或调用代码包。
-- 代码包按进程加载一次，指纹检测准备和加载间变更，代码发版须重启；不保存源码版本、不热换。Operation 不跨轮复用上下文，收尾超时退役 Worker。
+- 代码包按 Worker 加载并缓存，部署变更通过重启生效；不在线换码或保存源码版本。Operation 不跨轮复用上下文，收尾超时退役 Worker。
 
 ## 后果与验证
 

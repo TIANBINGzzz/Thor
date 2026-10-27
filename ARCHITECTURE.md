@@ -48,7 +48,7 @@
 - 业务会话、Run、SDK session、Client 和 SSE 连接生命周期分开；断开订阅不取消 Run，resume 不撤销工具副作用。
 - Java 负责持久化消息与下一 Run 排队；文本引导只追加到活动 Run 的 SDK 会话，不新建 Run、不改变当前授权，默认不打断在途工具。停止仍走 cancel。
 - 公共事件脱敏，状态显示由 `event_display.py` 统一维护；显示名称不授予工具权限。配置快照、结果引用及文件状态不得跨身份或 Run 串用。
-- 能力代码是可信部署代码，不是沙箱插件；持久化能力不得引用代码包。代码指纹只检测准备/加载时变更，不保存源码快照；部署后不在线改代码，变更须重启 Worker。Operation 绑定本轮上下文，取消和收尾完成前不得复用，详见 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
+- 能力代码是可信部署代码，不是沙箱插件；持久化能力不得引用代码包。代码随 Worker 生命周期加载，部署变更须重启 Worker，不提供在线换码或源码快照。Operation 绑定本轮上下文，取消和收尾完成前不得复用，详见 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
 
 ## 7. Important boundaries/interfaces
 

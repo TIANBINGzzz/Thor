@@ -38,41 +38,21 @@ def validate_pack_reference(ref: str) -> Path:
         path = (directory / name).resolve()
         if not path.is_relative_to(directory) or not path.is_file():
             raise RuntimeError("能力代码包未登记")
-    for path in directory.rglob("*"):
-        if path.is_symlink() and not path.resolve().is_relative_to(directory):
-            raise RuntimeError("能力代码包文件路径越界")
     return directory
 
 
-def pack_digest(ref: str) -> str:
-    """流式计算 Python 与声明指纹；重模板和数据仍归声明式资产目录。"""
-    directory = validate_pack_reference(ref)
-    digest = hashlib.sha256()
-    for path in sorted(item for item in directory.rglob("*")
-                       if item.is_file() and "__pycache__" not in item.parts
-                       and (item.suffix == '.py' or item.name == 'pack.json')):
-        resolved = path.resolve()
-        if not resolved.is_relative_to(directory):
-            raise RuntimeError("能力代码包文件路径越界")
-        relative = path.relative_to(directory).as_posix().encode("utf-8")
-        digest.update(len(relative).to_bytes(4, "big"))
-        digest.update(relative)
-        digest.update(resolved.stat().st_size.to_bytes(8, "big"))
-        with resolved.open('rb') as source:
-            while content := source.read(64 * 1024):
-                digest.update(content)
-    return digest.hexdigest()
-
-
-def read_pack_manifest(ref: str):
-    """读取不执行代码的 Operation 名称和 Schema，供能力校验及预览使用。"""
-    directory = validate_pack_reference(ref)
+def _read_pack_manifest(directory: Path, ref: str):
     value = read_manifest(directory, "pack.json")
     if set(value) != {"ref", "operations"} or value.get("ref") != ref:
         raise RuntimeError("能力代码包声明无效")
     from runtime.capability_operations import manifest_pack
 
     return manifest_pack(value, ref)
+
+
+def read_pack_manifest(ref: str):
+    """读取不执行代码的 Operation 名称和 Schema，供能力校验及预览使用。"""
+    return _read_pack_manifest(validate_pack_reference(ref), ref)
 
 
 def _load_module(directory: Path) -> ModuleType:
@@ -106,24 +86,20 @@ def _load_module(directory: Path) -> ModuleType:
         raise
 
 
-def load_pack(ref: str, *, expected_digest: str):
-    """按部署加载一次；代码变更必须重启，不在复用中的 Worker 混用版本。"""
-    directory = validate_pack_reference(ref)
+def load_pack(ref: str):
+    """按 Worker 生命周期加载一次；部署代码变更通过重启 Worker 生效。"""
+    directory = _directory(ref)
     with _LOAD_LOCK:
-        current = pack_digest(ref)
-        if not isinstance(expected_digest, str) or current != expected_digest:
-            raise RuntimeError("能力代码包在 Run 准备后发生变化")
         if directory in _LOADED:
-            digest, pack = _LOADED[directory]
-            if digest != current or pack is None:
-                raise RuntimeError("能力代码包已变更或加载失败，请重新部署并重启 Worker")
+            pack = _LOADED[directory]
+            if pack is None:
+                raise RuntimeError("能力代码包加载失败，请重新部署并重启 Worker")
             return pack
-        # 导入失败可能已执行部分模块级代码，禁止同进程再次尝试。
-        _LOADED[directory] = (current, None)
+        validate_pack_reference(ref)
+        # 导入失败可能已执行部分模块级代码，禁止同进程再次初始化。
+        _LOADED[directory] = None
         pack = _bind_pack(directory, ref)
-        if pack_digest(ref) != current:
-            raise RuntimeError("能力代码包在加载期间发生变化，请重启 Worker")
-        _LOADED[directory] = (current, pack)
+        _LOADED[directory] = pack
         return pack
 
 
@@ -131,7 +107,7 @@ def _bind_pack(directory: Path, ref: str):
     from dataclasses import replace
     from runtime.capability_operations import validate_pack
 
-    pack = read_pack_manifest(ref)
+    pack = _read_pack_manifest(directory, ref)
     module = _load_module(directory)
     bound = []
     for operation in pack.operations:

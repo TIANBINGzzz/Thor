@@ -76,10 +76,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             entry_dir = self._capability(temp / 'capabilities', operations=['calculate'])
             with patch('capability_packs.registry.PACK_ROOT', packs), \
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kwargs: kwargs):
-                from capability_packs.registry import pack_digest
                 entry = {'ref': 'demo-capability', 'operation_refs': ['calculate'],
-                         '_directory': str(entry_dir),
-                         '_operation_package_digest': pack_digest('demo-capability')}
+                         '_directory': str(entry_dir)}
                 server_name, server, names = build_operation_server(entry, {'run_id': 'run-1'})
                 self.assertEqual(server_name, 'capability_ops')
                 self.assertEqual(names, ['calculate'])
@@ -125,7 +123,6 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                  patch('capability_packs.registry.PACK_ROOT', packs):
                 entry = capability_entry(entry_dir, skills_root=temp / 'skills')
             self.assertEqual(entry['operation_refs'], ['calculate'])
-            self.assertTrue(entry['_operation_package_digest'])
 
     def test_managed_capability_cannot_reference_code_pack(self):
         from runtime.capabilities import capability_entry
@@ -190,9 +187,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             ''')
             with patch('capability_packs.registry.PACK_ROOT', packs):
                 with self.assertRaises(RuntimeError):
-                    from capability_packs.registry import pack_digest
                     build_registered_tools({'ref': 'demo-capability', 'tools': [], 'required_tools': [],
-                        'operation_refs': ['calculate'], '_operation_package_digest': pack_digest('demo-capability')},
+                        'operation_refs': ['calculate']},
                         {'run_id': 'run-1'})
 
     async def test_registered_tools_expose_only_declared_operation_names(self):
@@ -206,10 +202,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             ''')
             with patch('capability_packs.registry.PACK_ROOT', packs), \
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kwargs: kwargs):
-                from capability_packs.registry import pack_digest
                 result = build_registered_tools({'ref': 'demo-capability', 'tools': [],
-                    'required_tools': [], 'operation_refs': ['calculate'],
-                    '_operation_package_digest': pack_digest('demo-capability')}, {'run_id': 'run-1'})
+                    'required_tools': [], 'operation_refs': ['calculate']}, {'run_id': 'run-1'})
             self.assertEqual(result.exact_tools['capability_ops'], ['calculate'])
             self.assertNotIn('hidden', result.exact_tools['capability_ops'])
             self.assertNotIn('capability_ops', result.auth_refs)
@@ -220,25 +214,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(RuntimeError, 'MCP 服务名称冲突'):
             _merge_mcp_servers({'capability_ops': object()}, {'capability_ops': object()})
 
-    def test_code_change_after_capability_resolution_fails_closed(self):
-        from capability_packs.registry import pack_digest
-        from runtime.capability_operations import build_operation_server
-
-        with tempfile.TemporaryDirectory() as temp:
-            temp = Path(temp)
-            packs = temp / 'packs'
-            pack = create_pack(packs, [operation()],
-                               'async def calculate(context, args): return {"answer": "ok"}')
-            with patch('capability_packs.registry.PACK_ROOT', packs):
-                expected = pack_digest('demo-capability')
-                (pack / 'operations.py').write_text(
-                    'async def calculate(context, args): return {"answer": "changed"}', encoding='utf-8')
-                with self.assertRaisesRegex(RuntimeError, '发生变化'):
-                    build_operation_server({'ref': 'demo-capability', 'operation_refs': ['calculate'],
-                        '_operation_package_digest': expected}, {'run_id': 'run-1'})
-
-    async def test_loaded_pack_supports_deferred_relative_imports_and_rejects_hot_reload(self):
-        from capability_packs.registry import load_pack, pack_digest
+    async def test_loaded_pack_is_cached_for_worker_lifetime_and_supports_relative_imports(self):
+        from capability_packs.registry import load_pack
 
         with tempfile.TemporaryDirectory() as temp:
             packs = Path(temp)
@@ -250,12 +227,11 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             (pack / 'services.py').write_text(
                 'from dataclasses import dataclass\n@dataclass\nclass Result:\n    value: str\n', encoding='utf-8')
             with patch('capability_packs.registry.PACK_ROOT', packs):
-                loaded = load_pack('demo-capability', expected_digest=pack_digest('demo-capability'))
+                loaded = load_pack('demo-capability')
                 self.assertEqual(await loaded.operations[0].execute(None, {'value': 'ok'}), {'answer': 'ok'})
-                self.assertIs(load_pack('demo-capability', expected_digest=pack_digest('demo-capability')), loaded)
+                self.assertIs(load_pack('demo-capability'), loaded)
                 (pack / 'operations.py').write_text('async def calculate(context, args): return {}', encoding='utf-8')
-                with self.assertRaisesRegex(RuntimeError, '重启'):
-                    load_pack('demo-capability', expected_digest=pack_digest('demo-capability'))
+                self.assertIs(load_pack('demo-capability'), loaded)
 
     def test_schema_rejects_network_references(self):
         from runtime.capability_operations import manifest_pack
@@ -267,7 +243,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 manifest_pack({'ref': 'demo-capability', 'operations': [spec]}, 'demo-capability')
 
     async def test_package_entry_can_import_operations_without_running_them_twice(self):
-        from capability_packs.registry import load_pack, pack_digest
+        from capability_packs.registry import load_pack
 
         with tempfile.TemporaryDirectory() as temporary:
             packs = Path(temporary)
@@ -281,11 +257,10 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             (directory / 'services.py').write_text('loads = 0\n', encoding='utf-8')
             (directory / '__init__.py').write_text('from .operations import calculate\n', encoding='utf-8')
             with patch('capability_packs.registry.PACK_ROOT', packs):
-                pack = load_pack('demo-capability', expected_digest=pack_digest('demo-capability'))
+                pack = load_pack('demo-capability')
                 self.assertEqual(await pack.operations[0].execute(None, {}), {'answer': '1', 'same': True})
 
     async def test_schema_distinguishes_business_data_from_schema_keywords(self):
-        from capability_packs.registry import pack_digest
         from runtime.capability_operations import build_operation_server
 
         spec = operation()
@@ -299,13 +274,12 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             create_pack(packs, [spec], "async def calculate(context, args): return {'answer': args['$id']}")
             with patch('capability_packs.registry.PACK_ROOT', packs), \
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kw: kw):
-                _, server, _ = build_operation_server({'ref': 'demo-capability', 'operation_refs': ['calculate'],
-                    '_operation_package_digest': pack_digest('demo-capability')}, {'run_id': 'run-schema'})
+                _, server, _ = build_operation_server({'ref': 'demo-capability', 'operation_refs': ['calculate']},
+                    {'run_id': 'run-schema'})
             result = await server['tools'][0].handler({'value': literal, '$id': 'ok'})
             self.assertEqual(json.loads(result['content'][0]['text']), {'answer': 'ok'})
 
     async def test_schema_reference_into_literal_data_cannot_retrieve_remote_schema(self):
-        from capability_packs.registry import pack_digest
         from runtime.capability_operations import build_operation_server
 
         spec = operation()
@@ -316,8 +290,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             create_pack(packs, [spec], "async def calculate(context, args): return {'answer': 'never'}")
             with patch('capability_packs.registry.PACK_ROOT', packs), \
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kw: kw):
-                _, server, _ = build_operation_server({'ref': 'demo-capability', 'operation_refs': ['calculate'],
-                    '_operation_package_digest': pack_digest('demo-capability')}, {'run_id': 'run-schema'})
+                _, server, _ = build_operation_server({'ref': 'demo-capability', 'operation_refs': ['calculate']},
+                    {'run_id': 'run-schema'})
             with patch('urllib.request.urlopen') as retrieve:
                 result = await server['tools'][0].handler({'value': 'ok'})
                 self.assertTrue(result['isError'])
@@ -342,7 +316,6 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(view['operations'][0]['outputSchema'], operation()['outputSchema'])
 
     async def test_sync_operations_enforce_json_and_size_boundaries(self):
-        from capability_packs.registry import pack_digest
         from runtime.capability_operations import build_operation_server
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -358,7 +331,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             with patch('capability_packs.registry.PACK_ROOT', packs), \
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kw: kw):
                 _, server, _ = build_operation_server({'ref': 'demo-capability',
-                    'operation_refs': ['calculate'], '_operation_package_digest': pack_digest('demo-capability')},
+                    'operation_refs': ['calculate']},
                     {'run_id': 'run-sync'})
             handler = server['tools'][0].handler
             result = await handler({'value': 'ok'})
@@ -447,7 +420,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                         capability_entry(directory, skills_root=root / 'skills')
 
     async def test_cancelled_operations_finish_before_next_run_can_start(self):
-        from capability_packs.registry import load_pack, pack_digest
+        from capability_packs.registry import load_pack
         from runtime.capability_operations import build_operation_server
         from runtime.claude_sdk import SDKExecutionError, SDKTimeoutError, SDKToolScope
 
@@ -479,11 +452,10 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 scope.start()
                 with patch('capability_packs.registry.PACK_ROOT', packs), scope.capture(), \
                      patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kw: kw):
-                    digest = pack_digest('demo-capability')
-                    loaded = load_pack('demo-capability', expected_digest=digest)
+                    loaded = load_pack('demo-capability')
                     state = loaded.operations[0].execute.__globals__
                     _, server, _ = build_operation_server({'ref': 'demo-capability',
-                        'operation_refs': ['calculate'], '_operation_package_digest': digest}, {'run_id': 'run-cancel'})
+                        'operation_refs': ['calculate']}, {'run_id': 'run-cancel'})
                 call = asyncio.create_task(server['tools'][0].handler({'value': 'ok'}))
                 try:
                     if synchronous:

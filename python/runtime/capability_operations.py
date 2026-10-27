@@ -293,7 +293,7 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
     refs = entry.get("operation_refs", [])
     if not refs:
         raise RuntimeError("能力未声明 Operation")
-    pack = load_pack(entry["ref"], expected_digest=entry.get("_operation_package_digest"))
+    pack = load_pack(entry["ref"])
     available = {operation.ref: operation for operation in pack.operations}
     selected = []
     for ref in refs:
@@ -304,9 +304,12 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
     registered = []
     for operation in selected:
         spec = operation
+        input_validator = Draft202012Validator(spec.input_schema, registry=_SCHEMA_REGISTRY)
+        output_validator = Draft202012Validator(spec.output_schema, registry=_SCHEMA_REGISTRY)
 
         @sdk_tool(spec.ref, spec.description, spec.input_schema, run_only=True)
-        async def invoke(args, _operation=spec):
+        async def invoke(args, _operation=spec, _input_validator=input_validator,
+                         _output_validator=output_validator):
             try:
                 if not isinstance(args, dict):
                     return _error("PARAMETERS_INVALID")
@@ -317,8 +320,7 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
                     return _error("PARAMETERS_INVALID")
                 if len(encoded_args) > MAX_OPERATION_INPUT_BYTES:
                     return _error("PARAMETERS_INVALID")
-                invalid = next(Draft202012Validator(
-                    _operation.input_schema, registry=_SCHEMA_REGISTRY).iter_errors(args), None)
+                invalid = next(_input_validator.iter_errors(args), None)
                 if invalid:
                     return _error("PARAMETERS_INVALID")
                 result = await _execute(_operation, capability_context, args)
@@ -329,8 +331,7 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
                     return _error("RESULT_INVALID")
                 if len(text.encode("utf-8")) > MAX_OPERATION_RESULT_BYTES:
                     return _error("RESULT_LIMIT")
-                output_error = next(Draft202012Validator(
-                    _operation.output_schema, registry=_SCHEMA_REGISTRY).iter_errors(json.loads(text)), None)
+                output_error = next(_output_validator.iter_errors(json.loads(text)), None)
                 if output_error:
                     return _error("RESULT_INVALID")
                 return {"content": [{"type": "text", "text": text}]}
