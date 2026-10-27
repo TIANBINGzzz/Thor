@@ -14,6 +14,7 @@ from runtime.asset_registry import ENTRY_NAME, read_manifest
 PACK_ROOT = Path(__file__).resolve().parent
 # 部署代码只加载一次；不缓存 Run、凭据或业务 Service 实例。
 _LOADED = {}
+_MANIFESTS = {}
 _LOAD_LOCK = RLock()
 
 
@@ -41,6 +42,12 @@ def validate_pack_reference(ref: str) -> Path:
     return directory
 
 
+def _pack_manifest(directory: Path, ref: str):
+    if directory not in _MANIFESTS:
+        _MANIFESTS[directory] = _read_pack_manifest(directory, ref)
+    return _MANIFESTS[directory]
+
+
 def _read_pack_manifest(directory: Path, ref: str):
     value = read_manifest(directory, "pack.json")
     if set(value) != {"ref", "operations"} or value.get("ref") != ref:
@@ -52,7 +59,12 @@ def _read_pack_manifest(directory: Path, ref: str):
 
 def read_pack_manifest(ref: str):
     """读取不执行代码的 Operation 名称和 Schema，供能力校验及预览使用。"""
-    return _read_pack_manifest(validate_pack_reference(ref), ref)
+    directory = _directory(ref)
+    with _LOAD_LOCK:
+        if directory in _MANIFESTS:
+            return _MANIFESTS[directory]
+        validate_pack_reference(ref)
+        return _pack_manifest(directory, ref)
 
 
 def _load_module(directory: Path) -> ModuleType:
@@ -107,7 +119,7 @@ def _bind_pack(directory: Path, ref: str):
     from dataclasses import replace
     from runtime.capability_operations import validate_pack
 
-    pack = _read_pack_manifest(directory, ref)
+    pack = _pack_manifest(directory, ref)
     module = _load_module(directory)
     bound = []
     for operation in pack.operations:

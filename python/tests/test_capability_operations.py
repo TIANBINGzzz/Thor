@@ -124,6 +124,20 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 entry = capability_entry(entry_dir, skills_root=temp / 'skills')
             self.assertEqual(entry['operation_refs'], ['calculate'])
 
+    def test_operation_manifest_is_parsed_once_per_worker(self):
+        from capability_packs.registry import read_pack_manifest
+        from runtime.asset_registry import read_manifest as parse_manifest
+
+        with tempfile.TemporaryDirectory() as temp:
+            packs = Path(temp)
+            create_pack(packs, [operation()], "raise RuntimeError('manifest read must not execute code')")
+            with patch('capability_packs.registry.PACK_ROOT', packs), \
+                 patch('capability_packs.registry.read_manifest', wraps=parse_manifest) as read_manifest:
+                first = read_pack_manifest('demo-capability')
+                second = read_pack_manifest('demo-capability')
+            self.assertIs(first, second)
+            self.assertEqual(read_manifest.call_count, 1)
+
     def test_managed_capability_cannot_reference_code_pack(self):
         from runtime.capabilities import capability_entry
 
@@ -315,7 +329,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(view['operations'][0]['inputSchema'], operation()['inputSchema'])
             self.assertEqual(view['operations'][0]['outputSchema'], operation()['outputSchema'])
 
-    async def test_sync_operations_enforce_json_and_size_boundaries(self):
+    async def test_sync_operations_enforce_json_and_schema_boundaries(self):
         from runtime.capability_operations import build_operation_server
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -324,8 +338,6 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 def calculate(context, args):
                     if args['value'] == 'nan':
                         return {'answer': float('nan')}
-                    if args['value'] == 'large':
-                        return {'answer': 'x' * 1000001}
                     return {'answer': context.run_id + ':' + args['value']}
             ''')
             with patch('capability_packs.registry.PACK_ROOT', packs), \
@@ -336,9 +348,8 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             handler = server['tools'][0].handler
             result = await handler({'value': 'ok'})
             self.assertEqual(json.loads(result['content'][0]['text']), {'answer': 'run-sync:ok'})
-            for args, code in (({'value': 'x' * 128001}, 'PARAMETERS_INVALID'),
-                               ({'value': float('nan')}, 'PARAMETERS_INVALID'),
-                               ({'value': 'nan'}, 'RESULT_INVALID'), ({'value': 'large'}, 'RESULT_LIMIT')):
+            for args, code in (({'value': float('nan')}, 'PARAMETERS_INVALID'),
+                               ({'value': 'nan'}, 'RESULT_INVALID')):
                 with self.subTest(code=code):
                     result = await handler(args)
                     self.assertEqual(json.loads(result['content'][0]['text'])['error']['code'], code)

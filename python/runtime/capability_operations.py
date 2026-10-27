@@ -23,8 +23,6 @@ from runtime.claude_sdk import create_sdk_mcp_server, run_tool_thread, sdk_tool
 
 
 OperationHandler = Callable[["CapabilityContext", dict[str, Any]], Any]
-MAX_OPERATION_INPUT_BYTES = 128_000
-MAX_OPERATION_RESULT_BYTES = 1_000_000
 # 禁用 jsonschema 默认的远端获取，包括从本地 JSON Pointer 间接引用远端的情况。
 _SCHEMA_REGISTRY = Registry()
 
@@ -39,6 +37,8 @@ class OperationDefinition:
     output_schema: dict[str, Any]
     handler_name: str
     execute: OperationHandler | None = None
+    input_validator: Any = None
+    output_validator: Any = None
 
 
 @dataclass(frozen=True)
@@ -225,7 +225,7 @@ def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
             or value.get("ref") != ref):
         raise RuntimeError("能力代码包声明无效")
     definitions = value.get("operations")
-    if not isinstance(definitions, list) or not definitions or len(definitions) > 64:
+    if not isinstance(definitions, list) or not definitions:
         raise RuntimeError("能力代码包操作数量无效")
     seen = set()
     operations = []
@@ -244,8 +244,10 @@ def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
         input_schema, output_schema = item.get("inputSchema"), item.get("outputSchema")
         _schema(input_schema, "Operation 输入")
         _schema(output_schema, "Operation 输出")
-        operations.append(OperationDefinition(operation_ref, description, input_schema,
-                                              output_schema, handler_name))
+        operations.append(OperationDefinition(
+            operation_ref, description, input_schema, output_schema, handler_name,
+            input_validator=Draft202012Validator(input_schema, registry=_SCHEMA_REGISTRY),
+            output_validator=Draft202012Validator(output_schema, registry=_SCHEMA_REGISTRY)))
         seen.add(operation_ref)
     return CapabilityPack(ref, tuple(operations))
 
@@ -254,7 +256,7 @@ def validate_pack(pack, ref: str) -> CapabilityPack:
     """检查代码包导出的 Operation 处理器和静态 Schema 一一匹配。"""
     if not isinstance(pack, CapabilityPack) or pack.ref != ref:
         raise RuntimeError("能力代码包声明无效")
-    if not isinstance(pack.operations, tuple) or not pack.operations or len(pack.operations) > 64:
+    if not isinstance(pack.operations, tuple) or not pack.operations:
         raise RuntimeError("能力代码包操作数量无效")
     seen = set()
     for operation in pack.operations:
@@ -264,8 +266,6 @@ def validate_pack(pack, ref: str) -> CapabilityPack:
         if (operation.ref in seen or not isinstance(operation.description, str)
                 or not operation.description.strip() or not callable(operation.execute)):
             raise RuntimeError("Operation 执行器未登记")
-        _schema(operation.input_schema, "Operation 输入")
-        _schema(operation.output_schema, "Operation 输出")
         seen.add(operation.ref)
     return pack
 
@@ -304,23 +304,16 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
     registered = []
     for operation in selected:
         spec = operation
-        input_validator = Draft202012Validator(spec.input_schema, registry=_SCHEMA_REGISTRY)
-        output_validator = Draft202012Validator(spec.output_schema, registry=_SCHEMA_REGISTRY)
-
         @sdk_tool(spec.ref, spec.description, spec.input_schema, run_only=True)
-        async def invoke(args, _operation=spec, _input_validator=input_validator,
-                         _output_validator=output_validator):
+        async def invoke(args, _operation=spec):
             try:
                 if not isinstance(args, dict):
                     return _error("PARAMETERS_INVALID")
                 try:
-                    encoded_args = json.dumps(args, ensure_ascii=False, separators=(",", ":"),
-                                              allow_nan=False).encode("utf-8")
+                    json.dumps(args, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
                 except (TypeError, ValueError):
                     return _error("PARAMETERS_INVALID")
-                if len(encoded_args) > MAX_OPERATION_INPUT_BYTES:
-                    return _error("PARAMETERS_INVALID")
-                invalid = next(_input_validator.iter_errors(args), None)
+                invalid = next(_operation.input_validator.iter_errors(args), None)
                 if invalid:
                     return _error("PARAMETERS_INVALID")
                 result = await _execute(_operation, capability_context, args)
@@ -329,9 +322,7 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
                     text = json.dumps(result, ensure_ascii=False, default=json_value, allow_nan=False)
                 except (TypeError, ValueError):
                     return _error("RESULT_INVALID")
-                if len(text.encode("utf-8")) > MAX_OPERATION_RESULT_BYTES:
-                    return _error("RESULT_LIMIT")
-                output_error = next(_output_validator.iter_errors(json.loads(text)), None)
+                output_error = next(_operation.output_validator.iter_errors(json.loads(text)), None)
                 if output_error:
                     return _error("RESULT_INVALID")
                 return {"content": [{"type": "text", "text": text}]}
