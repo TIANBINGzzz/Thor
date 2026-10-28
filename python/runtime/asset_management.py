@@ -146,6 +146,8 @@ def create_asset_router(*, root=None):
         tools = []
         for ref in sorted(TOOL_CATALOG.refs):
             definition = TOOL_CATALOG.resolve(ref)
+            if definition.implementation == 'capability-pack':
+                continue
             validate_tool_provider(definition)
             tools.append({'ref': ref, 'description': definition.description,
                           'category': definition.category, 'transport': definition.transport,

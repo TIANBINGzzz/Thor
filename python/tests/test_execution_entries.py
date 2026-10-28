@@ -25,17 +25,24 @@ class ExecutionEntryTests(unittest.TestCase):
             definition = TOOL_CATALOG.resolve(ref)
             provider = PROVIDERS[definition.implementation]
             with self.subTest(ref=ref):
+                if definition.implementation == 'capability-pack':
+                    self.assertEqual(definition.lifecycle, 'per_client')
+                    continue
                 self.assertEqual(bool(provider.create_service), definition.lifecycle == 'per_client')
                 self.assertEqual(bool(provider.create), definition.lifecycle == 'per_run')
 
     def test_opaque_tools_do_not_publish_placeholder_operations(self):
         from runtime.tool_registry import TOOL_CATALOG
 
-        for ref in ('business', 'campus', 'data', 'office'):
+        for ref in ('business', 'data', 'office'):
             definition = TOOL_CATALOG.resolve(ref)
             with self.subTest(ref=ref):
                 self.assertEqual(definition.scope, 'namespace')
                 self.assertEqual(definition.operations, ())
+
+        campus = TOOL_CATALOG.resolve('campus')
+        self.assertEqual(campus.implementation, 'capability-pack')
+        self.assertEqual(campus.service_ref, 'campus')
 
     def test_capability_tool_refs_are_resolved_by_tool_catalog(self):
         from runtime.tool_registry import TOOL_CATALOG

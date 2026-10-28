@@ -318,13 +318,15 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         'mcp_connections': assets['mcp_connections'],
         'input_directory': payload.get('input_directory'), 'cwd': payload.get('cwd'),
         'additional_directories': payload.get('additional_directories'),
-        'provided_tools': set(tool_services.services),
+        'provided_tools': tool_services.tool_refs & tool_services.services.keys(),
+        'operation_services': tool_services,
+        'mcp_error_sink': mcp_error_sink,
     })
     mcp_servers = _merge_mcp_servers(
         registered.servers, tool_services.servers(on_error=mcp_error_sink))
     # 只有静态 Tool Catalog 中登记的 MCP 才有凭据规则；能力 Operation
     # 使用独立 namespace，不能借用另一个 MCP 的 Token 接收配置。
-    auth_refs = registered.auth_refs | set(tool_services.services)
+    auth_refs = registered.auth_refs
     secured = inject_mcp_authentication(
         {ref: mcp_servers[ref] for ref in auth_refs}, credentials,
         allowed_refs=sorted(auth_refs))
@@ -336,8 +338,8 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     effective_prompt = assemble_prompt(assets['prompt_assets'], active_tools=active_prompt_tools,
         runtime_values=runtime_values, extra=payload.get('system_prompt_append') or '')
     exact_tools = registered.exact_tools
-    exact_tools.update({name: service.tool_names()
-                        for name, service in tool_services.services.items()})
+    exact_tools.update({name: tool_services.services[name].tool_names()
+                        for name in tool_services.tool_refs & tool_services.services.keys()})
     allowed_tools = ['mcp__' + name + '__' + tool
                      for name in mcp_servers for tool in exact_tools.get(name, ['*'])]
     # Skill以受控引用按需读取，禁用SDK未登记的自动发现。

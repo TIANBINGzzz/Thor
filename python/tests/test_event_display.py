@@ -94,6 +94,18 @@ class EventDisplayTests(unittest.TestCase):
             self.assertEqual(event['payload']['toolKey'], 'data.query')
         self.assertNotIn('private', json.dumps(start))
 
+    def test_capability_operation_uses_its_pack_display_key(self):
+        for operation, expected in (('search_knowledge', 'data.prepare'),
+                                    ('get_school_info', 'data.resolve'),
+                                    ('get_indicator_metrics', 'data.query'),
+                                    ('get_norm_metrics', 'data.query')):
+            with self.subTest(operation=operation):
+                event = server._public_internal_event('display-run-1', {
+                    'type': 'tool_use', 'id': operation,
+                    'name': 'mcp__capability_ops__' + operation,
+                })
+                self.assertEqual(event['payload']['toolKey'], expected)
+
     def test_unknown_tool_does_not_echo_name_and_runs_are_isolated(self):
         server._public_internal_event('display-run-1', {'type': 'tool_use', 'id': 'shared',
             'name': 'mcp__data__execute_readonly_sql'})

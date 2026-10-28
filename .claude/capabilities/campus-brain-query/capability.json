@@ -4,11 +4,15 @@
   "description": "查询本校指标、预置群体对比与自选学校组常模分析",
   "supportsAttachments": true,
   "skillRefs": [],
-  "toolRefs": [
+  "toolRefs": [],
+  "serviceRefs": [
     "campus"
   ],
-  "requiredToolRefs": [
-    "campus"
+  "operationRefs": [
+    "search_knowledge",
+    "get_school_info",
+    "get_indicator_metrics",
+    "get_norm_metrics"
   ],
   "toolConfig": {
     "campus": "assets/campus.json"
@@ -25,7 +29,7 @@
   },
   "promptVariables": {
     "minimum_schools": {
-      "toolRef": "campus",
+      "serviceRef": "campus",
       "field": "minimum_schools"
     }
   }

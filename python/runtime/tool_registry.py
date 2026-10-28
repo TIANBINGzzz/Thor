@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Callable
 
 from runtime.tool_catalog import TOOL_CATALOG, ToolCatalog, ToolDefinition, ToolOperation
 from runtime.mcp_providers import provide_mcp
-from tools import artifacts, attachments, campus, data, documents, images, mermaid, web_search
+from tools import artifacts, attachments, data, documents, images, mermaid, web_search
 
 @dataclass
 class RegisteredTools:
@@ -38,9 +37,7 @@ PROVIDERS: dict[str, ToolProvider] = {
     'images': ToolProvider(create=images.provide_tool),
     'http-mcp': ToolProvider(create=provide_mcp),
     'attachments': ToolProvider(create=attachments.provide_tool),
-    'campus': ToolProvider(load_assets=campus.load_campus_assets,
-                           update_service=campus.CampusQuery.configure_assets,
-                           create_service=campus.CampusQuery, create_server=campus.create_campus_server),
+    'capability-pack': ToolProvider(),
 }
 
 
@@ -49,6 +46,11 @@ def validate_tool_provider(definition):
     provider = PROVIDERS.get(definition.implementation)
     if provider is None:
         raise RuntimeError(f'工具实现未注册：{definition.implementation}')
+    if definition.implementation == 'capability-pack':
+        if (definition.lifecycle != 'per_client' or definition.transport != 'sdk'
+                or definition.operations or definition.connection):
+            raise RuntimeError(f'能力 Service 声明无效：{definition.ref}')
+        return provider
     if (definition.lifecycle == 'per_client') != bool(provider.create_service):
         raise RuntimeError(f'工具生命周期与实现不符：{definition.ref}')
     if definition.transport != ('http' if definition.implementation == 'http-mcp' else

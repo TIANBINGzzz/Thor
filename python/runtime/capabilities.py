@@ -73,7 +73,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
                'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
-               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs'}
+               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -85,7 +85,10 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     tools = validate_refs(manifest.get('toolRefs', []), 'toolRefs')
     required = validate_refs(manifest.get('requiredToolRefs', []), 'requiredToolRefs')
     try:
-        for definition in TOOL_CATALOG.resolve_many(tools):
+        tool_definitions = TOOL_CATALOG.resolve_many(tools)
+        for definition in tool_definitions:
+            if definition.implementation == 'capability-pack':
+                raise RuntimeError('能力内部 Service 不能作为 Agent Tool')
             validate_tool_provider(definition)
         TOOL_CATALOG.resolve_many(required)
     except RuntimeError as error:
@@ -93,6 +96,20 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     if not set(required) <= set(tools):
         raise RuntimeError('能力工具声明无效')
     operation_refs = validate_refs(manifest.get('operationRefs', []), 'operationRefs')
+    service_refs = validate_refs(manifest.get('serviceRefs', []), 'serviceRefs')
+    if (set(service_refs) & set(tools)
+            or (service_refs and not operation_refs)):
+        raise RuntimeError('能力 Service 声明无效')
+    try:
+        service_definitions = TOOL_CATALOG.resolve_many(service_refs)
+        for definition in service_definitions:
+            validate_tool_provider(definition)
+            if definition.implementation != 'capability-pack' or definition.lifecycle != 'per_client':
+                raise RuntimeError('能力 Service 声明无效')
+        if set(service_refs) != {item.service_ref for item in service_definitions}:
+            raise RuntimeError('能力 Service 引用无效')
+    except RuntimeError as error:
+        raise RuntimeError('能力 Service 声明无效') from error
     if operation_refs:
         # 持久化能力只允许声明式资产；业务 Python 必须随可信 Runtime 部署。
         source_root = CAPABILITIES_ROOT.resolve()
@@ -102,8 +119,10 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
         pack = read_pack_manifest(manifest['ref'])
         if not set(operation_refs) <= {operation.ref for operation in pack.operations}:
             raise RuntimeError('能力 Operation 未在代码包中登记')
+        if set(service_refs) != set(pack.services):
+            raise RuntimeError('能力 Service 依赖与代码包不一致')
     configs = manifest.get('toolConfig', {})
-    if not isinstance(configs, dict) or not set(configs) <= set(tools):
+    if not isinstance(configs, dict) or not set(configs) <= (set(tools) | set(service_refs)):
         raise RuntimeError('工具配置未登记')
     for value in configs.values():
         path = (directory / value).resolve() if isinstance(value, str) else directory / '__invalid__'
@@ -146,6 +165,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
             'skill_refs': list(skills), 'tools': list(tools),
             'required_tools': list(required), 'tool_config': configs,
             'operation_refs': list(operation_refs),
+            'service_refs': list(service_refs),
             '_body': read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
             '_skill_root': str(skills_root.resolve())}
 

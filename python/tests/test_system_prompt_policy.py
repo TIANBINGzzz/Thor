@@ -14,7 +14,7 @@ class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
             'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}))
 
     async def test_custom_prompt_is_injected_as_current_turn_rules(self):
-        options = build_options({'capability_ref': 'campus-brain-query',
+        options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'prompt-test-run',
                                  'credentials': {'platformBearer': 'test-secret'}})
         policy = ClientTurnPolicy()
         policy.bind(options)
@@ -31,7 +31,8 @@ class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
                 with self.subTest(ref=ref, snapshot=snapshot):
                     entry = capability_entry(CAPABILITIES[ref].directory)
                     entry.setdefault('runtime', {})['system_prompt_snapshot'] = snapshot
-                    payload = {'capability_ref': ref, 'credentials': {'platformBearer': 'test-secret'}}
+                    payload = {'capability_ref': ref, 'run_id': 'prompt-test-run',
+                               'credentials': {'platformBearer': 'test-secret'}}
                     with patch('runtime.config.capability_entry', return_value=entry):
                         inherit_client_runtime(payload)
                         options = build_options(payload)

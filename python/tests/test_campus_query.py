@@ -10,7 +10,12 @@ from runtime.capabilities import resolve_capability
 from runtime.config import build_options, prepare_capability_assets
 from runtime.deployment_config import ConfigSnapshot
 from runtime.mcp_auth import MCPAuthError
-from tools.campus import CampusQuery, create_campus_server, load_campus_assets
+from capability_packs.registry import _directory, _load_module, load_pack
+
+_CAMPUS = _load_module(_directory('campus-brain-query'))
+CampusQuery = _CAMPUS.CampusQuery
+load_campus_assets = _CAMPUS.load_campus_assets
+ASSET_ROOT = _CAMPUS.ASSET_ROOT
 
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
@@ -19,6 +24,20 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                            'domainName': 'campus.example.test'}
         self.enterContext(patch('runtime.nacos_config.fetch_config',
                                 side_effect=lambda env, **kw: {'campusMcp': dict(self.connection)}))
+
+    def operation_tools(self, service, on_error=None):
+        from runtime.capabilities import CAPABILITIES, capability_entry
+        from runtime.capability_operations import build_operation_server
+
+        entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)
+        with patch('runtime.capability_operations.create_sdk_mcp_server',
+                   side_effect=lambda name, **kwargs: kwargs):
+            _, server, _ = build_operation_server(entry, {
+                'run_id': 'campus-test-run',
+                'operation_services': {'campus': service},
+                'mcp_error_sink': on_error,
+            })
+        return {tool.name: tool for tool in server['tools']}
 
     def test_endpoint_is_frozen_and_changes_client_revision(self):
         first = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
@@ -32,9 +51,10 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             'campusMcp.url': 'https://campus.example.test/string_campus_brain_service/mcp',
             'campusMcp.domainName': 'campus.example.test'})
         with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('worker must use snapshot')):
-            options = build_options({'capability_ref': 'campus-brain-query', '_capability_assets': first,
+            options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
+                                     '_capability_assets': first,
                                      'credentials': {'platformBearer': 'test-secret'}})
-        self.assertIn('campus', options.mcp_servers)
+        self.assertIn('capability_ops', options.mcp_servers)
 
     def test_invalid_connections_fail_before_mcp_calls(self):
         for connection in ({'url': 'http://user:secret@host/mcp', 'domainName': 'host'},
@@ -60,9 +80,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_upstream_failure_marks_run_but_local_validation_does_not(self):
         service = self.service()
         failures = []
-        with patch('tools.campus.create_sdk_mcp_server') as create:
-            create_campus_server(service, on_error=lambda: failures.append(True))
-        tool = next(t for t in create.call_args.kwargs['tools'] if t.name == 'get_indicator_metrics')
+        tool = self.operation_tools(service, on_error=lambda: failures.append(True))['get_indicator_metrics']
         await tool.handler({'payload': {'indicator_code': 'unknown'}})
         self.assertEqual(failures, [])
         service._request = AsyncMock(return_value={'success': True, 'data': None})
@@ -73,6 +91,27 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         await tool.handler({'payload': {'indicator_code': 'hydss'}})
         self.assertEqual(failures, [True])
 
+    async def test_internal_service_uses_the_registered_operation_contract(self):
+        from dataclasses import replace
+
+        operations = []
+        for operation in load_pack('campus-brain-query').operations:
+            schema = copy.deepcopy(operation.input_schema)
+            if operation.ref == 'get_indicator_metrics':
+                schema['properties']['payload']['properties']['year']['enum'] = [2024]
+            operations.append(replace(operation, input_schema=schema))
+        assets = _CAMPUS.load_service_assets(
+            'campus', ConfigSnapshot(), ASSET_ROOT, 'assets/campus.json', operations)
+        service = CampusQuery(assets, {'platformBearer': 'test-secret'})
+        service._request = AsyncMock(return_value={'success': True, 'data': None})
+        with self.assertRaisesRegex(ValueError, '查询参数不符合已开通范围'):
+            await service.call('get_indicator_metrics', {
+                'payload': {'indicator_code': 'hydss', 'year': 2023}})
+        service._request.assert_not_awaited()
+        result = await service.call('get_indicator_metrics', {
+            'payload': {'indicator_code': 'hydss', 'year': 2024}})
+        self.assertTrue(result['success'])
+
     def test_attachments_only_mount_scoped_reader(self):
         import tempfile
         from pathlib import Path
@@ -80,9 +119,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder) / 'input'
             root.mkdir()
-            options = build_options({'capability_ref': 'campus-brain-query',
+            options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                 'credentials': {'platformBearer': 'test-secret'}, 'input_directory': str(root)})
-        self.assertEqual(set(options.mcp_servers), {'campus', 'attachments'})
+        self.assertEqual(set(options.mcp_servers), {'capability_ops', 'attachments'})
         self.assertEqual(options.tools, [])
         self.assertIn('mcp__attachments__read', options.allowed_tools)
 
@@ -91,7 +130,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)
         entry['runtime']['max_turns'] = 8
         with patch('runtime.config.capability_entry', return_value=entry):
-            options = build_options({'capability_ref': 'campus-brain-query',
+            options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                                      'credentials': {'platformBearer': 'test-secret'}})
         self.assertEqual(options.thinking, {'type': 'disabled'})
         self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
@@ -106,10 +145,11 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(hasattr(resolve_capability('campus-brain-query'), 'workflow_ref'))
         with patch.dict(os.environ, {'BUSINESS_MCP_URL': 'https://unwanted.test'}, clear=True):
             before = dict(os.environ)
-            payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
+            payload = {'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
+                       'credentials': {'platformBearer': 'test-secret'}}
             options = build_options(payload)
             self.assertEqual(before, dict(os.environ))
-        self.assertEqual(set(options.mcp_servers), {'campus'})
+        self.assertEqual(set(options.mcp_servers), {'capability_ops'})
         self.assertEqual(options.tools, [])
         self.assertTrue(options.strict_mcp_config)
         self.assertEqual(options.setting_sources, [])
@@ -117,7 +157,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('至少 8', str(options.system_prompt))
         self.assertNotIn('上饶幼儿师范', str(options.system_prompt))
         with self.assertRaises(MCPAuthError):
-            build_options({'capability_ref': 'campus-brain-query'})
+            build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run'})
 
     def test_catalogs_preserve_types_years_and_leading_zeroes(self):
         service = self.service()
@@ -158,24 +198,26 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         await service.call('get_school_info', {'payload': {}})
         self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second-secret')
 
-    async def test_cached_server_updates_assets_and_rebuilds_only_changed_schema(self):
+    async def test_cached_internal_service_updates_assets_without_becoming_an_agent_tool(self):
         from runtime.tool_services import ToolServices
         assets = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
         services = ToolServices(assets, {'platformBearer': 'first'})
         service = services.services['campus']
-        server = services.servers()['campus']
+        self.assertEqual(services.servers(), {})
         first_options = build_options({'capability_ref': 'campus-brain-query',
+            'run_id': 'campus-test-run',
             'credentials': {'platformBearer': 'first'}}, tool_services=services)
         service._request = AsyncMock(return_value={'success': True, 'data': {'school_id': 'self', 'school_name': '本校'}})
         try:
             await service.call('get_school_info', {'payload': {}})
             services.configure(assets, {'platformBearer': 'second'})
             self.assertIs(services.services['campus'], service)
-            self.assertIs(services.servers()['campus'], server)
+            self.assertEqual(services.servers(), {})
             second_options = build_options({'capability_ref': 'campus-brain-query',
+                'run_id': 'campus-test-run',
                 'credentials': {'platformBearer': 'second'}}, tool_services=services)
-            self.assertIs(first_options.mcp_servers['campus']['instance'], server['instance'])
-            self.assertIs(second_options.mcp_servers['campus']['instance'], server['instance'])
+            self.assertIn('capability_ops', first_options.mcp_servers)
+            self.assertIn('capability_ops', second_options.mcp_servers)
             await service.call('get_school_info', {'payload': {}})
             self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'second')
             services.configure(prepare_capability_assets({'capability_ref': 'conversation'}), None)
@@ -188,21 +230,10 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             changed = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
             services.configure(changed, {'platformBearer': 'third'})
             self.assertIs(services.services['campus'], service)
-            self.assertIs(services.servers()['campus'], server)
+            self.assertEqual(services.servers(), {})
             self.assertEqual(service.assets['config']['url'], 'https://new.example.test/mcp')
             await service.call('get_school_info', {'payload': {}})
             self.assertEqual(service._request.call_args.args[1]['user_context_token'], 'third')
-            import copy
-            from unittest.mock import patch
-            updated = copy.deepcopy(service.assets)
-            updated['schema_revision'] = 'changed-schema'
-            updated['config']['tools']['get_school_info']['description'] += ' updated'
-            with patch('runtime.tool_services.load_tool_assets', return_value={'campus': updated}):
-                services.configure(changed, {'platformBearer': 'fourth'})
-            self.assertIsNot(services.services['campus'], service)
-            self.assertIsNot(services.servers()['campus'], server)
-            with self.assertRaises(MCPAuthError):
-                await service.call('get_school_info', {'payload': {}})
         finally:
             services.clear()
 
@@ -223,12 +254,10 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_schema_and_errors_do_not_expose_secrets(self):
         service = self.service()
         service._request = AsyncMock(side_effect=RuntimeError('test-secret upstream private body'))
-        with patch('tools.campus.create_sdk_mcp_server') as create:
-            create_campus_server(service)
-        tools = create.call_args.kwargs['tools']
-        self.assertNotIn('test-secret', str([t.input_schema for t in tools]))
-        self.assertNotIn('user_context_token', str([t.input_schema for t in tools]))
-        tool = next(t for t in tools if t.name == 'get_school_info')
+        tools = self.operation_tools(service)
+        self.assertNotIn('test-secret', str([t.input_schema for t in tools.values()]))
+        self.assertNotIn('user_context_token', str([t.input_schema for t in tools.values()]))
+        tool = tools['get_school_info']
         result = await tool.handler({'payload': {}})
         self.assertTrue(result['isError'])
         self.assertNotIn('test-secret', str(result))
@@ -301,16 +330,14 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                 calls.append(request)
                 return httpx.Response(status, text='test-secret private error', headers={'location': 'https://other.test'})
             client = httpx.AsyncClient(transport=httpx.MockTransport(respond), follow_redirects=False)
-            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client), patch('tools.campus.create_sdk_mcp_server') as create:
-                create_campus_server(self.service())
-                tool = next(t for t in create.call_args.kwargs['tools'] if t.name == 'get_school_info')
+            with patch('runtime.mcp_transport.httpx.AsyncClient', return_value=client):
+                tool = self.operation_tools(self.service())['get_school_info']
                 result = await tool.handler({'payload': {}})
             self.assertEqual(len(calls), 1)
             self.assertTrue(result['isError'])
             self.assertNotIn('test-secret', str(result))
 
     def test_school_minimum_config_controls_schema_and_prompt(self):
-        from tools.campus import ASSET_ROOT
         from runtime.capabilities import capability_entry, SKILLS_ROOT
         from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
         import tempfile
@@ -322,7 +349,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             config = json.loads(path.read_text(encoding='utf-8'));config['minimum_schools'] = 12
             path.write_text(json.dumps(config), encoding='utf-8')
             assets = load_campus_assets(directory=root)
-            entry = capability_entry(root, skills_root=SKILLS_ROOT)
+            with patch('runtime.capabilities.CAPABILITIES_ROOT', root.parent):
+                entry = capability_entry(root, skills_root=SKILLS_ROOT)
             prompt = assemble_prompt(load_prompt_assets(entry), active_tools=entry['tools'], preview=True)['text']
             self.assertIn('至少 12', prompt)
             self.assertNotIn('prompt', assets)
@@ -361,7 +389,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(code['match_basis'], 'code')
 
     def test_registered_assets_are_frozen_and_not_overridden_by_input(self):
-        payload = {'capability_ref': 'campus-brain-query', 'credentials': {'platformBearer': 'test-secret'}}
+        payload = {'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
+                   'credentials': {'platformBearer': 'test-secret'}}
         prepare_capability_assets(payload)
         payload['_capability_assets']['tool_revisions']['campus'] = 'changed'
         with self.assertRaisesRegex(RuntimeError, '资产已变化'):
@@ -419,9 +448,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_local_validation_is_actionable_but_upstream_value_error_is_private(self):
         service = self.service()
         service._request = AsyncMock(side_effect=ValueError('test-secret private body'))
-        with patch('tools.campus.create_sdk_mcp_server') as create:
-            create_campus_server(service)
-        tools = {t.name: t for t in create.call_args.kwargs['tools']}
+        tools = self.operation_tools(service)
         codes = [r['code'] for r in service.assets['catalogs']['schools']][:8]
         result = await tools['get_norm_metrics'].handler({'payload': {
             'indicator_code': 'hydss', 'schools': codes}})

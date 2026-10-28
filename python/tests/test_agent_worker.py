@@ -111,6 +111,7 @@ class AgentWorkerTests(unittest.TestCase):
                     continue
                 with self.subTest(capability=capability.ref):
                     options = build_options({'capability_ref': capability.ref,
+                                             'run_id': 'capability-test-run',
                                              'credentials': {'platformBearer': 'test-business-token'}})
                     self.assertNotIn('web', options.mcp_servers)
                     self.assertNotIn('mcp__web__search', options.allowed_tools)

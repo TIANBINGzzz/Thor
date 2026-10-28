@@ -14,61 +14,13 @@
   },
   "tools": {
     "get_school_info": {
-      "description": "读取当前登录本校；仅用于本校身份问题、明确本校名称的一致性校验或常模剔除本校，每轮最多一次。",
-      "schema": {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      },
       "output_fields": [
         "school_id",
         "school_name"
       ]
     },
     "get_indicator_metrics": {
-      "description": "查询所选的一个本校指标及预置群体统计。编码来自对比分析知识记录；年份省略表示最新。",
       "catalog": "indicator_compare",
-      "schema": {
-        "type": "object",
-        "properties": {
-          "indicator_code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "所选指标知识记录的 code，不能传指标名称。"
-          },
-          "year": {
-            "type": "integer",
-            "minimum": 1000,
-            "maximum": 9999
-          },
-          "scopes": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "indicator_value",
-                "province_rank",
-                "province_median",
-                "national_median",
-                "same_type_rank",
-                "same_type_median",
-                "national_double_high_median",
-                "province_double_high_median",
-                "national_double_high_simulated_rank",
-                "province_double_high_simulated_rank",
-                "private_median"
-              ]
-            },
-            "minItems": 1,
-            "uniqueItems": true
-          }
-        },
-        "required": [
-          "indicator_code"
-        ],
-        "additionalProperties": false
-      },
       "output_fields": [
         "indicator_value",
         "province_rank",
@@ -89,37 +41,7 @@
       ]
     },
     "get_norm_metrics": {
-      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先调用 get_school_info，再传指标 code 和学校 code；剔除本校并去重后至少 {minimum_schools} 所。不得复用上轮身份授权。",
       "catalog": "norm_analysis",
-      "schema": {
-        "type": "object",
-        "properties": {
-          "indicator_code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "所选指标知识记录的 code，不能传指标名称。"
-          },
-          "year": {
-            "type": "integer",
-            "minimum": 1000,
-            "maximum": 9999
-          },
-          "schools": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            },
-            "uniqueItems": true,
-            "description": "所选学校目录记录的 code 数组（保留前导零），不能传学校名称。"
-          }
-        },
-        "required": [
-          "indicator_code",
-          "schools"
-        ],
-        "additionalProperties": false
-      },
       "output_fields": [
         "indicator_value",
         "median",
