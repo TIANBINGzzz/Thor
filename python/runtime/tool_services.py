@@ -46,7 +46,6 @@ def load_tool_assets(entry, settings, *, include_capability_services=False):
                     path = (directory / relative).resolve()
                     if not path.is_relative_to(directory):
                         raise RuntimeError('能力 Service 资产路径无效')
-                    settings.resolve(read_manifest(path.parent, path.name))
                     result[definition.ref] = {
                         'revision': service_asset_revision(directory, relative, settings),
                         'schema_revision': None,
@@ -87,14 +86,17 @@ class ToolServices:
                 if (name in assets['tool_revisions'] and value.get('revision')
                         != assets['tool_revisions'][name]):
                     raise RuntimeError('能力工具资产已变化，请重新发起请求')
-                provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
-                cached = self._cache.get(name)
-                if TOOL_CATALOG.resolve(name).implementation == 'capability-pack':
+                definition = TOOL_CATALOG.resolve(name)
+                provider = PROVIDERS[definition.implementation]
+                cache_key = ((assets['capability']['ref'], name)
+                             if definition.implementation == 'capability-pack' else name)
+                cached = self._cache.get(cache_key)
+                if definition.implementation == 'capability-pack':
                     from capability_packs.registry import create_pack_service, update_pack_service
                     if cached is None:
                         cached = (None, create_pack_service(
                             assets['capability']['ref'], name, value, credentials))
-                        self._cache[name] = cached
+                        self._cache[cache_key] = cached
                     else:
                         update_pack_service(assets['capability']['ref'], name, cached[1], value)
                 elif cached is None or cached[0] != value['schema_revision']:
@@ -102,7 +104,7 @@ class ToolServices:
                         raise RuntimeError(f'有状态工具缺少服务工厂：{name}')
                     service = provider.create_service(value, credentials)
                     cached = (value['schema_revision'], service)
-                    self._cache[name] = cached
+                    self._cache[cache_key] = cached
                     self._servers.pop(name, None)
                 else:
                     if provider.update_service is None:
@@ -134,8 +136,6 @@ class ToolServices:
         servers = {}
         for name in self.tool_refs & self.services.keys():
             service = self.services[name]
-            if TOOL_CATALOG.resolve(name).implementation == 'capability-pack':
-                continue
             provider = PROVIDERS[TOOL_CATALOG.resolve(name).implementation]
             if provider.create_server is None:
                 raise RuntimeError(f'有状态工具缺少 MCP 工厂：{name}')

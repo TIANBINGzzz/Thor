@@ -92,7 +92,9 @@ class CampusQuery:
         """绑定可信校园资产与本轮凭据，串行执行身份和统计查询。"""
         self.assets = assets
         self._lock = asyncio.Lock()
-        self.bind(credentials)
+        self.clear()
+        if credentials is not None:
+            self.bind(credentials)
 
     def configure_assets(self, assets):
         """在两轮之间更新知识与连接；旧轮身份和调用状态不得带入新资产。"""
@@ -253,7 +255,7 @@ def load_service_assets(service_ref, settings, directory, config_path, operation
 def create_service(service_ref, assets, credentials, operations):
     if service_ref != 'campus':
         raise RuntimeError('campus_service_invalid')
-    return CampusQuery(assets, credentials)
+    return CampusQuery(assets, None)
 
 
 def update_service(service_ref, service, assets):

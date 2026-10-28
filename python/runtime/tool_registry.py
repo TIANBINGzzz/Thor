@@ -65,10 +65,6 @@ def build_registered_tools(entry: dict, context: dict) -> RegisteredTools:
     result = RegisteredTools()
     for definition in selected:
         provider = validate_tool_provider(definition)
-        if definition.implementation == 'capability-pack':
-            if definition.service_ref not in entry.get('service_refs', ()):
-                raise RuntimeError('能力 Service 未由 Capability 显式选择')
-            continue
         if definition.lifecycle == 'per_client':
             if definition.ref not in context.get('provided_tools', ()):
                 raise RuntimeError(f'有状态工具未准备：{definition.ref}')
