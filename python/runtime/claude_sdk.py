@@ -27,6 +27,8 @@ from runtime.runtime_settings import RUNTIME_SETTINGS
 
 # 只开放已用真实 CLI 请求验证的模型环境；进程路径、代理和配置目录仍属启动配置。
 CLIENT_HOT_ENV_KEYS = frozenset({'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_EXTRA_BODY'})
+# 固定启动白名单，CLI 新增工具不会自动进入服务端执行面。两个 Shell 名称兼容不同平台。
+AGENT_BUILTIN_TOOLS = ('Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell')
 
 
 class ClientTurnPolicy:
@@ -39,7 +41,7 @@ class ClientTurnPolicy:
         prompt = options.system_prompt
         self._context = (prompt.get('prompt' if prompt.get('type') == 'custom' else 'append', '')
                          if isinstance(prompt, dict) else str(prompt or ''))
-        self._restricted = options.tools == []
+        self._builtins = tuple(name for name in options.tools if name in AGENT_BUILTIN_TOOLS) if isinstance(options.tools, list) else ()
         self._allowed = tuple(options.allowed_tools or ())
         self._denied = tuple(options.disallowed_tools or ())
         self._active = True
@@ -47,7 +49,7 @@ class ClientTurnPolicy:
     def clear(self):
         self._context = ''
         self._allowed = self._denied = ()
-        self._restricted = True
+        self._builtins = ()
         self._active = False
 
     async def context(self, input, tool_use_id, context):
@@ -57,8 +59,12 @@ class ClientTurnPolicy:
     async def authorize(self, input, tool_use_id, context):
         name = str(input.get('tool_name') or '')
         allowed = self._active and not any(fnmatchcase(name, item) for item in self._denied)
-        if self._restricted or name.startswith('mcp__'):
+        if name.startswith('mcp__'):
             allowed = allowed and any(fnmatchcase(name, item) for item in self._allowed)
+        else:
+            allowed = allowed and name in self._builtins
+        if name in ('Bash', 'PowerShell') and input.get('tool_input', {}).get('run_in_background'):
+            allowed = False
         if allowed:
             return {}
         return {'hookSpecificOutput': {'hookEventName': 'PreToolUse',

@@ -13,6 +13,43 @@ from runtime.auth import encode_hs256_jwt
 
 
 class AssetManagementTests(unittest.TestCase):
+    def test_managed_capabilities_default_to_direct_and_reject_agent(self):
+        body = self.body()
+        result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=self.headers())
+        self.assertEqual(result.status_code, 201, result.text)
+        manifest = json.loads((self.root / 'business-report/capability.json').read_text(encoding='utf-8'))
+        self.assertEqual(manifest['execution'], {'mode': 'direct'})
+        body['manifest'].update(ref='unsafe-agent', execution={'mode': 'agent'})
+        for path in ('validate', 'preview', ''):
+            result = self.client.post('/internal/v1/assets/capabilities' + ('/' + path if path else ''),
+                                      json=body, headers=self.headers())
+            self.assertEqual(result.status_code, 400, result.text)
+        self.assertFalse((self.root / 'unsafe-agent').exists())
+
+    def test_creation_audit_is_persisted_with_content_revision_without_jwt(self):
+        body = self.body()
+        headers = self.headers()
+        result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=headers)
+        self.assertEqual(result.status_code, 201, result.text)
+        path = self.root / 'business-report/creation.json'
+        self.assertTrue(path.is_file())
+        audit = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual(audit['actor'], 'operator')
+        self.assertEqual(audit['grantId'], 'grant')
+        self.assertEqual(len(audit['revision']), 64)
+        self.assertGreater(audit['createdAt'], 0)
+        self.assertNotIn(headers['Authorization'], path.read_text(encoding='utf-8'))
+
+    def test_audit_write_failure_does_not_publish_capability(self):
+        original = Path.write_text
+        def write(path, *args, **kwargs):
+            if path.name == 'creation.json':
+                raise OSError('audit storage unavailable')
+            return original(path, *args, **kwargs)
+        with patch.object(Path, 'write_text', write), self.assertRaises(OSError):
+            self.client.post('/internal/v1/assets/capabilities', json=self.body(), headers=self.headers())
+        self.assertEqual(list(self.root.iterdir()), [])
+
     def setUp(self):
         from runtime.asset_management import create_asset_router
         self.temporary = tempfile.TemporaryDirectory()
@@ -77,6 +114,7 @@ class AssetManagementTests(unittest.TestCase):
         managed = Path(self.temporary.name) / 'runtime-data/capabilities'
         body = self.body()
         body['manifest']['skillRefs'] = ['document-review']
+        body['manifest']['requiredSkillRefs'] = ['document-review']
         with patch.object(capabilities, 'CAPABILITIES_ROOT', builtin), \
              patch.object(asset_management, 'CAPABILITIES_ROOT', builtin), \
              patch.object(capabilities, 'MANAGED_CAPABILITIES_ROOT', managed, create=True), \

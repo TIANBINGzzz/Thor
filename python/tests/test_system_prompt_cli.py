@@ -13,7 +13,8 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from runtime.claude_sdk import ClientTurnPolicy, ClaudeSDKClient, build_agent_options, stream_query
+from runtime.claude_sdk import (ClientTurnPolicy, ClaudeSDKClient, build_agent_options, stream_query,
+                               create_sdk_mcp_server, sdk_tool)
 from runtime.config import agent_environment, build_client_options, build_options, isolated_sdk_environment
 
 
@@ -194,3 +195,57 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 raw = json.dumps(self.requests[-1]['messages'])
                 self.assertIn(marker, raw)
                 self.assertIn('tool_result', raw)
+
+    async def test_profile_switch_hides_builtins_and_resumes_same_history(self):
+        """使用生产连接配置，证明 direct 的模型请求确实不包含内置工具。"""
+        self.read_tools = False
+        environment = self.options().env
+        session = None
+        self.profile_evidence = []
+
+        @sdk_tool('read', 'local read probe', {})
+        async def read(arguments):
+            return {'content': [{'type': 'text', 'text': 'probe'}]}
+
+        for index, ref in enumerate(('conversation', 'campus-brain-query',
+                                     'national-excellence-data-qa', 'conversation')):
+            policy = ClientTurnPolicy()
+            payload = {'capability_ref': ref, 'cwd': str(self.directory),
+                       'model': 'claude-sonnet-4-6', 'resume': session}
+            with patch('runtime.config.agent_environment', return_value=environment):
+                options = build_client_options(payload, policy)
+            client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
+            marker = 'TURN_RULE_' + str(index)
+            turn = self.options(tools=options.tools, system_prompt=marker,
+                mcp_servers={'probe': create_sdk_mcp_server(name='probe', tools=[read])},
+                allowed_tools=['mcp__probe__read'])
+            policy.bind(turn)
+            try:
+                with isolated_sdk_environment():
+                    await client.connect()
+                    await client.configure_turn(turn)
+                    await client.query('HISTORY_' + str(index))
+                    messages = [item async for item in client.receive_response()]
+                result = next(item for item in reversed(messages) if item.kind == 'result')
+                self.assertFalse(result.data['is_error'])
+                if session:
+                    self.assertEqual(result.session_id, session)
+                session = result.session_id
+                request = self.requests[-1]
+                names = {tool['name'] for tool in request.get('tools', [])}
+                self.assertIn('mcp__probe__read', names)
+                if ref != 'conversation':
+                    self.assertEqual(names, {'mcp__probe__read'})
+                else:
+                    self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep'} <= names)
+                    self.assertTrue(names <= {'Read', 'Write', 'Edit', 'Glob', 'Grep',
+                                             'Bash', 'PowerShell', 'mcp__probe__read'})
+                history = json.dumps(request['messages'])
+                for previous in range(index + 1):
+                    self.assertIn('HISTORY_' + str(previous), history)
+                    self.assertIn('TURN_RULE_' + str(previous), history)
+                self.profile_evidence.append({'capability': ref, 'tools': sorted(names),
+                    'toolSchemaBytes': len(json.dumps(request.get('tools', [])).encode()),
+                    'historyBytes': len(history.encode())})
+            finally:
+                await client.disconnect()

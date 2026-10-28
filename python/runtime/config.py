@@ -19,7 +19,7 @@ from dotenv.variables import parse_variables
 
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication
-from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS
+from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS, AGENT_BUILTIN_TOOLS
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import ConfigSnapshot
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_model_settings
@@ -116,6 +116,10 @@ def agent_environment(environ=None) -> dict[str, str]:
     environ = os.environ if environ is None else environ
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS, environ)
     environment.update(MODEL_SETTINGS.environment())
+    # 禁用 CLI 的自动后台化；Hook 同时拒绝模型显式申请后台 Shell。
+    environment['CLAUDE_CODE_DISABLE_BACKGROUND_TASKS'] = '1'
+    # Runtime 已按轮选择 MCP；CLI 延迟发现缓存会在撤销后保留旧工具定义。
+    environment['ENABLE_TOOL_SEARCH'] = 'false'
     office = environ.get('CCSDK_OFFICECLI_PATH')
     if office and Path(office).is_file():
         # Bash与原生MCP使用同一工具版本，避免系统PATH上的旧版本读取同一文件。
@@ -366,7 +370,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
                        if runtime.get('prompt_mode') == 'custom' else
                        {'type': 'preset', 'preset': 'claude_code', 'append': effective_prompt['text'],
                         'snapshot': runtime.get('system_prompt_snapshot', True)}),
-        tools=[] if restricted_tools else {"type": "preset", "preset": "claude_code"},
+        tools=[] if restricted_tools else list(AGENT_BUILTIN_TOOLS),
         disallowed_tools=['WebSearch'],
         allowed_tools=allowed_tools,
         skills=skills,
@@ -408,10 +412,14 @@ def _connection_environment(capability_ref, *, entry=None):
 def _client_connection_values(payload):
     """仅包含 SDK 连接后无法可靠热更新的选项。秘密值只参与内存哈希。"""
     runtime = payload['_client_runtime'] if '_client_runtime' in payload else prepare_capability_assets(payload)['runtime']
-    effective = _connection_environment(payload.get('capability_ref'))
+    entry = ((payload.get('_execution_entry') or {}).get('capability')
+             or (payload.get('_capability_assets') or {}).get('capability')
+             or capability_entry(resolve_capability(payload.get('capability_ref')).directory))
+    effective = _connection_environment(payload.get('capability_ref'), entry=entry)
     environment = agent_environment(effective)
     environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
     return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
+                tools=[] if is_direct_capability(entry) else list(AGENT_BUILTIN_TOOLS),
                 max_turns=payload.get('max_turns') or runtime.get('max_turns') or RUNTIME_SETTINGS.limits.max_turns,
                 system_prompt=_shared_system_prompt(runtime),
                 include_partial_messages=True,
@@ -446,6 +454,6 @@ def build_client_options(payload, policy):
     return build_agent_options(**values, thinking=None, effort=None, add_dirs=[],
         model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
         verbatim_prompts=True,
-        tools={'type': 'preset', 'preset': 'claude_code'}, skills=[], setting_sources=[],
+        skills=[], setting_sources=[],
         strict_mcp_config=True, mcp_servers={}, disallowed_tools=['WebSearch'],
         permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes)

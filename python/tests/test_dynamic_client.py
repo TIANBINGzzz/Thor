@@ -7,6 +7,21 @@ from runtime.claude_sdk import ClaudeSDKClient, ClientState, SDKExecutionError, 
 
 
 class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_agent_hook_denies_unlisted_builtin_and_background_shell(self):
+        from runtime.claude_sdk import ClientTurnPolicy
+        from runtime.config import build_client_options
+        policy = ClientTurnPolicy()
+        options = build_client_options({'capability_ref': 'conversation'}, policy)
+        policy.bind(options)
+        self.assertEqual(await policy.authorize({'tool_name': 'Read'}, None, {}), {})
+        for name in ('CronCreate', 'ScheduleWakeup', 'Workflow', 'SendMessage', 'Task', 'FutureTool'):
+            with self.subTest(name=name):
+                result = await policy.authorize({'tool_name': name}, None, {})
+                self.assertEqual(result['hookSpecificOutput']['permissionDecision'], 'deny')
+        for name in ('Bash', 'PowerShell'):
+            result = await policy.authorize({'tool_name': name, 'tool_input': {'run_in_background': True}}, None, {})
+            self.assertEqual(result['hookSpecificOutput']['permissionDecision'], 'deny')
+
     async def test_settings_update_without_mcp_change_and_explicit_reset(self):
         from runtime.claude_sdk import build_agent_options
         query = SimpleNamespace(_send_control_request=AsyncMock(return_value={}))
@@ -97,6 +112,18 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
             await client.query('should never run')
 
 class ConnectionFingerprintTests(unittest.TestCase):
+    def test_direct_and_agent_use_separate_prewarm_groups(self):
+        from runtime.config import build_client_options, client_connection_fingerprint
+        from runtime.claude_sdk import ClientTurnPolicy
+        direct = {'capability_ref': 'campus-brain-query'}
+        agent = {'capability_ref': 'conversation'}
+        self.assertEqual(build_client_options(direct, ClientTurnPolicy()).tools, [])
+        tools = build_client_options(agent, ClientTurnPolicy()).tools
+        self.assertIsInstance(tools, list)
+        self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep'} <= set(tools))
+        self.assertFalse({'Task', 'CronCreate', 'ScheduleWakeup', 'Workflow', 'SendMessage'} & set(tools))
+        self.assertNotEqual(client_connection_fingerprint(direct), client_connection_fingerprint(agent))
+
     def test_queued_turn_inherits_latest_settings_without_freezing_old_inheritance(self):
         from unittest.mock import patch
         from runtime.config import inherit_client_runtime

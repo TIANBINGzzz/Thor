@@ -3,16 +3,17 @@
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from data_access.catalog import Catalog
-from data_access.context import DataError
+from data_access.context import DataError, fingerprint
 from runtime.auth import JWTError, _verify_signed_claims
 from runtime.asset_registry import ENTRY_NAME, load_declared_asset
-from runtime.capabilities import CAPABILITIES_ROOT, MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT, capability_entry
+from runtime.capabilities import CAPABILITIES, CAPABILITIES_ROOT, MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT, capability_entry
 from runtime.prompt_assembly import assemble_prompt, load_prompt_assets, shared_system_prompt
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
 
@@ -70,6 +71,9 @@ def _draft(value):
                 or len(manifest['ref']) > 96 or not ENTRY_NAME.fullmatch(manifest['ref'])
                 or not isinstance(prompt, str)):
             raise ValueError()
+        manifest = {**manifest, 'execution': manifest.get('execution', {'mode': 'direct'})}
+        if manifest['execution'] != {'mode': 'direct'}:
+            raise ValueError()
         return manifest, prompt
     except (ValueError, UnicodeError):
         raise HTTPException(400, '能力配置无效') from None
@@ -104,7 +108,7 @@ def _preview(entry, *, active_tools=None, template_key=None):
                             'contextTopics': entry.get('data', {}).get('contextTopics'), 'loaded': False}}
 
 
-def _prepare(root, manifest, prompt, *, publish, preview=False, active_tools=None):
+def _prepare(root, manifest, prompt, *, publish, preview=False, active_tools=None, claims=None):
     """在发现目录外校验两份文件，成功后一次重命名；不覆盖现有能力。"""
     target = root / manifest['ref']
     if publish and (target.exists() or (CAPABILITIES_ROOT / manifest['ref']).exists()):
@@ -127,12 +131,18 @@ def _prepare(root, manifest, prompt, *, publish, preview=False, active_tools=Non
         result = {'capabilityRef': entry['ref'], 'name': entry['title'],
                   'description': entry['description'], 'supportsAttachments': entry['supports_attachments']}
         if publish:
+            # 与能力内容一起原子发布；只记授权编号，不保存 JWT 或业务凭据。
+            audit = {'actor': claims['sub'], 'grantId': claims['jti'],
+                     'createdAt': time.time_ns() // 1_000_000,
+                     'revision': fingerprint([manifest, prompt])}
+            (directory / 'creation.json').write_text(json.dumps(audit, ensure_ascii=False) + '\n', encoding='utf-8')
             try:
                 directory.rename(target)
             except (FileExistsError, OSError) as error:
                 if target.exists():
                     raise HTTPException(409, '能力已存在') from error
                 raise
+            CAPABILITIES.invalidate()
         return result
 
 
@@ -198,7 +208,7 @@ def create_asset_router(*, root=None):
     @router.post('/capabilities', status_code=201)
     async def create(request: Request, claims=Depends(_authorize)):
         manifest, prompt = _draft(await _body(request))
-        result = _prepare(root, manifest, prompt, publish=True)
+        result = _prepare(root, manifest, prompt, publish=True, claims=claims)
         LOGGER.info('能力已创建：ref=%s actor=%s', manifest['ref'], claims['sub'])
         return result
 

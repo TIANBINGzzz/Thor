@@ -71,6 +71,7 @@
 ### 当前状态与待明确项
 
 - **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
+- **Runtime 边界核对，2026-10-28**：direct/agent 按内置工具白名单分组连接，跨模式恢复历史；管理新建能力只允许 direct，创建内容与操作者、授权编号、时间及内容摘要原子落盘。创建记录不是完整运行配置快照，第6项的逐 Run 配置追溯、Java 授权及生产隔离差距仍保留；协议与范围见 [Runtime 契约](ccsdk-runtime-interface.md#3-run-请求模块)和[管理 API](../python-api.html#asset-management)。
 - 2026-10-22 撰写与双高规则、模板和来源声明已直接归入 Capability，删除旧 Workflow 装配。独立管理 JWT 可组合已登记资产新建能力；普通 Run 输入不能修改资产。未新增版本快照系统，第6项完整配置追溯、Java 管理界面及授权仍有差距。
 - 2026-10-26 提示词归属、显式必载/按需 Skill、统一编译和有效内容预览已接入，见[ADR-036](../ADR/036-explicit-prompt-assembly.md)。公开目录仍只返回能力摘要；预览标明假定工具与未包含的私有上下文，内容摘要不是发布版本，第6项差距保留。
 - 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现/预览不执行代码，管理 API 拒绝代码引用；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码，第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。

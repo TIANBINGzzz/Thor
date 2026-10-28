@@ -142,7 +142,8 @@ class ExecutionEntryTests(unittest.TestCase):
             self.assertEqual(item.tools, ('charts',))
             self.assertEqual(set(item.to_public_dict()), {'capabilityRef', 'name', 'description', 'supportsAttachments'})
             from runtime.config import build_options
-            with patch('runtime.capabilities.load_capabilities', return_value={'example': item}), patch.dict(os.environ, {}, clear=True):
+            with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
+                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch.dict(os.environ, {}, clear=True):
                 options = build_options({'capability_ref': 'example'})
             self.assertEqual(set(options.mcp_servers), {'charts'})
 
@@ -174,7 +175,8 @@ class ExecutionEntryTests(unittest.TestCase):
                         'skillRefs': ['review'], 'toolRefs': [], 'requiredToolRefs': []}
             capability_root = self._write_capability_tree(root, capability=manifest, skill=skill)
             item = capabilities.load_capabilities(capability_root)['example']
-            with patch('runtime.capabilities.load_capabilities', return_value={'example': item}):
+            with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
+                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'):
                 config = prepare_capability_assets({'capability_ref': 'example'})
             self.assertIn('review：按需核验', config['prompt'])
             self.assertIn('任务规则。', config['prompt'])

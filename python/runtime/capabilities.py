@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Mapping
 from pathlib import Path
+import os
+import threading
 
 from runtime.asset_registry import ENTRY_NAME, read_asset_body, read_manifest, validate_refs
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
@@ -132,6 +134,8 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     execution = manifest.get('execution', {})
     if not isinstance(execution, dict) or set(execution) - {'mode'} or execution.get('mode', 'agent') not in ('agent', 'direct'):
         raise RuntimeError('execution.mode 配置无效')
+    if directory.resolve().is_relative_to(MANAGED_CAPABILITIES_ROOT.resolve()) and execution.get('mode') != 'direct':
+        raise RuntimeError('持久化能力只允许 direct 模式')
     data = manifest.get('data', {})
     if (not isinstance(data, dict) or set(data) - {'access', 'sourceRefs', 'contextTopics'}
             or (data and data.get('access') not in ('optional', 'required'))):
@@ -202,21 +206,71 @@ def load_capabilities(root=None):
 
 
 class CapabilityCatalog(Mapping):
-    """按请求读取可信目录；新增能力不依赖 import 时的名称表。"""
+    """按资产文件签名缓存校验后的目录；变更或失效后重新校验，不沿用旧授权。"""
+
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._signature = None
+        self._entries = {}
+
+    def invalidate(self):
+        """管理 API 原子发布后主动失效；其他进程通过文件签名发现变更。"""
+        with self._lock:
+            self._signature = None
+            self._entries = {}
+
+    @staticmethod
+    def _asset_signature():
+        from runtime.prompt_assembly import PROMPTS_ROOT
+        from data_access.catalog import DATABASES_ROOT
+        from capability_packs.registry import PACK_ROOT
+        roots = (CAPABILITIES_ROOT, MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT,
+                 TOOL_CATALOG.root, PROMPTS_ROOT, DATABASES_ROOT, PACK_ROOT)
+        result = []
+        pack_root = PACK_ROOT.resolve()
+        for root in roots:
+            root = Path(root).resolve()
+            result.append(str(root))
+            is_pack = root == pack_root
+            # 根目录 mtime 不反映文件原地修改；扫描 stat，不重复解析 JSON/YAML/Schema。
+            for directory, children, files in os.walk(root):
+                children[:] = sorted(name for name in children if name != '__pycache__')
+                for name in children:
+                    path = Path(directory) / name
+                    stat = path.lstat()
+                    result.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns))
+                for name in sorted(files):
+                    path = Path(directory) / name
+                    if is_pack and name != 'pack.json':
+                        continue  # 目录校验只读代码包声明；Python 仍随 Worker 部署。
+                    stat = path.stat()
+                    result.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size))
+        return tuple(result)
+
+    def _load(self):
+        with self._lock:
+            signature = self._asset_signature()
+            if signature != self._signature:
+                entries = load_capabilities()
+                if signature != self._asset_signature():
+                    raise RuntimeError('能力资产在校验期间发生变更，请重试')
+                self._entries, self._signature = entries, signature
+            return self._entries
+
     def __getitem__(self, ref):
-        return load_capabilities()[ref]
+        return self._load()[ref]
 
     def __iter__(self):
-        return iter(load_capabilities())
+        return iter(self._load())
 
     def __len__(self):
-        return len(load_capabilities())
+        return len(self._load())
 
     def values(self):
-        return load_capabilities().values()
+        return self._load().values()
 
     def items(self):
-        return load_capabilities().items()
+        return self._load().items()
 
 
 CAPABILITIES = CapabilityCatalog()

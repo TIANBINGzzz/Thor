@@ -31,13 +31,14 @@ class DataAccessTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         from runtime.capabilities import CAPABILITIES
-        self.enterContext(patch('runtime.capabilities.load_capabilities', return_value={**dict(CAPABILITIES), 'qa': replace(CAPABILITIES['document-writing'], ref='qa')}))
+        catalog = {**dict(CAPABILITIES), 'qa': replace(CAPABILITIES['document-writing'], ref='qa')}
+        self.enterContext(patch('runtime.capabilities.CAPABILITIES', catalog))
         from runtime.capabilities import capability_entry
         entry = capability_entry(CAPABILITIES['document-writing'].directory)
         entry['data'] = {'access':'optional','sourceRefs':['first','second']}
         original = capability_entry
         self.enterContext(patch('runtime.config.capability_entry', side_effect=lambda directory:
-            deepcopy(entry) if str(directory) == str(CAPABILITIES['qa'].directory) else original(directory)))
+            deepcopy(entry) if str(directory) == str(catalog['qa'].directory) else original(directory)))
         self.config_path = self.root/'config/databases.json'
         self.env = {'CCSDK_DATABASES_FILE': str(self.config_path)}
         self.config = {'version': 1, 'connections': {}, 'policies': {}}

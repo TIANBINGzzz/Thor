@@ -18,6 +18,7 @@ from runtime.claude_sdk import (
     ClientState, ClientTurnPolicy, ClaudeSDKClient, SDKToolScope, build_agent_options, create_sdk_mcp_server, sdk_tool,
 )
 from runtime.config import agent_environment, isolated_sdk_environment
+from runtime.claude_sdk import AGENT_BUILTIN_TOOLS
 
 
 class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
@@ -94,7 +95,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
             serving = asyncio.create_task(service.serve(sockets=[sock]))
             policy = ClientTurnPolicy()
             options = build_agent_options(cwd=directory, model='probe-first-model', max_turns=4,
-                tools={'type': 'preset', 'preset': 'claude_code'}, setting_sources=[],
+                tools=list(AGENT_BUILTIN_TOOLS), setting_sources=[],
                 system_prompt='Follow this turn policy.', permission_mode='bypassPermissions',
                 hooks=policy.hooks(), mcp_servers={}, strict_mcp_config=True,
                 env={**agent_environment(), 'ANTHROPIC_BASE_URL': f'http://127.0.0.1:{port}',
@@ -129,8 +130,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                 for name, servers, tool, model_name in [
                     ('A', {'probe': server('A')}, 'mcp__probe__probe', 'probe-first-model'),
                     ('B', {'probe': server('B')}, 'mcp__probe__probe', 'probe-second-model'),
-                    ('DENY', {}, 'Bash', 'probe-second-model')]:
-                    stage.update(name=name, tool=tool, requests=[])
+                    ('DENY', {}, 'Write', 'probe-second-model')]:
+                    stage.update(name=name, tool=tool, target=side_effect, requests=[])
                     turn = build_agent_options(model=model_name, mcp_servers=servers, tools=[],
                         env=options.env, permission_mode='bypassPermissions',
                         system_prompt='CONTEXT_' + name,
@@ -148,7 +149,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     if servers:
                         self.assertEqual(hits[-1], name)
                     else:
-                        self.assertFalse(any(tool.startswith('mcp__probe__') for tool in stage['requests'][0]['tools']))
+                        self.assertFalse(any(tool.startswith('mcp__probe__') for tool in stage['requests'][0]['tools']),
+                                         stage['requests'])
                         self.assertIn('本轮能力未授权此工具', json.dumps(messages, ensure_ascii=False))
                     policy.clear()
                     tool_scope.stop()
@@ -246,6 +248,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                         target = Path(external) / (name + '.txt')
                         stage.update(name=name, tool='Write', target=target, requests=[])
                         turn.add_dirs, turn.permission_mode = directories, 'acceptEdits'
+                        turn.tools = ['Write']
                         turn.allowed_tools, turn.system_prompt = ['Write'], 'CONTEXT_' + name
                         policy.bind(turn)
                         with isolated_sdk_environment():
