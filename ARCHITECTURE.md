@@ -26,6 +26,8 @@
 | `.claude/` | Capability 入口、Skill、工具规则、模板及数据库知识 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
 | `config/`、`doc/` | 部署配置；契约、决策及必要核验记录 |
+| `doc/specs/capability-architecture.md` | Agent 编码与 Capability 资产归属规范 |
+| `deploy/environments.local.md` | 本机私有环境连接与部署交接资料；不提交 Git、不打入镜像、不写入日志 |
 
 ## 4. Subsystem responsibilities
 
@@ -79,5 +81,6 @@
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
 | 执行规则 | [问数](.claude/capabilities/national-excellence-data-qa/CAPABILITY.md)、[撰写](.claude/capabilities/document-writing/CAPABILITY.md) |
 | Agent 编码与能力资产归属 | [Capability 架构规范](doc/specs/capability-architecture.md) |
+| 本机环境连接与部署交接 | `deploy/environments.local.md`（私有文件，不提交、不进镜像、不进日志） |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |
 | 启动、构建和发布 | [部署说明](deploy/README.md)、`package.json`、`requirements.txt` |
