@@ -25,8 +25,7 @@
 | `python/runtime/prompt_assembly.py` | 显式提示词资产的统一加载、过滤、渲染及来源说明 |
 | `.claude/` | Capability 入口、Skill、工具规则、模板及数据库知识 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
-| `config/`、`doc/` | 部署配置；契约、决策及必要核验记录 |
-| `doc/specs/capability-architecture.md` | Agent 编码与 Capability 资产归属规范 |
+| `config/`、`doc/` | 部署配置；契约、工程要求、决策及必要核验记录 |
 | `deploy/environments.local.md` | 本机私有环境连接与部署交接资料；不提交 Git、不打入镜像、不写入日志 |
 
 ## 4. Subsystem responsibilities
@@ -38,7 +37,7 @@
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
-- Capability、提示词、Tool/Service 及能力代码的归属规范见[Agent代码架构与Capability规范](doc/specs/capability-architecture.md)；固定流程是否可由 Agent 保证，按该规范区分模型决策和服务端执行。
+- Capability、提示词、Tool/Service 及能力代码的归属规范见[工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)；固定流程是否可由 Agent 保证，按该要求区分模型决策和服务端执行。
 
 ## 5. Dependency directions
 
@@ -80,7 +79,7 @@
 | 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
 | 执行规则 | [问数](.claude/capabilities/national-excellence-data-qa/CAPABILITY.md)、[撰写](.claude/capabilities/document-writing/CAPABILITY.md) |
-| Agent 编码与能力资产归属 | [Capability 架构规范](doc/specs/capability-architecture.md) |
+| Agent 编码与能力资产归属 | [工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化) |
 | 本机环境连接与部署交接 | `deploy/environments.local.md`（私有文件，不提交、不进镜像、不进日志） |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |
 | 启动、构建和发布 | [部署说明](deploy/README.md)、`package.json`、`requirements.txt` |

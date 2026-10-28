@@ -55,6 +55,13 @@
 7. 固定流程优先组合“Capability + 可复用 Skill + 模板/数据源配置”。仅模板、数据源、业务口径或输出样式不同，不足以复制一个 Workflow；模板/数据源选择也须在授权范围内。
 8. 只有流程拓扑、审批、并行、重试或外部副作用的编排语义确有不同，才考虑拆独立 Workflow，并记录差异与理由。Workflow 不是 Skill 或业务名称的另一种叫法。
 
+### 能力资产与代码归属
+
+- 业务规则写在 `.claude/capabilities/<ref>/CAPABILITY.md`；公共规则放 `.claude/prompts/`，可复用方法放 `.claude/skills/`，工具指引放 `.claude/tools/<ref>/TOOL.md`，模板要求放能力的模板资产，数据库语义放 `.claude/databases/<sourceRef>/`。通过显式引用装配，唯一入口是 `python/runtime/prompt_assembly.py`；`not_for_model` 不进入提示词。
+- 能力专属代码放 `python/capability_packs/<ref>/`，由 `pack.json` 登记 Operation 与 Schema，并通过 `operationRefs` 选择；`serviceRefs` 仅供 Operation 内部选择 Service。共享实现放 `python/runtime/`、`python/tools/` 或 `python/data_access/`，不把业务规则搬进通用 Provider。
+- Agent 可见的动作是 Tool；MCP operation 也按 Tool 使用，MCP Server 承载操作，Provider 负责通用装配。Service 仅在需复用实现、状态或上游调用时建立，不要求每个 Tool 配一个 Service。
+- Operation 使用本轮 `CapabilityContext`。能力代码是随 Runtime 部署、在 Worker 权限内执行的可信代码，不是上传式沙箱插件；资产不得指定任意 Python 入口。`direct` 和提示词不保证调用顺序或必定触发；固定执行顺序必须由服务端编排保证。
+
 ### 验收检查
 
 - 正向：用户选择已授权 Capability 即可执行，不需要知道内部 Skill、Workflow 或 Agent；同一内部流程可供多个能力配置复用。
