@@ -28,7 +28,7 @@ from runtime.runtime_settings import RUNTIME_SETTINGS
 # 只开放已用真实 CLI 请求验证的模型环境；进程路径、代理和配置目录仍属启动配置。
 CLIENT_HOT_ENV_KEYS = frozenset({'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_EXTRA_BODY'})
 # 固定启动白名单，CLI 新增工具不会自动进入服务端执行面。两个 Shell 名称兼容不同平台。
-AGENT_BUILTIN_TOOLS = ('Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell')
+AGENT_BUILTIN_TOOLS = ('Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebFetch')
 
 
 class ClientTurnPolicy:

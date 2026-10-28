@@ -71,9 +71,6 @@ def _draft(value):
                 or len(manifest['ref']) > 96 or not ENTRY_NAME.fullmatch(manifest['ref'])
                 or not isinstance(prompt, str)):
             raise ValueError()
-        manifest = {**manifest, 'execution': manifest.get('execution', {'mode': 'direct'})}
-        if manifest['execution'] != {'mode': 'direct'}:
-            raise ValueError()
         return manifest, prompt
     except (ValueError, UnicodeError):
         raise HTTPException(400, '能力配置无效') from None

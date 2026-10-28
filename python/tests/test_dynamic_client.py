@@ -14,6 +14,7 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
         options = build_client_options({'capability_ref': 'conversation'}, policy)
         policy.bind(options)
         self.assertEqual(await policy.authorize({'tool_name': 'Read'}, None, {}), {})
+        self.assertEqual(await policy.authorize({'tool_name': 'WebFetch'}, None, {}), {})
         for name in ('CronCreate', 'ScheduleWakeup', 'Workflow', 'SendMessage', 'Task', 'FutureTool'):
             with self.subTest(name=name):
                 result = await policy.authorize({'tool_name': name}, None, {})

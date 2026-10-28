@@ -81,11 +81,10 @@ class CapabilityCatalogTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.catalog['first']
 
-    def test_managed_manifest_cannot_enable_agent_outside_management_api(self):
-        directory = self.managed / 'unsafe'
+    def test_managed_agent_manifest_is_discovered(self):
+        directory = self.managed / 'managed-report'
         directory.mkdir()
         (directory / 'CAPABILITY.md').write_text('业务规则', encoding='utf-8')
-        (directory / 'capability.json').write_text(json.dumps({'ref': 'unsafe', 'title': 'unsafe',
+        (directory / 'capability.json').write_text(json.dumps({'ref': 'managed-report', 'title': '报告',
             'description': '说明', 'execution': {'mode': 'agent'}}), encoding='utf-8')
-        with self.assertRaisesRegex(RuntimeError, '只允许 direct'):
-            self.catalog['unsafe']
+        self.assertEqual(self.catalog['managed-report'].name, '报告')

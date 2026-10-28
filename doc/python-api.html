@@ -275,14 +275,14 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>POST /internal/v1/assets/capabilities/preview</td><td>离线预览已登记能力或未发布草稿的有效项目指令；返回正文、分段来源、加载/排除原因、按需 Skill 和运行时占位。</td></tr>
 <tr><td>POST /internal/v1/assets/capabilities</td><td>同样校验，成功创建能力并返回 201 与公开摘要；已存在返回 409，不覆盖。</td></tr>
 </tbody></table>
-<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。execution 缺省为 direct，管理草稿和新建能力只允许 direct；agent 能力由源码部署。工具、Skill 和来源必须已经登记；direct 的 skillRefs 必须全部列入 requiredSkillRefs；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
+<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。assets.manage 属于可信执行配置管理权，可选择 agent/direct；execution 缺省为 agent，与源码能力一致。工具、Skill 和来源必须已经登记；direct 的 skillRefs 必须全部列入 requiredSkillRefs；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
 <div class="code-wrap"><div class="code-label">管理请求 · 组合既有资产</div><button class="copy" type="button">复制</button><pre>{
   "manifest": {
     "ref": "business-report",
     "title": "业务报告",
     "description": "根据授权数据撰写业务报告",
     "toolRefs": ["data", "documents", "office", "artifacts"],
-    "execution": {"mode": "direct"},
+    "execution": {"mode": "agent"},
     "data": {"access": "required", "sourceRefs": ["schoolDoubleHigh"]}
   },
   "prompt": "根据获准数据撰写；不得编造业务事实。"

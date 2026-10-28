@@ -134,8 +134,6 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     execution = manifest.get('execution', {})
     if not isinstance(execution, dict) or set(execution) - {'mode'} or execution.get('mode', 'agent') not in ('agent', 'direct'):
         raise RuntimeError('execution.mode 配置无效')
-    if directory.resolve().is_relative_to(MANAGED_CAPABILITIES_ROOT.resolve()) and execution.get('mode') != 'direct':
-        raise RuntimeError('持久化能力只允许 direct 模式')
     data = manifest.get('data', {})
     if (not isinstance(data, dict) or set(data) - {'access', 'sourceRefs', 'contextTopics'}
             or (data and data.get('access') not in ('optional', 'required'))):

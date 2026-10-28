@@ -20,7 +20,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - 省略或 null capabilityRef 归一为 conversation，JWT 仍须绑定该能力；空字符串拒绝。能力选择只作用于本轮，Python 不恢复前端选中值。
 - 能力目录无需鉴权，只说明已登记能力，不代表用户授权、模型/MCP 健康或模板可用；Java 按业务权限筛选。
 - 同 tenant、sub、businessSessionId 的 Run 串行续接 SDK 历史，跨能力也连续；模型、工具和凭据逐轮热装配，连接固定项变化或 Client 故障时重建并恢复历史。无业务会话不保证连续上下文，重启须保留 RunStore 和 SDK transcript。历史续接不回滚工具副作用。
-- 内置工具属于连接固定项：direct 为零内置工具，agent 仅加载 Read、Write、Edit、Glob、Grep 及平台支持的 Bash/PowerShell；跨模式重建并恢复历史。Hook 再次检查本轮权限；CLI 后台任务及自动工具搜索关闭，显式后台 Shell 调用拒绝。白名单不构成进程或租户沙箱。逐轮规则仍随历史保留，Hook 不会删除旧规则；恢复的系统提示词快照不随新配置自动替换。
+- 内置工具属于连接固定项：direct 为零内置工具，agent 加载 Read、Write、Edit、Glob、Grep、WebFetch 及平台支持的 Bash/PowerShell；跨模式重建并恢复历史。CLI 2.1.307 的动态 permissions.deny 能阻止调用但不卸载内置工具定义，allow 也不能增加启动时未加载的工具，因此不以权限热更新替代工具分组。Hook 再次检查本轮权限；CLI 后台任务及自动工具搜索关闭，显式后台 Shell 调用拒绝。白名单不构成进程或租户沙箱。逐轮规则仍随历史保留，Hook 不会删除旧规则；恢复的系统提示词快照不随新配置自动替换。
 
 ### 3.4 业务 payload
 

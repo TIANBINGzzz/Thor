@@ -23,6 +23,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
         self.directory = Path(tempfile.mkdtemp())
         self.requests = []
         self.read_tools = True
+        self.force_read_count = 0
         app = FastAPI()
 
         @app.post('/{path:path}')
@@ -32,6 +33,9 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
             read = self.read_tools and any(tool['name'] == 'Read' for tool in data.get('tools', [])) and not any(
                 block.get('type') == 'tool_result' for message in data['messages']
                 if isinstance(message['content'], list) for block in message['content'])
+            if self.force_read_count:
+                read = True
+                self.force_read_count -= 1
             blocks = ([{'type': 'tool_use', 'id': 'toolu_' + uuid4().hex, 'name': 'Read',
                         'input': {'file_path': str(self.directory / 'input.txt')}}]
                       if read else [{'type': 'text', 'text': 'LOCAL_REPLY'}])
@@ -237,9 +241,9 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 if ref != 'conversation':
                     self.assertEqual(names, {'mcp__probe__read'})
                 else:
-                    self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep'} <= names)
+                    self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch'} <= names)
                     self.assertTrue(names <= {'Read', 'Write', 'Edit', 'Glob', 'Grep',
-                                             'Bash', 'PowerShell', 'mcp__probe__read'})
+                                             'Bash', 'PowerShell', 'WebFetch', 'mcp__probe__read'})
                 history = json.dumps(request['messages'])
                 for previous in range(index + 1):
                     self.assertIn('HISTORY_' + str(previous), history)
@@ -247,5 +251,49 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 self.profile_evidence.append({'capability': ref, 'tools': sorted(names),
                     'toolSchemaBytes': len(json.dumps(request.get('tools', [])).encode()),
                     'historyBytes': len(history.encode())})
+            finally:
+                await client.disconnect()
+
+    async def test_builtin_base_is_fixed_but_permission_overlay_changes_execution(self):
+        """锁定 CLI 假设：动态 deny 阻断调用但保留 Schema，allow 无法加载启动时缺席的工具。"""
+        self.read_tools = False
+        for initial in ({'type': 'preset', 'preset': 'claude_code'}, []):
+            options = self.options(tools=initial)
+            client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
+            try:
+                with isolated_sdk_environment():
+                    await client.connect()
+                provider = client._provider
+                control = provider._query._send_control_request
+                replacement = [] if initial else ['Read']
+                options.tools = replacement
+                # 返回成功不等于更新了工具集合；同时验证首轮前和运行后的 deny/allow。
+                await control({'subtype': 'apply_flag_settings', 'settings': {'tools': replacement}})
+                session = None
+                for index, denied in enumerate((True, False, True, False)):
+                    marker = 'LOCAL_READ_MARKER_' + str(index)
+                    (self.directory / 'input.txt').write_text(marker, encoding='utf-8')
+                    await control({'subtype': 'apply_flag_settings',
+                                   'settings': {'permissions': {'allow': ['Read'],
+                                                                'deny': ['Read'] if denied else []}}})
+                    self.force_read_count = 1
+                    first = len(self.requests)
+                    await client.query('Read the local test input.')
+                    messages = [item.to_dict() async for item in client.receive_response()]
+                    names = {tool['name'] for tool in self.requests[first].get('tools', [])}
+                    self.assertEqual('Read' in names, bool(initial))
+                    results = [block for message in messages if message['kind'] == 'user'
+                               and isinstance(message['data'].get('content'), list)
+                               for block in message['data']['content'] if block['type'] == 'tool_result']
+                    self.assertTrue(results)
+                    self.assertEqual(bool(results[-1].get('is_error')), denied or not initial)
+                    if initial and not denied:
+                        self.assertIn(marker, str(results[-1]))
+                    self.assertIs(client._provider, provider)
+                    result = next(item for item in reversed(messages) if item['kind'] == 'result')
+                    self.assertFalse(result['data']['is_error'])
+                    if session:
+                        self.assertEqual(result['sessionId'], session)
+                    session = result['sessionId']
             finally:
                 await client.disconnect()

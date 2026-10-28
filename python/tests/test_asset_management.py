@@ -13,18 +13,26 @@ from runtime.auth import encode_hs256_jwt
 
 
 class AssetManagementTests(unittest.TestCase):
-    def test_managed_capabilities_default_to_direct_and_reject_agent(self):
-        body = self.body()
-        result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=self.headers())
-        self.assertEqual(result.status_code, 201, result.text)
-        manifest = json.loads((self.root / 'business-report/capability.json').read_text(encoding='utf-8'))
-        self.assertEqual(manifest['execution'], {'mode': 'direct'})
-        body['manifest'].update(ref='unsafe-agent', execution={'mode': 'agent'})
-        for path in ('validate', 'preview', ''):
-            result = self.client.post('/internal/v1/assets/capabilities' + ('/' + path if path else ''),
-                                      json=body, headers=self.headers())
-            self.assertEqual(result.status_code, 400, result.text)
-        self.assertFalse((self.root / 'unsafe-agent').exists())
+    def test_trusted_management_can_compose_agent_or_direct(self):
+        from runtime.capabilities import capability_entry, SKILLS_ROOT
+        from runtime.config import build_options
+        for mode in (None, 'agent', 'direct'):
+            body = self.body()
+            ref = 'managed-' + (mode or 'default')
+            body['manifest'].update(ref=ref, skillRefs=['document-review'])
+            if mode:
+                body['manifest']['execution'] = {'mode': mode}
+            if mode == 'direct':
+                body['manifest']['requiredSkillRefs'] = ['document-review']
+            for action, status in (('validate', 200), ('preview', 200), ('', 201)):
+                path = '/internal/v1/assets/capabilities' + ('/' + action if action else '')
+                result = self.client.post(path, json=body, headers=self.headers())
+                self.assertEqual(result.status_code, status, result.text)
+            entry = capability_entry(self.root / ref, skills_root=SKILLS_ROOT)
+            self.assertEqual(entry.get('execution', {}).get('mode', 'agent'), mode or 'agent')
+            with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
+                options = build_options({'capability_ref': ref})
+            self.assertEqual(options.tools == [], mode == 'direct')
 
     def test_creation_audit_is_persisted_with_content_revision_without_jwt(self):
         body = self.body()
@@ -114,7 +122,6 @@ class AssetManagementTests(unittest.TestCase):
         managed = Path(self.temporary.name) / 'runtime-data/capabilities'
         body = self.body()
         body['manifest']['skillRefs'] = ['document-review']
-        body['manifest']['requiredSkillRefs'] = ['document-review']
         with patch.object(capabilities, 'CAPABILITIES_ROOT', builtin), \
              patch.object(asset_management, 'CAPABILITIES_ROOT', builtin), \
              patch.object(capabilities, 'MANAGED_CAPABILITIES_ROOT', managed, create=True), \

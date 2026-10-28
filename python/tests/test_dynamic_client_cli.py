@@ -130,8 +130,8 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                 for name, servers, tool, model_name in [
                     ('A', {'probe': server('A')}, 'mcp__probe__probe', 'probe-first-model'),
                     ('B', {'probe': server('B')}, 'mcp__probe__probe', 'probe-second-model'),
-                    ('DENY', {}, 'Write', 'probe-second-model')]:
-                    stage.update(name=name, tool=tool, target=side_effect, requests=[])
+                    ('DENY', {}, 'Bash', 'probe-second-model')]:
+                    stage.update(name=name, tool=tool, requests=[])
                     turn = build_agent_options(model=model_name, mcp_servers=servers, tools=[],
                         env=options.env, permission_mode='bypassPermissions',
                         system_prompt='CONTEXT_' + name,
@@ -149,6 +149,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     if servers:
                         self.assertEqual(hits[-1], name)
                     else:
+                        self.assertIn('Bash', stage['requests'][0]['tools'])
                         self.assertFalse(any(tool.startswith('mcp__probe__') for tool in stage['requests'][0]['tools']),
                                          stage['requests'])
                         self.assertIn('本轮能力未授权此工具', json.dumps(messages, ensure_ascii=False))
