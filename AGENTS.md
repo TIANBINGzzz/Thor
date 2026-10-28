@@ -13,6 +13,7 @@
 
 ## 执行资产边界
 
+- 能力目录、提示词归属、Tool/Service 和业务代码职责以[Agent代码架构与Capability规范](doc/specs/capability-architecture.md)为准；本文件只保留开发时必须遵守的简要边界。
 - Python 管理 Runtime、SDK 和通用工具；能力专属业务实现归 `python/capability_packs/<capabilityRef>/`，随 Runtime 部署，按静态 `pack.json` 登记 Operation；`.claude/` 管理执行配置与业务知识。能力专属表范围、口径及模板不得写进通用 Python；管理端不能上传代码或指定 Python 入口。
 - Capability 是业务入口，内部资产和权限由可信服务端装配，遵循 [REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)。只有执行步骤、审批、并行、重试或外部副作用确实不同才拆 Workflow。
 - Skill 须有可复用方法、适用条件和可验证产出；单工具包装、几条提醒和模板说明不单建 Skill。单流程规则留在其目录，共同规则只维护一份。
