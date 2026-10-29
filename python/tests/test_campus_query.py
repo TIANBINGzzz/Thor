@@ -122,7 +122,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                 'credentials': {'platformBearer': 'test-secret'}, 'input_directory': str(root)})
         self.assertEqual(set(options.mcp_servers), {'capability_ops', 'attachments'})
-        self.assertEqual(options.tools, [])
+        self.assertTrue({'Read', 'Write', 'Bash'} <= set(options.tools))
         self.assertIn('mcp__attachments__read', options.allowed_tools)
 
     def test_trusted_runtime_config_controls_sdk_options(self):
@@ -150,7 +150,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             options = build_options(payload)
             self.assertEqual(before, dict(os.environ))
         self.assertEqual(set(options.mcp_servers), {'capability_ops'})
-        self.assertEqual(options.tools, [])
+        self.assertTrue({'Read', 'Write', 'Bash'} <= set(options.tools))
         self.assertTrue(options.strict_mcp_config)
         self.assertEqual(options.setting_sources, [])
         self.assertNotIn('test-secret', str(options.system_prompt))

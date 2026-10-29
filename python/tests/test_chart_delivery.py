@@ -90,7 +90,7 @@ class ChartDeliveryTests(unittest.IsolatedAsyncioTestCase):
             delivery.record(self.chart(number))
             offset = len(events)
             await agent_worker._receive_client_response(
-                Client(), {'run_id': str(number)}, {}, asyncio.Queue(), False, None, delivery)
+                Client(), {'run_id': str(number)}, {}, asyncio.Queue(), None, delivery)
             answer = ''.join(e.get('text', '') for e in events[offset:])
             self.assertIn(self.chart(number), answer)
             if number == 2:

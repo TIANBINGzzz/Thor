@@ -31,7 +31,7 @@
 ## 4. Subsystem responsibilities
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
-- `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`，按能力及依赖资产的文件签名缓存已校验目录，发布后主动失效；`prompt_assembly.py` 加载公共规则、能力正文和显式指引、所选模板、Skill 及实际挂载工具的指引。Skill 默认仅注入用途和读取路径，`requiredSkillRefs` 显式注入全文；声明不授予工具权限。`config.py` 将同一装配结果用于 default/custom 模式及逐轮 Hook；有状态工具由 `tool_services.py` 绑定清理。`direct` 是受限 SDK Run，`agent` 自主执行；没有 Workflow 目录、通用 DAG 引擎或完整资产版本快照系统。
+- `capabilities.py` 动态发现 `capabilities/<名称>/capability.json`，按能力及依赖资产的文件签名缓存已校验目录，发布后主动失效；`prompt_assembly.py` 加载公共规则、能力正文和显式指引、所选模板、Skill 及实际挂载工具的指引。Skill 默认仅注入用途和读取路径，`requiredSkillRefs` 显式注入全文；声明不授予工具权限。`config.py` 将同一装配结果用于 default/custom 模式及逐轮 Hook；有状态工具由 `tool_services.py` 绑定清理。`direct` 按能力规则直接处理，`agent` 自主执行，两者共用基础工具；没有 Workflow 目录、通用 DAG 引擎或完整资产版本快照系统。
 - `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、MCP 连接、凭据目标和显示规则。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 源码能力可用 `operationRefs` 选择同名代码包的业务动作；目录发现和预览只读静态声明，Worker 经 `capability_packs/registry.py` 加载代码，`capability_operations.py` 校验输入输出并适配为 `capability_ops` MCP Tool。操作复用本轮数据、文档及成果 Service，使用数据不必向模型开放通用数据 Tool；不为业务场景新建 Provider。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
@@ -58,7 +58,7 @@
 - 同 Run JWT tenant、sub、businessSessionId 的全部能力串行共用 SDK 历史；RunStore 原子绑定身份与随机工作区，已有目录就地登记。模型、思考预算、effort、模型环境、附加目录、规则和 MCP 按轮热更新，凭据按轮绑定清理，Hook 校验本轮工具授权；仅固定启动参数变化时重建并恢复历史，重启恢复依赖 RunStore 和 SDK transcript。
 - 公开能力目录只读且无需鉴权，Java 筛选用户可用能力；payload 不能覆盖执行配置或权限，预制模板由服务端解析，上传模板沿用附件授权。`asset_management.py` 提供独立管理 JWT 保护的目录、校验、新建及有效指令预览接口，只组合已登记资产。预览复用编译器，标明假定工具、来源、排除原因和运行时占位，不实例化 Provider 或连接业务系统；Java 管理页面需另行接入。工具连接及数据库授权由部署端维护。
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
-- `runtime/worker_pool.py` 按固定启动配置分组预连接空白 SDK Client，direct 不加载内置工具，agent 使用代码白名单；跨组切换重建并恢复历史。各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。工具约束见 Runtime 契约，限制及内存保护见配置字段。
+- `runtime/worker_pool.py` 预连接空白 SDK Client，所有能力共用基础工具白名单，业务 MCP 与规则逐轮装配；direct/agent 切换本身不分组或重连，其他固定启动配置不同仍按指纹匹配并在必要时恢复历史。各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。工具约束见 Runtime 契约，限制及内存保护见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。
 - 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 显式管理指令、按需知识和 MCP 参数，`python/capability_packs/campus-brain-query/operations.py` 提供可信业务 Operation 与内部 Service，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，见 [ADR-035](doc/ADR/035-campus-query-adapter.md) 和 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
 

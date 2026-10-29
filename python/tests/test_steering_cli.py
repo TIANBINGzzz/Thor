@@ -184,7 +184,7 @@ class SteeringCLITests(unittest.IsolatedAsyncioTestCase):
                     with patch.object(agent_worker, 'emit', emit):
                         try:
                             response = await agent_worker._receive_client_response(
-                                client, run_command, {}, queue, False, time.monotonic() + 15,
+                                client, run_command, {}, queue, time.monotonic() + 15,
                                 tool_scope=scope)
                         except Exception as error:
                             summary = [{'tools': [tool.get('name') for tool in item.get('tools', [])],

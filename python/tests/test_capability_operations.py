@@ -389,7 +389,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             with patch('capability_packs.registry.PACK_ROOT', packs):
                 direct = build_options({'capability_ref': 'demo-capability', 'run_id': 'run-2',
                                         '_execution_entry': {'capability': entry}})
-            self.assertEqual(direct.tools, [])
+            self.assertEqual(direct.tools, options.tools)
             self.assertTrue(direct.strict_mcp_config)
             self.assertEqual(direct.allowed_tools, ['mcp__capability_ops__calculate'])
 

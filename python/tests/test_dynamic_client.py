@@ -113,17 +113,18 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
             await client.query('should never run')
 
 class ConnectionFingerprintTests(unittest.TestCase):
-    def test_direct_and_agent_use_separate_prewarm_groups(self):
+    def test_direct_and_agent_share_builtin_tools_and_prewarm_group(self):
         from runtime.config import build_client_options, client_connection_fingerprint
         from runtime.claude_sdk import ClientTurnPolicy
         direct = {'capability_ref': 'campus-brain-query'}
         agent = {'capability_ref': 'conversation'}
-        self.assertEqual(build_client_options(direct, ClientTurnPolicy()).tools, [])
+        direct_tools = build_client_options(direct, ClientTurnPolicy()).tools
         tools = build_client_options(agent, ClientTurnPolicy()).tools
+        self.assertEqual(direct_tools, tools)
         self.assertIsInstance(tools, list)
         self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep'} <= set(tools))
         self.assertFalse({'Task', 'CronCreate', 'ScheduleWakeup', 'Workflow', 'SendMessage'} & set(tools))
-        self.assertNotEqual(client_connection_fingerprint(direct), client_connection_fingerprint(agent))
+        self.assertEqual(client_connection_fingerprint(direct), client_connection_fingerprint(agent))
 
     def test_queued_turn_inherits_latest_settings_without_freezing_old_inheritance(self):
         from unittest.mock import patch

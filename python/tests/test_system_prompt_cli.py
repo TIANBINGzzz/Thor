@@ -200,36 +200,47 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(marker, raw)
                 self.assertIn('tool_result', raw)
 
-    async def test_profile_switch_hides_builtins_and_resumes_same_history(self):
-        """使用生产连接配置，证明 direct 的模型请求确实不包含内置工具。"""
+    async def test_capability_switch_reuses_client_and_replaces_visible_mcp(self):
+        """统一基础工具；跨 direct/agent 更新 MCP 与规则，不重建 Client。"""
         self.read_tools = False
         environment = self.options().env
         session = None
-        self.profile_evidence = []
+        policy = ClientTurnPolicy()
+        with patch('runtime.config.agent_environment', return_value=environment):
+            options = build_client_options({'capability_ref': 'conversation',
+                                            'cwd': str(self.directory)}, policy)
+        client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
 
         @sdk_tool('read', 'local read probe', {})
         async def read(arguments):
             return {'content': [{'type': 'text', 'text': 'probe'}]}
 
-        for index, ref in enumerate(('conversation', 'campus-brain-query',
-                                     'national-excellence-data-qa', 'conversation')):
-            policy = ClientTurnPolicy()
-            payload = {'capability_ref': ref, 'cwd': str(self.directory),
-                       'model': 'claude-sonnet-4-6', 'resume': session}
-            with patch('runtime.config.agent_environment', return_value=environment):
-                options = build_client_options(payload, policy)
-            client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
-            marker = 'TURN_RULE_' + str(index)
-            turn = self.options(tools=options.tools, system_prompt=marker,
-                mcp_servers={'probe': create_sdk_mcp_server(name='probe', tools=[read])},
-                allowed_tools=['mcp__probe__read'])
-            policy.bind(turn)
-            try:
+        try:
+            with isolated_sdk_environment():
+                await client.connect()
+            provider = client._provider
+            for index, ref in enumerate(('conversation', 'campus-brain-query',
+                                         'national-excellence-data-qa', 'conversation')):
+                payload = {'capability_ref': ref, 'cwd': str(self.directory)}
+                with patch('runtime.config.agent_environment', return_value=environment):
+                    startup = build_client_options(payload, policy)
+                self.assertEqual(startup.tools, options.tools)
+                namespace = 'probe_' + str(index)
+                tool_name = 'mcp__' + namespace + '__read'
+                turn = self.options(tools=startup.tools, system_prompt='TURN_RULE_' + str(index),
+                    mcp_servers={namespace: create_sdk_mcp_server(name=namespace, tools=[read])},
+                    allowed_tools=[tool_name])
+                policy.bind(turn)
+                self.assertEqual(await policy.authorize({'tool_name': 'Read'}, None, {}), {})
+                marker = 'CAPABILITY_READ_' + str(index)
+                (self.directory / 'input.txt').write_text(marker, encoding='utf-8')
                 with isolated_sdk_environment():
-                    await client.connect()
                     await client.configure_turn(turn)
+                    self.force_read_count = 1
                     await client.query('HISTORY_' + str(index))
                     messages = [item async for item in client.receive_response()]
+                self.assertIn(marker, json.dumps([item.to_dict() for item in messages]))
+                self.assertIs(client._provider, provider)
                 result = next(item for item in reversed(messages) if item.kind == 'result')
                 self.assertFalse(result.data['is_error'])
                 if session:
@@ -237,22 +248,19 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 session = result.session_id
                 request = self.requests[-1]
                 names = {tool['name'] for tool in request.get('tools', [])}
-                self.assertIn('mcp__probe__read', names)
-                if ref != 'conversation':
-                    self.assertEqual(names, {'mcp__probe__read'})
-                else:
-                    self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch'} <= names)
-                    self.assertTrue(names <= {'Read', 'Write', 'Edit', 'Glob', 'Grep',
-                                             'Bash', 'PowerShell', 'WebFetch', 'mcp__probe__read'})
+                self.assertEqual({name for name in names if name.startswith('mcp__')}, {tool_name})
+                self.assertTrue({'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebFetch'} <= names)
+                self.assertTrue(names <= {'Read', 'Write', 'Edit', 'Glob', 'Grep',
+                                         'Bash', 'PowerShell', 'WebFetch', tool_name})
+                for previous in range(index):
+                    denied = await policy.authorize({'tool_name': 'mcp__probe_' + str(previous) + '__read'}, None, {})
+                    self.assertEqual(denied['hookSpecificOutput']['permissionDecision'], 'deny')
                 history = json.dumps(request['messages'])
                 for previous in range(index + 1):
                     self.assertIn('HISTORY_' + str(previous), history)
                     self.assertIn('TURN_RULE_' + str(previous), history)
-                self.profile_evidence.append({'capability': ref, 'tools': sorted(names),
-                    'toolSchemaBytes': len(json.dumps(request.get('tools', [])).encode()),
-                    'historyBytes': len(history.encode())})
-            finally:
-                await client.disconnect()
+        finally:
+            await client.disconnect()
 
     async def test_builtin_base_is_fixed_but_permission_overlay_changes_execution(self):
         """锁定 CLI 假设：动态 deny 阻断调用但保留 Schema，allow 无法加载启动时缺席的工具。"""

@@ -22,8 +22,6 @@ class AssetManagementTests(unittest.TestCase):
             body['manifest'].update(ref=ref, skillRefs=['document-review'])
             if mode:
                 body['manifest']['execution'] = {'mode': mode}
-            if mode == 'direct':
-                body['manifest']['requiredSkillRefs'] = ['document-review']
             for action, status in (('validate', 200), ('preview', 200), ('', 201)):
                 path = '/internal/v1/assets/capabilities' + ('/' + action if action else '')
                 result = self.client.post(path, json=body, headers=self.headers())
@@ -32,7 +30,7 @@ class AssetManagementTests(unittest.TestCase):
             self.assertEqual(entry.get('execution', {}).get('mode', 'agent'), mode or 'agent')
             with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
                 options = build_options({'capability_ref': ref})
-            self.assertEqual(options.tools == [], mode == 'direct')
+            self.assertTrue({'Read', 'Write', 'Bash'} <= set(options.tools))
 
     def test_creation_audit_is_persisted_with_content_revision_without_jwt(self):
         body = self.body()

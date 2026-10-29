@@ -134,7 +134,7 @@ class PromptAssetValidationTests(unittest.TestCase):
         self.assertIn('阈值 3', assemble_prompt(load_prompt_assets(self.entry()),
                       active_tools=['business'], preview=True)['text'])
 
-    def test_skill_dependencies_do_not_grant_tools_and_direct_requires_preloaded_skills(self):
+    def test_skill_dependencies_do_not_grant_tools_and_direct_can_load_on_demand(self):
         self.manifest['skillRefs'] = ['../outside']
         with self.assertRaises(RuntimeError):
             self.entry()
@@ -147,8 +147,9 @@ class PromptAssetValidationTests(unittest.TestCase):
         self.assertNotIn('适用时核验', result['text'])
         self.assertIn('缺少', result['omitted'][-1]['reason'])
         self.manifest['execution'] = {'mode': 'direct'}
-        with self.assertRaisesRegex(RuntimeError, 'direct'):
-            self.entry()
+        result = assemble_prompt(load_prompt_assets(self.entry()), active_tools=['documents'])
+        self.assertIn('适用时核验', result['text'])
+        self.assertNotIn('方法正文_review', result['text'])
         self.manifest['requiredSkillRefs'] = ['review']
         self.assertIn('方法正文_review', assemble_prompt(load_prompt_assets(self.entry()),
                       active_tools=['documents'])['text'])

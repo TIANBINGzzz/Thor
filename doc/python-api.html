@@ -275,7 +275,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>POST /internal/v1/assets/capabilities/preview</td><td>离线预览已登记能力或未发布草稿的有效项目指令；返回正文、分段来源、加载/排除原因、按需 Skill 和运行时占位。</td></tr>
 <tr><td>POST /internal/v1/assets/capabilities</td><td>同样校验，成功创建能力并返回 201 与公开摘要；已存在返回 409，不覆盖。</td></tr>
 </tbody></table>
-<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。assets.manage 属于可信执行配置管理权，可选择 agent/direct；execution 缺省为 agent，与源码能力一致。工具、Skill 和来源必须已经登记；direct 的 skillRefs 必须全部列入 requiredSkillRefs；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
+<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。assets.manage 属于可信执行配置管理权，可选择 agent/direct；execution 缺省为 agent，与源码能力一致。两种模式共用基础工具白名单，业务 MCP 按能力装配。工具、Skill 和来源必须已经登记；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
 <div class="code-wrap"><div class="code-label">管理请求 · 组合既有资产</div><button class="copy" type="button">复制</button><pre>{
   "manifest": {
     "ref": "business-report",
@@ -304,7 +304,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>.claude/prompts/</td><td>共同规则、日期、模式边界及受控路径说明，由编译器显式加载；default/custom 均保留共同规则。</td></tr>
 <tr><td>capabilities/&lt;ref&gt;/</td><td>CAPABILITY.md 是业务入口；capability.json 的 instructionRefs 按顺序引用同目录内 Markdown，业务流程化指引放 instructions/，不因此成为确定性 Workflow。</td></tr>
 <tr><td>python/capability_packs/&lt;ref&gt;/</td><td>可信部署的业务实现：pack.json 登记操作 ref、description、inputSchema、outputSchema、handler；operations.py 提供 handler(context, args)，可同步或异步，__init__.py 定义包，services.py 按需设立。源码能力通过 operationRefs 选择同名包的动作，统一暴露为 mcp__capability_ops__&lt;操作&gt;。输入/输出根 Schema 须为 object 且 additionalProperties=false，仅接受本地 Schema 引用。</td></tr>
-<tr><td>skills/&lt;ref&gt;/</td><td>SKILL.md 维护可复用方法；skill.json 的 toolRefs 声明工具依赖。能力 skillRefs 默认按需，requiredSkillRefs 注入全文一次；direct 没有 Read，只能使用必载 Skill。</td></tr>
+<tr><td>skills/&lt;ref&gt;/</td><td>SKILL.md 维护可复用方法；skill.json 的 toolRefs 声明工具依赖。能力 skillRefs 默认按需，requiredSkillRefs 注入全文一次；两种模式均可使用 Read 读取按需 Skill。</td></tr>
 <tr><td>tools/&lt;ref&gt;/</td><td>tool.json 的 instructionRefs 引用工具说明，只有实际挂载该工具才注入。Provider 返回工具实例，不拼接业务提示词。</td></tr>
 <tr><td>模板 / 数据库包</td><td>模板仍由 template.json.assets 加载所选指南；source.json.domains 的语义按既有数据工具或本轮上下文提供，不复制进模板或能力。</td></tr>
 </tbody></table>

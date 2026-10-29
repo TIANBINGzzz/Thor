@@ -80,8 +80,6 @@ def validate_prompt_manifest(directory, manifest, skills_root):
     required = validate_refs(manifest.get('requiredSkillRefs', []), 'requiredSkillRefs')
     if not set(required) <= set(skills):
         raise RuntimeError('必载 Skill 必须属于 skillRefs')
-    if manifest.get('execution', {}).get('mode') == 'direct' and set(skills) - set(required):
-        raise RuntimeError('direct 模式不能登记需要 Read 的按需 Skill，请显式声明为必载')
     tools = manifest.get('toolRefs', manifest.get('tools', []))
     for ref in skills:
         skill = _skill(skills_root, ref)

@@ -370,7 +370,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
                        if runtime.get('prompt_mode') == 'custom' else
                        {'type': 'preset', 'preset': 'claude_code', 'append': effective_prompt['text'],
                         'snapshot': runtime.get('system_prompt_snapshot', True)}),
-        tools=[] if restricted_tools else list(AGENT_BUILTIN_TOOLS),
+        tools=list(AGENT_BUILTIN_TOOLS),
         disallowed_tools=['WebSearch'],
         allowed_tools=allowed_tools,
         skills=skills,
@@ -419,7 +419,7 @@ def _client_connection_values(payload):
     environment = agent_environment(effective)
     environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
     return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
-                tools=[] if is_direct_capability(entry) else list(AGENT_BUILTIN_TOOLS),
+                tools=list(AGENT_BUILTIN_TOOLS),
                 max_turns=payload.get('max_turns') or runtime.get('max_turns') or RUNTIME_SETTINGS.limits.max_turns,
                 system_prompt=_shared_system_prompt(runtime),
                 include_partial_messages=True,

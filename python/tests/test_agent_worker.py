@@ -12,7 +12,7 @@ from unittest.mock import patch
 from claude_agent_sdk import AssistantMessage, StreamEvent, TextBlock, ToolUseBlock
 
 import agent_worker
-from agent_worker import direct_capability_event, event_from_stream, events_from_assistant
+from agent_worker import event_from_stream, events_from_assistant
 from runtime.claude_sdk import ClientState, SDKMessage, build_agent_options
 from runtime.config import (
     build_options,
@@ -71,7 +71,7 @@ class AgentWorkerTests(unittest.TestCase):
             self.assertEqual(config["data"]["access"], "required")
             self.assertNotIn("data_sources", config)
             options = build_options({"capability_ref": capability.ref})
-        self.assertEqual(options.tools, [])
+        self.assertTrue({'Read', 'Write', 'Bash'} <= set(options.tools))
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
         self.assertTrue(options.strict_mcp_config)
@@ -413,20 +413,6 @@ class AgentWorkerTests(unittest.TestCase):
         events = events_from_assistant(message, {})
         self.assertEqual(events[0]["type"], "text")
         self.assertEqual(events[0]["text"], "直接输出")
-
-    def test_direct_capability_hides_disabled_capabilities_from_init(self):
-        event = direct_capability_event({
-            "type": "init",
-            "tools": 2,
-            "skills": ["example-skill"],
-            "agents": ["example-agent"],
-            "commands": ["example-command"],
-        })
-        self.assertEqual(event["tools"], 2)
-        self.assertEqual(event["skills"], [])
-        self.assertEqual(event["agents"], [])
-        self.assertEqual(event["commands"], [])
-
 
 class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
     def assert_private_exception(self, events, expected_type):

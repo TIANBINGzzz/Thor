@@ -136,7 +136,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 queue.put_nowait({'type': control, 'run_id': 'r1'})
                 with patch.object(agent_worker, 'emit') as output:
                     response = await agent_worker._receive_client_response(
-                        client, {'run_id': 'r1'}, {}, queue, False, None)
+                        client, {'run_id': 'r1'}, {}, queue, None)
                 self.assertTrue(response.cancelled)
                 self.assertEqual(response.close_requested, control != 'client_cancel')
                 self.assertEqual(response.session_id, 'session')
@@ -170,7 +170,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(agent_worker, 'RUNTIME_SETTINGS', settings):
             with self.assertRaises(SDKTimeoutError):
                 async with asyncio.timeout(1):
-                    await agent_worker._receive_client_response(client, {'run_id': 'r1'}, {}, queue, False, None)
+                    await agent_worker._receive_client_response(client, {'run_id': 'r1'}, {}, queue, None)
         self.assertEqual(client.state, ClientState.FAILED)
         provider.interrupt.assert_awaited_once()
         provider.disconnect.assert_awaited_once()

@@ -281,7 +281,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                             await client.configure_turn(turn)
                             await client.query('Perform the probe for ' + name)
                             response = await agent_worker._receive_client_response(
-                                client, {'run_id': name}, {}, queue, False, time.monotonic() + 30,
+                                client, {'run_id': name}, {}, queue, time.monotonic() + 30,
                                 tool_scope=tool_scope)
                         tool_scope.stop()
                         await tool_scope.drain(timeout_ms=1000)

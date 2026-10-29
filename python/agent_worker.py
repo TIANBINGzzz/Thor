@@ -331,14 +331,13 @@ async def _receive_client_response(
     command: dict[str, Any],
     streaming: dict[str, str],
     command_queue: asyncio.Queue[dict[str, Any]],
-    direct_capability: bool,
     deadline: float | None,
     chart_delivery: ChartDelivery | None = None,
     mcp_errors: list | None = None,
     timing: Timing | None = None,
     tool_scope: SDKToolScope | None = None,
 ) -> ClientResponse:
-    """接收 Client、当前命令、流状态、控制队列及执行策略，输出回复事件并返回最后的 SDK 会话标识。
+    """接收 Client、当前命令、流状态和控制队列，输出回复事件并返回最后的 SDK 会话标识。
 
     子 Task 仅读取下一条回复；interrupt 等生命周期操作始终由本协程的所属 Task 执行。
     """
@@ -422,7 +421,7 @@ async def _receive_client_response(
                         stage = 'first_' + event['type']
                         timing.mark(stage)
                     event = mcp_result_event(event, mcp_errors)
-                    (chart_delivery.emit if chart_delivery else emit)(direct_capability_event(event) if direct_capability else event)
+                    (chart_delivery.emit if chart_delivery else emit)(event)
                 if normalized.kind == "result":
                     response.close_requested |= not getattr(client, 'reusable', True)
                     completed = True
@@ -566,7 +565,6 @@ async def run_client(initial: dict[str, Any]) -> None:
                             artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                             chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
                             mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
-                    direct_capability = options.tools == [] and options.strict_mcp_config
                     policy.bind(options)
                     timing.mark('bound')
                     with isolated_sdk_environment():
@@ -580,7 +578,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         timing.mark('query_sent')
                         emit({'type': 'client_input_ready', 'run_id': run_id})
                         response = await _receive_client_response(
-                            client, command, streaming, command_queue, direct_capability, deadline,
+                            client, command, streaming, command_queue, deadline,
                             chart_delivery, mcp_errors, timing, tool_scope,
                         )
                 outcome = {"type": "client_run_cancelled" if response.cancelled else "client_run_completed",
@@ -638,13 +636,6 @@ async def run_client(initial: dict[str, Any]) -> None:
         await asyncio.gather(reader_task, return_exceptions=True)
 
 
-def direct_capability_event(event: dict[str, Any]) -> dict[str, Any]:
-    """接收 Worker 事件，清空 direct 模式初始化事件中的 Skill、Agent 和命令列表，返回处理后的事件。"""
-    if event.get("type") != "init":
-        return event
-    return {**event, "skills": [], "agents": [], "commands": []}
-
-
 def mcp_result_event(event, failures):
     """上游失败保留失败终态，并与 SDK 本身的执行异常区分。"""
     if event.get('type') == 'result' and failures:
@@ -684,7 +675,6 @@ async def run(payload: dict[str, Any]) -> None:
                                     chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
                                     mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
                                     turn_policy=policy)
-        direct_capability = options.tools == [] and options.strict_mcp_config
         timing.mark('bound')
         with isolated_sdk_environment():
             timing.mark('query_begin')
@@ -695,7 +685,7 @@ async def run(payload: dict[str, Any]) -> None:
                         stage = 'first_' + event['type']
                         timing.mark(stage)
                     event = mcp_result_event(event, mcp_errors)
-                    chart_delivery.emit(direct_capability_event(event) if direct_capability else event)
+                    chart_delivery.emit(event)
     except BaseException as error:
         primary_error = error
         raise
