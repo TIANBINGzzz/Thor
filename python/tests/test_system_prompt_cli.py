@@ -15,7 +15,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from runtime.claude_sdk import (ClientTurnPolicy, ClaudeSDKClient, build_agent_options, stream_query,
                                create_sdk_mcp_server, sdk_tool)
-from runtime.config import agent_environment, build_client_options, build_options, isolated_sdk_environment
+from runtime.config import (agent_environment, build_client_options, build_options, isolated_sdk_environment,
+                            load_execution_entry)
 
 
 class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
@@ -202,13 +203,17 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
 
     async def test_capability_switch_reuses_client_and_replaces_visible_mcp(self):
         """统一基础工具；跨 direct/agent 更新 MCP 与规则，不重建 Client。"""
+        self.enterContext(patch('runtime.nacos_config.fetch_config',
+                                side_effect=AssertionError('本地 CLI 测试不得访问 Nacos')))
         self.read_tools = False
         environment = self.options().env
         session = None
         policy = ClientTurnPolicy()
+        def startup_payload(ref):
+            return {'capability_ref': ref, 'cwd': str(self.directory),
+                    '_client_runtime': load_execution_entry(ref)['capability'].get('runtime', {})}
         with patch('runtime.config.agent_environment', return_value=environment):
-            options = build_client_options({'capability_ref': 'conversation',
-                                            'cwd': str(self.directory)}, policy)
+            options = build_client_options(startup_payload('conversation'), policy)
         client = ClaudeSDKClient(options, connect_timeout_ms=30000, receive_timeout_ms=30000)
 
         @sdk_tool('read', 'local read probe', {})
@@ -221,7 +226,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
             provider = client._provider
             for index, ref in enumerate(('conversation', 'campus-brain-query',
                                          'national-excellence-data-qa', 'conversation')):
-                payload = {'capability_ref': ref, 'cwd': str(self.directory)}
+                payload = startup_payload(ref)
                 with patch('runtime.config.agent_environment', return_value=environment):
                     startup = build_client_options(payload, policy)
                 self.assertEqual(startup.tools, options.tools)

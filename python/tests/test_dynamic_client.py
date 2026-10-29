@@ -114,10 +114,16 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
 
 class ConnectionFingerprintTests(unittest.TestCase):
     def test_direct_and_agent_share_builtin_tools_and_prewarm_group(self):
-        from runtime.config import build_client_options, client_connection_fingerprint
+        from unittest.mock import patch
+        self.enterContext(patch('runtime.nacos_config.fetch_config',
+                                side_effect=AssertionError('连接配置测试不得访问 Nacos')))
+        from runtime.config import build_client_options, client_connection_fingerprint, load_execution_entry
         from runtime.claude_sdk import ClientTurnPolicy
         direct = {'capability_ref': 'campus-brain-query'}
         agent = {'capability_ref': 'conversation'}
+        # 与预热入口一致，只传已解析的启动参数，不装配本轮业务 Service。
+        for payload in (direct, agent):
+            payload['_client_runtime'] = load_execution_entry(payload['capability_ref'])['capability'].get('runtime', {})
         direct_tools = build_client_options(direct, ClientTurnPolicy()).tools
         tools = build_client_options(agent, ClientTurnPolicy()).tools
         self.assertEqual(direct_tools, tools)
