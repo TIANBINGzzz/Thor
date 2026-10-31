@@ -12,7 +12,6 @@ import hashlib
 import json
 import os
 import re
-import sys
 import tempfile
 import urllib.error
 import urllib.parse
@@ -140,6 +139,34 @@ def _default_output(environment: str) -> Path:
     return ROOT / "scratch" / "business-tokens" / f"{environment}.token"
 
 
+def save_token(token: str, output: Path) -> None:
+    """以同目录临时文件原子替换 Token，避免测试读到半截内容。"""
+    value = token.strip()
+    if not value:
+        raise ValueError("登录响应未返回有效 Token")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=output.parent, delete=False) as handle:
+        temporary = Path(handle.name)
+        handle.write(value + "\n")
+    try:
+        os.replace(temporary, output)
+        try:
+            os.chmod(output, 0o600)
+        except OSError:
+            pass
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def load_saved_token(environment: str, output: Path | None = None) -> str:
+    """读取已保存 Token；调用方负责避免回显或写入日志。"""
+    path = output or _default_output(environment)
+    value = path.read_text(encoding="utf-8").strip()
+    if not value:
+        raise RuntimeError(f"Token 文件为空：{path}")
+    return value
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="获取 59/appai 内部测试业务 Token")
     parser.add_argument("environment", choices=("59", "appai"))
@@ -156,12 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         captcha_code = args.captcha
     data = login(settings, captcha_id=captcha_id, captcha_code=captcha_code)
     output = args.output or _default_output(settings.environment)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(data["token"].strip() + "\n", encoding="utf-8")
-    try:
-        os.chmod(output, 0o600)
-    except OSError:
-        pass
+    save_token(data["token"], output)
     print(f"token_saved={output}")
     print(f"expires_at={data.get('expireTime')}")
     return 0

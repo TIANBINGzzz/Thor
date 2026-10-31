@@ -76,6 +76,18 @@ class BusinessTokenLoginTests(unittest.TestCase):
         open_browser.assert_called_once_with(image.resolve().as_uri())
         prompt.assert_called_once()
 
+    def test_token_save_is_atomic_and_readable_without_printing_it(self):
+        output = Path(self.temp.name) / 'tokens' / 'appai.token'
+
+        MODULE.save_token('private-token', output)
+
+        self.assertEqual(MODULE.load_saved_token('appai', output), 'private-token')
+        self.assertEqual(output.read_text(encoding='utf-8'), 'private-token\n')
+
+    def test_empty_token_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, '有效 Token'):
+            MODULE.save_token('  ', Path(self.temp.name) / 'empty.token')
+
 
 if __name__ == '__main__':
     unittest.main()
