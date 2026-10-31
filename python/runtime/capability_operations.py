@@ -317,6 +317,19 @@ def _error(code):
     }, ensure_ascii=False)}]}
 
 
+def _notify_mcp_error(sink, detail):
+    """向私有观测回调传递有限原因，同时兼容旧的无参回调。"""
+    if sink is None:
+        return
+    try:
+        if not inspect.signature(sink).parameters:
+            sink()
+        else:
+            sink(detail)
+    except (TypeError, ValueError):
+        sink(detail)
+
+
 async def _execute(operation: OperationDefinition, context: CapabilityContext, args):
     """调用同步或异步业务实现；同步实现在线程中执行并可收尾。"""
     if inspect.iscoroutinefunction(operation.execute):
@@ -374,8 +387,11 @@ def build_operation_server(entry: dict[str, Any], context: dict[str, Any]):
             except OperationInputError as error:
                 return {"isError": True, "content": [{"type": "text", "text": str(error)}]}
             except Exception:
-                if capability_context.mcp_error_sink is not None:
-                    capability_context.mcp_error_sink()
+                _notify_mcp_error(capability_context.mcp_error_sink, {
+                    'stage': 'capability_operation',
+                    'operation': _operation.ref,
+                    'failureKind': 'operation_exception',
+                })
                 return _error("OPERATION_FAILED")
 
         registered.append(invoke)

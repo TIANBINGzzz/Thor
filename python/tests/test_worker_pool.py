@@ -76,6 +76,51 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(not w.terminated for w in leased))
         self.assertTrue(all(w.terminated for w in FakeWorker.created if w not in leased))
 
+    async def test_business_cold_start_admission_uses_max_starting(self):
+        class ConnectingWorker:
+            def __init__(self, **kwargs):
+                self.alive = False
+                self.awaiting_connection = True
+                self.process = None
+                self.terminated = False
+
+            async def terminate(self):
+                self.alive = False
+                self.terminated = True
+
+        pool = WorkerPool(max_idle=0, max_starting=1, max_live=2,
+                          worker_factory=ConnectingWorker)
+        self.addAsyncCleanup(pool.close)
+
+        first = await pool.acquire()
+        second_task = asyncio.create_task(pool.acquire())
+        await asyncio.sleep(0)
+        self.assertFalse(second_task.done())
+        self.assertEqual(pool.snapshot()['businessStarting'], 1)
+
+        first._ccsdk_release_start_slot()
+        second = await asyncio.wait_for(second_task, 1)
+        self.assertIsNot(first, second)
+        self.assertEqual(pool.snapshot()['businessStarting'], 1)
+        second._ccsdk_release_start_slot()
+        self.assertEqual(pool.snapshot()['businessStarting'], 0)
+
+    async def test_memory_reclaim_orders_ready_workers_by_oldest_idle_time(self):
+        pool = WorkerPool(max_idle=3, max_starting=3, worker_factory=FakeWorker)
+        self.addAsyncCleanup(pool.close)
+        pool.start()
+        FakeWorker.gate.set()
+        await until(lambda: pool.snapshot()['ready'] == 3)
+        workers = list(pool._ready)
+        pool._idle_at[workers[0]] = 30
+        pool._idle_at[workers[1]] = 10
+        pool._idle_at[workers[2]] = 20
+
+        self.assertTrue(await pool.reclaim_oldest_ready())
+        await until(lambda: workers[1].terminated)
+        self.assertFalse(workers[0].terminated)
+        self.assertFalse(workers[2].terminated)
+
     async def test_dead_idle_worker_is_never_leased(self):
         self.pool.start()
         FakeWorker.gate.set()

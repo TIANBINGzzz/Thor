@@ -97,6 +97,7 @@ async def lifespan(_: FastAPI):
         RUN_STORE.settle_steering(code='runtime_restarted')
         SESSION_MANAGER = _create_session_manager()
         WORKER_POOL.reclaim_idle = SESSION_MANAGER.reclaim_oldest_idle
+        WORKER_POOL.idle_candidate_at = SESSION_MANAGER.oldest_idle_at
         await _artifact_delivery().recover()
         yield
     finally:
@@ -884,6 +885,7 @@ async def _execute_internal_run(
                 "capability_ref": run_request.capability_ref or "conversation",
                 "timeout_ms": worker_payload["timeout_ms"],
                 "queue_timeout_ms": CLIENT_QUEUE_TIMEOUT_MS,
+                "credentials": worker_payload.get("credentials"),
             }
             await _run_phase(run_id, {"name": "queued"})
             if timing:

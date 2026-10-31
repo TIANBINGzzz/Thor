@@ -171,6 +171,26 @@ class ClaudeSDKFacadeTests(unittest.TestCase):
         asyncio.run(asyncio.wait_for(exercise(), timeout=1))
         self.assertFalse(called)
 
+    def test_disconnect_timeout_does_not_cancel_provider_cleanup(self):
+        from runtime.claude_sdk import _disconnect_provider
+
+        async def exercise():
+            release = asyncio.Event()
+            finished = asyncio.Event()
+
+            class Provider:
+                async def disconnect(self):
+                    await release.wait()
+                    finished.set()
+
+            failure = await _disconnect_provider(Provider(), 10)
+            self.assertIsInstance(failure, SDKTimeoutError)
+            self.assertFalse(finished.is_set())
+            release.set()
+            await asyncio.wait_for(finished.wait(), 1)
+
+        asyncio.run(asyncio.wait_for(exercise(), 1))
+
 
 if __name__ == "__main__":
     unittest.main()

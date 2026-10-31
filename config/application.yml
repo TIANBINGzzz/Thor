@@ -21,7 +21,8 @@ runtime:
     file-upload-connect-ms: 10000
     worker-start-ms: 60000
     worker-send-ms: 5000
-    worker-close-ms: 5000
+    # SDK transport 最长需要多段退出等待；父 Worker 必须留出完整收尾预算。
+    worker-close-ms: 20000
     worker-control-ms: 5000
     document-render-ms: 180000
     document-start-ms: 30000

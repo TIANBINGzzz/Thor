@@ -434,8 +434,13 @@ async def _disconnect_provider(provider: Any, timeout_ms: int) -> SDKError | Non
     取消信号继续抛出，调用方可保留原始执行错误，避免被清理错误覆盖。
     """
 
+    cleanup = asyncio.create_task(provider.disconnect(), name='ccsdk-provider-disconnect')
+    def consume(task):
+        if not task.cancelled():
+            task.exception()
+    cleanup.add_done_callback(consume)
     try:
-        await _await_with_timeout(provider.disconnect(), timeout_ms)
+        await asyncio.wait_for(asyncio.shield(cleanup), timeout_ms / 1000)
     except asyncio.CancelledError:
         # Cancellation is a lifecycle signal, not a provider failure.  The
         # caller owns the final client state and must still be able to tell a

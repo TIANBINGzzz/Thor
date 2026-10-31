@@ -346,6 +346,19 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(public['type'], 'run.failed')
         self.assertEqual(public['payload']['code'], 'upstream_service_error')
 
+    def test_upstream_failure_keeps_only_finite_private_failure_summary(self):
+        self.assertEqual(
+            agent_worker.mcp_result_event(
+                {'type': 'result', 'ok': True},
+                [{'stage': 'capability_operation', 'operation': 'query',
+                  'failureKind': 'operation_exception', 'message': 'secret'}],
+            ),
+            {'type': 'result', 'ok': False, 'code': 'upstream_service_error',
+             'message': '上游服务调用失败',
+             'failureSummary': [{'stage': 'capability_operation', 'operation': 'query',
+                                 'failureKind': 'operation_exception'}]},
+        )
+
     async def test_one_shot_prepares_prompt_before_query_and_cleans_up_on_failure(self):
         services = SimpleNamespace(bind=AsyncMock(), close=AsyncMock(),
                                    prepare_prompt=lambda prompt: 'prepared:' + prompt)

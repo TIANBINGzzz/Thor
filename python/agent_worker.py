@@ -114,7 +114,13 @@ def emit_diagnostic(error: BaseException, timing: Timing | None, payload: Any, *
     try:
         credentials = payload.get('credentials') if isinstance(payload, dict) else None
         bearer = credentials.get('platformBearer') if isinstance(credentials, dict) else None
-        emit(exception_event(error, scope=scope, secrets=(bearer,) if bearer else ()))
+        event = exception_event(error, scope=scope, secrets=(bearer,) if bearer else ())
+        if not bearer and scope.endswith(('_disconnect', '_cleanup')):
+            # 清理异常可能发生在本轮凭据进入 Worker 前；只保留类型和调用位置，
+            # 避免上游异常文本把业务凭据或响应正文带入私有观测。
+            for detail in (event, *event.get('causes', ())):
+                detail['message'] = 'SDK 资源清理失败'
+        emit(event)
     except Exception:
         pass
 
@@ -564,7 +570,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         options = build_options(command, data_services=data_services,
                             artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                             chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
-                            mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services)
+                            mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services)
                     policy.bind(options)
                     timing.mark('bound')
                     with isolated_sdk_environment():
@@ -639,7 +645,14 @@ async def run_client(initial: dict[str, Any]) -> None:
 def mcp_result_event(event, failures):
     """上游失败保留失败终态，并与 SDK 本身的执行异常区分。"""
     if event.get('type') == 'result' and failures:
-        return {**event, 'ok': False, 'code': 'upstream_service_error', 'message': '上游服务调用失败'}
+        summary = []
+        for failure in failures[:8]:
+            if not isinstance(failure, dict):
+                failure = {'stage': 'mcp_tool'}
+            summary.append({key: failure[key] for key in ('stage', 'operation', 'failureKind')
+                            if isinstance(failure.get(key), str)})
+        return {**event, 'ok': False, 'code': 'upstream_service_error',
+                'message': '上游服务调用失败', 'failureSummary': summary}
     return event
 
 
@@ -673,7 +686,7 @@ async def run(payload: dict[str, Any]) -> None:
             options = build_options(payload, data_services=data_services,
                                     artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                                     chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
-                                    mcp_error_sink=lambda: mcp_errors.append(True), tool_services=tool_services,
+                                    mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services,
                                     turn_policy=policy)
         timing.mark('bound')
         with isolated_sdk_environment():

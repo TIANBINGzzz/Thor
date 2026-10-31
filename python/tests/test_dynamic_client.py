@@ -319,7 +319,7 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             process = None
             async def terminate(self):
                 self.awaiting_connection = False
-        pool = WorkerPool(max_idle=0, max_starting=1, max_live=2,
+        pool = WorkerPool(max_idle=0, max_starting=6, max_live=2,
                           worker_factory=lambda **kwargs: Worker())
         try:
             results = await asyncio.gather(*(pool.acquire() for _ in range(6)), return_exceptions=True)

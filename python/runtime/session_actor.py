@@ -56,6 +56,13 @@ async def _noop_state(_: dict[str, Any]) -> None:
     return
 
 
+def _without_credentials(payload: Mapping[str, Any] | None) -> dict[str, Any]:
+    """复制启动配置并移除本轮业务凭据，避免 Actor 跨 Run 持有秘密引用。"""
+    value = dict(payload or {})
+    value.pop("credentials", None)
+    return value
+
+
 @dataclass
 class _Command:
     kind: str
@@ -99,7 +106,7 @@ class SessionActor:
         if isinstance(idle_ttl_ms, bool) or not isinstance(idle_ttl_ms, int) or idle_ttl_ms <= 0:
             raise ValueError("idle_ttl_ms must be a positive integer")
         self.session_key = session_key
-        self._initial_payload = dict(initial_payload)
+        self._initial_payload = _without_credentials(initial_payload)
         self._on_public_event = on_public_event or _noop_public
         self._on_state = on_state or _noop_state
         self._on_observation = on_observation
@@ -138,6 +145,7 @@ class SessionActor:
         self._last_worker_start_ms: int | None = None
         self._last_pool_hit = False
         self._idle_since: float | None = None
+        self._last_query_completed_at: float | None = None
         self._input_pins = 0
         self._reclaiming = False
         # 退出失败后仍由本 Actor 持有 Worker；通过同一邮箱重试，避免新 Run
@@ -191,6 +199,7 @@ class SessionActor:
             "commandQueueDepth": self._commands.qsize(),
             "activeRunStartedAt": self._active_run_started_at,
             "lastRunDurationMs": self._last_run_duration_ms,
+            "lastQueryCompletedAt": self._last_query_completed_at,
             "lastErrorCode": self._last_error_code,
             "workerStarts": self._worker_starts,
             "workerReuses": self._worker_reuses,
@@ -429,6 +438,7 @@ class SessionActor:
             execution_ms = payload.get("timeout_ms")
             try:
                 async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
+                    initial = dict(self._initial_payload)
                     if command.initial_payload is not None:
                         # 每轮热装配工具、规则及凭据；只有连接固定项变化才重建。
                         initial = {**command.initial_payload, **prepared}
@@ -439,9 +449,9 @@ class SessionActor:
                         fingerprint = initial.get('_client_connection_fingerprint')
                         if self.client_connection_fingerprint != (str(fingerprint) if fingerprint is not None else None):
                             await self._discard_worker('config_changed')
-                        self._initial_payload = initial
+                        self._initial_payload = _without_credentials(initial)
                     starts = self._worker_starts
-                    await self._ensure_worker()
+                    await self._ensure_worker(start_payload=initial)
                     acquisition = getattr(self._worker, 'observation_acquisition', {}) if starts != self._worker_starts else {'source':'session_reuse','elapsedMs':0}
                     if self._on_observation:
                         try:
@@ -502,12 +512,15 @@ class SessionActor:
                 failure.__cause__ = error
             self._resolve_run_error(command, failure)
         finally:
+            command.initial_payload = None
+            command.payload = None
             self._accepts_steering = False
             command.timing.mark('completed')
             await self._emit_performance(command.run_id, command.timing.event())
             self._cancel_requested.discard(command.run_id)
             if self._active_run_started_at is not None:
                 self._last_run_duration_ms = max(0, int(time.time() * 1000) - self._active_run_started_at)
+            self._last_query_completed_at = time.monotonic()
             self._active_run_id = None
             self._active_run_started_at = None
             await self._notify_state()
@@ -551,7 +564,7 @@ class SessionActor:
             self._last_error_code = self._last_error_code or "run_cleanup_error"
             LOGGER.warning("SessionActor Run cleanup failed: %s", type(error).__name__)
 
-    async def _ensure_worker(self) -> None:
+    async def _ensure_worker(self, *, start_payload: Mapping[str, Any] | None = None) -> None:
         """复用就绪 Worker 或按最新配置重建，并续接已知 SDK 历史。"""
         if self._reclaim_retry_pending:
             self._next_start_reason = 'worker_unavailable'
@@ -563,7 +576,7 @@ class SessionActor:
             self._next_start_reason = 'worker_unavailable'
             await self._worker.terminate()
             self._worker = None
-        payload = dict(self._initial_payload)
+        payload = dict(start_payload or self._initial_payload)
         if self._last_session_id:
             payload["resume"] = self._last_session_id
         self._state = ActorState.STARTING
@@ -595,6 +608,9 @@ class SessionActor:
             await self._notify_state()
             raise self._as_actor_error(error, code="sdk_connection_error") from error
         finally:
+            release = getattr(self._worker, '_ccsdk_release_start_slot', None)
+            if callable(release):
+                release()
             self._last_worker_start_ms = round((time.monotonic() - started) * 1000)
             LOGGER.info('Worker start: reason=%s duration_ms=%s',
                         self._last_start_reason, self._last_worker_start_ms)
@@ -866,7 +882,7 @@ class SessionActor:
         if not self._can_idle():
             return
         self._cancel_idle_timer()
-        self._idle_since = time.monotonic()
+        self._idle_since = self._last_query_completed_at or time.monotonic()
         loop = asyncio.get_running_loop()
         self._idle_deadline = int(time.time() * 1000) + self._idle_ttl_ms
         self._idle_handle = loop.call_later(self._idle_ttl_ms / 1000, self._idle_close_callback)
@@ -1062,7 +1078,7 @@ class SessionManager:
     async def reclaim_oldest_idle(self) -> bool:
         """按完成并清理后的空闲时间回收；不持 Manager 锁等待进程退出。"""
         candidates = sorted((actor for actor in self._actors.values() if actor._idle_since is not None),
-                            key=lambda actor: actor._idle_since)
+                            key=lambda actor: actor._last_query_completed_at or actor._idle_since)
         for actor in candidates:
             future = actor.claim_idle_reclaim()
             if future is not None:
@@ -1073,6 +1089,13 @@ class SessionManager:
                     # Actor 保留 failed Worker 并安排重试；继续尝试其他空闲会话。
                     LOGGER.warning("Client 容量回收失败：%s", type(error).__name__)
         return False
+
+    def oldest_idle_at(self) -> float | None:
+        """返回当前可回收会话最后一次问答完成时间，供总 Client LRU 仲裁。"""
+        values = [actor._last_query_completed_at or actor._idle_since
+                  for actor in self._actors.values()
+                  if actor._idle_since is not None and actor._can_idle()]
+        return min(values) if values else None
 
     async def submit(
         self,

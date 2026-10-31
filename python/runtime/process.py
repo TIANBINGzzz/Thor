@@ -207,7 +207,7 @@ class ClientWorkerProcess:
             self._process is None or self._process.returncode is None
         )
 
-    async def prewarm(self) -> None:
+    async def prewarm(self, timeout_ms: int | None = None) -> None:
         """只启动 Python 并等待导入完成，不发送会话配置或连接 SDK。"""
         if self._process is not None or self._closed or self._bound:
             raise ClientWorkerError("Client worker 已经启动")
@@ -215,7 +215,8 @@ class ClientWorkerProcess:
             self._process = await _spawn_worker_process(timing_enabled=True) if self._timing_enabled else await _spawn_worker_process()
             self._reader_task = asyncio.create_task(self._read_stdout(), name="ccsdk-client-stdout")
             self._stderr_task = asyncio.create_task(self._relay_stderr(), name="ccsdk-client-stderr")
-            event = await asyncio.wait_for(self.next_event(), self.start_timeout_ms / 1000)
+            budget = self.start_timeout_ms if timeout_ms is None else timeout_ms
+            event = await asyncio.wait_for(self.next_event(), budget / 1000)
             if event.get('type') != 'worker_ready':
                 raise ClientWorkerError('Client worker 预热协议无效')
             self._prewarmed = True
@@ -243,12 +244,17 @@ class ClientWorkerProcess:
             self.set_observation_callback(None)
             return {'type': 'client_ready', 'state': 'ready'}
         deadline = time.monotonic() + self.start_timeout_ms / 1000
+        phase = 'client_connect'
         try:
             if not self._prewarmed:
-                await self.prewarm()
+                phase = 'worker_prewarm'
+                remaining = max(1, int((deadline - time.monotonic()) * 1000))
+                await self.prewarm(timeout_ms=remaining)
+                phase = 'client_connect'
             self._bound = True
             initial = dict(payload)
             initial["mode"] = "client"
+            initial.setdefault('connect_timeout_ms', max(1000, self.start_timeout_ms - self.close_timeout_ms))
             await self.send(initial)
             while True:
                 remaining = deadline - time.monotonic()
@@ -263,6 +269,8 @@ class ClientWorkerProcess:
                 if event.get("type") == "performance":
                     trace = performance_event(event)
                     if trace:
+                        if trace.get('scope') == 'worker_start' and 'connect_begin' in trace.get('elapsedMs', {}):
+                            phase = 'sdk_connect'
                         if not trace.get('live'):
                             self.startup_traces.append(trace)
                         if trace.get('live') and self._on_observation is not None:
@@ -279,9 +287,15 @@ class ClientWorkerProcess:
                 if event.get("type") == "client_error":
                     raise ClientWorkerError("Client worker 连接失败")
         except asyncio.TimeoutError as error:
+            self._emit_start_diagnostic(phase)
             await self.terminate()
             raise ClientWorkerError("Client worker 连接超时") from error
         except asyncio.CancelledError:
+            await self.terminate()
+            raise
+        except ClientWorkerError as error:
+            if phase == 'worker_prewarm' and '预热超时' in str(error):
+                self._emit_start_diagnostic(phase)
             await self.terminate()
             raise
         except Exception:
@@ -289,6 +303,23 @@ class ClientWorkerProcess:
             raise
         finally:
             self.set_observation_callback(None)
+
+    def _emit_start_diagnostic(self, phase: str) -> None:
+        """在父层预算截断前保留无秘密的启动阶段证据。"""
+        callback = self._on_observation
+        if callback is None:
+            return
+        try:
+            callback(self._observation_run_id or '', {
+                'type': 'diagnostic',
+                'scope': 'worker_start_timeout',
+                'exceptionType': 'TimeoutError',
+                'message': 'Client worker 启动预算耗尽',
+                'phase': phase,
+                'timeoutMs': self.start_timeout_ms,
+            })
+        except Exception:
+            pass
 
     async def preconnect(self, payload: dict[str, Any]) -> None:
         """预连接没有业务身份的 Client；领取只绑定一次，不能用于恢复已有历史。"""

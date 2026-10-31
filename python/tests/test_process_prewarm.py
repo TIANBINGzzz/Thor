@@ -89,6 +89,21 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.worker.awaiting_connection)
         self.assertIsNotNone(self.process.returncode)
 
+    async def test_start_timeout_records_connection_phase_diagnostic(self):
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        self.process.client_event = None
+        await self.worker.prewarm()
+        self.worker.start_timeout_ms = 30
+        observations = []
+        self.worker.set_observation_callback(lambda _run_id, event: observations.append(event), run_id='run-1')
+        with self.assertRaises(ClientWorkerError):
+            await self.worker.start({'run_id': 'run-1'})
+        timeout = next(event for event in observations
+                        if event.get('type') == 'diagnostic')
+        self.assertEqual(timeout['scope'], 'worker_start_timeout')
+        self.assertEqual(timeout['phase'], 'client_connect')
+        self.assertEqual(timeout['timeoutMs'], 30)
+
     async def test_cancel_while_waiting_for_import_reclaims_process(self):
         task = asyncio.create_task(self.worker.prewarm())
         while self.worker.process is None:

@@ -1008,6 +1008,48 @@ class SessionActorTests(unittest.TestCase):
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
+    def test_completed_query_order_is_the_idle_reclaim_order(self):
+        async def exercise():
+            workers = []
+
+            def factory(**_kwargs):
+                worker = FakeClientWorker([complete_script()], worker_id=len(workers))
+                workers.append(worker)
+                return worker
+
+            manager = SessionManager(idle_ttl_ms=10_000, worker_factory=factory)
+            try:
+                await manager.submit('old', {}, 'one', {})
+                await manager.submit('new', {}, 'two', {})
+                old = manager._actors['old']
+                new = manager._actors['new']
+                old._idle_since, new._idle_since = 20, 10
+                old._last_query_completed_at, new._last_query_completed_at = 10, 20
+                self.assertTrue(await manager.reclaim_oldest_idle())
+                self.assertTrue(workers[0].terminated)
+                self.assertFalse(workers[1].terminated)
+            finally:
+                await manager.close_all()
+
+        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
+
+    def test_actor_does_not_retain_credentials_after_run(self):
+        async def exercise():
+            worker = FakeClientWorker([complete_script()], worker_id=0)
+            actor = SessionActor('session', {}, worker_factory=lambda **_: worker)
+            try:
+                await actor.submit(
+                    'run', {},
+                    initial_payload={'credentials': {'platformBearer': 'private-token'},
+                                     '_client_connection_fingerprint': 'fingerprint'},
+                )
+                self.assertNotIn('credentials', actor._initial_payload)
+                self.assertNotIn('private-token', repr(actor._initial_payload))
+            finally:
+                await actor.close()
+
+        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
+
     def test_manager_runs_different_sessions_concurrently(self):
         async def exercise():
             workers = []

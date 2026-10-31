@@ -78,7 +78,9 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                  patch('runtime.capability_operations.create_sdk_mcp_server', side_effect=lambda name, **kwargs: kwargs):
                 entry = {'ref': 'demo-capability', 'operation_refs': ['calculate'],
                          '_directory': str(entry_dir)}
-                server_name, server, names = build_operation_server(entry, {'run_id': 'run-1'})
+                failures = []
+                server_name, server, names = build_operation_server(
+                    entry, {'run_id': 'run-1', 'mcp_error_sink': failures.append})
                 self.assertEqual(server_name, 'capability_ops')
                 self.assertEqual(names, ['calculate'])
                 tool = server['tools'][0]
@@ -95,6 +97,9 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 text = failed['content'][0]['text']
                 self.assertNotIn('private detail', text)
                 self.assertEqual(json.loads(text)['error']['code'], 'OPERATION_FAILED')
+                self.assertEqual(failures, [{'stage': 'capability_operation',
+                                             'operation': 'calculate',
+                                             'failureKind': 'operation_exception'}])
 
     def test_capability_entry_requires_existing_declared_pack_operations(self):
         from runtime.capabilities import capability_entry

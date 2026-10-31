@@ -1,6 +1,7 @@
 """预连接未绑定身份的 Client；领取后归 Actor 独占，永不跨会话归还。"""
 import asyncio
 from collections import deque
+import inspect
 import logging
 from pathlib import Path
 import time
@@ -61,8 +62,11 @@ class WorkerPool:
         self._reserved = {}
         self._payloads = weakref.WeakKeyDictionary()
         self._ready = deque()
+        self._idle_at = weakref.WeakKeyDictionary()
         self._starting = set()
         self._starting_profiles = {}
+        self._business_starting = weakref.WeakSet()
+        self._start_slots = asyncio.Semaphore(max_starting)
         self._profiles = {}
         for payload in profile_payloads or []:
             self.register_profile(payload)
@@ -80,6 +84,7 @@ class WorkerPool:
         self._memory_resume_at = 0.0
         self._observer = observer
         self.reclaim_idle = None
+        self.idle_candidate_at = None
 
     def register_profile(self, payload):
         """分组仅保留启动信息；未知新配置按需进入共享预算，不保留身份及凭据。"""
@@ -155,6 +160,69 @@ class WorkerPool:
         return (sum(w.alive or w.awaiting_connection or w.process is not None for w in self._leased)
                 + len(self._ready) + len(self._reserved) + len(self._starting) + len(self._retiring_workers))
 
+    def _release_business_start_slot(self, worker):
+        """释放业务冷启动名额；重复释放是安全的，供 Worker 收尾和取消路径共用。"""
+        if worker in self._business_starting:
+            self._business_starting.discard(worker)
+            self._start_slots.release()
+            self._wake.set()
+
+    async def _reserve_business_start_slot(self):
+        """让业务冷启动与后台预热共享 max_starting 名额。"""
+        if self._closed:
+            raise RuntimeError('Worker pool is closed')
+        await self._start_slots.acquire()
+        if self._closed:
+            self._start_slots.release()
+            raise RuntimeError('Worker pool is closed')
+
+    def _bind_business_start_slot(self, worker):
+        """将业务启动名额绑定到 Worker.start，避免调用方忘记释放。"""
+        self._business_starting.add(worker)
+        release = lambda: self._release_business_start_slot(worker)
+        setattr(worker, '_ccsdk_release_start_slot', release)
+        start = getattr(worker, 'start', None)
+        if not callable(start):
+            return
+        async def managed_start(*args, **kwargs):
+            try:
+                result = start(*args, **kwargs)
+                return await result if inspect.isawaitable(result) else result
+            finally:
+                release()
+        setattr(worker, 'start', managed_start)
+
+    async def _admit_memory_pressure(self):
+        """低内存时先按最久未问答顺序回收全部可回收 Client，再准许冷启动。"""
+        if not self.min_available_memory_mib:
+            return True
+        available = available_memory_mib()
+        if available >= self.min_available_memory_mib:
+            return True
+        self._memory_paused = True
+        self._memory_resume_at = time.monotonic() + 30
+        # 回收回调可能只释放一个会话；限制尝试次数，避免外部回调返回 True
+        # 但内存采样尚未变化时在同一维护周期内自旋。
+        for _ in range(max(1, self._live_count())):
+            if available >= self.min_available_memory_mib:
+                break
+            if not await self._reclaim_one_idle():
+                break
+            await asyncio.sleep(0)
+            available = available_memory_mib()
+        return available >= self.min_available_memory_mib
+
+    async def _reclaim_one_idle(self):
+        """在池内空白 Client 与绑定会话之间按同一单调时间选择最旧者。"""
+        ready_at = min((self._idle_at.get(worker, 0) for worker in self._ready
+                        if worker.alive), default=None)
+        actor_at = self.idle_candidate_at() if callable(self.idle_candidate_at) else None
+        if ready_at is not None and (actor_at is None or ready_at <= actor_at):
+            return await self.reclaim_oldest_ready()
+        if self.reclaim_idle and await self.reclaim_idle():
+            return True
+        return await self.reclaim_oldest_ready()
+
     async def acquire(self, initial_payload=None, **kwargs):
         """事件循环内原子领取；耗尽走现有冷启动，调用方立即拥有清理责任。"""
         async with self._acquire_lock:
@@ -195,9 +263,9 @@ class WorkerPool:
                 await asyncio.shield(asyncio.gather(task, return_exceptions=True))
             if self.max_live and self._live_count() >= self.max_live and self._retiring:
                 await asyncio.shield(asyncio.gather(*tuple(self._retiring), return_exceptions=True))
-            if self.max_live and self._live_count() >= self.max_live and self.reclaim_idle:
+            if self.max_live and self._live_count() >= self.max_live:
                 try:
-                    await self.reclaim_idle()
+                    await self._reclaim_one_idle()
                 except Exception as error:
                     # 关闭失败仍由回收方持有 Worker 并重试，避免单次退出失败阻断补池。
                     LOGGER.warning('Worker pool reclaim failed: %s', type(error).__name__)
@@ -205,8 +273,17 @@ class WorkerPool:
                     self._backoff = min(30.0, self._backoff * 2)
             if self.max_live and self._live_count() >= self.max_live:
                 raise ClientWorkerError('Client 容量已满，请稍后重试')
+            if not await self._admit_memory_pressure():
+                raise ClientWorkerError('宿主机可用内存不足，暂不能启动 Client')
             self._misses += 1
-            worker = self._factory(**kwargs)
+            await self._reserve_business_start_slot()
+            try:
+                worker = self._factory(**kwargs)
+                self._bind_business_start_slot(worker)
+            except BaseException:
+                self._wake.set()
+                self._start_slots.release()
+                raise
             source = 'cold'
         else:
             self._hits += 1
@@ -227,6 +304,7 @@ class WorkerPool:
         return {'ready': sum(w.alive for w in self._ready), 'starting': len(self._starting),
                 'reserved': len(self._reserved), 'max_live': self.max_live,
                 'live': self._live_count(), 'retiring': len(self._retiring_workers),
+                'businessStarting': len(self._business_starting),
                 'groups': {str(key): sum(self._payloads[w].get('_client_connection_fingerprint') == key
                     for w in self._ready if w in self._payloads) for key in self._profiles},
                 'leased_alive': sum(w.alive for w in self._leased),
@@ -265,6 +343,8 @@ class WorkerPool:
         return records
 
     def _retire(self, worker):
+        self._idle_at.pop(worker, None)
+        self._release_business_start_slot(worker)
         self._retiring_workers.add(worker)
         task = asyncio.create_task(self._terminate(worker), name='ccsdk-pool-retire')
         self._retiring.add(task)
@@ -299,11 +379,14 @@ class WorkerPool:
 
     async def _prepare(self, profile=None):
         worker = None
+        start_slot = False
         warm_id = 'warm:' + uuid.uuid4().hex
         started=time.perf_counter()
         wall=time.time_ns()/1000000
         outcome='failed'
         try:
+            await self._start_slots.acquire()
+            start_slot = True
             worker = self._factory()
             worker.observation_warm_id = warm_id
             if self._observer and hasattr(worker, 'set_observation_callback'):
@@ -322,6 +405,7 @@ class WorkerPool:
                 await self._terminate(worker)
             else:
                 self._ready.append(worker)
+                self._idle_at[worker] = time.monotonic()
                 self._backoff = 1.0
                 outcome='ready'
                 self._observe(worker,'prewarm_ready')
@@ -342,6 +426,8 @@ class WorkerPool:
             self._backoff = min(30.0, self._backoff * 2)
             LOGGER.warning('Worker prewarm failed: %s', type(error).__name__)
         finally:
+            if start_slot:
+                self._start_slots.release()
             if worker is not None and self._observer:
                 try:
                     self._observer.span(worker.observation_warm_id,'prewarm',wall,(time.perf_counter()-started)*1000,
@@ -379,7 +465,7 @@ class WorkerPool:
             while self._ready:
                 worker = self._ready.popleft()
                 profile = self._payloads.get(worker, {}).get('_client_connection_fingerprint')
-                if (not worker.alive or self._memory_paused
+                if (not worker.alive
                         or (self._profiles and counts.get(profile, 0) >= targets.get(profile, 0))):
                     self._retire(worker)
                 else:
@@ -387,6 +473,18 @@ class WorkerPool:
                     counts[profile] = counts.get(profile, 0) + 1
             self._ready = kept
             if self._memory_paused:
+                available = available_memory_mib()
+                for _ in range(max(1, self._live_count())):
+                    if available >= self.min_available_memory_mib:
+                        break
+                    try:
+                        if not await self._reclaim_one_idle():
+                            break
+                    except Exception as error:
+                        LOGGER.warning('Worker pool memory reclaim failed: %s', type(error).__name__)
+                        break
+                    await asyncio.sleep(0)
+                    available = available_memory_mib()
                 for task in tuple(self._starting):
                     if not task.cancelling():
                         task.cancel()
@@ -395,16 +493,19 @@ class WorkerPool:
                   and not any(w.awaiting_connection for w in self._leased)):
                 # SDK 初始化会创建 CLI/MCP 进程；业务连接期间不再发起后台导入争抢 CPU/I/O。
                 async with self._acquire_lock:
+                    if (self.max_live and self._live_count() >= self.max_live
+                            and not self._starting):
+                        try:
+                            # 总容量回收与补池解耦；业务启动槽已满时也要及时
+                            # 回收最久未问答会话，不能被 count == 0 短路。
+                            await self._reclaim_one_idle()
+                        except Exception as error:
+                            LOGGER.warning('Worker pool reclaim failed: %s', type(error).__name__)
+                            self._retry_at = time.monotonic() + self._backoff
+                            self._backoff = min(30.0, self._backoff * 2)
                     count = min(self.max_idle - len(self._ready) - len(self._starting) - len(self._reserved),
-                                self.max_starting - len(self._starting))
+                                self.max_starting - len(self._starting) - len(self._business_starting))
                     if self.max_live:
-                        if count > 0 and self._live_count() >= self.max_live and self.reclaim_idle:
-                            try:
-                                await self.reclaim_idle()
-                            except Exception as error:
-                                LOGGER.warning('Worker pool reclaim failed: %s', type(error).__name__)
-                                self._retry_at = time.monotonic() + self._backoff
-                                self._backoff = min(30.0, self._backoff * 2)
                         # 等待退出期间可能有新的保留或完成连接，必须重新核算。
                         count = min(count, self.max_live - self._live_count(),
                                     self.max_idle - len(self._ready) - len(self._starting) - len(self._reserved))
@@ -449,3 +550,14 @@ class WorkerPool:
         self._reserved.clear()
         self._ready.clear()
         await asyncio.gather(*(self._terminate(w) for w in workers), return_exceptions=True)
+
+    async def reclaim_oldest_ready(self):
+        """回收空白 Client 中最早进入空闲状态的一个。"""
+        candidates = [worker for worker in self._ready if worker.alive]
+        if not candidates:
+            return False
+        worker = min(candidates, key=lambda item: self._idle_at.get(item, 0))
+        self._ready.remove(worker)
+        self._idle_at.pop(worker, None)
+        await asyncio.shield(self._retire(worker))
+        return True

@@ -57,6 +57,14 @@ if [ "${CCSDK_WITH_APPLICATION:-0}" = 1 ]; then set -- "$@" -f compose.applicati
 docker compose "$@" config --quiet
 docker compose "$@" run --rm --no-deps --pull never runtime --check
 docker compose "$@" up -d --force-recreate --wait --wait-timeout 120 --pull never runtime
+container_id=$(docker compose "$@" ps -q runtime)
+[ -n "$container_id" ] || { echo 'Runtime container was not created.' >&2; exit 1; }
+init_enabled=$(docker inspect --format '{{if .Config.Init}}true{{else}}false{{end}}' "$container_id")
+pids_limit=$(docker inspect --format '{{.HostConfig.PidsLimit}}' "$container_id")
+memory_limit=$(docker inspect --format '{{.HostConfig.Memory}}' "$container_id")
+[ "$init_enabled" = true ] || { echo 'Runtime container must use an init process.' >&2; exit 1; }
+[ "$pids_limit" -gt 0 ] || { echo 'Runtime container must have a positive PID limit.' >&2; exit 1; }
+[ "$memory_limit" -gt 0 ] || { echo 'Runtime container must have a positive memory limit.' >&2; exit 1; }
 if [ "${CCSDK_SMOKE_TEST:-0}" = 1 ]; then
     docker compose "$@" exec -T runtime python /app/deploy/smoke.py
 fi
