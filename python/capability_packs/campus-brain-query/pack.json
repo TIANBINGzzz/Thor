@@ -404,7 +404,7 @@
     {
       "ref": "get_norm_metrics",
       "displayKey": "data.query",
-      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先调用 get_school_info，再传指标 code 和学校 code；剔除本校并去重后至少 8 所。不得复用上轮身份授权。",
+      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先读取本轮身份，传指标 code 和学校 code；剔除本校并去重后至少 12 所。不得复用上轮身份授权。",
       "inputSchema": {
         "type": "object",
         "properties": {

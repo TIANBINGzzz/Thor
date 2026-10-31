@@ -158,7 +158,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(options.strict_mcp_config)
         self.assertEqual(options.setting_sources, [])
         self.assertNotIn('test-secret', str(options.system_prompt))
-        self.assertIn('至少 8', str(options.system_prompt))
+        self.assertIn('至少 12', str(options.system_prompt))
         self.assertNotIn('上饶幼儿师范', str(options.system_prompt))
         with self.assertRaises(MCPAuthError):
             build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run'})
@@ -245,9 +245,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service = self.service()
         service._request = AsyncMock(return_value={'success': True, 'data': {'school_id': '00312', 'school_name': '本校'}})
         await service.call('get_school_info', {'payload': {}})
-        codes = [r['code'] for r in service.assets['catalogs']['schools'] if r['code'] != '00312'][:8]
+        codes = [r['code'] for r in service.assets['catalogs']['schools'] if r['code'] != '00312'][:12]
         base = {'indicator_code': 'badzwhzxmsl', 'schools': codes}
-        for bad in (codes[:7], codes[:7] + [codes[0]], codes[:7] + ['00312'], codes[:7] + ['invented']):
+        for bad in (codes[:11], codes[:11] + [codes[0]], codes[:11] + ['00312'], codes[:11] + ['invented']):
             with self.assertRaises(ValueError):
                 await service.call('get_norm_metrics', {'payload': {**base, 'schools': bad}})
         service._request.return_value = {'success': True, 'data': {'indicator_value': 0, 'rank': 2,
@@ -314,8 +314,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_query_plan_rejects_changed_norm_group_before_identity_call(self):
         service = self.service()
         service._request = AsyncMock()
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
-        changed = [*schools[:-1], service.assets['catalogs']['schools'][8]['code']]
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
+        changed = [*schools[:-1], service.assets['catalogs']['schools'][12]['code']]
         items = [
             {'item_id': 'one', 'indicator_code': 'badzwhzxmsl', 'year': 2024},
             {'item_id': 'two', 'indicator_code': 'badzwhzxmsl', 'year': 2025},
@@ -365,7 +365,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             raise AssertionError('metric call must not follow identity failure')
 
         service._request = AsyncMock(side_effect=request)
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
         result = await service.execute_plan({'subject': 'norm_group', 'schools': schools, 'items': [
             {'item_id': 'one', 'indicator_code': 'hydss'}]})
         self.assertEqual(result, {'items': [], 'planned': 1, 'executed': 0,
@@ -378,7 +378,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(side_effect=RuntimeError('private identity error'))
         failures = []
         tool = self.operation_tools(service, on_error=failures.append)['execute_query_plan']
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
         result = await tool.handler({'subject': 'norm_group', 'schools': schools, 'items': [
             {'item_id': 'one', 'indicator_code': 'hydss'}]})
         self.assertNotIn('isError', result)
@@ -451,6 +451,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('最多 12', prompt)
             self.assertNotIn('prompt', assets)
             self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 12)
+
+    def test_default_school_minimum_is_twelve(self):
+        self.assertEqual(load_campus_assets()['config']['minimum_schools'], 12)
 
     def test_batch_lookup_retains_ambiguous_candidates(self):
         result = self.service().search({'kind': 'schools', 'query': ['深职大', '城职院']})
@@ -545,7 +548,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service = self.service()
         service._request = AsyncMock(side_effect=ValueError('test-secret private body'))
         tools = self.operation_tools(service)
-        codes = [r['code'] for r in service.assets['catalogs']['schools']][:8]
+        codes = [r['code'] for r in service.assets['catalogs']['schools']][:12]
         with self.assertRaisesRegex(ValueError, '请先读取本轮当前登录本校身份'):
             await service.call('get_norm_metrics', {'payload': {
                 'indicator_code': 'hydss', 'schools': codes}})

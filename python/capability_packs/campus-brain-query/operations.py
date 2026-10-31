@@ -388,7 +388,7 @@ def specialize_operations(context, operations):
             schema['properties']['items']['maxItems'] = service.assets['config']['max_calls']
         elif operation.ref == 'get_norm_metrics':
             schema['properties']['payload']['properties']['schools']['minItems'] = minimum
-            description = description.replace('至少 8 所', f'至少 {minimum} 所')
+            description = re.sub(r'至少 \d+ 所', f'至少 {minimum} 所', description)
         specialized.append(replace(operation, description=description, input_schema=schema,
                                    input_validator=Draft202012Validator(schema)))
     return specialized

@@ -19,7 +19,7 @@ class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
         policy = ClientTurnPolicy()
         policy.bind(options)
         context = (await policy.context({}, None, {}))['hookSpecificOutput']['additionalContext']
-        self.assertIn('至少 8', context)
+        self.assertIn('至少 12', context)
         self.assertEqual(options.system_prompt['type'], 'custom')
         self.assertIn(options.system_prompt['prompt'], context)
         self.assertNotIn('test-secret', context)
@@ -41,7 +41,7 @@ class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIs(blank.system_prompt['snapshot'], snapshot)
                     self.assertTrue(options.verbatim_prompts)
                     self.assertTrue(blank.verbatim_prompts)
-                    self.assertNotIn('至少 8', blank.system_prompt['prompt'])
+                    self.assertNotIn('至少 12', blank.system_prompt['prompt'])
 
 
 class SnapshotConfigTests(unittest.TestCase):
