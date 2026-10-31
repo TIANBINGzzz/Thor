@@ -5,6 +5,58 @@
   ],
   "operations": [
     {
+      "ref": "execute_query_plan",
+      "displayKey": "data.query",
+      "description": "执行整题校园问数计划。先完成指标、年份和学校组计划，再一次提交全部查询项；计划执行后只依据返回的成功或失败证据回答。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "enum": ["current_school", "norm_group"]
+          },
+          "schools": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "properties": {
+                "item_id": {"type": "string", "minLength": 1, "maxLength": 64},
+                "indicator_code": {"type": "string", "minLength": 1},
+                "year": {"type": "integer", "minimum": 1000, "maximum": 9999},
+                "scopes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+                "schools": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+              },
+              "required": ["item_id", "indicator_code"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["subject", "items"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+          "planned": {"type": "integer"},
+          "executed": {"type": "integer"},
+          "complete": {"type": "boolean"},
+          "status": {"type": "string", "enum": ["completed", "partial", "blocked"]},
+          "reason": {"type": "string", "enum": ["identity_unavailable"]}
+        },
+        "required": ["items", "planned", "executed", "complete"],
+        "additionalProperties": false
+      },
+      "handler": "execute_query_plan"
+    },
+    {
       "ref": "search_knowledge",
       "displayKey": "data.prepare",
       "description": "批量检索指标或常模学校；常模指标用 norm_analysis。多个候选直接选最贴近名称的一项，同样合理时取首项，不停下来澄清；回答展示所选全称。",

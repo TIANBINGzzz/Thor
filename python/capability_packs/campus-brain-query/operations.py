@@ -15,7 +15,7 @@ from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
 from runtime.asset_registry import read_manifest
 from runtime.deployment_config import ConfigSnapshot
-from runtime.capability_operations import OperationInputError
+from runtime.capability_operations import OperationInputError, _notify_mcp_error
 from runtime.tool_services import service_asset_revision
 
 
@@ -42,6 +42,9 @@ def load_campus_assets(settings=None, directory=ASSET_ROOT, config_path=None, *,
     minimum = config['minimum_schools']
     if type(minimum) is not int or minimum < 1:
         raise RuntimeError('常模最少学校数量配置无效')
+    maximum = config['max_calls']
+    if type(maximum) is not int or maximum < 1:
+        raise RuntimeError('校园查询调用上限配置无效')
     if operations is None:
         from capability_packs.registry import read_pack_manifest
         operations = read_pack_manifest('campus-brain-query').operations
@@ -72,6 +75,11 @@ def _normalized(text):
     """去除末尾括注及常见分隔符，统一检索文本的大小写。"""
     text = re.sub(r'[（(][^()（）]*[）)]$', '', text.strip())
     return re.sub(r'[\s，,。；;、：:]', '', text).casefold()
+
+
+def _unique_strings(value):
+    return (isinstance(value, list) and all(isinstance(item, str) for item in value)
+            and len(value) == len(set(value)))
 
 
 def _statistic(key, value):
@@ -156,72 +164,163 @@ class CampusQuery:
         return {'records': records, 'total': len(found), 'has_more': len(found) > offset + 5}
 
     async def call(self, name, arguments):
-        """校验本轮身份、查询范围与预算，注入凭据并过滤上游结果。"""
         async with self._lock:
-            self._binding.inject({})
-            rules = self.assets['config']['tools']
-            if name not in rules or not isinstance(arguments, dict) or set(arguments) != {'payload'}:
-                raise CampusInputError('查询参数无效')
-            rule = rules[name]
-            payload = arguments['payload']
-            if not Draft202012Validator(rule['schema']).is_valid(payload):
-                raise CampusInputError('查询参数不符合已开通范围，请核对指标、年份和学校数量')
-            if rule.get('catalog'):
-                records = [r for r in self.assets['catalogs'][rule['catalog']] if r['code'] == payload['indicator_code']]
-                if not records:
-                    raise CampusInputError('指标编码必须来自对应分析知识记录')
-                if any(r['definition_conflict'] for r in records):
-                    raise CampusInputError('指标编码存在定义冲突，需先核实来源，不能试查')
-                if self._identity_failed:
-                    raise CampusInputError('本轮学校身份未确认，请重新登录或联系管理员')
-            if 'schools' in payload:
-                if not self._school_id:
-                    raise CampusInputError('请先读取本轮当前登录本校身份')
-                known = {r['code'] for r in self.assets['catalogs']['schools']}
-                if self._school_id in payload['schools'] or not set(payload['schools']) <= known:
-                    raise CampusInputError('参照组须剔除本校，学校编码必须来自目录')
-            key = (name, payload.get('indicator_code'), payload.get('year'))
-            if key in self._seen or self._calls >= self.assets['config']['max_calls']:
-                raise CampusInputError('本轮已查询该组合或超出调用预算，不能重复试查')
-            self._seen.add(key)
-            self._calls += 1
-            if name == 'get_school_info':
-                self._identity_failed = True
-            result = await self._request(name, self._binding.inject({'action': 'query', 'payload': payload}))
-            if not isinstance(result, dict) or result.get('success') is not True or result.get('failed') is True:
-                raise RuntimeError('上游查询失败')
-            data = result.get('data')
-            if data is None:
-                return {'success': True, 'data': None}
-            if not isinstance(data, dict):
-                raise RuntimeError('上游结果结构尚不支持')
-            # 不允许外校明细借字符串数值字段穿过边界。
-            if name == 'get_school_info':
-                if any(not isinstance(data.get(k), str) or not data[k].strip() or len(data[k]) > 200
-                       or any(c in data[k] for c in '{}[]\r\n')
-                       for k in ('school_id', 'school_name')):
-                    raise RuntimeError('学校身份字段无效')
-                safe = {k: data[k] for k in ('school_id', 'school_name')}
-            else:
-                safe = {k: _statistic(k, v) for k, v in data.items() if k in rule['output_fields']}
-            if name == 'get_indicator_metrics' and isinstance(data.get('scoped_metrics'), list):
-                requested = payload.get('scopes', ['indicator_value'])
-                safe['scoped_metrics'] = []
-                for item in data['scoped_metrics']:
-                    if not isinstance(item, dict) or item.get('scope') not in requested:
-                        continue
-                    values = {k: _statistic(k, v) for k, v in item.items()
-                              if k in {'value', 'rank_type', 'school_count', 'cohort_size', 'percentile'}}
-                    safe['scoped_metrics'].append({'scope': item['scope'], **values})
-            self._binding.check_response(safe)
-            if name == 'get_school_info':
-                if not safe.get('school_id') or not safe.get('school_name'):
-                    raise RuntimeError('学校身份无法识别')
-                self._school_id = str(safe['school_id'])
-                self._identity_failed = False
-            elif data and not safe:
-                raise RuntimeError('上游结果结构尚不支持')
-            return {'success': True, 'data': safe}
+            return await self._call_locked(name, arguments)
+
+    async def _call_locked(self, name, arguments):
+        """校验本轮身份、查询范围与预算，注入凭据并过滤上游结果。"""
+        self._binding.inject({})
+        rules = self.assets['config']['tools']
+        if name not in rules or not isinstance(arguments, dict) or set(arguments) != {'payload'}:
+            raise CampusInputError('查询参数无效')
+        rule = rules[name]
+        payload = arguments['payload']
+        if not Draft202012Validator(rule['schema']).is_valid(payload):
+            raise CampusInputError('查询参数不符合已开通范围，请核对指标、年份和学校数量')
+        if rule.get('catalog'):
+            records = [r for r in self.assets['catalogs'][rule['catalog']] if r['code'] == payload['indicator_code']]
+            if not records:
+                raise CampusInputError('指标编码必须来自对应分析知识记录')
+            if any(r['definition_conflict'] for r in records):
+                raise CampusInputError('指标编码存在定义冲突，需先核实来源，不能试查')
+            if self._identity_failed:
+                raise CampusInputError('本轮学校身份未确认，请重新登录或联系管理员')
+        if 'schools' in payload:
+            if not self._school_id:
+                raise CampusInputError('请先读取本轮当前登录本校身份')
+            known = {r['code'] for r in self.assets['catalogs']['schools']}
+            if self._school_id in payload['schools'] or not set(payload['schools']) <= known:
+                raise CampusInputError('参照组须剔除本校，学校编码必须来自目录')
+        key = (name, payload.get('indicator_code'), payload.get('year'))
+        if key in self._seen or self._calls >= self.assets['config']['max_calls']:
+            raise CampusInputError('本轮已查询该组合或超出调用预算，不能重复试查')
+        self._seen.add(key)
+        self._calls += 1
+        if name == 'get_school_info':
+            self._identity_failed = True
+        result = await self._request(name, self._binding.inject({'action': 'query', 'payload': payload}))
+        if not isinstance(result, dict) or result.get('success') is not True or result.get('failed') is True:
+            raise RuntimeError('上游查询失败')
+        data = result.get('data')
+        if data is None:
+            return {'success': True, 'data': None}
+        if not isinstance(data, dict):
+            raise RuntimeError('上游结果结构尚不支持')
+        # 不允许外校明细借字符串数值字段穿过边界。
+        if name == 'get_school_info':
+            if any(not isinstance(data.get(k), str) or not data[k].strip() or len(data[k]) > 200
+                   or any(c in data[k] for c in '{}[]\r\n')
+                   for k in ('school_id', 'school_name')):
+                raise RuntimeError('学校身份字段无效')
+            safe = {k: data[k] for k in ('school_id', 'school_name')}
+        else:
+            safe = {k: _statistic(k, v) for k, v in data.items() if k in rule['output_fields']}
+        if name == 'get_indicator_metrics' and isinstance(data.get('scoped_metrics'), list):
+            requested = payload.get('scopes', ['indicator_value'])
+            safe['scoped_metrics'] = []
+            for item in data['scoped_metrics']:
+                if not isinstance(item, dict) or item.get('scope') not in requested:
+                    continue
+                values = {k: _statistic(k, v) for k, v in item.items()
+                          if k in {'value', 'rank_type', 'school_count', 'cohort_size', 'percentile'}}
+                safe['scoped_metrics'].append({'scope': item['scope'], **values})
+        self._binding.check_response(safe)
+        if name == 'get_school_info':
+            if not safe.get('school_id') or not safe.get('school_name'):
+                raise RuntimeError('学校身份无法识别')
+            self._school_id = str(safe['school_id'])
+            self._identity_failed = False
+        elif data and not safe:
+            raise RuntimeError('上游结果结构尚不支持')
+        return {'success': True, 'data': safe}
+
+    async def execute_plan(self, arguments):
+        """一次校验并执行本题计划，避免模型逐项调用造成预算和学校组漂移。"""
+        async with self._lock:
+            if not isinstance(arguments, dict) or set(arguments) - {'subject', 'schools', 'items'}:
+                raise CampusInputError('查询计划格式无效')
+            subject = arguments.get('subject')
+            items = arguments.get('items')
+            if subject not in {'current_school', 'norm_group'} or not isinstance(items, list) or not items:
+                raise CampusInputError('查询计划必须包含对象和查询项')
+            top_schools = arguments.get('schools')
+            if top_schools is not None and not _unique_strings(top_schools):
+                raise CampusInputError('学校组格式无效')
+            normalized = []
+            group = None
+            seen_plan = set()
+            seen_items = set()
+            for item in items:
+                if not isinstance(item, dict) or set(item) - {'item_id', 'indicator_code', 'year', 'scopes', 'schools'}:
+                    raise CampusInputError('查询计划项格式无效')
+                item_id = item.get('item_id')
+                code = item.get('indicator_code')
+                if not isinstance(item_id, str) or not item_id.strip() or not isinstance(code, str) or not code.strip():
+                    raise CampusInputError('查询计划项缺少标识或指标')
+                if item_id in seen_items:
+                    raise CampusInputError('查询计划项标识重复')
+                seen_items.add(item_id)
+                schools = item.get('schools', top_schools)
+                is_norm = schools is not None
+                if subject == 'norm_group' and not is_norm:
+                    raise CampusInputError('常模计划必须包含学校组')
+                if subject == 'current_school' and is_norm:
+                    raise CampusInputError('本校计划不能携带外校组')
+                if is_norm:
+                    if (not _unique_strings(schools)
+                            or group is not None and schools != group):
+                        raise CampusInputError('学校组在同一计划中不一致')
+                    group = list(schools)
+                    tool = 'get_norm_metrics'
+                else:
+                    tool = 'get_indicator_metrics'
+                payload = {'indicator_code': code}
+                if 'year' in item:
+                    payload['year'] = item['year']
+                if 'scopes' in item:
+                    payload['scopes'] = item['scopes']
+                if is_norm:
+                    payload['schools'] = schools
+                rule = self.assets['config']['tools'][tool]
+                if not Draft202012Validator(rule['schema']).is_valid(payload):
+                    raise CampusInputError('查询计划项不符合已开通范围')
+                records = [r for r in self.assets['catalogs'][rule['catalog']] if r['code'] == code]
+                if not records or any(r['definition_conflict'] for r in records):
+                    raise CampusInputError('查询计划项的指标口径无法确认')
+                key = (tool, code, payload.get('year'))
+                if key in seen_plan or key in self._seen:
+                    raise CampusInputError('查询计划包含重复组合')
+                seen_plan.add(key)
+                normalized.append((item_id, tool, payload))
+            identity_needed = 1 if group is not None and not self._school_id else 0
+            if self._calls + len(normalized) + identity_needed > self.assets['config']['max_calls']:
+                raise CampusInputError('整题查询计划超过本轮预算')
+            if group is not None and not self._school_id:
+                try:
+                    identity = await self._call_locked('get_school_info', {'payload': {}})
+                except Exception:
+                    return {'items': [], 'planned': len(normalized), 'executed': 0,
+                            'complete': False, 'status': 'blocked',
+                            'reason': 'identity_unavailable'}
+                if not identity.get('data') or not self._school_id:
+                    return {'items': [], 'planned': len(normalized), 'executed': 0,
+                            'complete': False, 'status': 'blocked',
+                            'reason': 'identity_unavailable'}
+            results = []
+            for item_id, tool, payload in normalized:
+                try:
+                    value = await self._call_locked(tool, {'payload': payload})
+                    data = value.get('data')
+                    results.append({'item_id': item_id, 'status': 'empty' if data is None else 'success',
+                                    **({'data': data} if data is not None else {})})
+                except CampusInputError:
+                    raise
+                except Exception:
+                    results.append({'item_id': item_id, 'status': 'failed'})
+            complete = all(item['status'] != 'failed' for item in results)
+            return {'items': results, 'planned': len(normalized),
+                    'executed': len(results), 'complete': complete,
+                    'status': 'completed' if complete else 'partial'}
 
     async def _request(self, name, arguments):
         """将已绑定凭据的查询参数发送到可信资产指定的 MCP。"""
@@ -242,6 +341,19 @@ async def get_indicator_metrics(context, arguments):
 
 async def get_norm_metrics(context, arguments):
     return await context.services.require('campus').call('get_norm_metrics', arguments)
+
+
+async def execute_query_plan(context, arguments):
+    result = await context.services.require('campus').execute_plan(arguments)
+    if result.get('status') == 'blocked' or any(
+            item.get('status') == 'failed' for item in result.get('items', [])):
+        _notify_mcp_error(context.mcp_error_sink, {
+            'stage': 'capability_operation',
+            'operation': 'execute_query_plan',
+            'failureKind': ('upstream_identity' if result.get('status') == 'blocked'
+                            else 'upstream_query'),
+        })
+    return result
 
 
 def load_service_assets(service_ref, settings, directory, config_path, operations):
@@ -265,14 +377,16 @@ def update_service(service_ref, service, assets):
 
 
 def specialize_operations(context, operations):
-    """将已验证业务配置的最少学校数同步到当轮 Operation Schema。"""
+    """将已验证业务配置的数量边界同步到当轮 Operation Schema。"""
     service = context.services.require('campus')
     minimum = service.assets['config']['minimum_schools']
     specialized = []
     for operation in operations:
         schema = json.loads(json.dumps(operation.input_schema))
         description = operation.description
-        if operation.ref == 'get_norm_metrics':
+        if operation.ref == 'execute_query_plan':
+            schema['properties']['items']['maxItems'] = service.assets['config']['max_calls']
+        elif operation.ref == 'get_norm_metrics':
             schema['properties']['payload']['properties']['schools']['minItems'] = minimum
             description = description.replace('至少 8 所', f'至少 {minimum} 所')
         specialized.append(replace(operation, description=description, input_schema=schema,

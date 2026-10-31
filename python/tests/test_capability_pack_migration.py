@@ -22,7 +22,7 @@ class CapabilityPackMigrationTests(unittest.TestCase):
         self.assertEqual(entry['tools'], [])
         self.assertEqual(entry['service_refs'], ['campus'])
         self.assertEqual(set(entry['operation_refs']), {
-            'search_knowledge', 'get_school_info', 'get_indicator_metrics', 'get_norm_metrics'})
+            'execute_query_plan', 'search_knowledge', 'get_school_info'})
 
         options = build_options({
             'capability_ref': 'campus-brain-query',
@@ -32,10 +32,9 @@ class CapabilityPackMigrationTests(unittest.TestCase):
 
         self.assertEqual(set(options.mcp_servers), {'capability_ops'})
         self.assertEqual(set(options.allowed_tools), {
+            'mcp__capability_ops__execute_query_plan',
             'mcp__capability_ops__search_knowledge',
             'mcp__capability_ops__get_school_info',
-            'mcp__capability_ops__get_indicator_metrics',
-            'mcp__capability_ops__get_norm_metrics',
         })
         self.assertNotIn('test-secret', str(options))
 

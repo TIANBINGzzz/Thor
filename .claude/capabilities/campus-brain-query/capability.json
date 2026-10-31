@@ -9,10 +9,9 @@
     "campus"
   ],
   "operationRefs": [
+    "execute_query_plan",
     "search_knowledge",
-    "get_school_info",
-    "get_indicator_metrics",
-    "get_norm_metrics"
+    "get_school_info"
   ],
   "toolConfig": {
     "campus": "assets/campus.json"
@@ -31,6 +30,10 @@
     "minimum_schools": {
       "serviceRef": "campus",
       "field": "minimum_schools"
+    },
+    "maximum_calls": {
+      "serviceRef": "campus",
+      "field": "max_calls"
     }
   }
 }

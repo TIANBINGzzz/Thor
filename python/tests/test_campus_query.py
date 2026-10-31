@@ -80,15 +80,19 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_upstream_failure_marks_run_but_local_validation_does_not(self):
         service = self.service()
         failures = []
-        tool = self.operation_tools(service, on_error=lambda: failures.append(True))['get_indicator_metrics']
-        await tool.handler({'payload': {'indicator_code': 'unknown'}})
+        tool = self.operation_tools(service, on_error=lambda: failures.append(True))['execute_query_plan']
+        await tool.handler({'subject': 'current_school', 'items': [
+            {'item_id': 'bad', 'indicator_code': 'unknown'}]})
         self.assertEqual(failures, [])
         service._request = AsyncMock(return_value={'success': True, 'data': None})
-        result = await tool.handler({'payload': {'indicator_code': 'hydss', 'year': 2024}})
+        result = await tool.handler({'subject': 'current_school', 'items': [
+            {'item_id': 'empty', 'indicator_code': 'hydss', 'year': 2024}]})
         self.assertNotIn('isError', result)
         self.assertEqual(failures, [])
         service._request = AsyncMock(side_effect=RuntimeError('private upstream'))
-        await tool.handler({'payload': {'indicator_code': 'hydss'}})
+        result = await tool.handler({'subject': 'current_school', 'items': [
+            {'item_id': 'failed', 'indicator_code': 'hydss'}]})
+        self.assertNotIn('isError', result)
         self.assertEqual(failures, [True])
 
     async def test_internal_service_uses_the_registered_operation_contract(self):
@@ -296,6 +300,95 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss'}})
 
+    async def test_query_plan_rejects_over_budget_before_any_remote_call(self):
+        service = self.service()
+        service._request = AsyncMock()
+        items = [
+            {'item_id': str(index), 'indicator_code': 'hydss', 'year': 2010 + index}
+            for index in range(11)
+        ]
+        with self.assertRaisesRegex(ValueError, '整题查询计划超过本轮预算'):
+            await service.execute_plan({'subject': 'current_school', 'items': items})
+        self.assertEqual(service._request.await_count, 0)
+
+    async def test_query_plan_rejects_changed_norm_group_before_identity_call(self):
+        service = self.service()
+        service._request = AsyncMock()
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
+        changed = [*schools[:-1], service.assets['catalogs']['schools'][8]['code']]
+        items = [
+            {'item_id': 'one', 'indicator_code': 'badzwhzxmsl', 'year': 2024},
+            {'item_id': 'two', 'indicator_code': 'badzwhzxmsl', 'year': 2025},
+        ]
+        with self.assertRaisesRegex(ValueError, '学校组在同一计划中不一致'):
+            await service.execute_plan({'subject': 'norm_group', 'schools': schools,
+                                        'items': [{**item, 'schools': group}
+                                                  for item, group in zip(items, (schools, changed))]})
+        self.assertEqual(service._request.await_count, 0)
+
+    async def test_query_plan_rejects_duplicate_item_ids_before_remote_call(self):
+        service = self.service()
+        service._request = AsyncMock()
+        with self.assertRaisesRegex(ValueError, '查询计划项标识重复'):
+            await service.execute_plan({'subject': 'current_school', 'items': [
+                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2024},
+                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2025},
+            ]})
+        service._request.assert_not_awaited()
+
+    async def test_query_plan_returns_per_item_evidence_and_failure_status(self):
+        service = self.service()
+
+        async def request(name, arguments):
+            if name == 'get_indicator_metrics' and arguments['payload']['year'] == 2024:
+                raise RuntimeError('upstream')
+            return {'success': True, 'data': {'indicator_value': 12,
+                                              'year': arguments['payload'].get('year', 2025)}}
+
+        service._request = AsyncMock(side_effect=request)
+        result = await service.execute_plan({'subject': 'current_school', 'items': [
+            {'item_id': 'ok', 'indicator_code': 'hydss', 'year': 2025},
+            {'item_id': 'failed', 'indicator_code': 'hydss', 'year': 2024},
+        ]})
+        self.assertEqual([item['item_id'] for item in result['items']], ['ok', 'failed'])
+        self.assertEqual(result['items'][0]['status'], 'success')
+        self.assertEqual(result['items'][0]['data']['indicator_value'], 12)
+        self.assertEqual(result['items'][1], {'item_id': 'failed', 'status': 'failed'})
+        self.assertEqual(service._request.await_count, 2)
+
+    async def test_query_plan_returns_blocked_identity_status_without_metric_call(self):
+        service = self.service()
+
+        async def request(name, arguments):
+            if name == 'get_school_info':
+                raise RuntimeError('identity unavailable')
+            raise AssertionError('metric call must not follow identity failure')
+
+        service._request = AsyncMock(side_effect=request)
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
+        result = await service.execute_plan({'subject': 'norm_group', 'schools': schools, 'items': [
+            {'item_id': 'one', 'indicator_code': 'hydss'}]})
+        self.assertEqual(result, {'items': [], 'planned': 1, 'executed': 0,
+                                  'complete': False, 'status': 'blocked',
+                                  'reason': 'identity_unavailable'})
+        self.assertEqual(service._request.await_count, 1)
+
+    async def test_blocked_identity_marks_existing_upstream_run_error(self):
+        service = self.service()
+        service._request = AsyncMock(side_effect=RuntimeError('private identity error'))
+        failures = []
+        tool = self.operation_tools(service, on_error=failures.append)['execute_query_plan']
+        schools = [r['code'] for r in service.assets['catalogs']['schools'][:8]]
+        result = await tool.handler({'subject': 'norm_group', 'schools': schools, 'items': [
+            {'item_id': 'one', 'indicator_code': 'hydss'}]})
+        self.assertNotIn('isError', result)
+        decoded = json.loads(result['content'][0]['text'])
+        self.assertEqual(decoded['status'], 'blocked')
+        self.assertEqual(failures, [{'stage': 'capability_operation',
+                                     'operation': 'execute_query_plan',
+                                     'failureKind': 'upstream_identity'}])
+        self.assertEqual(service._request.await_count, 1)
+
     async def test_json_and_sse_transport_and_static_headers(self):
         for sse in (False, True):
             requests = []
@@ -346,13 +439,16 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             root = __import__('pathlib').Path(directory) / ASSET_ROOT.name
             shutil.copytree(ASSET_ROOT, root, dirs_exist_ok=True)
             path = root / 'assets/campus.json'
-            config = json.loads(path.read_text(encoding='utf-8'));config['minimum_schools'] = 12
+            config = json.loads(path.read_text(encoding='utf-8'))
+            config['minimum_schools'] = 12
+            config['max_calls'] = 12
             path.write_text(json.dumps(config), encoding='utf-8')
             assets = load_campus_assets(directory=root)
             with patch('runtime.capabilities.CAPABILITIES_ROOT', root.parent):
                 entry = capability_entry(root, skills_root=SKILLS_ROOT)
             prompt = assemble_prompt(load_prompt_assets(entry), active_tools=entry['tools'], preview=True)['text']
             self.assertIn('至少 12', prompt)
+            self.assertIn('最多 12', prompt)
             self.assertNotIn('prompt', assets)
             self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 12)
 
@@ -450,10 +546,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(side_effect=ValueError('test-secret private body'))
         tools = self.operation_tools(service)
         codes = [r['code'] for r in service.assets['catalogs']['schools']][:8]
-        result = await tools['get_norm_metrics'].handler({'payload': {
-            'indicator_code': 'hydss', 'schools': codes}})
-        self.assertTrue(result['isError'])
-        self.assertIn('请先读取本轮当前登录本校身份', result['content'][0]['text'])
+        with self.assertRaisesRegex(ValueError, '请先读取本轮当前登录本校身份'):
+            await service.call('get_norm_metrics', {'payload': {
+                'indicator_code': 'hydss', 'schools': codes}})
         service._request.assert_not_called()
         result = await tools['get_school_info'].handler({'payload': {}})
         self.assertTrue(result['isError'])
