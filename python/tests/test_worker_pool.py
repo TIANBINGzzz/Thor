@@ -121,6 +121,20 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(workers[0].terminated)
         self.assertFalse(workers[2].terminated)
 
+    async def test_full_live_capacity_keeps_ready_worker_stable(self):
+        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=FakeWorker)
+        self.addAsyncCleanup(pool.close)
+        pool.start()
+        FakeWorker.gate.set()
+        await until(lambda: pool.snapshot()['ready'] == 1)
+        worker = FakeWorker.created[0]
+
+        await asyncio.sleep(1.1)
+
+        self.assertEqual(pool.snapshot()['ready'], 1)
+        self.assertEqual(FakeWorker.created, [worker])
+        self.assertFalse(worker.terminated)
+
     async def test_dead_idle_worker_is_never_leased(self):
         self.pool.start()
         FakeWorker.gate.set()

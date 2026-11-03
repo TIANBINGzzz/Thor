@@ -192,7 +192,27 @@ class DeploymentEnvironmentTests(unittest.TestCase):
             binary = root / "bin"
             binary.mkdir()
             docker = binary / "docker"
-            docker.write_text('#!/bin/sh\nif [ "$1" = version ]; then echo linux/amd64; exit 0; fi\nif [ "$1" = image ]; then exit 0; fi\nif [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\nprintf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_CONFIG_DIRECTORY" "$*" >> "$TEST_DOCKER_LOG"\n')
+            docker.write_text(
+                '#!/bin/sh\n'
+                'if [ "$1" = version ]; then echo linux/amd64; exit 0; fi\n'
+                'if [ "$1" = image ]; then exit 0; fi\n'
+                'if [ "$1" = compose ] && [ "$2" = version ]; then echo 2.30.1; exit 0; fi\n'
+                'if [ "$1" = compose ]; then\n'
+                '  compose_args="$*"\n'
+                '  shift\n'
+                '  while [ "$1" = "-f" ]; do shift 2; done\n'
+                '  if [ "$1" = ps ]; then echo test-container-id; exit 0; fi\n'
+                'fi\n'
+                'if [ "$1" = inspect ]; then\n'
+                '  case "$3" in\n'
+                '    *".Config.Init"*) echo true;;\n'
+                '    *".HostConfig.PidsLimit"*) echo 4096;;\n'
+                '    *".HostConfig.Memory"*) echo 2147483648;;\n'
+                '  esac\n'
+                '  exit 0\n'
+                'fi\n'
+                'printf "%s|%s|%s\\n" "$CCSDK_ENV_FILE" "$CCSDK_CONFIG_DIRECTORY" "${compose_args:-$*}" >> "$TEST_DOCKER_LOG"\n'
+            )
             docker.chmod(0o700)
             config = root / "config with spaces"
             log = root / "docker.log"

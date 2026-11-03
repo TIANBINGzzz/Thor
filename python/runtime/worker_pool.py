@@ -494,10 +494,10 @@ class WorkerPool:
                 # SDK 初始化会创建 CLI/MCP 进程；业务连接期间不再发起后台导入争抢 CPU/I/O。
                 async with self._acquire_lock:
                     if (self.max_live and self._live_count() >= self.max_live
-                            and not self._starting):
+                            and not self._starting and not self._ready and not self._reserved):
                         try:
-                            # 总容量回收与补池解耦；业务启动槽已满时也要及时
-                            # 回收最久未问答会话，不能被 count == 0 短路。
+                            # 只回收已绑定的空闲会话；空白 Client 本身可服务下一次请求，
+                            # 主动回收并补建会让满容量的池持续抖动。
                             await self._reclaim_one_idle()
                         except Exception as error:
                             LOGGER.warning('Worker pool reclaim failed: %s', type(error).__name__)
