@@ -8,15 +8,22 @@ from .context import DataError, fingerprint
 def resolve_data_access(context, source, config, catalog):
     """按可信身份校验来源授权，并生成包含表白名单的独立策略副本。"""
     policy = deepcopy(config['policy'])
-    # 部署侧显式配置 * 才共享来源；真实身份仍用于 Run 和结果归属。
     if (policy.get("source_key") != source["source_key"]
-            or policy.get("tenant_id") not in ("*", context.tenant_id)
-            or context.capability_ref not in policy.get("capabilities", [])
-            or not policy.get("business_tenant_id")):
+            or context.capability_ref not in policy.get("capabilities", [])):
         raise DataError("SOURCE_FORBIDDEN")
-    users = policy.get("users", [])
-    if users != "all_authenticated" and context.user_id not in users:
-        raise DataError("SOURCE_FORBIDDEN")
+    tenants = policy.get('tenant_id')
+    if (not isinstance(tenants, list) or not tenants
+            or any(not isinstance(t, str) or not t.strip() or t in {'*', 'default'} for t in tenants)):
+        raise DataError('CONFIG_INVALID')
+    resolved = []
+    for tenant in tenants:
+        if tenant == 'self':
+            tenant = context.data_tenant_id
+            if not tenant:
+                raise DataError('BUSINESS_IDENTITY_REQUIRED')
+        if tenant not in resolved:
+            resolved.append(tenant)
+    policy['authorized_tenants'] = resolved
     if context.template_key and context.template_key not in policy.get("templates", []):
         raise DataError("TEMPLATE_FORBIDDEN")
     scope = policy.get("project_scope", {})
@@ -32,7 +39,11 @@ def resolve_data_access(context, source, config, catalog):
         if not isinstance(tables, list) or not set(tables) <= schema['tables'].keys():
             raise DataError('DOMAIN_FORBIDDEN')
         allowed.update(tables={name:schema['tables'][name] for name in tables},
-                       functions=schema['functions'], internal_columns=schema.get('internal_columns', []))
+                       functions=schema['functions'], internal_columns=schema.get('internal_columns', []),
+                       tenant_column=schema.get('tenant_column'))
+        if not allowed['tenant_column'] or any(allowed['tenant_column'] not in columns
+                                              for columns in allowed['tables'].values()):
+            raise DataError('TENANT_SCOPE_NOT_ENFORCED')
     policy["fingerprint"] = fingerprint(policy)
     return policy
 

@@ -63,11 +63,12 @@ class DataAccessTests(unittest.TestCase):
             db.close()
             self.config['connections'][source] = {'source_key':source,'tenant_id':'jwt-a','driver':'sqlite',
                 'database':f'{source}.db','timeout_seconds':1,'max_rows':1000}
-            self.config['policies'][source] = {'source_key':source,'tenant_id':'jwt-a','business_tenant_id':'business-a',
-                'capabilities':['qa'], 'templates':[], 'users':['u1','u2'],
+            self.config['policies'][source] = {'source_key':source,'tenant_id':['business-a'],
+                'capabilities':['qa'], 'templates':[],
                 'project_scope':{'mode':'all_school'},'domains':{'sales':{'queries':['total'],
                 'tables':{'sales':{'tenant':'TEXT','amount':'INTEGER','private_id':'TEXT'}},
-                'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant']}}}
+                'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant'],
+                'tenant_column':'tenant'}}}
         self.catalog = Catalog(self.root/'databases')
         self.context = DataContext('run-a','jwt-a','u1','qa',self.root/'run-a')
         self.executor = self.make_executor()
@@ -82,9 +83,9 @@ class DataAccessTests(unittest.TestCase):
             policy=deepcopy(self.config['policies'][source])
             for name,domain in policy['domains'].items():
                 save(self.root/f'databases/{source}/schema/{name}.json',
-                     {k:domain[k] for k in ('tables','functions','internal_columns')})
+                     {k:domain[k] for k in ('tables','functions','internal_columns','tenant_column')})
                 domain['tables']=list(domain['tables'])
-                domain.pop('functions'); domain.pop('internal_columns')
+                domain.pop('functions'); domain.pop('internal_columns'); domain.pop('tenant_column')
             connection={**self.config['connections'][source], 'database':str(self.root/f'{source}.db')}
             connection.pop('source_key')
             policy.pop('source_key')
@@ -146,15 +147,14 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'DOCUMENT_UNAVAILABLE'):
             frozen.documents('first','sales',['unregistered'])
 
-    def test_access_denies_wrong_identity_empty_scope_and_unlisted_user(self):
-        for change in [{'tenant_id':'jwt-b'}, {'user_id':'u3'}, {'capability_ref':'writing'}]:
+    def test_access_denies_unlisted_connection_capability_and_empty_scope(self):
+        for change in [{'tenant_id':'jwt-b'}, {'capability_ref':'writing'}]:
             executor = self.make_executor(replace(self.context, **change))
             self.assertEqual(executor.list_data_sources()['sources'], [])
         self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
         with self.assertRaises(DataError): self.school(self.make_executor())
 
-    def test_shared_source_accepts_other_tenants_and_users_with_fixed_business_scope(self):
-        self.config['policies']['first'].update(tenant_id='*', users='all_authenticated')
+    def test_explicit_data_tenant_grant_is_independent_of_execution_identity(self):
         self.config['connections']['first']['tenant_id'] = '*'
         previous = None
         for tenant, user in [('jwt-b', 'u3'), ('jwt-c', 'u4')]:
@@ -172,25 +172,20 @@ class DataAccessTests(unittest.TestCase):
                         executor.results.page(previous['result_ref'])
                 previous = {'scope': scope, 'result_ref': result['result_ref']}
 
-    def test_shared_tenant_requires_both_policy_and_connection_opt_in(self):
+    def test_connection_permission_and_data_tenant_scope_are_independent(self):
         context = replace(self.context, tenant_id='jwt-b', user_id='u3')
-        for side, code in [('policies', 'CONNECTION_FORBIDDEN'), ('connections', 'SOURCE_FORBIDDEN')]:
-            with self.subTest(side=side):
-                self.config['policies']['first'].update(tenant_id='jwt-a', users='all_authenticated')
-                self.config['connections']['first']['tenant_id'] = 'jwt-a'
-                self.config[side]['first']['tenant_id'] = '*'
-                executor = self.make_executor(context)
-                with self.assertRaisesRegex(DataError, code):
-                    executor.access('first')
+        with self.assertRaisesRegex(DataError, 'CONNECTION_FORBIDDEN'):
+            self.make_executor(context).access('first')
+        self.config['connections']['first']['tenant_id'] = '*'
+        self.config['policies']['first']['tenant_id'] = ['self']
+        with self.assertRaisesRegex(DataError, 'BUSINESS_IDENTITY_REQUIRED'):
+            self.make_executor(context).access('first')
 
-    def test_shared_tenant_keeps_user_capability_template_and_query_restrictions(self):
-        self.config['policies']['first']['tenant_id'] = '*'
+    def test_data_tenant_grants_keep_capability_template_and_query_restrictions(self):
         self.config['connections']['first']['tenant_id'] = '*'
         context = replace(self.context, tenant_id='jwt-b')
         self.assertEqual(len(self.make_executor(context).list_data_sources()['sources']), 1)
-        denied = self.make_executor(replace(context, user_id='u3'))
-        self.assertEqual(denied.list_data_sources()['sources'], [])
-        self.config['policies']['first']['users'] = 'all_authenticated'
+        self.assertEqual(len(self.make_executor(replace(context, user_id='u3')).list_data_sources()['sources']), 1)
         denied = self.make_executor(replace(context, capability_ref='writing'))
         self.assertEqual(denied.list_data_sources()['sources'], [])
         denied = self.make_executor(replace(context, template_key='unregistered'))
@@ -261,7 +256,7 @@ class DataAccessTests(unittest.TestCase):
             self.assertNotIn(marker,public)
             self.assertNotIn(marker,assets)
         path=self.config_path
-        config=json.loads(path.read_text());config['sources']['first']['policy']['users']=[];save(path,config)
+        config=json.loads(path.read_text());config['sources']['first']['policy']['capabilities']=[];save(path,config)
         self.assertEqual(self.catalog.revision('first'),revision)
         self.assertEqual(len(executor.list_data_sources()['sources']),2)
         refreshed=Executor(self.context,self.env,self.catalog,['first'])
@@ -419,10 +414,7 @@ class DataAccessTests(unittest.TestCase):
         policy['dynamic_sql_enabled']=True
         self.config['connections']['first'].update(database_scope_enforced=True,scope_source_key='first')
         self.executor=self.make_executor()
-        # Test account visibility is reduced to the approved business tenant.
-        db = sqlite3.connect(self.root/'first.db')
-        db.execute("DELETE FROM sales WHERE tenant <> 'business-a'")
-        db.commit(); db.close()
+        # 保留另一学校的数据，执行器必须在数据库读取前强制学校范围。
         scope=self.school()
         result=self.executor.execute_readonly_sql('first','sales','SELECT SUM(amount) AS n FROM sales WHERE amount > :minimum',{'minimum':0},'test',scope)
         self.assertEqual(result['rows'],[{'n':10}])
@@ -458,7 +450,7 @@ class DataAccessTests(unittest.TestCase):
             await services.bind({**payload,'run_id':'r2','_data_run_directory':str(self.root/'r2')})
             with self.assertRaises(DataError): services.current().results.page(ref)
             with self.assertRaises(DataError): old.access('first')
-            self.config['policies']['first']['users']=[]
+            self.config['policies']['first']['capabilities']=[]
             self.save_connections()
             await services.bind({**payload,'run_id':'r3'})
             self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['second'])
@@ -523,7 +515,7 @@ class RegisteredAssetsTests(unittest.TestCase):
         config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
         entry=config['sources']['schoolDoubleHigh']
         policy=entry['policy']
-        policy.update(tenant_id='test',business_tenant_id='test',users=['tester'],
+        policy.update(tenant_id=['test'],
                       capabilities=['national-excellence-data-qa'],project_scope={'mode':'all_school'})
         entry['connection']['tenant_id']='test'
         with tempfile.TemporaryDirectory() as directory:

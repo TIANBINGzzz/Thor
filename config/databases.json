@@ -2,9 +2,10 @@
   "sources": {
     "schoolDoubleHigh": {
       "policy": {
-        "tenant_id": "*",
-        "business_tenant_id": "14183",
-        "users": "all_authenticated",
+        "tenant_id": [
+          "self",
+          "14183"
+        ],
         "capabilities": [
           "national-excellence-data-qa",
           "document-writing"

@@ -113,14 +113,12 @@ campusMcp:
 
 | 字段 | 用途与约束 |
 | --- | --- |
-| `tenant_id` | 允许使用来源的Runtime租户ID；*表示显式允许所有调用租户共用此来源，不表示业务数据按调用租户隔离。 |
-| `business_tenant_id` | 业务库中的租户/学校过滤值，由运行时注入声明了该参数的固定查询；与Run JWT中的调用租户身份区分。 |
-| `users` | 允许访问的用户ID数组，或all_authenticated表示所有已认证用户；不是允许匿名访问。 |
+| `tenant_id` | 非空数据租户列表；self取Java认证后通过credentials.platformBearer透传的业务JWT tenantId，其他字符串为额外授权学校。self缺凭据或租户时失败，不回退Run JWT或固定项。不同学校各有独立scope_ref，不混合统计。 |
 | `capabilities` | 允许使用该来源的业务Capability标识，还须位于能力 data.sourceRefs 声明中；不是Workflow或工具名称。 |
 | `templates` | 使用预制templateKey时允许访问来源的模板标识；仅为授权白名单，不负责登记或启用模板，上传附件不靠此列表识别。 |
 | `project_scope` | 业务项目访问范围配置，与报告年度、国双高筛选等查询口径区分。 |
 | `project_scope.mode` | all_school允许全校项目范围；selected只允许同级project_ids数组指定的项目。全校权限不取消查询自身的业务筛选。 |
-| `dynamic_sql_enabled` | 是否允许受控只读SQL；true仍须满足数据库侧范围约束、来源匹配、表列白名单和SQL校验。 |
+| `dynamic_sql_enabled` | 是否允许受控只读SQL；true仍须来源匹配、表列白名单和SQL校验。每个物理表由执行器强制过滤到所选学校；项目范围仍须满足数据库侧约束。 |
 | `domains` | 按业务域分别授权查询和表；域名须已登记在对应数据库资产包。 |
 | `domains.hpm` | 项目、建设任务、资金及绩效业务域。指标口径和关联规则维护在对应数据库资产包。 |
 | `domains.hpm.queries` | 允许调用的固定查询ID白名单；定义和SQL在.claude/databases/schoolDoubleHigh/metrics/hpm，列入白名单不会把待定义或受阻查询变成可执行查询。 |
@@ -141,7 +139,7 @@ campusMcp:
 | `tls.mode` | disabled关闭数据库TLS；verify_identity启用证书及主机名校验，此时须同时配置tls.ca_file和tls.verify_identity=true，CA相对路径以本配置文件目录为基准。 |
 | `timeout_seconds` | 数据库连接、读写等待及查询执行的秒级预算，运行时限制为1至120秒；不是整个模型Run的超时。 |
 | `max_rows` | 一次查询物化结果的最大行数，运行时限制为1至100000；超出上限标记结果不完整，不能当作完整统计。 |
-| `database_scope_enforced` | 部署方声明数据库账号/视图已限制到完整授权范围；设置true不会自动创建数据库权限，也不能靠模型SQL的WHERE代替隔离。动态SQL要求该值为true。 |
+| `database_scope_enforced` | 部署方声明数据库账号/视图已限制到获准业务范围；动态SQL要求true，但不自动创建数据库权限。学校范围还由执行器强制过滤，selected项目范围仍须数据库隔离。 |
 | `username` | 数据库登录账号，使用具备所需只读及范围限制的账号；不是业务系统登录用户名。 |
 | `password` | 上述数据库账号的密码；当前按项目授权随私有配置和镜像交付，不得写入日志、提示词或公开文档。 |
 | `scope_source_key` | 数据库侧范围约束所对应的数据源标识；执行动态SQL时必须与实际source_key一致。 |

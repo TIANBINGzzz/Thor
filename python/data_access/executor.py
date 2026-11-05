@@ -13,7 +13,7 @@ from .catalog import Catalog, search_score
 from .connections import Connections, load_config, resolve_connection
 from .context import DataError, fingerprint
 from .results import Results, json_value
-from .sql_policy import validate_sql
+from .sql_policy import TENANT_PARAMETER, bind_tenant, validate_sql
 
 
 def validate_parameters(parameters, definitions, constraints=None):
@@ -95,7 +95,9 @@ class Executor:
             for domain in source['domains']:
                 description = self.describe_data_source(source_key, domain, topics)
                 if source['scope'] == 'all_school':
-                    description['scope_ref'] = self._scope_ref(source_key, domain, None, policy)
+                    schools = self.resolve_entities(source_key, domain, 'school', '')['candidates']
+                    description['school_scopes'] = schools
+                    description['scope_ref'] = schools[0]['scope_ref']
                 domains.append(description)
             prepared.append({**source, 'domains': domains})
         return {'sources': prepared}
@@ -139,12 +141,22 @@ class Executor:
             raise DataError("SCOPE_FORBIDDEN")
         return scope
 
-    def _scope_ref(self, source_key, domain, project_id, policy):
-        """为当前策略下的项目范围创建本轮不透明引用。"""
+    def _scope_ref(self, source_key, domain, project_id, policy, tenant_id=None):
+        """范围绑定到单个获准学校，避免跨学校对象混用或混合统计。"""
+        tenant_id = tenant_id or policy['authorized_tenants'][0]
+        if tenant_id not in policy['authorized_tenants']:
+            raise DataError('SCOPE_FORBIDDEN')
         reference = "scope_" + token_urlsafe(18)
         self.scopes[reference] = {"source_key": source_key, "domain": domain,
-                                  "project_id": project_id, "access": policy["fingerprint"]}
+                                  "project_id": project_id, "tenant_id": tenant_id,
+                                  "access": policy["fingerprint"]}
         return reference
+
+    def _school_name(self, policy, tenant_id):
+        """模型只需区分当前学校与额外授权学校，不暴露内部租户值。"""
+        if tenant_id == self.context.data_tenant_id:
+            return '当前学校'
+        return f"额外授权学校{policy['authorized_tenants'].index(tenant_id) + 1}"
 
     def resolve_entities(self, source_key, domain, entity_type, query, parent_ref=None, parameters=None):
         """在授权范围内解析业务对象，返回候选项及本轮引用。"""
@@ -152,45 +164,52 @@ class Executor:
         if entity_type == "school":
             if policy["project_scope"]["mode"] != "all_school":
                 raise DataError("SCOPE_FORBIDDEN")
-            return {"candidates": [{"name": "已授权学校范围", "scope_ref": self._scope_ref(source_key, domain, None, policy)}]}
+            return {"candidates": [{"name": self._school_name(policy, tenant),
+                "scope_ref": self._scope_ref(source_key, domain, None, policy, tenant)}
+                for tenant in policy['authorized_tenants']]}
         _, catalog = self.catalog.domain(source_key, domain)
         definition = catalog.get("entities", {}).get(entity_type)
         if not definition:
             raise DataError("ENTITY_UNSUPPORTED")
+        parent = self.scope(source_key, domain, parent_ref) if parent_ref else None
         if entity_type in {"project", "task_project"}:
             projects = policy["project_scope"].get("project_ids", [None])
         else:
-            projects = [self.scope(source_key, domain, parent_ref)["project_id"]]
+            if not parent:
+                raise DataError('SCOPE_FORBIDDEN')
+            projects = [parent['project_id']]
+        tenants = [parent['tenant_id']] if parent else policy['authorized_tenants']
         candidates = []
         with self.connections.snapshot(connection) as db:
-            for project in projects:
-                params = dict(parameters or {})
-                spec = self.catalog.spec(source_key, domain, definition["query_id"])
-                if "name_pattern" in spec["parameters"]:
-                    params["name_pattern"] = f"%{query}%" if query else None
-                rows, complete = self._fixed_rows(source_key, domain, spec, params, project, {}, db, set())
-                if not complete:
-                    raise DataError("RESULT_INCOMPLETE")
-                for row in rows:
-                    name = row.get(definition["name_field"])
-                    if query and query.casefold() not in str(name).casefold():
-                        continue
-                    if len(candidates) >= 100:
-                        raise DataError("ENTITY_SEARCH_TOO_BROAD")
-                    reference = "entity_" + token_urlsafe(18)
-                    self.entities[reference] = {"source_key": source_key, "domain": domain,
-                        "project_id": row.get("project_id", project), "value": row[definition["id_field"]],
-                        "parameter": definition["parameter"], "access": policy["fingerprint"]}
-                    item = {"name": name, "entity_ref": reference}
-                    if entity_type in {"project", "task_project"}:
-                        item["scope_ref"] = self._scope_ref(source_key, domain, row[definition["id_field"]], policy)
-                    for field in definition.get("context_fields", []):
-                        item[field] = row.get(field)
-                    candidates.append(item)
+            for tenant in tenants:
+                for project in projects:
+                    params = dict(parameters or {})
+                    spec = self.catalog.spec(source_key, domain, definition["query_id"])
+                    if "name_pattern" in spec["parameters"]:
+                        params["name_pattern"] = f"%{query}%" if query else None
+                    rows, complete = self._fixed_rows(source_key, domain, spec, params, project, {}, db, set(), tenant)
+                    if not complete:
+                        raise DataError("RESULT_INCOMPLETE")
+                    for row in rows:
+                        name = row.get(definition["name_field"])
+                        if query and query.casefold() not in str(name).casefold():
+                            continue
+                        if len(candidates) >= 100:
+                            raise DataError("ENTITY_SEARCH_TOO_BROAD")
+                        reference = "entity_" + token_urlsafe(18)
+                        self.entities[reference] = {"source_key": source_key, "domain": domain,
+                            "project_id": row.get("project_id", project), "value": row[definition["id_field"]],
+                            "parameter": definition["parameter"], "tenant_id": tenant, "access": policy["fingerprint"]}
+                        item = {"name": name, "entity_ref": reference, "school": self._school_name(policy, tenant)}
+                        if entity_type in {"project", "task_project"}:
+                            item["scope_ref"] = self._scope_ref(source_key, domain, row[definition["id_field"]], policy, tenant)
+                        for field in definition.get("context_fields", []):
+                            item[field] = row.get(field)
+                        candidates.append(item)
         return {"candidates": candidates, "status": "no_data" if not candidates else
                 "ambiguous" if len(candidates) > 1 else "resolved"}
 
-    def _fixed_rows(self, source_key, domain, spec, parameters, project, entity_refs, db, stack):
+    def _fixed_rows(self, source_key, domain, spec, parameters, project, entity_refs, db, stack, tenant_id):
         """注入可信身份与对象，校验依赖和 SQL 后执行固定查询。"""
         _, policy, connection = self.access(source_key)
         allowed = domain_policy(policy, domain, spec["id"])
@@ -210,13 +229,14 @@ class Executor:
             if definition.get("origin") == "authorized_context":
                 if name != "tenant_id":
                     raise DataError("PARAMETERS_INVALID")
-                values[name] = policy["business_tenant_id"]
+                values[name] = tenant_id
             elif definition.get("origin") == "authorized_resolution":
                 values[name] = project if name == "project_id" else None
                 if name in entity_refs:
                     entity = self.entities.get(entity_refs[name])
                     if (not entity or entity["source_key"] != source_key or entity["domain"] != domain
                             or entity["parameter"] != name or entity["project_id"] != project
+                            or entity['tenant_id'] != tenant_id
                             or entity["access"] != policy["fingerprint"]):
                         raise DataError("ENTITY_FORBIDDEN")
                     values[name] = entity["value"]
@@ -224,7 +244,8 @@ class Executor:
         for dependency in spec.get("requires_queries", []):
             child = self.catalog.spec(source_key, domain, dependency)
             params = {k: v for k, v in parameters.items() if k in child["parameters"]}
-            rows, complete = self._fixed_rows(source_key, domain, child, params, project, {}, db, stack | {spec["id"]})
+            rows, complete = self._fixed_rows(source_key, domain, child, params, project, {}, db,
+                                               stack | {spec["id"]}, tenant_id)
             if not complete:
                 raise DataError("DEPENDENCY_INCOMPLETE")
             for check in spec.get("checks", []):
@@ -235,7 +256,9 @@ class Executor:
                 ):
                     raise DataError("DEPENDENCY_CHECK_FAILED")
         sql = self.catalog.sql(source_key, domain, spec)
-        validate_sql(sql, allowed)
+        sql, filtered = bind_tenant(validate_sql(sql, allowed), allowed)
+        if filtered:
+            values[TENANT_PARAMETER] = tenant_id
         return self._rows(db, sql, values, connection, spec["output"])
 
     def _rows(self, db, sql, values, connection, output=None):
@@ -272,7 +295,7 @@ class Executor:
         spec = self.catalog.spec(source_key, domain, query_id)
         with (nullcontext(db) if db is not None else self.connections.snapshot(connection)) as active:
             rows, complete = self._fixed_rows(source_key, domain, spec, parameters,
-                                              scope["project_id"], entity_refs or {}, active, set())
+                                              scope["project_id"], entity_refs or {}, active, set(), scope['tenant_id'])
         metadata = {"source_key": source_key, "domain": domain, "query_id": query_id,
                     "query_version": spec["version"], "asset_revision": self._versions[source_key],
                     "scope_ref": scope_ref, "parameters": parameters, "access": policy["fingerprint"],
@@ -283,12 +306,11 @@ class Executor:
         return self.results.page(reference)
 
     def execute_readonly_sql(self, source_key, domain, sql, parameters, purpose, scope_ref):
-        """仅在数据库已强制隔离授权范围时执行受限只读 SQL。"""
+        """先按所选学校过滤物理表，再执行受限只读 SQL。"""
         _, policy, connection = self.access(source_key)
         scope = self.scope(source_key, domain, scope_ref)
         allowed = domain_policy(policy, domain)
-        # Deployment attests that the account/views enforce the entire policy
-        # scope. Model WHERE clauses are never used as an authorization boundary.
+        # 项目范围仍须由部署隔离；学校范围由可信 AST 改写强制约束。
         if (policy.get("dynamic_sql_enabled") is not True
                 or connection.get("database_scope_enforced") is not True
                 or connection.get("scope_source_key") != source_key):
@@ -297,15 +319,23 @@ class Executor:
         if not ((policy["project_scope"]["mode"] == "all_school" and scope["project_id"] is None)
                 or (len(selected) == 1 and scope["project_id"] == selected[0])):
             raise DataError("DYNAMIC_SCOPE_NOT_ENFORCED")
-        if any(isinstance(v, (dict, list)) for v in parameters.values()) or len(parameters) > 100:
+        if (TENANT_PARAMETER in parameters
+                or any(isinstance(v, (dict, list)) for v in parameters.values()) or len(parameters) > 100):
             raise DataError("PARAMETERS_INVALID")
         tree = validate_sql(sql, allowed, dynamic=True)
+        from sqlglot import exp
+        if any(node.this == TENANT_PARAMETER for node in tree.find_all(exp.Placeholder)):
+            raise DataError('PARAMETERS_INVALID')
         names = [selection.alias_or_name for selection in tree.selects]
         if any(not name for name in names) or len(names) != len(set(names)):
             raise DataError("OUTPUT_ALIAS_REQUIRED")
         output = [{"name": name} for name in names]
+        bound_sql, filtered = bind_tenant(tree, allowed)
+        values = dict(parameters)
+        if filtered:
+            values[TENANT_PARAMETER] = scope['tenant_id']
         with self.connections.snapshot(connection) as db:
-            rows, complete = self._rows(db, sql, parameters, connection, output)
+            rows, complete = self._rows(db, bound_sql, values, connection, output)
         reference = self.results.save(rows, {"source_key": source_key, "domain": domain,
             "access": policy["fingerprint"],
             "scope_ref": scope_ref, "complete": complete, "dynamic": True,

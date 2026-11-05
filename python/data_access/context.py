@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import hashlib
 import json
+import base64
+import re
 
 
 class DataError(ValueError):
@@ -19,6 +21,27 @@ def fingerprint(value) -> str:
                                     default=str).encode()).hexdigest()
 
 
+def business_tenant(credentials):
+    """只提取 Java 认证后透传的业务租户；本地解码不替代 Java 的业务鉴权。"""
+    token = (credentials or {}).get('platformBearer')
+    if token is None:
+        return None
+    try:
+        parts = token.split('.')
+        if len(parts) != 3 or any(not re.fullmatch(r'[A-Za-z0-9_-]+', part) for part in parts):
+            raise ValueError
+        header, claims = [json.loads(base64.urlsafe_b64decode(part + '=' * (-len(part) % 4)))
+                          for part in parts[:2]]
+        if not isinstance(header, dict) or not header.get('alg') or header['alg'].lower() == 'none':
+            raise ValueError
+        tenant = claims.get('tenantId')
+        if not isinstance(tenant, str) or not tenant.strip() or tenant.strip() in {'*', 'self', 'default'}:
+            raise ValueError
+        return tenant.strip()
+    except (ValueError, TypeError, AttributeError, UnicodeError):
+        raise DataError('BUSINESS_IDENTITY_INVALID') from None
+
+
 @dataclass(frozen=True)
 class DataContext:
     run_id: str
@@ -27,6 +50,7 @@ class DataContext:
     capability_ref: str
     run_directory: Path
     template_key: str | None = None
+    data_tenant_id: str | None = None
 
     @classmethod
     def from_payload(cls, payload):
@@ -39,9 +63,10 @@ class DataContext:
         directory = payload.get("_data_run_directory")
         if not directory:
             raise DataError("RUN_DIRECTORY_REQUIRED")
-        return cls(*values, Path(directory).resolve(), payload.get("_template_key"))
+        return cls(*values, Path(directory).resolve(), payload.get("_template_key"),
+                   business_tenant(payload.get('credentials')))
 
     @property
     def owner(self):
         """生成绑定 Run、租户、用户与能力的结果归属指纹。"""
-        return fingerprint([self.run_id, self.tenant_id, self.user_id, self.capability_ref])
+        return fingerprint([self.run_id, self.tenant_id, self.user_id, self.capability_ref, self.data_tenant_id])

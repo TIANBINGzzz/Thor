@@ -90,7 +90,7 @@ def create_data_server(services):
         ("resolve_entities", "取得本轮授权范围或查找业务对象，返回 scope_ref/entity_ref；多候选须消歧。", {**SOURCE,
             "entity_type": {**REFERENCE, "enum": sorted(entity_types), "description": (
                 "school=当前已授权学校范围（仅 all_school 可用），不是按校名搜索；"
-                "project=有效项目，task_project=按任务口径定位项目；"
+                "多个学校分别返回范围引用；project=有效项目，task_project=按任务口径定位项目；"
                 "task=任务，performance=绩效指标，department=部门。仅可使用枚举内且当前来源已登记的类型。"
             )},
             "query": {"type": "string", "maxLength": 200, "description": (
@@ -98,8 +98,8 @@ def create_data_server(services):
                 "其他类型传名称片段，不限定名称时传空字符串，不能任取多候选中的第一条。"
             )},
             "parent_ref": {**REFERENCE, "description": (
-                "task/performance/department 使用已定位项目的 scope_ref；"
-                "school/project/task_project 省略，不填 entity_ref。"
+                "task/performance/department使用已定位项目的scope_ref；"
+                "project/task_project可传学校scope_ref限定学校，省略时搜索全部授权学校；school省略。不填entity_ref。"
             )},
             "parameters": {**PARAMETERS, "description": (
                 "对象查询所需的业务筛选参数（如 year）；字段和取值遵循已登记查询定义，不传租户或内部ID。"
@@ -122,7 +122,7 @@ def create_data_server(services):
                 "需要指定对象时，使用参数名到本轮 entity_ref 的映射；不要传真实内部ID。"
             )}},
             [*SOURCE, "query_id", "parameters", "scope_ref"], call("execute_query_spec")),
-        ("execute_readonly_sql", "执行授权只读SQL；仅在数据库侧已隔离数据范围时开放。all_school授权须使用school范围引用，SQL业务条件可进一步筛选项目；项目范围引用仅适用于部署已隔离到唯一项目。不得为通过校验扩大授权。", {**SOURCE,
+        ("execute_readonly_sql", "执行授权只读SQL；执行器强制每个物理表只查询scope_ref对应学校。all_school须用school范围引用；项目范围引用仅适用于部署已隔离到唯一项目。不得混合学校或扩大授权。", {**SOURCE,
             "sql": {"type": "string", "minLength": 1, "maxLength": 60000}, "parameters": PARAMETERS,
             "purpose": STRING, "scope_ref": SCOPE_REFERENCE}, [*SOURCE, "sql", "parameters", "purpose", "scope_ref"], call("execute_readonly_sql")),
         ("read_query_result", "读取当前Run内同一物化结果的下一页，不重复查询。",

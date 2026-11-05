@@ -23,7 +23,7 @@ class DatabaseConfigTests(unittest.TestCase):
     def test_valid_config_is_checked_offline_without_revealing_credentials(self):
         config = {"version": 1, "sources": {"example": {
             "connection": {"host": "unreachable.invalid", "password": "private-db-password"},
-            "policy": {"tenant_id": "example"}}}}
+            "policy": {"tenant_id": ["self"]}}}}
         result = self.check(json.dumps(config))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), {"status": "ok", "sources_checked": 1})

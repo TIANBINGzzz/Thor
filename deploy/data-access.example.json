@@ -2,7 +2,7 @@
   "sources": {
     "schoolDoubleHigh": {
       "connection": {
-        "tenant_id": "SET_VERIFIED_JWT_TENANT",
+        "tenant_id": "*",
         "driver": "mysql+pymysql",
         "host": "SET_DATABASE_HOST",
         "port": 3306,
@@ -18,9 +18,7 @@
         "database_scope_enforced": false
       },
       "policy": {
-        "tenant_id": "SET_VERIFIED_JWT_TENANT",
-        "business_tenant_id": "SET_AUTHORIZED_DATABASE_TENANT",
-        "users": [],
+        "tenant_id": ["self"],
         "capabilities": [
           "national-excellence-data-qa",
           "document-writing"

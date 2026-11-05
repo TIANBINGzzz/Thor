@@ -7,6 +7,48 @@ from sqlglot.optimizer.scope import traverse_scope
 
 from .context import DataError
 
+TENANT_PARAMETER = '_tenant_scope'
+
+
+def _physical_tables(tree):
+    """核对全部表节点均被作用域解析，不能遗漏分组 JOIN 中的根表。"""
+    physical = []
+    seen = set()
+    for scope in traverse_scope(tree):
+        for node, source in scope.selected_sources.values():
+            if isinstance(source, exp.Table):
+                if id(source) not in seen:
+                    physical.append(source)
+                seen.add(id(source))
+            elif isinstance(node, exp.Table) and source is scope.cte_sources.get(node.name):
+                seen.add(id(node))  # 已解析的 CTE 引用不是物理表。
+    if any(id(table) not in seen for table in tree.find_all(exp.Table)):
+        raise DataError('SQL_INVALID')
+    return physical
+
+
+def bind_tenant(tree, policy):
+    """先过滤每个物理表再执行原查询，覆盖 JOIN、CTE、子查询和 UNION。"""
+    tree = tree.copy()
+    physical = _physical_tables(tree)
+    # 从内向外改写；分组 JOIN 保留在表过滤之后，避免复制未约束的子表。
+    for table in sorted(physical, key=lambda node: node.depth, reverse=True):
+        column = policy['tenant_column']
+        if column not in policy['tables'].get(table.name, {}):
+            raise DataError('TENANT_SCOPE_NOT_ENFORCED')
+        inner = table.copy()
+        inner.set('alias', None)
+        inner.set('joins', None)
+        filtered = exp.select('*').from_(inner).where(
+            exp.EQ(this=exp.column(column), expression=exp.Placeholder(this=TENANT_PARAMETER)))
+        replacement = filtered.subquery(table.alias_or_name)
+        if table.args.get('alias'):
+            replacement.set('alias', table.args['alias'].copy())
+        if table.args.get('joins'):
+            replacement.set('joins', table.args['joins'])
+        table.replace(replacement)
+    return tree.sql(dialect='mysql'), bool(physical)
+
 
 def validate_sql(sql, policy, *, dynamic=False):
     """校验完整只读查询树，限制表、函数及动态查询的内部列输出。"""
@@ -28,11 +70,9 @@ def validate_sql(sql, policy, *, dynamic=False):
         if any(node.args.get("recursive") for node in tree.find_all(exp.With)):
             raise DataError("SQL_RECURSION_FORBIDDEN")
         schema = policy.get("tables", {})
-        for scope in traverse_scope(tree):
-            for _, source in scope.selected_sources.values():
-                if isinstance(source, exp.Table):
-                    if source.db or source.catalog or source.name not in schema:
-                        raise DataError("TABLE_FORBIDDEN")
+        for source in _physical_tables(tree):
+            if source.db or source.catalog or source.name not in schema:
+                raise DataError("TABLE_FORBIDDEN")
         functions = set(policy.get("functions", []))
         for node in tree.find_all(exp.Func):
             if isinstance(node, (exp.And, exp.Or, exp.Exists)):
