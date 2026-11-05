@@ -4,7 +4,6 @@
       "policy": {
         "tenant_id": "*",
         "business_tenant_id": "14183",
-        "revision": 4,
         "users": "all_authenticated",
         "capabilities": [
           "national-excellence-data-qa",
@@ -83,14 +82,12 @@
         "tls": {
           "mode": "disabled"
         },
-        "revision": 2,
         "timeout_seconds": 30,
         "max_rows": 10000,
         "database_scope_enforced": true,
         "username": "root",
         "password": "forXAZP@OjBxWXseDKw$MR0j0765&xV3",
-        "scope_source_key": "schoolDoubleHigh",
-        "scope_policy_revision": 4
+        "scope_source_key": "schoolDoubleHigh"
       }
     }
   },

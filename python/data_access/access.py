@@ -12,7 +12,7 @@ def resolve_data_access(context, source, config, catalog):
     if (policy.get("source_key") != source["source_key"]
             or policy.get("tenant_id") not in ("*", context.tenant_id)
             or context.capability_ref not in policy.get("capabilities", [])
-            or not policy.get("revision") or not policy.get("business_tenant_id")):
+            or not policy.get("business_tenant_id")):
         raise DataError("SOURCE_FORBIDDEN")
     users = policy.get("users", [])
     if users != "all_authenticated" and context.user_id not in users:

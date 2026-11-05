@@ -30,7 +30,7 @@ Capability 在 capability.json 中以 data.access=required/optional 和 data.sou
 - 模型仅调用 `mcp__data__*`，参数用 snake_case；HTTP 仍用 camelCase，schoolDoubleHigh 保持大小写。具体工具 Schema/返回字段以 [data 工具](../../python/tools/data.py) 为准，失败返回 isError 及安全错误码。
 - 按获准来源发现/描述、实体解析、定义检索、查询执行及结果分页使用；scope_ref、entity_ref、result_ref、cursor 仅限所属 Run，不能跨用户或续轮复用。
 - 固定 SQL 使用 SQLGlot 全 AST 检查及 SQLAlchemy 参数绑定，在只读一致性事务中执行；输出顺序须匹配定义。NULL、无记录、0、查询失败及超限截断分别表达。
-- 动态 SQL 另需 dynamic_sql_enabled、database_scope_enforced 及对应来源/策略版本一致；数据库账号/视图必须真正约束全部授权范围，不能靠模型补 WHERE 或机械修改版本号。
+- 动态 SQL 另需 dynamic_sql_enabled、database_scope_enforced 及 scope_source_key 与当前来源一致；数据库账号/视图必须真正约束全部授权范围，修改授权范围后须重新核验，不能靠模型补 WHERE。
 - 动态查询拒绝跨库、写入、锁、星号、系统对象、未知列/函数和内部键输出；值用 :name 绑定。未知历史/评分口径不能因允许动态 SQL 而编造。
 - 结果含来源、域、资产/查询版本、公开参数、采集时间和动态标记，不含身份/连接秘密；物化结果按 Run 隔离，分页不重复执行 SQL。取证完成后不在模型撰写期间保持数据库事务。
 - 取消关闭活动 MySQL socket 或中断 SQLite，连接及执行有预算。Run 内串行、NullPool 无共享连接池；全实例限流、账号总额度和跨库一致性不能由局部限制推导。

@@ -276,7 +276,7 @@ class Executor:
         metadata = {"source_key": source_key, "domain": domain, "query_id": query_id,
                     "query_version": spec["version"], "asset_revision": self._versions[source_key],
                     "scope_ref": scope_ref, "parameters": parameters, "access": policy["fingerprint"],
-                    "connection_revision": connection["revision"], "source_version": source["version"],
+                    "source_version": source["version"],
                     "collected_at": datetime.now(timezone.utc).isoformat(), "complete": complete, "dynamic": False,
                     "semantics": spec.get("semantics", [])}
         reference = self.results.save(rows, metadata, spec["output"])
@@ -291,8 +291,7 @@ class Executor:
         # scope. Model WHERE clauses are never used as an authorization boundary.
         if (policy.get("dynamic_sql_enabled") is not True
                 or connection.get("database_scope_enforced") is not True
-                or connection.get("scope_source_key") != source_key
-                or connection.get("scope_policy_revision") != policy["revision"]):
+                or connection.get("scope_source_key") != source_key):
             raise DataError("DYNAMIC_SQL_FORBIDDEN")
         selected = policy["project_scope"].get("project_ids", [])
         if not ((policy["project_scope"]["mode"] == "all_school" and scope["project_id"] is None)
@@ -308,7 +307,7 @@ class Executor:
         with self.connections.snapshot(connection) as db:
             rows, complete = self._rows(db, sql, parameters, connection, output)
         reference = self.results.save(rows, {"source_key": source_key, "domain": domain,
-            "access": policy["fingerprint"], "connection_revision": connection["revision"],
+            "access": policy["fingerprint"],
             "scope_ref": scope_ref, "complete": complete, "dynamic": True,
             "asset_revision": self._versions[source_key],
             "collected_at": datetime.now(timezone.utc).isoformat(),

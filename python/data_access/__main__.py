@@ -45,7 +45,7 @@ def main():
                 if config is None:
                     raise DataError('CONNECTION_UNAVAILABLE')
                 connection = config['connection']
-                if connection.get('source_key') != source['source_key'] or not connection.get('revision'):
+                if connection.get('source_key') != source['source_key']:
                     raise DataError('CONFIG_INVALID')
                 with Connections().snapshot(connection) as db:
                     db.exec_driver_sql('SELECT 1').fetchone()

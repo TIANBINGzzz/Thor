@@ -43,7 +43,7 @@ def resolve_connection(context, source, config):
     """独立校验来源与租户连接权限，返回本次连接配置副本。"""
     connection = dict(config['connection'])
     # 连接必须单独显式允许所有租户，不能仅凭来源策略放开其他连接。
-    if (not connection.get("revision") or connection.get("source_key") != source["source_key"]
+    if (connection.get("source_key") != source["source_key"]
             or connection.get("tenant_id") not in ("*", context.tenant_id)):
         raise DataError("CONNECTION_FORBIDDEN")
     return connection

@@ -62,9 +62,9 @@ class DataAccessTests(unittest.TestCase):
             db.commit()
             db.close()
             self.config['connections'][source] = {'source_key':source,'tenant_id':'jwt-a','driver':'sqlite',
-                'database':f'{source}.db','revision':1,'timeout_seconds':1,'max_rows':1000}
+                'database':f'{source}.db','timeout_seconds':1,'max_rows':1000}
             self.config['policies'][source] = {'source_key':source,'tenant_id':'jwt-a','business_tenant_id':'business-a',
-                'capabilities':['qa'], 'templates':[], 'users':['u1','u2'],'revision':1,
+                'capabilities':['qa'], 'templates':[], 'users':['u1','u2'],
                 'project_scope':{'mode':'all_school'},'domains':{'sales':{'queries':['total'],
                 'tables':{'sales':{'tenant':'TEXT','amount':'INTEGER','private_id':'TEXT'}},
                 'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant']}}}
@@ -329,7 +329,6 @@ class DataAccessTests(unittest.TestCase):
         self.assertFalse(provenance['dynamic'])
         self.assertIn('collected_at', provenance)
         self.assertNotIn('access', provenance)
-        self.assertNotIn('connection_revision', provenance)
         self.assertNotIn('owner', provenance)
         self.assertEqual(self.executor.results.page(result['result_ref'])['provenance'], provenance)
 
@@ -412,13 +411,13 @@ class DataAccessTests(unittest.TestCase):
         for sql in invalid:
             with self.subTest(sql=sql), self.assertRaises(DataError): validate_sql(sql,policy,dynamic=True)
 
-    def test_dynamic_sql_requires_database_enforced_scope_and_revision(self):
+    def test_dynamic_sql_requires_database_enforced_scope_and_matching_source(self):
         scope = self.school()
         with self.assertRaisesRegex(DataError,'DYNAMIC_SQL_FORBIDDEN'):
             self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',scope)
         policy = self.config['policies']['first']
         policy['dynamic_sql_enabled']=True
-        self.config['connections']['first'].update(database_scope_enforced=True,scope_source_key='first',scope_policy_revision=1)
+        self.config['connections']['first'].update(database_scope_enforced=True,scope_source_key='first')
         self.executor=self.make_executor()
         # Test account visibility is reduced to the approved business tenant.
         db = sqlite3.connect(self.root/'first.db')
@@ -427,7 +426,7 @@ class DataAccessTests(unittest.TestCase):
         scope=self.school()
         result=self.executor.execute_readonly_sql('first','sales','SELECT SUM(amount) AS n FROM sales WHERE amount > :minimum',{'minimum':0},'test',scope)
         self.assertEqual(result['rows'],[{'n':10}])
-        policy['revision']=2
+        self.config['connections']['first']['scope_source_key']='second'
         self.executor=self.make_executor()
         with self.assertRaises(DataError):
             self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',self.school())
