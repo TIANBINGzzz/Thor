@@ -82,16 +82,16 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         failures = []
         tool = self.operation_tools(service, on_error=lambda: failures.append(True))['execute_query_plan']
         await tool.handler({'subject': 'current_school', 'items': [
-            {'item_id': 'bad', 'indicator_code': 'unknown'}]})
+            {'item_id': 'bad', 'indicator_code': 'unknown', 'scopes': ['indicator_value']}]})
         self.assertEqual(failures, [])
         service._request = AsyncMock(return_value={'success': True, 'data': None})
         result = await tool.handler({'subject': 'current_school', 'items': [
-            {'item_id': 'empty', 'indicator_code': 'hydss', 'year': 2024}]})
+            {'item_id': 'empty', 'indicator_code': 'hydss', 'year': 2024, 'scopes': ['indicator_value']}]})
         self.assertNotIn('isError', result)
         self.assertEqual(failures, [])
         service._request = AsyncMock(side_effect=RuntimeError('private upstream'))
         result = await tool.handler({'subject': 'current_school', 'items': [
-            {'item_id': 'failed', 'indicator_code': 'hydss'}]})
+            {'item_id': 'failed', 'indicator_code': 'hydss', 'scopes': ['indicator_value']}]})
         self.assertNotIn('isError', result)
         self.assertEqual(failures, [True])
 
@@ -110,10 +110,10 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(return_value={'success': True, 'data': None})
         with self.assertRaisesRegex(ValueError, '查询参数不符合已开通范围'):
             await service.call('get_indicator_metrics', {
-                'payload': {'indicator_code': 'hydss', 'year': 2023}})
+                'payload': {'indicator_code': 'hydss', 'year': 2023, 'scopes': ['indicator_value']}})
         service._request.assert_not_awaited()
         result = await service.call('get_indicator_metrics', {
-            'payload': {'indicator_code': 'hydss', 'year': 2024}})
+            'payload': {'indicator_code': 'hydss', 'year': 2024, 'scopes': ['indicator_value']}})
         self.assertTrue(result['success'])
 
     def test_attachments_only_mount_scoped_reader(self):
@@ -290,21 +290,21 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(side_effect=RuntimeError('upstream'))
         for year in range(2000, 2010):
             with self.assertRaises(RuntimeError):
-                await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'year': year}})
+                await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'year': year, 'scopes': ['indicator_value']}})
         with self.assertRaises(ValueError):
-            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'year': 2010}})
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'year': 2010, 'scopes': ['indicator_value']}})
         self.assertEqual(service._request.await_count, 10)
         service.bind({'platformBearer': 'test-secret'})
         with self.assertRaises(RuntimeError):
             await service.call('get_school_info', {'payload': {}})
         with self.assertRaises(ValueError):
-            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss'}})
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'scopes': ['indicator_value']}})
 
     async def test_query_plan_rejects_over_budget_before_any_remote_call(self):
         service = self.service()
         service._request = AsyncMock()
         items = [
-            {'item_id': str(index), 'indicator_code': 'hydss', 'year': 2010 + index}
+            {'item_id': str(index), 'indicator_code': 'hydss', 'year': 2010 + index, 'scopes': ['indicator_value']}
             for index in range(11)
         ]
         with self.assertRaisesRegex(ValueError, '整题查询计划超过本轮预算'):
@@ -331,8 +331,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock()
         with self.assertRaisesRegex(ValueError, '查询计划项标识重复'):
             await service.execute_plan({'subject': 'current_school', 'items': [
-                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2024},
-                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2025},
+                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2024, 'scopes': ['indicator_value']},
+                {'item_id': 'same', 'indicator_code': 'hydss', 'year': 2025, 'scopes': ['indicator_value']},
             ]})
         service._request.assert_not_awaited()
 
@@ -347,8 +347,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
 
         service._request = AsyncMock(side_effect=request)
         result = await service.execute_plan({'subject': 'current_school', 'items': [
-            {'item_id': 'ok', 'indicator_code': 'hydss', 'year': 2025},
-            {'item_id': 'failed', 'indicator_code': 'hydss', 'year': 2024},
+            {'item_id': 'ok', 'indicator_code': 'hydss', 'year': 2025, 'scopes': ['indicator_value']},
+            {'item_id': 'failed', 'indicator_code': 'hydss', 'year': 2024, 'scopes': ['indicator_value']},
         ]})
         self.assertEqual([item['item_id'] for item in result['items']], ['ok', 'failed'])
         self.assertEqual(result['items'][0]['status'], 'success')
@@ -501,7 +501,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(rows[0]['definition_conflict'])
         service._request = AsyncMock()
         with self.assertRaisesRegex(ValueError, '定义冲突'):
-            await service.call('get_indicator_metrics', {'payload': {'indicator_code': rows[0]['code'], 'year': 2023}})
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': rows[0]['code'], 'year': 2023, 'scopes': ['indicator_value']}})
         service._request.assert_not_called()
 
     async def test_numeric_fields_cannot_smuggle_text_or_boolean_identity(self):
@@ -509,7 +509,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(return_value={'success': True, 'data': {
             'indicator_value': '{"school_name":"外校","value":99}', 'rank': False}})
         with self.assertRaises(RuntimeError):
-            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss'}})
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'scopes': ['indicator_value']}})
         service.bind({'platformBearer': 'test-secret'})
         service._request.return_value = {'success': True, 'data': {'school_id': True, 'school_name': 42}}
         with self.assertRaises(RuntimeError):
@@ -540,7 +540,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(MCPAuthError):
             await service.call('get_school_info', {'payload': {}})
         with self.assertRaises(ValueError):
-            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss'}})
+            await service.call('get_indicator_metrics', {'payload': {'indicator_code': 'hydss', 'scopes': ['indicator_value']}})
         self.assertIsNone(service._school_id)
         self.assertEqual(service._request.await_count, 1)
 

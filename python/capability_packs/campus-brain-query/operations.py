@@ -115,13 +115,99 @@ class CampusQuery:
         self._binding = MCPArgumentBinding('campus', credentials)
 
     def clear(self):
-        """清除凭据绑定、本校身份和本轮去重记录及调用计数。"""
+        """清除凭据、身份和本轮结果；Client 复用不能复用上轮数据。"""
         if getattr(self, '_binding', None):
             self._binding.clear()
         self._seen = set()
+        self._indicator_results = {}
+        self._latest_years = {}
         self._calls = 0
         self._school_id = None
         self._identity_failed = False
+
+    def _indicator_state(self, payload):
+        """按本轮已查统计项判断补查范围；最新值补查须固定已返回年份。"""
+        year = payload.get('year', self._latest_years.get(payload['indicator_code']))
+        key = (payload['indicator_code'], year)
+        state = self._indicator_results.get(key)
+        missing = [scope for scope in payload['scopes']
+                   if state is None or scope not in state['attempted']]
+        if state is not None and year is None and missing:
+            raise CampusInputError('首次查询未返回年份，不能猜测年份补查；请明确查询年份')
+        return key, state, missing
+
+    async def _query_indicator(self, payload, rule):
+        key, state, missing = self._indicator_state(payload)
+        if missing:
+            if self._calls >= self.assets['config']['max_calls']:
+                raise CampusInputError('本轮业务查询预算已用完，不能继续补查')
+            if state is None:
+                state = {'attempted': set(), 'failed': set(), 'values': {}, 'year': key[1]}
+                self._indicator_results[key] = state
+            # 在请求前登记尝试；上游失败、空结果均不能通过重排 scopes 自动重试。
+            state['attempted'].update(missing)
+            state['failed'].update(missing)
+            self._calls += 1
+            try:
+                state = await self._load_indicator_scopes(payload, rule, key, state, missing)
+            except Exception:
+                # 补查失败仍可返回本次请求的已成功项；失败范围留在 state，禁止重试。
+                if not any(state['values'].get(scope) for scope in payload['scopes']):
+                    raise
+        result = {}
+        for scope in payload['scopes']:
+            value = state['values'].get(scope)
+            if value:
+                result.update({k: v for k, v in value.items() if k != 'scoped_metrics'})
+                if 'scoped_metrics' in value:
+                    result.setdefault('scoped_metrics', []).extend(value['scoped_metrics'])
+        if result and state['year'] is not None:
+            result['year'] = state['year']
+        if not result and any(scope in state['failed'] for scope in payload['scopes']):
+            raise RuntimeError('所请求统计项此前查询失败，本轮不自动重试')
+        return {'success': True, 'data': deepcopy(result) if result else None}
+
+    async def _load_indicator_scopes(self, payload, rule, key, state, missing):
+        """请求新增统计项，校验实际年份后合并本轮证据。"""
+        request = {**payload, 'scopes': missing}
+        if key[1] is not None:
+            request['year'] = key[1]
+        data = await self._fetch('get_indicator_metrics', request, rule)
+        year = data.get('year') if data else None
+        if year is not None:
+            if type(year) not in (int, float) or not 1000 <= year <= 9999 or int(year) != year:
+                raise RuntimeError('上游返回年份无效')
+            year = int(year)
+            if key[1] is not None and year != key[1]:
+                raise RuntimeError('上游返回年份与本次查询不一致')
+        year = key[1] if year is None else year
+        state['year'] = year
+        for scope in missing:
+            value = {}
+            if data:
+                if data.get(scope) is not None:
+                    value = {scope: data[scope], **{k: data[k] for k in (
+                        'rank_type', 'school_count', 'cohort_size', 'percentile') if k in data}}
+                scoped = [r for r in data.get('scoped_metrics', [])
+                          if r['scope'] == scope and r.get('value') is not None]
+                if scoped:
+                    value['scoped_metrics'] = scoped
+            state['values'][scope] = value or None
+        state['failed'].difference_update(missing)
+        if payload.get('year') is None and year is not None:
+            # 最新查询与其实际年份共享结果；已查项保留首次证据，避免覆盖。
+            target = self._indicator_results.setdefault((key[0], year), state)
+            if target is not state:
+                for scope in state['attempted'] - target['attempted']:
+                    target['attempted'].add(scope)
+                    if scope in state['failed']:
+                        target['failed'].add(scope)
+                    else:
+                        target['values'][scope] = state['values'][scope]
+                state = target
+            self._latest_years[key[0]] = year
+            self._indicator_results[key] = state
+        return state
 
     def search(self, arguments):
         """检索本地登记词表并分页返回候选，文字命中不代表身份确认。"""
@@ -175,6 +261,8 @@ class CampusQuery:
             raise CampusInputError('查询参数无效')
         rule = rules[name]
         payload = arguments['payload']
+        if name == 'get_indicator_metrics' and isinstance(payload, dict) and 'scopes' not in payload:
+            raise CampusInputError('本校及预置群体查询必须显式填写 scopes；只查本校用 indicator_value')
         if not Draft202012Validator(rule['schema']).is_valid(payload):
             raise CampusInputError('查询参数不符合已开通范围，请核对指标、年份和学校数量')
         if rule.get('catalog'):
@@ -191,6 +279,8 @@ class CampusQuery:
             known = {r['code'] for r in self.assets['catalogs']['schools']}
             if self._school_id in payload['schools'] or not set(payload['schools']) <= known:
                 raise CampusInputError('参照组须剔除本校，学校编码必须来自目录')
+        if name == 'get_indicator_metrics':
+            return await self._query_indicator(payload, rule)
         key = (name, payload.get('indicator_code'), payload.get('year'))
         if key in self._seen or self._calls >= self.assets['config']['max_calls']:
             raise CampusInputError('本轮已查询该组合或超出调用预算，不能重复试查')
@@ -198,12 +288,20 @@ class CampusQuery:
         self._calls += 1
         if name == 'get_school_info':
             self._identity_failed = True
+        safe = await self._fetch(name, payload, rule)
+        if name == 'get_school_info' and safe:
+            self._school_id = str(safe['school_id'])
+            self._identity_failed = False
+        return {'success': True, 'data': safe}
+
+    async def _fetch(self, name, payload, rule):
+        """只在真实调用时注入凭据，并在保存结果前过滤上游字段。"""
         result = await self._request(name, self._binding.inject({'action': 'query', 'payload': payload}))
         if not isinstance(result, dict) or result.get('success') is not True or result.get('failed') is True:
             raise RuntimeError('上游查询失败')
         data = result.get('data')
         if data is None:
-            return {'success': True, 'data': None}
+            return None
         if not isinstance(data, dict):
             raise RuntimeError('上游结果结构尚不支持')
         # 不允许外校明细借字符串数值字段穿过边界。
@@ -216,7 +314,7 @@ class CampusQuery:
         else:
             safe = {k: _statistic(k, v) for k, v in data.items() if k in rule['output_fields']}
         if name == 'get_indicator_metrics' and isinstance(data.get('scoped_metrics'), list):
-            requested = payload.get('scopes', ['indicator_value'])
+            requested = payload['scopes']
             safe['scoped_metrics'] = []
             for item in data['scoped_metrics']:
                 if not isinstance(item, dict) or item.get('scope') not in requested:
@@ -228,15 +326,14 @@ class CampusQuery:
         if name == 'get_school_info':
             if not safe.get('school_id') or not safe.get('school_name'):
                 raise RuntimeError('学校身份无法识别')
-            self._school_id = str(safe['school_id'])
-            self._identity_failed = False
         elif data and not safe:
             raise RuntimeError('上游结果结构尚不支持')
-        return {'success': True, 'data': safe}
+        return safe
 
     async def execute_plan(self, arguments):
-        """一次校验并执行本题计划，避免模型逐项调用造成预算和学校组漂移。"""
+        """先校验计划与真实调用预算；允许预置统计补项，保持常模学校组约束。"""
         async with self._lock:
+            self._binding.inject({})
             if not isinstance(arguments, dict) or set(arguments) - {'subject', 'schools', 'items'}:
                 raise CampusInputError('查询计划格式无效')
             subject = arguments.get('subject')
@@ -274,6 +371,8 @@ class CampusQuery:
                     tool = 'get_norm_metrics'
                 else:
                     tool = 'get_indicator_metrics'
+                    if 'scopes' not in item:
+                        raise CampusInputError('本校及预置群体查询必须显式填写 scopes；请一次列全所需统计项')
                 payload = {'indicator_code': code}
                 if 'year' in item:
                     payload['year'] = item['year']
@@ -288,12 +387,18 @@ class CampusQuery:
                 if not records or any(r['definition_conflict'] for r in records):
                     raise CampusInputError('查询计划项的指标口径无法确认')
                 key = (tool, code, payload.get('year'))
-                if key in seen_plan or key in self._seen:
+                if tool == 'get_indicator_metrics':
+                    indicator_key = self._indicator_state(payload)[0]
+                    key = (tool, *indicator_key)
+                if key in seen_plan or tool != 'get_indicator_metrics' and key in self._seen:
                     raise CampusInputError('查询计划包含重复组合')
                 seen_plan.add(key)
                 normalized.append((item_id, tool, payload))
             identity_needed = 1 if group is not None and not self._school_id else 0
-            if self._calls + len(normalized) + identity_needed > self.assets['config']['max_calls']:
+            calls_needed = sum(bool(self._indicator_state(payload)[2])
+                               if tool == 'get_indicator_metrics' else 1
+                               for _, tool, payload in normalized)
+            if self._calls + calls_needed + identity_needed > self.assets['config']['max_calls']:
                 raise CampusInputError('整题查询计划超过本轮预算')
             if group is not None and not self._school_id:
                 try:
@@ -311,13 +416,22 @@ class CampusQuery:
                 try:
                     value = await self._call_locked(tool, {'payload': payload})
                     data = value.get('data')
-                    results.append({'item_id': item_id, 'status': 'empty' if data is None else 'success',
-                                    **({'data': data} if data is not None else {})})
+                    item = {'item_id': item_id, 'status': 'empty' if data is None else 'success',
+                            **({'data': data} if data is not None else {})}
+                    if tool == 'get_indicator_metrics':
+                        _, state, _ = self._indicator_state(payload)
+                        for field, scopes in (
+                                ('failed_scopes', [s for s in payload['scopes'] if s in state['failed']]),
+                                ('empty_scopes', [s for s in payload['scopes']
+                                                  if s not in state['failed'] and not state['values'].get(s)])):
+                            if scopes:
+                                item[field] = scopes
+                    results.append(item)
                 except CampusInputError:
                     raise
                 except Exception:
                     results.append({'item_id': item_id, 'status': 'failed'})
-            complete = all(item['status'] != 'failed' for item in results)
+            complete = all(item['status'] != 'failed' and not item.get('failed_scopes') for item in results)
             return {'items': results, 'planned': len(normalized),
                     'executed': len(results), 'complete': complete,
                     'status': 'completed' if complete else 'partial'}
@@ -346,7 +460,7 @@ async def get_norm_metrics(context, arguments):
 async def execute_query_plan(context, arguments):
     result = await context.services.require('campus').execute_plan(arguments)
     if result.get('status') == 'blocked' or any(
-            item.get('status') == 'failed' for item in result.get('items', [])):
+            item.get('status') == 'failed' or item.get('failed_scopes') for item in result.get('items', [])):
         _notify_mcp_error(context.mcp_error_sink, {
             'stage': 'capability_operation',
             'operation': 'execute_query_plan',

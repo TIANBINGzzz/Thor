@@ -7,7 +7,7 @@
     {
       "ref": "execute_query_plan",
       "displayKey": "data.query",
-      "description": "执行整题校园问数计划。先完成指标、年份和学校组计划，再一次提交全部查询项；计划执行后只依据返回的成功或失败证据回答。",
+      "description": "执行整题校园问数计划，优先一次提交全部指标、年份和统计项。本校/预置群体必须显式填写scopes；漏项可在本轮预算内补查新scopes，已查项复用结果。常模使用完整schools且不得传scopes。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -16,6 +16,7 @@
             "enum": ["current_school", "norm_group"]
           },
           "schools": {
+            "description": "仅常模计划传完整学校编码列表；current_school 必须省略此字段。",
             "type": "array",
             "items": {"type": "string", "minLength": 1},
             "uniqueItems": true
@@ -30,7 +31,18 @@
                 "item_id": {"type": "string", "minLength": 1, "maxLength": 64},
                 "indicator_code": {"type": "string", "minLength": 1},
                 "year": {"type": "integer", "minimum": 1000, "maximum": 9999},
-                "scopes": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+                "scopes": {
+                  "description": "本校值及预置群体所需统计项；只查本校也必须填写indicator_value，多个统计项一次列全。常模不得填写。",
+                  "type": "array",
+                  "items": {"type": "string", "enum": [
+                    "indicator_value", "province_rank", "province_median", "national_median",
+                    "same_type_rank", "same_type_median", "national_double_high_median",
+                    "province_double_high_median", "national_double_high_simulated_rank",
+                    "province_double_high_simulated_rank", "private_median"
+                  ]},
+                  "minItems": 1,
+                  "uniqueItems": true
+                },
                 "schools": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
               },
               "required": ["item_id", "indicator_code"],
@@ -213,6 +225,7 @@
                 "maximum": 9999
               },
               "scopes": {
+                "description": "显式列出所需本校值和预置群体统计；只查本校传indicator_value。",
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -235,7 +248,8 @@
               }
             },
             "required": [
-              "indicator_code"
+              "indicator_code",
+              "scopes"
             ],
             "additionalProperties": false
           }
