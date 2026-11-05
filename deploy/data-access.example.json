@@ -13,7 +13,6 @@
           "ca_file": "certificates/schoolDoubleHigh.pem",
           "verify_identity": true
         },
-        "revision": 1,
         "timeout_seconds": 30,
         "max_rows": 10000,
         "database_scope_enforced": false
@@ -21,7 +20,6 @@
       "policy": {
         "tenant_id": "SET_VERIFIED_JWT_TENANT",
         "business_tenant_id": "SET_AUTHORIZED_DATABASE_TENANT",
-        "revision": 1,
         "users": [],
         "capabilities": [
           "national-excellence-data-qa",
