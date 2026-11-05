@@ -3,6 +3,9 @@
   "title": "双高问数",
   "description": "查询国双高项目、任务、资金与绩效",
   "supportsAttachments": true,
+  "auth": {
+    "required": true
+  },
   "skillRefs": [],
   "toolRefs": [
     "data"

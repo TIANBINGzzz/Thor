@@ -21,7 +21,7 @@ LOGGER = logging.getLogger('ccsdk.runtime.assets')
 MAX_BODY_BYTES = 32_000
 # 带文件的模板及工具私有配置由源码/部署管理；管理 API 只组合既有资产。
 MANAGED_FIELDS = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs', 'requiredSkillRefs',
-                  'toolRefs', 'requiredToolRefs', 'runtime', 'execution', 'data'}
+                  'toolRefs', 'requiredToolRefs', 'runtime', 'execution', 'data', 'auth'}
 
 
 def _authorize(request: Request):

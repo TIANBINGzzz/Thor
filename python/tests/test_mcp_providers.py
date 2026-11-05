@@ -13,6 +13,19 @@ from runtime.mcp_auth import inject_mcp_authentication, MCPAuthError
 
 
 class MCPProviderTests(unittest.TestCase):
+    def test_shared_data_does_not_gain_a_global_token_requirement(self):
+        from runtime.tool_catalog import TOOL_CATALOG
+        self.assertFalse(TOOL_CATALOG.resolve('data').auth['required'])
+        instance = object()
+        original = {'data': {'type': 'sdk', 'name': 'data', 'instance': instance}}
+        before = dict(os.environ)
+        self.assertEqual(inject_mcp_authentication(original), original)
+        secured = inject_mcp_authentication(original, {'platformBearer': 'private-business-token'})
+        self.assertEqual(secured, original)
+        self.assertIs(secured['data']['instance'], instance)
+        self.assertNotIn('private-business-token', str(secured))
+        self.assertEqual(dict(os.environ), before)
+
     def catalog(self, root, transport='http'):
         directory = Path(root) / 'new-system'
         directory.mkdir()

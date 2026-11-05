@@ -456,6 +456,31 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertNotIn('trusted-secret-tenant',payload['prompt'])
         self.assertNotIn('trusted-secret-user',payload['prompt'])
 
+    def test_double_high_requires_business_token_before_creating_run(self):
+        body = {**self.body, 'capabilityRef': 'national-excellence-data-qa',
+                'payload': {'auth': {'required': False}}}
+        body.pop('credentials')
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock) as execute:
+            response = self.client.post('/internal/v1/runs', json=body,
+                headers=self.headers('run.execute', capabilityRef=body['capabilityRef']))
+        self.assertEqual(response.status_code, 400)
+        self.assertIsNone(self.store.get_run('run-test'))
+        execute.assert_not_called()
+
+    def test_double_high_business_token_only_enters_private_worker_credentials(self):
+        body = {**self.body, 'capabilityRef': 'national-excellence-data-qa'}
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
+            response = self.client.post('/internal/v1/runs', json=body,
+                headers=self.headers('run.execute', capabilityRef=body['capabilityRef']))
+        self.assertEqual(response.status_code, 202)
+        with patch.object(server, 'DEFAULT_MODEL', 'test-model'):
+            payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name),
+                claims={'tenant': 'tenant-test', 'sub': 'user-test'})
+        self.assertEqual(payload.pop('credentials'), body['credentials'])
+        self.assertNotIn('business-token', json.dumps(payload))
+        self.assertNotIn('business-token', json.dumps(self.store.get_run('run-test')))
+        self.assertNotIn('business-token', response.text)
+
     def test_payload_reaches_query_and_client_prompt_and_binds_retry(self):
         body = {**self.body, "payload": {"reportTitle": "Annual report", "year": 2026,
                                        "sections": [{"name": "Budget", "amount": 120}]}}

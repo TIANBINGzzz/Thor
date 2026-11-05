@@ -70,7 +70,8 @@ class AgentWorkerTests(unittest.TestCase):
             config = load_execution_entry("national-excellence-data-qa")["capability"]
             self.assertEqual(config["data"]["access"], "required")
             self.assertNotIn("data_sources", config)
-            options = build_options({"capability_ref": capability.ref})
+            options = build_options({"capability_ref": capability.ref,
+                                     "credentials": {"platformBearer": "business-token"}})
         self.assertTrue({'Read', 'Write', 'Bash'} <= set(options.tools))
         self.assertEqual(options.skills, [])
         self.assertEqual(options.setting_sources, [])
@@ -78,6 +79,23 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(list(options.mcp_servers), ["data"])
         self.assertEqual(options.allowed_tools, ["mcp__data__*"])
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
+        self.assertNotIn('business-token', str(options))
+
+    def test_double_high_requires_current_token_even_when_assets_are_cached(self):
+        from runtime.mcp_auth import MCPAuthError
+        payload = {'capability_ref': 'national-excellence-data-qa',
+                   'credentials': {'platformBearer': 'current-business-token'}}
+        with patch('runtime.data_services.Executor') as executor:
+            self.assertIsNotNone(create_run_services(payload))
+            payload.pop('credentials')
+            with self.assertRaises(MCPAuthError):
+                create_run_services(payload)
+            executor.assert_not_called()
+
+    def test_writing_can_still_mount_shared_data_without_business_token(self):
+        with patch('runtime.config.data_source_keys', return_value=['schoolDoubleHigh']):
+            services = create_run_services({'capability_ref': 'document-writing'})
+        self.assertEqual(services.source_keys, ('schoolDoubleHigh',))
 
     def test_enabled_capabilities_and_fixed_template_mount_web_search(self):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
@@ -160,7 +178,8 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("本轮database_context由程序", prompt)
         self.assertIn("先find_query_specs", prompt)
         self.assertNotIn("先调用 mcp__data__list_data_sources", prompt)
-        services = create_run_services({'capability_ref': 'national-excellence-data-qa'})
+        services = create_run_services({'capability_ref': 'national-excellence-data-qa',
+                                        'credentials': {'platformBearer': 'business-token'}})
         self.assertEqual(services.context_topics, ['schema', 'relationships', 'business'])
         from data_access.catalog import Catalog
         topics = Catalog().domain("schoolDoubleHigh", "hpm")[1]["documents"]

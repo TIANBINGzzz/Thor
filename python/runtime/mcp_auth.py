@@ -51,6 +51,12 @@ def _credentials_token(credentials: Any) -> str:
     return value.strip()
 
 
+def validate_capability_credentials(entry: Mapping[str, Any], credentials: Any = None) -> None:
+    """按能力 auth.required 校验本轮业务凭据，不改变工具权限或向模型注入。"""
+    if entry.get('auth', {}).get('required') and not _credentials_token(credentials):
+        raise MCPAuthError('能力缺少业务 Token')
+
+
 def inject_mcp_auth(mcp_ref: str, server: Mapping[str, Any], credentials: Any = None) -> dict[str, Any]:
     """接收 MCP 标识、服务配置和请求凭据，返回按登记规则注入 Token 的配置副本。
 

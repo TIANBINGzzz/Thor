@@ -91,7 +91,7 @@ Content-Type: application/json</pre></div>
 <tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；文字、附件、payload 至少一个非空；input 对象仍必填，可以为 {}。</td></tr>
 <tr><td>payload</td><td>object</td><td>否</td><td>省略等同于 {}；当前仅 document-writing 选择预制模板时传 templateKey，不得自行添加字段。参与幂等比较，详见<a href="#business-payload">业务 payload 规范</a>。</td></tr>
 <tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
-<tr><td>credentials.platformBearer</td><td>string</td><td>否</td><td>仅供受信 MCP 使用；不写入 Prompt、事件、日志或 Run 存储。</td></tr>
+<tr><td>credentials.platformBearer</td><td>string</td><td>按能力/工具声明</td><td>能力或工具声明 auth.required=true 时必填；双高问数须提供，文档撰写复用 data 不增加此要求。不写入 Prompt、事件、日志或 Run 存储。</td></tr>
 </tbody></table>
 <p>新 Run 返回 <code>202</code>；相同请求的幂等重提交返回 <code>200</code>。</p>
 <div class="code-wrap"><div class="code-label">Response 202 / 200</div><button class="copy" type="button">复制</button><pre>{
@@ -131,7 +131,7 @@ Content-Type: application/json</pre></div>
 <tr><td>campus-brain-query</td><td>省略或 {}</td><td>校园大脑问数：指标、年份和参照学校写入 input.text；Java从当前认证上下文透传 credentials.platformBearer，浏览器不得指定身份。本版仅文字查询，不接收附件；继续使用标准回答与SSE协议。</td></tr>
 <tr><td>image-generation</td><td>省略或 {}</td><td>图像生成：画面、数量和尺寸写入 input.text，参考图走 input.attachmentRefs；每张PNG独立发布，经artifact.ready返回fileId供授权预览/下载，不返回模型临时URL。Java签发JWT须绑定此能力；未配置生图服务时执行失败。</td></tr>
 <tr><td>chart-generation</td><td>省略或 {}</td><td>图表生成：数据、单位、图表要求写入 input.text；输出为正文中的 Mermaid，见<a href="#mermaid-charts">图表接入</a>。</td></tr>
-<tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>没有专属必填字段。问题、年份和范围要求放 input.text；查询和来源权限由服务端控制。</td></tr>
+<tr><td>national-excellence-data-qa</td><td>省略或 {}</td><td>问题、年份和范围要求放 input.text；Java 须传 credentials.platformBearer，缺失时返回 400。业务 Token 不放 payload；查询和来源权限由服务端控制。</td></tr>
 <tr><td>document-writing：普通撰写</td><td>省略或 {}</td><td>不选择预制模板时不传字段。修改文档或上传模板使用附件引用。</td></tr>
 <tr><td>document-writing：预制模板</td><td><code>{"templateKey": "szpt-midterm"}</code></td><td>templateKey 是当前明确登记并由服务端解析的专属字段。</td></tr>
 </tbody></table>
@@ -275,7 +275,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>POST /internal/v1/assets/capabilities/preview</td><td>离线预览已登记能力或未发布草稿的有效项目指令；返回正文、分段来源、加载/排除原因、按需 Skill 和运行时占位。</td></tr>
 <tr><td>POST /internal/v1/assets/capabilities</td><td>同样校验，成功创建能力并返回 201 与公开摘要；已存在返回 409，不覆盖。</td></tr>
 </tbody></table>
-<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data。assets.manage 属于可信执行配置管理权，可选择 agent/direct；execution 缺省为 agent，与源码能力一致。两种模式共用基础工具白名单，业务 MCP 按能力装配。工具、Skill 和来源必须已经登记；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
+<p>校验/创建正文仅含 manifest、prompt，合计不超过 32KB；manifest 可配置 ref、title、description、supportsAttachments、toolRefs、requiredToolRefs、skillRefs、requiredSkillRefs、execution、runtime、data、auth。auth 仅允许布尔字段 required，true 表示该能力每轮必须携带 credentials.platformBearer；省略则不增加能力级要求，所选工具仍独立校验自己的 auth。assets.manage 属于可信执行配置管理权，可选择 agent/direct；execution 缺省为 agent，与源码能力一致。两种模式共用基础工具白名单，业务 MCP 按能力装配。工具、Skill 和来源必须已经登记；requiredSkillRefs 必须是 skillRefs 的子集，Skill 的 toolRefs 依赖必须属于能力声明，引用不授予权限。业务 Token 与连接不写入正文。非法配置返回 400，超限返回 413，鉴权失败返回 401。</p>
 <div class="code-wrap"><div class="code-label">管理请求 · 组合既有资产</div><button class="copy" type="button">复制</button><pre>{
   "manifest": {
     "ref": "business-report",

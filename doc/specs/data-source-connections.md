@@ -28,6 +28,7 @@ Capability 在 capability.json 中以 data.access=required/optional 和 data.sou
 ## 查询边界
 
 - 模型仅调用 `mcp__data__*`，参数用 snake_case；HTTP 仍用 camelCase，schoolDoubleHigh 保持大小写。具体工具 Schema/返回字段以 [data 工具](../../python/tools/data.py) 为准，失败返回 isError 及安全错误码。
+- 双高能力在 `capability.json` 声明 `auth.required=true`，要求本轮 `credentials.platformBearer`，创建 Run 和准备数据库前均校验。共享 data 工具保留 `auth.required=false`，文稿复用不增加凭据要求；校园独立 Service 的注入由自己的工具声明控制。双高仅检查凭据存在及格式，不解码身份、不发给 SQL/模型、不写入结果或 SDK 配置；业务授权仍由 Java 负责，数据库租户绑定仍按部署策略。
 - 按获准来源发现/描述、实体解析、定义检索、查询执行及结果分页使用；scope_ref、entity_ref、result_ref、cursor 仅限所属 Run，不能跨用户或续轮复用。
 - 固定 SQL 使用 SQLGlot 全 AST 检查及 SQLAlchemy 参数绑定，在只读一致性事务中执行；输出顺序须匹配定义。NULL、无记录、0、查询失败及超限截断分别表达。
 - 动态 SQL 另需 dynamic_sql_enabled、database_scope_enforced 及 scope_source_key 与当前来源一致；数据库账号/视图必须真正约束全部授权范围，修改授权范围后须重新核验，不能靠模型补 WHERE。
@@ -41,4 +42,4 @@ Capability 在 capability.json 中以 data.access=required/optional 和 data.sou
 
 指标登记前用只读实库及独立基准核对 SQL、输出、对象、期间和异常语义；已定义项不因空结果失去来源依据，未定义项不因工具成功而升级。原始数据留忽略目录，必要来源确认见 [来源核验](../verification/report-source-audit.md)。
 
-REQ-001 部分满足：data 不接业务 Token，business 按可信规则注入；真实 Java 撤销及全链路日志尚待验收。REQ-002 部分满足：受控来源/模板/能力装配已接入；阶段共享来源、Java ACL 及生产隔离差距继续保留。
+REQ-001 部分满足：双高按能力声明校验本轮业务 Token，远端 MCP 按登记目标注入；真实 Java 撤销及全链路日志尚待验收。REQ-002 部分满足：受控来源/模板/能力装配已接入；阶段共享来源、Java ACL 及生产隔离差距继续保留。

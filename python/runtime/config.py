@@ -18,7 +18,7 @@ from dotenv import load_dotenv, dotenv_values
 from dotenv.variables import parse_variables
 
 from data_access.context import fingerprint, DataError
-from runtime.mcp_auth import inject_mcp_authentication
+from runtime.mcp_auth import inject_mcp_authentication, validate_capability_credentials
 from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS, AGENT_BUILTIN_TOOLS
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import ConfigSnapshot
@@ -257,12 +257,14 @@ def data_source_keys(payload):
 
 def create_run_services(payload):
     """仅为声明数据需求且具有绑定来源的执行创建数据服务。"""
+    entry = prepare_capability_assets(payload)['capability']
+    # 能力凭据每轮检查；共享 data 工具不因此改变其他能力的要求。
+    validate_capability_credentials(entry, payload.get('credentials'))
     sources = data_source_keys(payload)
     if not sources:
         return None
     # 执行器会加载 SQLAlchemy/SQL 解析器，只在本轮确实绑定数据来源时导入。
     from runtime.data_services import RunServices
-    entry = prepare_capability_assets(payload)['capability']
     return RunServices(sources, context_topics=entry.get('data', {}).get('contextTopics'))
 
 
@@ -287,6 +289,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     """
     assets = prepare_capability_assets(payload)
     capability_config = assets['capability']
+    validate_capability_credentials(capability_config, payload.get('credentials'))
     direct_capability = is_direct_capability(capability_config)
     capability_ref = str(
         payload.get("capability_ref") or "conversation"

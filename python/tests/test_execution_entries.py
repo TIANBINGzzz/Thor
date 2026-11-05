@@ -147,6 +147,18 @@ class ExecutionEntryTests(unittest.TestCase):
                 options = build_options({'capability_ref': 'example'})
             self.assertEqual(set(options.mcp_servers), {'charts'})
 
+    def test_capability_auth_requires_explicit_boolean_without_credential_values(self):
+        for auth in ({'required': True}, {'required': False}, {'required': 'true'},
+                     {'required': True, 'platformBearer': 'secret'}, {}, None):
+            with self.subTest(auth=auth), tempfile.TemporaryDirectory() as temporary:
+                manifest = {'ref': 'example', 'title': '示例', 'description': '示例任务', 'auth': auth}
+                root = self._write_capability_tree(Path(temporary), capability=manifest)
+                if auth in ({'required': True}, {'required': False}):
+                    self.assertIn('example', capabilities.load_capabilities(root))
+                else:
+                    with self.assertRaises(RuntimeError):
+                        capabilities.load_capabilities(root)
+
     def test_manifest_rejects_invalid_runtime_missing_asset_and_ref_mismatch(self):
         cases = [{'runtime': {'max_turns': True}}, {'runtime': {'mode': 'typo'}},
                  {'runtime': {'thinking': {'type': 'unknown'}}}, {'execution': {'mode': 'typo'}}]

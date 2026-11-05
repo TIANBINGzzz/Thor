@@ -25,6 +25,7 @@ from runtime.config import load_runtime_environment, load_execution_entry, runti
 from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
+from runtime.mcp_auth import validate_capability_credentials
 from runtime.asset_management import create_asset_router
 from runtime.protocol import AgentRunRequest, ProtocolError, SteeringRequest
 from runtime.process import stream_agent, ClientWorkerProcess
@@ -969,6 +970,7 @@ async def internal_create_run(request: Request):
     capability = run_request.capability_ref or "conversation"
     try:
         execution_entry = load_execution_entry(capability)
+        validate_capability_credentials(execution_entry['capability'], run_request.credentials)
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         if run_request.input.attachment_refs and not execution_entry['capability'].get('supports_attachments', False):
             return _plain("capability_does_not_support_attachments", 400)

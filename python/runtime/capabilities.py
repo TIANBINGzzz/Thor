@@ -75,7 +75,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
                'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
-               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs'}
+               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs', 'auth'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -83,6 +83,9 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
             raise RuntimeError('能力 manifest 元数据缺失')
     if not ENTRY_NAME.fullmatch(manifest['ref']) or type(manifest.get('supportsAttachments', False)) is not bool:
         raise RuntimeError('能力 manifest 标识或附件配置无效')
+    auth = manifest.get('auth', {'required': False})
+    if not isinstance(auth, dict) or set(auth) != {'required'} or type(auth.get('required')) is not bool:
+        raise RuntimeError('能力业务凭据规则无效')
     skills = validate_refs(manifest.get('skillRefs', []), 'skillRefs')
     tools = validate_refs(manifest.get('toolRefs', []), 'toolRefs')
     required = validate_refs(manifest.get('requiredToolRefs', []), 'requiredToolRefs')

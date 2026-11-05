@@ -34,6 +34,7 @@ class AssetManagementTests(unittest.TestCase):
 
     def test_creation_audit_is_persisted_with_content_revision_without_jwt(self):
         body = self.body()
+        body['manifest']['auth'] = {'required': True}
         headers = self.headers()
         result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=headers)
         self.assertEqual(result.status_code, 201, result.text)
