@@ -7,10 +7,11 @@
 | `.env` / `.env.local` / 容器 `runtime.env` | Nacos 地址、命名空间、分组、Data ID、只读账号及代理、工具位置等进程参数 |
 | [application.yml](application.yml) | 仅 Nacos 连接引导和读取配置中心的网络预算 |
 | Nacos `ai-center-agent-service` | 客户 tenantId、模型/JWT/数据库凭据、服务地址及完整 runtime 运行参数 |
-| [本地 Nacos 示例](nacos-ai-center-agent-service.yaml) | 带逐项中文注释的占位配置，编辑后发布到 Nacos；不是运行时本地回退文件 |
+| [Nacos 字段模板](nacos-ai-center-agent-service.yaml) | 供新部署填写的字段与简短注释；不是运行时本地回退文件 |
+| `config/nacos-ai-center-agent-service.local.yaml` | 本机真实 Nacos 配置，导入配置中心后生效；不提交 Git、不进入 Docker 构建上下文 |
 | `.claude/databases/` | 已登记来源、表列、函数、业务口径和指标；不含连接凭据 |
 
-配置按启动依赖和部署环境划分：[本机 env 示例](../.env.local.example)只放连接 Nacos 前必须具备的地址/账号，以及代理、工具位置、端口和持久化路径。这些值绑定宿主机、容器或启动方式，变更通常需要重建进程；客户和运行策略统一在 Nacos 维护，当前同样须排空重启生效。
+配置按启动依赖和部署环境划分：本机实际 `.env.local` 只放连接 Nacos 前必须具备的地址/账号，以及代理、工具位置、端口和持久化路径。这些值绑定宿主机、容器或启动方式，变更通常需要重建进程；客户和运行策略统一在 Nacos 维护，当前同样须排空重启生效。`CCSDK_OFFICECLI_PATH` 保留实际安装位置，支持 `${LOCALAPPDATA}` 展开。
 
 | 放置位置 | 选择依据与例子 |
 | --- | --- |
@@ -18,7 +19,7 @@
 | Nacos | 随客户或运维策略调整：tenantId、模型及 JWT 密钥、数据库/业务服务、运行预算、模型映射、池与观测 |
 | 代码与执行资产 | 需要验证和发布的规则：协议、Tool Schema、能力权限映射、SQL 口径与表列、模板；不开放为任意 Nacos 字段 |
 
-旧 env 字段迁移对应：ANTHROPIC_BASE_URL/AUTH_TOKEN → model.baseUrl/apiKey；CCSDK_IMAGE_* → images；CCSDK_RUNTIME_JWT_* / CCSDK_OBSERVATION_JWT_SECRET → security。现有 `.env.local` 的 NO_PROXY 继续保留为本机网络配置；真实客户值不写入示例。
+旧 env 字段迁移对应：ANTHROPIC_BASE_URL/AUTH_TOKEN → model.baseUrl/apiKey；CCSDK_IMAGE_* → images；CCSDK_RUNTIME_JWT_* / CCSDK_OBSERVATION_JWT_SECRET → security。迁移后的真实值只在私有 Nacos 文件与配置中心维护；旧 env 字段不会生效，不能直接丢弃而漏配远端节点。
 
 ## 加载与更新
 
@@ -32,9 +33,9 @@ Nacos 连接默认读取本目录 `application.yml` 的 `nacos`，`application.l
 
 ## 客户字段
 
-完整字段与简短描述以示例为准。`deployment.tenantId` 必须与 Java Run JWT 的 tenant 一致，禁止通配符、self 和 default。数据库调用若收到业务 JWT，其 tenantId 也必须一致；该解码仅作一致性检查，不替代 Java 验签、有效期和撤销控制。
+完整字段与简短描述以字段模板为准。`deployment.tenantId` 必须与 Java Run JWT 的 tenant 一致，禁止通配符、self 和 default。数据库调用若收到业务 JWT，其 tenantId 也必须一致；该解码仅作一致性检查，不替代 Java 验签、有效期和撤销控制。
 
-`security.runtimeJwtSecret` 用于执行授权；`observationJwtSecret`、`assetJwtSecret` 可省略以关闭对应接口，配置时必须各不相同。模型的 baseUrl/apiKey 和图像服务的 baseUrl/apiKey/model 分别显式配置，不推导端点或自动共用密钥。
+`security.runtimeJwtSecret` 用于执行授权；`observationJwtSecret`、`assetJwtSecret` 可省略以关闭对应接口，配置时必须各不相同。模型的 baseUrl/apiKey 和图像服务的 baseUrl/apiKey/model 分别显式配置；同一供应商允许共用密钥时，可给 model.apiKey 标记 YAML 锚点 `&model_api_key`，images.apiKey 用 `*model_api_key` 引用。Nacos 中的 `${ANTHROPIC_AUTH_TOKEN}` 不会展开，不推导端点或隐式复用密钥。
 
 `databases.<source>.connection` 只保存 driver、host、port、database、username、password、tls；`query` 只保存 timeout_seconds、max_rows、dynamic_sql_enabled。来源名称须与能力及来源资产登记一致，校双高使用大小写敏感的 schoolDoubleHigh。TLS 默认验证 CA 和主机名；如环境不支持，须显式设置 disabled，不自动降级。CA 与 SQLite 路径相对仓库 config 目录，绝对路径按部署注入。
 

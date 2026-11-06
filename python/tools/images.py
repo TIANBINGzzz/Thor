@@ -91,7 +91,7 @@ def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=N
 
 
 def image_configuration():
-    """生图连接显式登记在 Nacos，不猜测地址或复用另一项密钥。"""
+    """生图连接显式登记在 Nacos，不猜测地址或隐式复用另一项密钥。"""
     config = deployment_section('images', {})
     return config.get('baseUrl', ''), config.get('apiKey', '')
 

@@ -23,7 +23,8 @@
 **/*.pyc
 **/node_modules/
 **/.env
-config/application.local.yml
+config/*.local.yml
+config/*.local.yaml
 **/.env.*
 **/*.env
 **/*.env.*
