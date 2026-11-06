@@ -3,49 +3,21 @@
 import copy
 import os
 import re
-from pathlib import Path
 from urllib.parse import urlsplit
-
-import yaml
 
 from runtime import nacos_config
 
 _PATH = re.compile(r'[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*')
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-APPLICATION_CONFIG_FILE = PROJECT_ROOT / 'config' / 'application.yml'
 _DEPLOYMENT = None
 _WORKER = False
 WORKER_CONFIGURATION_ENV = 'CCSDK_WORKER_CONFIG_SECRET'
 
 
-def _merge(base, override):
-    """映射逐字段覆盖，标量和列表整体替换；始终返回独立副本。"""
-    result = copy.deepcopy(base)
-    for key, value in override.items():
-        result[key] = _merge(result[key], value) if isinstance(result.get(key), dict) and isinstance(value, dict) else copy.deepcopy(value)
-    return result
-
-
-def application_document(path=None):
-    """部署初始化后只使用启动快照；显式文件路径供离线预算核验使用。"""
-    if path is None and _DEPLOYMENT is not None:
-        return copy.deepcopy(_DEPLOYMENT)
-    path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
-    result = {}
-    try:
-        for candidate in (path, path.with_name('application.local.yml')):
-            try:
-                document = yaml.safe_load(candidate.read_text(encoding='utf-8'))
-            except FileNotFoundError:
-                if candidate == path:
-                    raise
-                continue
-            if not isinstance(document, dict):
-                raise ValueError()
-            result = _merge(result, document)
-        return result
-    except (OSError, ValueError, TypeError, yaml.YAMLError):
-        raise ValueError('application_config_invalid') from None
+def application_document():
+    """运行配置只来自已校验的 Nacos 快照，初始化前不读取本地补值。"""
+    if _DEPLOYMENT is None:
+        raise ValueError('deployment_config_not_initialized')
+    return copy.deepcopy(_DEPLOYMENT)
 
 
 def deployment_section(name, default=None):
@@ -177,18 +149,23 @@ def _validated(document, *, worker=False):
 def initialize_deployment(env=None, *, transport=None, document=None):
     """启动时读取一次 Nacos，校验完成后才原子发布；故障不回退旧秘密或地址。"""
     global _DEPLOYMENT, _WORKER
-    defaults = application_document(APPLICATION_CONFIG_FILE)
     if document is None:
-        budgets = defaults.get('runtime', {}).get('timeouts', {})
-        document = nacos_config.fetch_config(dict(os.environ if env is None else env), transport=transport,
-            timeout_ms=budgets.get('nacos-ms', 10000), request_timeout_ms=budgets.get('nacos-request-ms', 5000))
+        document = nacos_config.fetch_config(dict(os.environ if env is None else env), transport=transport)
     document = _validated(document)
-    runtime = document.get('runtime', {})
+    settings = _runtime_configuration(document)
+    _DEPLOYMENT, _WORKER = document, False
+    from runtime import runtime_settings
+    runtime_settings.RUNTIME_SETTINGS = settings
+    return copy.deepcopy(document)
+
+
+def _runtime_configuration(document):
+    """父进程和 Worker 共用完整预算校验，不合并宿主 YAML。"""
+    runtime = document.get('runtime')
     if not isinstance(runtime, dict) or set(runtime) - {'timeouts', 'limits', 'sse-heartbeat-ms',
                                                       'models', 'worker-pool', 'observability'}:
         raise ValueError('deployment_config_invalid')
-    document['runtime'] = _merge(defaults.get('runtime', {}), runtime)
-    observation = document['runtime'].get('observability', {})
+    observation = runtime.get('observability', {})
     if (not isinstance(observation, dict) or set(observation) - {'enabled', 'storage', 'max-records',
             'retention-seconds', 'queue-size'} or type(observation.get('enabled')) is not bool
             or not isinstance(observation.get('storage'), str) or not observation['storage'].strip()
@@ -199,9 +176,7 @@ def initialize_deployment(env=None, *, transport=None, document=None):
     settings = runtime_settings.load_runtime_settings(document=document)
     runtime_settings.load_model_settings(document=document)
     runtime_settings.load_worker_pool_settings(document=document)
-    _DEPLOYMENT, _WORKER = document, False
-    runtime_settings.RUNTIME_SETTINGS = settings
-    return copy.deepcopy(document)
+    return settings
 
 
 def worker_configuration():
@@ -217,8 +192,12 @@ def install_worker_configuration(document):
     global _DEPLOYMENT, _WORKER
     if not isinstance(document, dict) or set(document) - {'deployment', 'runtime', 'model', 'images', 'databases'}:
         raise ValueError('worker_config_invalid')
-    _DEPLOYMENT = _validated(document, worker=True)
+    document = _validated(document, worker=True)
+    settings = _runtime_configuration(document)
+    _DEPLOYMENT = document
     _WORKER = True
+    from runtime import runtime_settings
+    runtime_settings.RUNTIME_SETTINGS = settings
 
 
 class ConfigReferenceError(ValueError):

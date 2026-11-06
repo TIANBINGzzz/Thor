@@ -14,7 +14,7 @@
 
 ## 决策
 
-- env 只保留 Nacos 引导与进程参数，application.yml 保存产品默认值；Nacos 保存客户身份、秘密、地址及 runtime 覆盖。启动读取、校验、合并并冻结，失败不回退旧秘密，修改后排空重启。
+- 按用户同日进一步确认，env 只保留 Nacos 引导与进程参数，application.yml 只保存连接 Nacos 所需的引导（含读取超时）；Nacos 是客户身份、秘密、地址及完整 runtime 参数的唯一来源。启动读取、校验并冻结，缺项或失败不回退本地值，修改后排空重启。
 - 数据库按 connection/query 拆分；移除数据库 JSON 打包、跨客户列表、selected 项目授权和重复 Capability/模板/表/查询清单，SQL 边界从 Catalog 派生。
 - Run JWT 必须匹配部署客户；业务 JWT 仅在数据库调用收到时核对客户一致性。固定和动态 SQL 均保留 AST 客户过滤、绑定参数及只读事务；用户会话、文件、结果与 Run 控制仍隔离。
 - 只用部署数据库的双高能力不要求业务 Token；校园 MCP 仍按轮绑定当前业务凭据。Worker 不接收控制面密钥，SDK 不接收数据库秘密。

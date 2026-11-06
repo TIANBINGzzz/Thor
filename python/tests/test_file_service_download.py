@@ -18,6 +18,7 @@ from runtime.protocol import AttachmentRef
 
 class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)

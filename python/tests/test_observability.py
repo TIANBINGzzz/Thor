@@ -7,6 +7,10 @@ from pathlib import Path
 from runtime.observability import ObservationStore, Observer, trace_id, create_observer
 
 class ObservationTests(unittest.TestCase):
+    def configuration(self, values):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT',
+                                {'runtime': {'observability': values}}))
+
     def test_idle_retention_reports_gap_even_when_all_records_expire(self):
         directory = self.enterContext(tempfile.TemporaryDirectory())
         store = ObservationStore(Path(directory) / 'observe.db', retention_seconds=10)
@@ -29,22 +33,17 @@ class ObservationTests(unittest.TestCase):
     def test_invalid_observability_section_disables_collection(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            (root/'config').mkdir()
-            for value in ('enabled: yes\n    queue-size: 0', 'enabled: "yes"', '[invalid]'):
-                (root/'config'/'application.yml').write_text(
-                    'runtime:\n  observability:\n    '+value,encoding='utf-8')
+            for value in ({'enabled': True, 'queue-size': 0}, {'enabled': 'yes'}, ['invalid']):
+                self.configuration(value)
                 observer=create_observer(root)
                 self.assertFalse(observer.enabled)
                 observer.close()
 
     @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''})
-    def test_main_config_enables_pull_journal_and_local_switch_stops_recording(self):
+    def test_nacos_snapshot_enables_pull_journal_and_disabled_snapshot_stops_recording(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            (root/'config').mkdir()
-            (root/'config/application.yml').write_text(
-                'runtime:\n  observability:\n    enabled: true\n    storage: journal/events.db\n    max-records: 3\n',
-                encoding='utf-8')
+            self.configuration({'enabled': True, 'storage': 'journal/events.db', 'max-records': 3})
             observer=create_observer(root)
             self.addCleanup(observer.close)
             self.assertTrue(observer.enabled)
@@ -56,8 +55,7 @@ class ObservationTests(unittest.TestCase):
             self.assertTrue((root/'journal/events.db').is_file())
             observer.close()
 
-            (root/'config/application.local.yml').write_text(
-                'runtime:\n  observability:\n    enabled: false\n    storage: unused/events.db\n',encoding='utf-8')
+            self.configuration({'enabled': False, 'storage': 'unused/events.db'})
             observer=create_observer(root)
             self.assertFalse(observer.enabled)
             self.assertIsNone(observer.thread)
@@ -67,12 +65,10 @@ class ObservationTests(unittest.TestCase):
             self.assertFalse((root/'unused').exists())
 
     @patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': '0'})
-    def test_emergency_stop_overrides_main_and_local_enabled(self):
+    def test_emergency_stop_overrides_enabled_nacos_snapshot(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            (root/'config').mkdir()
-            for name in ('application.yml','application.local.yml'):
-                (root/'config'/name).write_text('runtime:\n  observability:\n    enabled: true\n',encoding='utf-8')
+            self.configuration({'enabled': True})
             observer=create_observer(root)
             self.assertFalse(observer.enabled)
             self.assertFalse((root/'.scribe-runs').exists())
@@ -109,8 +105,7 @@ class ObservationTests(unittest.TestCase):
     def test_instance_identity_is_discovered_and_persists_with_storage(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            (root/'config').mkdir()
-            (root/'config/application.yml').write_text('runtime:\n  observability:\n    enabled: true', encoding='utf-8')
+            self.configuration({'enabled': True})
             first = create_observer(root)
             identity = first.instance_id
             first.close()
@@ -119,8 +114,6 @@ class ObservationTests(unittest.TestCase):
             second.close()
             self.assertEqual(second_identity, identity)
             other = root/'other'
-            (other/'config').mkdir(parents=True)
-            (other/'config/application.yml').write_text('runtime:\n  observability:\n    enabled: true', encoding='utf-8')
             third = create_observer(other)
             third_identity = third.instance_id
             third.close()

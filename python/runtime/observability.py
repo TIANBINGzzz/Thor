@@ -208,8 +208,8 @@ def create_observer(root):
     root=Path(root)
     config={}
     try:
-        from runtime.deployment_config import _DEPLOYMENT, application_document
-        document = application_document() if _DEPLOYMENT is not None else application_document(root/'config/application.yml')
+        from runtime.deployment_config import application_document
+        document = application_document()
         config = document.get('runtime', {}).get('observability', {})
         if not isinstance(config, dict) or set(config)-{'enabled','storage','max-records','retention-seconds','queue-size'}:
             raise ValueError('invalid observation configuration')

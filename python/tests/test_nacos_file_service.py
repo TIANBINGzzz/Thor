@@ -14,6 +14,7 @@ from runtime.file_service import FileServiceError, file_service_config
 
 class NacosFileServiceTests(unittest.TestCase):
     def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         self.env = {'CCSDK_NACOS_URL': 'http://nacos.test:8848/nacos',
                     'CCSDK_NACOS_USERNAME': 'reader', 'CCSDK_NACOS_PASSWORD': 'private-password',
                     'CCSDK_NACOS_NAMESPACE': 'test-id'}
@@ -23,6 +24,19 @@ class NacosFileServiceTests(unittest.TestCase):
 
     def read(self, handler, **kwargs):
         return file_service_config(self.env, transport=httpx.MockTransport(handler), **kwargs)
+
+    def test_nacos_network_budgets_come_from_bootstrap_before_remote_runtime(self):
+        from runtime.nacos_config import fetch_config
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'application.yml'
+            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'nacos.test', 'namespace': '',
+                'group': 'DEFAULT_GROUP', 'data-id': 'service', 'timeout-ms': 1450,
+                'request-timeout-ms': 1250}}), encoding='utf-8')
+            def respond(request):
+                self.assertEqual(request.extensions['timeout']['read'], 1.25)
+                return httpx.Response(200, json=self.config)
+            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
+                self.assertEqual(fetch_config({}, transport=httpx.MockTransport(respond)), self.config)
 
     def test_authentication_namespace_and_snapshot(self):
         requests = []
@@ -108,8 +122,9 @@ class NacosFileServiceTests(unittest.TestCase):
                 self.assertEqual(requests[0].method, 'POST')
 
     def test_nacos_credentials_excluded_from_model_and_worker_environments(self):
-        from runtime.config import agent_environment, worker_environment
-        with patch.dict('os.environ', self.env):
+        from tests.deployment_fixtures import deployment_document
+        with patch('runtime.deployment_config._DEPLOYMENT', deployment_document()), patch.dict('os.environ', self.env):
+            from runtime.config import agent_environment, worker_environment
             for environment in (agent_environment(), worker_environment()):
                 self.assertFalse(any(key.startswith('CCSDK_NACOS_') for key in environment))
 
@@ -178,7 +193,8 @@ class NacosFileServiceTests(unittest.TestCase):
                 self.assertEqual(merged, {'CCSDK_NACOS_URL': 'http://local.test:8848',
                     'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'base-group',
                     'CCSDK_NACOS_DATA_ID': 'base-service',
-                    'CCSDK_NACOS_USERNAME': '', 'CCSDK_NACOS_PASSWORD': ''})
+                    'CCSDK_NACOS_USERNAME': '', 'CCSDK_NACOS_PASSWORD': '',
+                    'timeout-ms': 10000, 'request-timeout-ms': 5000})
                 self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': 'https://env.test'})['CCSDK_NACOS_URL'],
                                  'https://env.test')
                 self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': ''})['CCSDK_NACOS_URL'], '')

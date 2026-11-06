@@ -20,6 +20,7 @@ ASSET_ROOT = _CAMPUS.ASSET_ROOT
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         self.connection = {'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                            'domainName': 'campus.example.test'}
         self.enterContext(patch('runtime.nacos_config.fetch_config',

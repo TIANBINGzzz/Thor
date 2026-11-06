@@ -446,20 +446,21 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
 
 
 class WorkerPoolConfigTests(unittest.TestCase):
-    def test_yaml_partial_local_override_and_disable(self):
+    def test_explicit_nacos_pool_ignores_local_override(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'application.yml'
-            path.write_text('runtime:\n  worker-pool:\n    max-idle: 6\n    max-starting: 2\n', encoding='utf-8')
+            path.write_text('runtime:\n  worker-pool:\n    max-idle: 6\n    max-starting: 2\n    max-live: 24\n    min-available-memory-mib: 1024\n', encoding='utf-8')
             local = path.with_name('application.local.yml')
             local.write_text('runtime:\n  worker-pool:\n    max-idle: 0\n', encoding='utf-8')
             config = load_worker_pool_settings(path)
-            self.assertEqual((config.max_idle, config.max_starting), (0, 2))
+            self.assertEqual((config.max_idle, config.max_starting), (6, 2))
 
     def test_missing_section_disables_pool_and_invalid_values_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'application.yml'
             path.write_text('nacos: {}', encoding='utf-8')
-            self.assertEqual(load_worker_pool_settings(path).max_idle, 0)
+            with self.assertRaises(ValueError):
+                load_worker_pool_settings(path)
             for body in ('max-idle: true', 'max-idle: -1', 'max-starting: 0',
                          'max-starting: "2"', 'unknown: 5'):
                 path.write_text('runtime:\n  worker-pool:\n    '+body+'\n', encoding='utf-8')

@@ -13,16 +13,19 @@ import httpx
 
 from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
 from runtime import deployment_config
+from tests.deployment_fixtures import deployment_document
 
 
 def customer_config():
+    runtime = deployment_document()['runtime']
+    runtime['timeouts']['execution-ms'] = 4200000
+    runtime['models'] = {'default': 'custom-model', 'available': ['custom-model'],
+                        'sdk': dict.fromkeys(('haiku', 'sonnet', 'opus', 'subagent'), 'custom-model')}
     return {'deployment': {'tenantId': 'customer-a'},
             'model': {'baseUrl': 'https://model.example.test/apps/anthropic', 'apiKey': 'private-model-key'},
             'security': {'runtimeJwtSecret': 'private-runtime-key',
                          'observationJwtSecret': 'private-observation-key'},
-            'runtime': {'timeouts': {'execution-ms': 4200000},
-                        'models': {'default': 'custom-model', 'available': ['custom-model'],
-                                   'sdk': dict.fromkeys(('haiku', 'sonnet', 'opus', 'subagent'), 'custom-model')}},
+            'runtime': runtime,
             'databases': {'schoolDoubleHigh': {
                 'connection': {'driver': 'mysql+pymysql', 'host': 'db.example.test', 'database': 'customer',
                                'username': 'reader', 'password': 'private-database-key', 'tls': {'mode': 'disabled'}},
@@ -87,6 +90,22 @@ class CustomerDeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tenant'):
             deployment_config.require_tenant('customer-b')
 
+    def test_missing_nacos_runtime_fields_cannot_be_filled_by_local_yaml(self):
+        for section, field in [('timeouts', 'worker-close-ms'), ('limits', 'max-turns'),
+                               ('models', 'default'), ('worker-pool', 'max-idle'),
+                               ('observability', 'enabled')]:
+            invalid = copy.deepcopy(self.document)
+            del invalid['runtime'][section][field]
+            with self.subTest(section=section, field=field), patch.object(deployment_config, '_DEPLOYMENT', None):
+                with self.assertRaises(ValueError):
+                    self.initialize(invalid)
+                self.assertIsNone(deployment_config._DEPLOYMENT)
+
+    def test_nacos_document_is_validated_without_reading_local_runtime_defaults(self):
+        with patch.object(deployment_config, 'application_document', side_effect=AssertionError('no local merge')):
+            self.initialize()
+        self.assertEqual(deployment_config.deployment_section('runtime'), self.document['runtime'])
+
     def test_invalid_customer_service_and_runtime_fields_fail_at_startup(self):
         for section, field, value in [('fileService', 'downloadPath', '/files/no-placeholder'),
                 ('fileService', 'maxFileBytes', -1), ('campusMcp', 'url', 'https://user:private@host'),
@@ -147,7 +166,7 @@ class CustomerDeploymentTests(unittest.TestCase):
         import tempfile
         from runtime.observability import create_observer
         with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {'CCSDK_OBSERVABILITY_ENABLED': ''}):
-            self.document['runtime']['observability'] = {'enabled': True, 'storage': 'customer.sqlite'}
+            self.document['runtime']['observability'].update(enabled=True, storage='customer.sqlite')
             self.initialize()
             observer = create_observer(Path(folder))
             try:
@@ -177,6 +196,9 @@ assert not any('DATABASE' in key or 'WORKER_CONFIG' in key or 'JWT' in key for k
 
 
 class ConfigSnapshotTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', None))
+
     def test_one_read_resolves_nested_references_without_mutating_assets(self):
         requests = []
 

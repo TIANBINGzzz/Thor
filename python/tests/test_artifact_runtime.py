@@ -18,6 +18,7 @@ from tools.artifacts import publish_artifact
 
 class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         """只替换 Nacos 返回值，保留配置解析及文件交付链路。"""
         self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
             'fileService': {'baseUrl': 'https://files.test',

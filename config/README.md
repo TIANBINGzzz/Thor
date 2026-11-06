@@ -5,18 +5,28 @@
 | 配置位置 | 职责 |
 | --- | --- |
 | `.env` / `.env.local` / 容器 `runtime.env` | Nacos 地址、命名空间、分组、Data ID、只读账号及代理、工具位置等进程参数 |
-| [application.yml](application.yml) | Nacos 引导默认值及通用 Runtime 预算、模型映射、池和观测默认值 |
-| Nacos `ai-center-agent-service` | 客户 tenantId、模型/JWT/数据库凭据、服务地址及 runtime 覆盖 |
+| [application.yml](application.yml) | 仅 Nacos 连接引导和读取配置中心的网络预算 |
+| Nacos `ai-center-agent-service` | 客户 tenantId、模型/JWT/数据库凭据、服务地址及完整 runtime 运行参数 |
 | [本地 Nacos 示例](nacos-ai-center-agent-service.yaml) | 带逐项中文注释的占位配置，编辑后发布到 Nacos；不是运行时本地回退文件 |
 | `.claude/databases/` | 已登记来源、表列、函数、业务口径和指标；不含连接凭据 |
+
+配置按启动依赖和部署环境划分：[本机 env 示例](../.env.local.example)只放连接 Nacos 前必须具备的地址/账号，以及代理、工具位置、端口和持久化路径。这些值绑定宿主机、容器或启动方式，变更通常需要重建进程；客户和运行策略统一在 Nacos 维护，当前同样须排空重启生效。
+
+| 放置位置 | 选择依据与例子 |
+| --- | --- |
+| env / Nacos 引导 YAML | 连接配置中心之前就要知道，或依赖宿主机：Nacos 地址/账号、代理、工具路径、端口、Run 库路径 |
+| Nacos | 随客户或运维策略调整：tenantId、模型及 JWT 密钥、数据库/业务服务、运行预算、模型映射、池与观测 |
+| 代码与执行资产 | 需要验证和发布的规则：协议、Tool Schema、能力权限映射、SQL 口径与表列、模板；不开放为任意 Nacos 字段 |
+
+旧 env 字段迁移对应：ANTHROPIC_BASE_URL/AUTH_TOKEN → model.baseUrl/apiKey；CCSDK_IMAGE_* → images；CCSDK_RUNTIME_JWT_* / CCSDK_OBSERVATION_JWT_SECRET → security。现有 `.env.local` 的 NO_PROXY 继续保留为本机网络配置；真实客户值不写入示例。
 
 ## 加载与更新
 
 从仓库根目录运行 `npm start`，或通过 `deploy/entrypoint.py` 启动；自定义 ASGI 启动使用 `PYTHONPATH=python uvicorn --factory runtime.bootstrap:create_app`。初始化必须先于 server、SDK 和预算模块导入。
 
-正式启动只读取一次 Nacos；先校验客户配置，再逐字段合并 `runtime` 默认值，映射递归覆盖、列表整体替换。读取、认证或校验失败直接拒绝启动，不回退旧 env、数据库 JSON 或示例地址。修改配置须排空任务并重启 Runtime，不需要重建镜像；本次不提供热更新。
+正式启动只读取一次 Nacos；校验客户配置及完整 `runtime` 参数，不与本地 YAML 合并，不以本地默认值补缺。读取、认证或校验失败直接拒绝启动，不回退旧 env、数据库 JSON 或示例地址。修改配置须排空任务并重启 Runtime，不需要重建镜像；本次不提供热更新。
 
-Nacos 连接默认读取本目录 `application.yml` 的 `nacos`，`application.local.yml` 可覆盖本机默认值。`.env.local` 覆盖 `.env`，实际进程环境优先；仅白名单引导项生效。`CCSDK_NACOS_NAMESPACE` 填 Namespace ID，空值为 public，Data ID 默认不带扩展名。
+Nacos 连接默认读取本目录 `application.yml` 的 `nacos`，`application.local.yml` 仅覆盖本机 Nacos 引导；其中旧的 runtime 节点不生效。`.env.local` 覆盖 `.env`，实际进程环境优先；仅白名单引导项生效。`CCSDK_NACOS_NAMESPACE` 填 Namespace ID，空值为 public，Data ID 默认不带扩展名。Nacos 读取本身的 timeout-ms/request-timeout-ms 属于启动引导，必须在取得远端配置之前生效，不在远端 runtime 重复配置。
 
 同一启动快照用于父进程、Worker、文件服务和 MCP 地址装配。Worker 只接收模型、数据库和运行预算，以及本轮明确选择的连接引用，不接收 Nacos/Run JWT/管理 JWT/观测 JWT 密钥；SDK 环境只接收模型和必要进程参数。可信 Worker 和普通 Agent 不构成生产 OS 沙箱。
 
@@ -34,6 +44,6 @@ Nacos 连接默认读取本目录 `application.yml` 的 `nacos`，`application.l
 
 ## Runtime 与观测
 
-未覆盖项沿用 application.yml；毫秒超时按阶段分别计时，执行预算从附件准备完成后开始。模型 available 限制请求可选值，default 及 SDK 别名均须在 available 中。worker-pool 设置空闲预热、同时启动、存活上限及最低可用内存，不代表生产并发容量已验收。
+runtime 的预算、模型、池及观测配置必须完整写在 Nacos；缺项或非法值拒绝启动。毫秒超时按阶段分别计时，执行预算从附件准备完成后开始。模型 available 限制请求可选值，default 及 SDK 别名均须在 available 中。worker-pool 设置空闲预热、同时启动、存活上限及最低可用内存，不代表生产并发容量已验收。
 
 runtime.observability 控制有界待采日志，默认关闭；storage 相对仓库根目录。观测读取使用独立 JWT，长期存储与游标由采集平台维护。`CCSDK_OBSERVABILITY_ENABLED=0` 保留为进程紧急停采及测试开关；测试不写入本机观测库。连接、真实 Token、原始结果与验证材料只放忽略目录，不进入源码、镜像或 Prompt。

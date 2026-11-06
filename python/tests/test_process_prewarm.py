@@ -260,11 +260,12 @@ asyncio.run(worker.main())
                     if event.get('type') == 'text':
                         text_received.set()
                 async def spawn(*args, **kwargs):
+                    from runtime.config import worker_environment
                     process = await asyncio.create_subprocess_exec(
                         sys.executable, '-u', '-c', script, mode,
                         stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
-                        env={**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1]),
+                        env={**os.environ, **worker_environment(), 'PYTHONPATH': str(Path(__file__).resolve().parents[1]),
                              'CCSDK_ENABLE_TIMING': '1'})
                     processes.append(process)
                     return process

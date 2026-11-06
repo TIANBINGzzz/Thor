@@ -17,7 +17,7 @@ class ModelSettingsTests(unittest.TestCase):
         }}}), encoding='utf-8')
         return path
 
-    def test_explicit_default_and_local_override(self):
+    def test_explicit_nacos_file_ignores_local_override(self):
         with tempfile.TemporaryDirectory() as folder:
             path = self.config(folder)
             settings = runtime_settings.load_model_settings(path)
@@ -25,8 +25,8 @@ class ModelSettingsTests(unittest.TestCase):
             path.with_name('application.local.yml').write_text(
                 'runtime:\n  models:\n    default: other\n    sdk:\n      haiku: other\n', encoding='utf-8')
             settings = runtime_settings.load_model_settings(path)
-            self.assertEqual(settings.default, 'other')
-            self.assertEqual(settings.sdk['haiku'], 'other')
+            self.assertEqual(settings.default, 'preferred')
+            self.assertEqual(settings.sdk['haiku'], 'preferred')
             self.assertEqual(settings.sdk['sonnet'], 'preferred')
 
     def test_invalid_models_fail_without_env_fallback(self):
@@ -37,8 +37,12 @@ class ModelSettingsTests(unittest.TestCase):
             for value in invalid:
                 with self.subTest(value=value):
                     path = self.config(folder)
-                    path.with_name('application.local.yml').write_text(
-                        yaml.safe_dump({'runtime': {'models': value}}), encoding='utf-8')
+                    document = yaml.safe_load(path.read_text(encoding='utf-8'))
+                    if isinstance(value, dict) and value:
+                        document['runtime']['models'].update(value)
+                    else:
+                        document['runtime']['models'] = value
+                    path.write_text(yaml.safe_dump(document), encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'runtime.models'):
                         runtime_settings.load_model_settings(path)
 

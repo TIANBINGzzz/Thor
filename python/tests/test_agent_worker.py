@@ -44,7 +44,7 @@ class AgentWorkerTests(unittest.TestCase):
         import subprocess
         import sys
         root = Path(__file__).resolve().parents[2]
-        env = {**os.environ, 'PYTHONPATH': str(root / 'python'), 'PYTHONUTF8': '0',
+        env = {**os.environ, **worker_environment(), 'PYTHONPATH': str(root / 'python'), 'PYTHONUTF8': '0',
                'PYTHONIOENCODING': 'gbk'}
         payload = {'prompt': '按章节撰写，保留“学校”原文；参数使用 JSON。'}
         result = subprocess.run(

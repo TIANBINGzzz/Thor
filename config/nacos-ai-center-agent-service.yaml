@@ -49,11 +49,30 @@ images: # 可选的图像生成服务，不需要时删除整个节点。
   baseUrl: https://images.example.com/v1 # 图像 API 根地址，必须显式配置。
   apiKey: replace-image-api-key # 图像服务密钥，不自动复用文本模型密钥。
   model: qwen-image-3.0 # 图像模型名称。
-runtime: # 可选客户覆盖，未列出的字段沿用 application.yml 默认值。
+runtime: # Runtime 运行配置唯一来源；必须完整配置，不从本地 YAML 补值。
   timeouts: # 以下超时单位均为毫秒。
     execution-ms: 3600000 # 附件准备完成后的单轮执行预算。
     client-queue-ms: 300000 # 等待可用 Client 的最长时间。
+    client-idle-ms: 300000 # 会话空闲多久后回收 Client。
     file-prepare-ms: 600000 # 本轮全部附件准备预算。
+    file-broker-ms: 15000 # 独立下载 Broker 的单次请求预算。
+    file-upload-connect-ms: 10000 # 成果上传连接超时。
+    worker-start-ms: 60000 # Worker 与 SDK 建立连接的预算。
+    worker-send-ms: 5000 # 向 Worker 写入一条命令的预算。
+    worker-close-ms: 20000 # Worker 与 SDK 退出收尾预算，须覆盖完整清理。
+    worker-control-ms: 5000 # 取消、引导及控制回执预算。
+    document-render-ms: 180000 # 文档渲染与转换预算。
+    document-start-ms: 30000 # 文档渲染进程启动预算。
+    image-ms: 600000 # 图像生成请求预算。
+    web-search-ms: 90000 # 网络检索请求预算。
+    mcp-http-ms: 30000 # 通用 HTTP MCP 请求预算。
+  limits: # 单轮输入与执行上限。
+    max-turns: 200 # SDK 单轮最大工具交互轮数。
+    file-max-bytes: 268435456 # Runtime 单个附件下载大小上限，单位为字节。
+    sdk-buffer-bytes: 16777216 # SDK 单条消息缓冲上限，单位为字节。
+    http-body-bytes: 2097152 # Runtime HTTP 请求正文上限，单位为字节。
+    prompt-bytes: 32768 # 用户文本提示上限，单位为 UTF-8 字节。
+  sse-heartbeat-ms: 15000 # SSE 无业务事件时的心跳间隔，单位为毫秒。
   models: # 客户可选模型与 SDK 模型别名映射。
     default: deepseek-v4.1-flash # 未指定模型时使用的名称。
     available: [deepseek-v4.1-flash, qwen3.8-flash, qwen3.8-max] # 允许请求选择的模型列表。

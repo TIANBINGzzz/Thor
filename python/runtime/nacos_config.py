@@ -38,12 +38,13 @@ def _nacos_settings(env):
     fields = {'server-addr': 'CCSDK_NACOS_URL', 'namespace': 'CCSDK_NACOS_NAMESPACE',
               'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID',
               'username': 'CCSDK_NACOS_USERNAME', 'password': 'CCSDK_NACOS_PASSWORD'}
+    budgets = {'timeout-ms': 10000, 'request-timeout-ms': 5000}
     try:
         document = yaml.safe_load(APPLICATION_CONFIG_FILE.read_text(encoding='utf-8'))
         config = document['nacos']
-        if (not isinstance(config, dict) or not set(config).issubset(fields)
+        if (not isinstance(config, dict) or set(config) - (fields.keys() | budgets.keys())
                 or not {'server-addr', 'namespace', 'group', 'data-id'}.issubset(config)
-                or any(not isinstance(value, str) for value in config.values())):
+                or any(not isinstance(config[field], str) for field in config.keys() & fields.keys())):
             raise ValueError()
         local_path = APPLICATION_CONFIG_FILE.with_name('application.local.yml')
         try:
@@ -55,23 +56,28 @@ def _nacos_settings(env):
             if not isinstance(document, dict):
                 raise ValueError()
             local = document.get('nacos', {})
-            if (not isinstance(local, dict) or not set(local).issubset(fields)
-                    or any(not isinstance(value, str) for value in local.values())):
+            if (not isinstance(local, dict) or set(local) - (fields.keys() | budgets.keys())
+                    or any(not isinstance(local[field], str) for field in local.keys() & fields.keys())):
                 raise ValueError()
             config.update(local)
+        for key, default in budgets.items():
+            budgets[key] = config.get(key, default)
+            if type(budgets[key]) is not int or budgets[key] <= 0:
+                raise ValueError()
         settings = {variable: env.get(variable, config.get(field, '')) for field, variable in fields.items()}
         address = settings['CCSDK_NACOS_URL'].strip()
         if address and '://' not in address:
             address = 'http://' + address
         settings['CCSDK_NACOS_URL'] = address
-        return settings
+        return settings | budgets
     except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
         raise NacosConfigError('nacos_config_invalid') from None
 
 
-def fetch_config(env, *, transport=None, timeout_ms=10000, request_timeout_ms=5000):
+def fetch_config(env, *, transport=None):
     """只读 Nacos 2.x 配置 API；凭据仅发给 Nacos，不记录响应或回退本地文件。"""
     settings = _nacos_settings(env)
+    timeout_ms, request_timeout_ms = settings['timeout-ms'], settings['request-timeout-ms']
     address = settings['CCSDK_NACOS_URL'].strip().rstrip('/')
     if not address:
         raise NacosConfigError('nacos_not_configured')

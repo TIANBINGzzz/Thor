@@ -7,6 +7,7 @@ import unittest
 
 class StartupDependenciesTests(unittest.TestCase):
     def test_conversation_options_do_not_load_database_engine_or_sql_parser(self):
+        from runtime.config import worker_environment
         # 独立解释器避免测试收集已经导入数据库模块而掩盖启动回归。
         program = '''
 import sys
@@ -21,6 +22,7 @@ assert not loaded, 'Unneeded database startup imports: ' + ', '.join(loaded)
 '''
         result = subprocess.run(
             [sys.executable, '-c', program],
+            env=worker_environment(),
             cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)

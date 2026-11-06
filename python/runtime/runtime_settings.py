@@ -8,9 +8,6 @@ import yaml
 from runtime.deployment_config import application_document
 
 
-APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
-
-
 @dataclass(frozen=True)
 class TimeoutSettings:
     execution_ms: int
@@ -28,8 +25,6 @@ class TimeoutSettings:
     image_ms: int
     web_search_ms: int
     mcp_http_ms: int
-    nacos_ms: int
-    nacos_request_ms: int
 
 
 @dataclass(frozen=True)
@@ -55,16 +50,11 @@ def _documents(path=None, document=None):
         yield application_document()
     else:
         path = Path(path)
-        for candidate in (path, path.with_name('application.local.yml')):
-            try:
-                yield yaml.safe_load(candidate.read_text(encoding='utf-8'))
-            except FileNotFoundError:
-                if candidate == path:
-                    raise
+        yield yaml.safe_load(path.read_text(encoding='utf-8'))
 
 
 def load_runtime_settings(path=None, *, document=None):
-    """从公共与本地 YAML 读取完整部署预算；缺失、拼错或非法值在启动时失败。"""
+    """校验 Nacos 快照或显式离线文件的完整预算；缺失和非法值直接失败。"""
     sections = {'timeouts': TimeoutSettings, 'limits': LimitSettings}
     values = {name: {} for name in sections}
     heartbeat = None
@@ -92,7 +82,8 @@ def load_runtime_settings(path=None, *, document=None):
         raise ValueError('runtime.timeouts / limits / sse-heartbeat-ms 配置无效：须完整声明正整数预算') from None
 
 
-RUNTIME_SETTINGS = load_runtime_settings()
+# 正式入口和 Worker 在导入使用方前安装；离线资产检查无需运行预算。
+RUNTIME_SETTINGS = None
 
 
 @dataclass(frozen=True)
@@ -111,7 +102,7 @@ class ModelSettings:
 
 
 def load_model_settings(path=None, *, document=None):
-    """启动时读取明确的模型配置；本地逐字段覆盖，列表整体替换，缺失或非法即失败。"""
+    """模型只从 Nacos 快照或显式离线文件取值，缺失或非法即失败。"""
     values = {}
     sdk = {}
     try:
@@ -145,14 +136,14 @@ def load_model_settings(path=None, *, document=None):
 
 @dataclass(frozen=True)
 class WorkerPoolSettings:
-    max_idle: int = 0
-    max_starting: int = 2
-    min_available_memory_mib: int = 1024
-    max_live: int = 24
+    max_idle: int
+    max_starting: int
+    min_available_memory_mib: int
+    max_live: int
 
 
 def load_worker_pool_settings(path=None, *, document=None):
-    """公共 YAML 后叠加本地同名字段；缺省不开池，非法配置在启动时失败。"""
+    """校验 Nacos 声明的完整池配置；不使用本地覆盖或隐藏默认值。"""
     values = {}
     fields = {'max-idle': 'max_idle', 'max-starting': 'max_starting',
               'min-available-memory-mib': 'min_available_memory_mib', 'max-live': 'max_live'}

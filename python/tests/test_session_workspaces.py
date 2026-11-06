@@ -81,6 +81,9 @@ class WorkspaceBindingTests(unittest.TestCase):
 
 
 class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
+
     async def test_published_artifact_resolves_persisted_workspace_after_reopen(self):
         from runtime.artifact_delivery import ArtifactDelivery
         from tools.artifacts import publish_artifact

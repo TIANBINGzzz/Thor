@@ -37,11 +37,11 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 - CCSDK_BIND_IP 默认主机回环；跨机访问绑定内网并限制来源。SSE 反向代理关闭缓冲、配置长连接超时；JWT 时钟、issuer/audience 和共享密钥与 Java 一致。
 - 单副本、单 HTTP worker；命名卷保存 `.scribe-runs/` 的记录、SDK 历史、文件和管理端新建能力。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 `docker compose down -v`，改卷名不会迁移数据。
 
-产品默认预算在 config/application.yml，客户覆盖在 Nacos runtime；启动读取并校验一次，后续使用同一内存快照。配置变更排空任务后重启，无需重建镜像。旧 env 模型/JWT/数据库字段不生效。构建只校验源码资产，不需要客户 Nacos 或业务数据库；部署 --check 连接 Nacos，probe 另检查真实数据库，二者不代表真实业务验收。
+全部运行参数在 Nacos runtime，config/application.yml 仅保存 Nacos 引导；启动读取并校验一次，后续使用同一内存快照。配置变更排空任务后重启，无需重建镜像。旧 env 模型/JWT/数据库字段不生效。构建只校验源码资产，不需要客户 Nacos 或业务数据库；部署 --check 连接 Nacos，probe 另检查真实数据库，二者不代表真实业务验收。
 
 ## 独立观测接入
 
-Nacos runtime.observability.enabled 覆盖产品默认值；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
+Nacos runtime.observability.enabled 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
 
 带专用 observation.read JWT 核对 /internal/observability/v1/info、records、snapshot、metrics；关闭返回404，缺密钥返回503，无效授权返回401。紧急停采可在进程设置 CCSDK_OBSERVABILITY_ENABLED=0；正式配置仍以 Nacos 为准，进程覆盖须由部署方显式管理。
 

@@ -1,56 +1,10 @@
-nacos:
-  server-addr: host.docker.internal:8848
-  namespace: "" # public；其他命名空间填 ID
-  group: DEFAULT_GROUP
-  data-id: ai-center-agent-service
-  username: ""
-  password: ""
-runtime:
-  observability:
-    enabled: false # 总开关；开启后保留所有会话的脱敏待采事件，供独立平台拉取。
-    storage: .scribe-runs/observation.sqlite # 有界待采日志，相对项目根目录。
-    max-records: 20000
-    retention-seconds: 86400
-    queue-size: 2048
-  timeouts: # 毫秒；按职责分别计时，执行预算从附件准备完成后开始。
-    execution-ms: 3600000
-    client-queue-ms: 300000
-    client-idle-ms: 300000
-    file-prepare-ms: 600000
-    file-broker-ms: 15000
-    file-upload-connect-ms: 10000
-    worker-start-ms: 60000
-    worker-send-ms: 5000
-    # SDK transport 最长需要多段退出等待；父 Worker 必须留出完整收尾预算。
-    worker-close-ms: 20000
-    worker-control-ms: 5000
-    document-render-ms: 180000
-    document-start-ms: 30000
-    image-ms: 600000
-    web-search-ms: 90000
-    mcp-http-ms: 30000
-    nacos-ms: 10000
-    nacos-request-ms: 5000
-  limits:
-    max-turns: 200
-    file-max-bytes: 268435456
-    sdk-buffer-bytes: 16777216
-    http-body-bytes: 2097152
-    prompt-bytes: 32768
-  sse-heartbeat-ms: 15000
-  models:
-    default: deepseek-v4.1-flash
-    available:
-      - deepseek-v4.1-flash
-      - qwen3.8-flash
-      - qwen3.8-max
-    sdk:
-      haiku: deepseek-v4.1-flash
-      sonnet: deepseek-v4.1-flash
-      opus: qwen3.8-max
-      subagent: deepseek-v4.1-flash
-  worker-pool:
-    max-idle: 6
-    max-starting: 2
-    max-live: 24
-    min-available-memory-mib: 1024
+# 仅用于连接 Nacos；所有 Runtime 运行参数和客户配置以 Nacos 为准。
+nacos: # 配置中心启动引导，可由本机 application.local.yml 或 CCSDK_NACOS_* 覆盖连接信息。
+  server-addr: host.docker.internal:8848 # Nacos 主机及端口，可包含 http/https 协议。
+  namespace: "" # Namespace ID，空值表示 public。
+  group: DEFAULT_GROUP # 客户配置所属分组。
+  data-id: ai-center-agent-service # 客户 YAML 的 Data ID。
+  username: "" # Nacos 只读账号，允许匿名时留空。
+  password: "" # Nacos 密码，与账号同时配置。
+  timeout-ms: 10000 # 启动读取 Nacos 的完整预算，单位为毫秒。
+  request-timeout-ms: 5000 # Nacos 单次网络请求超时，单位为毫秒。

@@ -15,6 +15,7 @@ from tools.artifacts import publish_artifact
 
 class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         from runtime.artifact_delivery import ArtifactDelivery
         delays = patch('runtime.artifact_delivery.RETRY_DELAYS', (0, 0), create=True)
         delays.start()

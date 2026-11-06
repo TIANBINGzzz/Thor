@@ -14,36 +14,11 @@ from runtime import runtime_settings
 class RuntimeSettingsTests(unittest.TestCase):
     def write_config(self, directory):
         path = Path(directory) / 'application.yml'
-        path.write_text('''runtime:
-  timeouts:
-    execution-ms: 3600000
-    client-queue-ms: 300000
-    client-idle-ms: 300000
-    file-prepare-ms: 600000
-    file-broker-ms: 15000
-    file-upload-connect-ms: 10000
-    worker-start-ms: 60000
-    worker-send-ms: 5000
-    worker-close-ms: 5000
-    worker-control-ms: 5000
-    document-render-ms: 180000
-    document-start-ms: 30000
-    image-ms: 600000
-    web-search-ms: 90000
-    mcp-http-ms: 30000
-    nacos-ms: 10000
-    nacos-request-ms: 5000
-  limits:
-    max-turns: 30
-    file-max-bytes: 268435456
-    sdk-buffer-bytes: 16777216
-    http-body-bytes: 2097152
-    prompt-bytes: 32768
-  sse-heartbeat-ms: 15000
-''', encoding='utf-8')
+        from tests.deployment_fixtures import deployment_document
+        path.write_text(yaml.safe_dump(deployment_document()), encoding='utf-8')
         return path
 
-    def test_local_fields_override_yaml_without_environment_fallback(self):
+    def test_explicit_nacos_file_ignores_local_yaml_and_environment(self):
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
             path.with_name('application.local.yml').write_text(
@@ -52,9 +27,9 @@ class RuntimeSettingsTests(unittest.TestCase):
             with patch.dict('os.environ', {'CCSDK_RUN_EXECUTION_TIMEOUT_MS': '1',
                                           'SCRIBE_MAX_TURNS': '1'}):
                 settings = runtime_settings.load_runtime_settings(path)
-            self.assertEqual(settings.timeouts.execution_ms, 4200000)
+            self.assertEqual(settings.timeouts.execution_ms, 3600000)
             self.assertEqual(settings.timeouts.file_prepare_ms, 600000)
-            self.assertEqual(settings.limits.max_turns, 42)
+            self.assertEqual(settings.limits.max_turns, 200)
             self.assertEqual(settings.sse_heartbeat_ms, 15000)
             with self.assertRaises(dataclasses.FrozenInstanceError):
                 settings.sse_heartbeat_ms = 1
@@ -69,18 +44,18 @@ class RuntimeSettingsTests(unittest.TestCase):
                                           ('timeouts', 'typo-ms', 10),
                                           ('limits', 'max-turns', -1)]:
                 with self.subTest(section=section, field=field, value=value):
-                    local = {'runtime': {section: {field: value}}}
-                    path.with_name('application.local.yml').write_text(yaml.safe_dump(local), encoding='utf-8')
+                    document = yaml.safe_load(yaml.safe_dump(original))
+                    document['runtime'][section][field] = value
+                    path.write_text(yaml.safe_dump(document), encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'runtime'):
                         runtime_settings.load_runtime_settings(path)
-            path.with_name('application.local.yml').unlink()
             for value in (None, False, '15000', 0):
                 with self.subTest(heartbeat=value):
-                    path.with_name('application.local.yml').write_text(
-                        yaml.safe_dump({'runtime': {'sse-heartbeat-ms': value}}), encoding='utf-8')
+                    document = yaml.safe_load(yaml.safe_dump(original))
+                    document['runtime']['sse-heartbeat-ms'] = value
+                    path.write_text(yaml.safe_dump(document), encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'runtime'):
                         runtime_settings.load_runtime_settings(path)
-            path.with_name('application.local.yml').unlink()
             del original['runtime']['timeouts']['execution-ms']
             path.write_text(yaml.safe_dump(original), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'runtime'):
@@ -90,14 +65,11 @@ class RuntimeSettingsTests(unittest.TestCase):
         from runtime import config, file_broker
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
-            path.with_name('application.local.yml').write_text('''runtime:
-  limits:
-    max-turns: 47
-    sdk-buffer-bytes: 8388608
-    file-max-bytes: 4096
-  timeouts:
-    file-broker-ms: 2500
-''', encoding='utf-8')
+            document = yaml.safe_load(path.read_text(encoding='utf-8'))
+            document['runtime']['limits'].update({'max-turns': 47, 'sdk-buffer-bytes': 8388608,
+                                                   'file-max-bytes': 4096})
+            document['runtime']['timeouts']['file-broker-ms'] = 2500
+            path.write_text(yaml.safe_dump(document), encoding='utf-8')
             settings = runtime_settings.load_runtime_settings(path)
             with patch.object(config, 'RUNTIME_SETTINGS', settings), \
                  patch.object(file_broker, 'RUNTIME_SETTINGS', settings), \
@@ -114,16 +86,15 @@ class RuntimeSettingsTests(unittest.TestCase):
     def test_fresh_process_uses_one_budget_in_server_worker_and_sdk(self):
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
-            path.with_name('application.local.yml').write_text('''runtime:
-  timeouts:
-    execution-ms: 4200000
-    worker-start-ms: 2345
-    worker-close-ms: 678
-    client-idle-ms: 3456
-''', encoding='utf-8')
+            document = yaml.safe_load(path.read_text(encoding='utf-8'))
+            document['runtime']['timeouts'].update({'execution-ms': 4200000, 'worker-start-ms': 2345,
+                                                     'worker-close-ms': 678, 'client-idle-ms': 3456})
+            path.write_text(yaml.safe_dump(document), encoding='utf-8')
             script = '''import sys
-from runtime import runtime_settings
-runtime_settings.RUNTIME_SETTINGS = runtime_settings.load_runtime_settings(sys.argv[1])
+import yaml
+from runtime.deployment_config import initialize_deployment
+from pathlib import Path
+initialize_deployment(document=yaml.safe_load(Path(sys.argv[1]).read_text(encoding='utf-8')))
 import server, agent_worker
 from runtime.process import ClientWorkerProcess
 from runtime.claude_sdk import ClaudeSDKClient, build_agent_options
