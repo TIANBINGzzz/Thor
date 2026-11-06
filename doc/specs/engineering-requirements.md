@@ -18,7 +18,7 @@
 
 1. Java 从当前已认证请求/安全上下文获取业务 Token，完成业务授权后，按需通过内部字段 `credentials.platformBearer` 传给 Python；不换成共享账号，不接受正文中任意指定其他用户凭据。
 2. 业务 Token、Java 签发的 Run JWT、模型供应商密钥是三类凭据；不得相互替代。Run JWT 用于授权 Python 执行请求，不能把业务 Token 嵌入 JWT 或模型输入。
-3. 业务Token由Java和下游业务服务负责认证与业务授权。按用户2026-11-05确认，Python的数据访问层可从Java认证后透传的业务JWT提取tenantId，仅用于展开部署策略的self数据学校；本地解码不替代业务验签、有效期或撤销校验，不回退Run JWT。其余MCP仍把Token当不透明凭据，不改变业务含义或自行扩大权限。
+3. 业务Token由Java和下游业务服务负责认证与业务授权。按用户2026-11-06确认，一客户一套Runtime，deployment.tenantId固定数据库客户范围；Run JWT必须匹配该客户。Python的数据访问层可从Java认证后透传的业务JWT提取tenantId，仅核对客户一致性；本地解码不替代业务验签、有效期或撤销校验。其余MCP仍把Token当不透明凭据，不改变业务含义或自行扩大权限。
 4. 规则表由可信服务端配置维护，描述 MCP 标识、是否需要业务 Token、传输类型、目标 Header/环境变量及前缀或可信参数映射；不保存 Token 值。初期可以是 Python 静态配置表，不要求新增数据库或配置服务。
 5. 先按 Capability 的受控配置选择 MCP，再按规则注入。仅仅携带 Token 不得增加工具权限；前端、模型和普通业务输入不得覆盖 MCP 地址、凭据映射或接收方。
 6. 需要凭据的 MCP 缺少 Token、未注册或注入配置无效时，必须在调用前失败；不需要业务 Token 的 MCP 不接收该 Token，也不因其缺失失败。
@@ -77,6 +77,6 @@
 - 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现/预览不执行代码，管理 API 拒绝代码引用；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码，第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。
 - 本地测试前端及模拟 Java 服务已移除；Runtime 不提供本地会话/上传接口或测试身份文件直读。会话检索使用独立 session.read，仅返回公开 Run 摘要。
 - 模板参数与装配边界见[模板契约](ccsdk-runtime-interface.md#34-业务-payload)，查询口径维护在[数据库包](../../.claude/databases/schoolDoubleHigh/)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
-- 校双高数据学校采用self与显式额外租户列表，固定/动态SQL按所选学校强制过滤；用户权限由Java负责，具体边界见[数据库管理](data-source-connections.md#字段与配置)。来源发现不授权，selected项目范围不能扩大为全校，生产Java身份与撤销仍须验收。
+- 校双高数据按部署客户固定，所有usercode共享本客户全量业务数据；固定/动态SQL均强制客户过滤，用户结果和会话仍隔离，用户权限由Java负责，具体边界见[数据库管理](data-source-connections.md#字段与配置)。来源由可信能力/模板选择，项目属于业务筛选条件，生产Java身份与撤销仍须验收。
 - 文件引用须由 Java 提交前授权，Python 只下载本轮引用并按 Run 隔离结果；下载成功不代表文件 ACL 已验证，见[ADR-032](../ADR/032-platform-file-download.md)。
 - 普通 Agent 的 bypassPermissions 不构成文件、进程或网络沙箱。Java 真实授权、运行中撤销和生产多租户隔离继续保留为验收差距。

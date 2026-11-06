@@ -14,6 +14,22 @@ from runtime.run_store import RunStore
 
 
 class DeploymentSmokeTests(unittest.TestCase):
+    def test_loadtest_signs_for_configured_customer_and_current_security_fields(self):
+        spec = importlib.util.spec_from_file_location(
+            'deployment_loadtest', Path(__file__).resolve().parents[2] / 'deploy' / 'loadtest.py')
+        loadtest = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(loadtest)
+        from runtime.auth import verify_run_jwt
+        config = {'deployment': {'tenantId': 'customer-a'}, 'security': {
+            'runtimeJwtSecret': 'private-loadtest-key', 'runtimeJwtIssuer': 'configured-issuer',
+            'runtimeJwtAudience': 'configured-audience'}}
+        body = {'runId': 'loadtest-run', 'messageId': 'loadtest-message',
+                'businessSessionId': 'loadtest-session', 'capabilityRef': 'conversation'}
+        headers = loadtest.authorization_headers(config, body, 'run.execute')
+        claims = verify_run_jwt(headers['Authorization'][7:], 'private-loadtest-key', body=body,
+            tenant_id='customer-a', issuer='configured-issuer', audience='configured-audience')
+        self.assertEqual(claims['tenant'], 'customer-a')
+
     def test_probe_accepts_actual_runtime_routes_and_terminal_event(self):
         spec = importlib.util.spec_from_file_location(
             'deployment_smoke', Path(__file__).resolve().parents[2] / 'deploy' / 'smoke.py')
@@ -30,13 +46,13 @@ class DeploymentSmokeTests(unittest.TestCase):
 
         async def exercise():
             with tempfile.TemporaryDirectory() as directory, RunStore(':memory:') as store:
-                with patch.multiple(server, RUN_STORE=store, RUNTIME_JWT_SECRET='probe-secret',
+                with patch.multiple(server, RUN_STORE=store, RUNTIME_JWT_SECRET='probe-secret', DEPLOYMENT_TENANT_ID='deployment-check',
                                     PROJECT_ROOT=Path(directory), DEFAULT_MODEL='test-model',
                                     internal_tasks={}, internal_subscribers={}):
                     with patch.object(server, 'stream_agent', sdk_output), \
                          patch.object(server, '_runtime_mode_for_request', return_value='query'), \
                          patch.object(smoke.httpx, 'AsyncClient', client), \
-                         patch.dict(os.environ, {'CCSDK_RUNTIME_JWT_SECRET': 'probe-secret'}):
+                         patch('runtime.deployment_config._DEPLOYMENT', {'deployment': {'tenantId': 'deployment-check'}, 'security': {'runtimeJwtSecret':'probe-secret'}}):
                         await smoke.main()
                         await asyncio.gather(*server.internal_tasks.values())
 

@@ -1,58 +1,40 @@
-"""Static deployment policies, resolved independently for each source."""
+"""客户范围来自部署绑定，SQL 边界来自可信来源登记。"""
 
-from copy import deepcopy
-
+from runtime.deployment_config import deployment_section, require_tenant
 from .context import DataError, fingerprint
 
 
 def resolve_data_access(context, source, config, catalog):
-    """按可信身份校验来源授权，并生成包含表白名单的独立策略副本。"""
-    policy = deepcopy(config['policy'])
-    if (policy.get("source_key") != source["source_key"]
-            or context.capability_ref not in policy.get("capabilities", [])):
-        raise DataError("SOURCE_FORBIDDEN")
-    tenants = policy.get('tenant_id')
-    if (not isinstance(tenants, list) or not tenants
-            or any(not isinstance(t, str) or not t.strip() or t in {'*', 'default'} for t in tenants)):
-        raise DataError('CONFIG_INVALID')
-    resolved = []
-    for tenant in tenants:
-        if tenant == 'self':
-            tenant = context.data_tenant_id
-            if not tenant:
-                raise DataError('BUSINESS_IDENTITY_REQUIRED')
-        if tenant not in resolved:
-            resolved.append(tenant)
-    policy['authorized_tenants'] = resolved
-    if context.template_key and context.template_key not in policy.get("templates", []):
-        raise DataError("TEMPLATE_FORBIDDEN")
-    scope = policy.get("project_scope", {})
-    if scope.get("mode") == "selected":
-        ids = scope.get("project_ids")
-        if not isinstance(ids, list) or not ids or any(not isinstance(x, str) or not x for x in ids):
-            raise DataError("SCOPE_REQUIRED")
-    elif scope.get("mode") != "all_school":
-        raise DataError("SCOPE_REQUIRED")
-    for domain, allowed in policy.get('domains', {}).items():
+    """同客户用户共享业务数据；不能通过 Run 或业务 Token 切换客户。"""
+    try:
+        require_tenant(context.tenant_id)
+    except ValueError:
+        raise DataError('TENANT_FORBIDDEN') from None
+    tenant = deployment_section('deployment')['tenantId']
+    if context.data_tenant_id is not None and context.data_tenant_id != tenant:
+        raise DataError('TENANT_FORBIDDEN')
+    domains = {}
+    for domain in source['domains']:
         schema = catalog.schema(source['source_key'], domain)
-        tables = allowed['tables']
-        if not isinstance(tables, list) or not set(tables) <= schema['tables'].keys():
-            raise DataError('DOMAIN_FORBIDDEN')
-        allowed.update(tables={name:schema['tables'][name] for name in tables},
-                       functions=schema['functions'], internal_columns=schema.get('internal_columns', []),
-                       tenant_column=schema.get('tenant_column'))
+        _, assets = catalog.domain(source['source_key'], domain)
+        allowed = {k: schema.get(k, []) for k in ('tables', 'functions', 'internal_columns')}
+        allowed['tenant_column'] = schema.get('tenant_column')
         if not allowed['tenant_column'] or any(allowed['tenant_column'] not in columns
                                               for columns in allowed['tables'].values()):
             raise DataError('TENANT_SCOPE_NOT_ENFORCED')
-    policy["fingerprint"] = fingerprint(policy)
+        allowed['queries'] = [q['id'] for q in assets['queries']]
+        domains[domain] = allowed
+    policy = {'tenant_id': tenant, 'domains': domains,
+              'dynamic_sql_enabled': config.get('query', {}).get('dynamic_sql_enabled', False)}
+    policy['fingerprint'] = fingerprint(policy)
     return policy
 
 
 def domain_policy(policy, domain, query_id=None):
-    """取得获准业务域策略，并按需检查固定查询权限。"""
-    domain = policy.get("domains", {}).get(domain)
-    if not domain:
-        raise DataError("DOMAIN_FORBIDDEN")
-    if query_id and query_id not in domain.get("queries", []):
-        raise DataError("QUERY_FORBIDDEN")
-    return domain
+    """只有已登记的业务域和指标可执行；待定义指标另由执行器拒绝。"""
+    allowed = policy['domains'].get(domain)
+    if not allowed:
+        raise DataError('DOMAIN_FORBIDDEN')
+    if query_id and query_id not in allowed['queries']:
+        raise DataError('QUERY_FORBIDDEN')
+    return allowed

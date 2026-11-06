@@ -17,6 +17,10 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+if __name__ == '__main__':
+    from runtime.bootstrap import initialize_runtime
+    initialize_runtime()
+
 import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
@@ -38,6 +42,7 @@ from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
 from runtime import telemetry
 from runtime.observability import create_observer, trace_id
+from runtime.deployment_config import deployment_section
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -52,15 +57,15 @@ HOST = "127.0.0.1"
 PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
 MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
 DEFAULT_MODEL = MODEL_SETTINGS.default
-RUNTIME_JWT_SECRET = os.environ.get("CCSDK_RUNTIME_JWT_SECRET", "").strip()
-OBSERVATION_JWT_SECRET = os.environ.get("CCSDK_OBSERVATION_JWT_SECRET", "").strip()
-RUNTIME_JWT_AUDIENCE = os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime").strip()
+SECURITY = deployment_section('security', {})
+DEPLOYMENT_TENANT_ID = deployment_section('deployment', {}).get('tenantId')
+RUNTIME_JWT_SECRET = SECURITY.get('runtimeJwtSecret', '')
+OBSERVATION_JWT_SECRET = SECURITY.get('observationJwtSecret', '')
+RUNTIME_JWT_AUDIENCE = SECURITY.get('runtimeJwtAudience', 'ccsdk-runtime')
 # Keep an explicit default so ``iss`` is always checked against the Java
 # control-plane identity.  Deployments may override it, but an omitted issuer
 # must not silently disable this binding check.
-RUNTIME_JWT_ISSUER = os.environ.get(
-    "CCSDK_RUNTIME_JWT_ISSUER", "string-ai-center-service"
-).strip()
+RUNTIME_JWT_ISSUER = SECURITY.get('runtimeJwtIssuer', 'string-ai-center-service')
 RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe-runs" / "runs.sqlite3")))
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
 internal_cancellations: dict[str, asyncio.Task[Any]] = {}
@@ -249,8 +254,10 @@ def _authorize_internal(
     message_id: str | None = None,
 ) -> dict[str, Any]:
     """校验请求 JWT、允许权限及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
-    if not RUNTIME_JWT_SECRET:
+    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
         raise _InternalAuthError("Runtime JWT 未配置")
+    if run.get('tenantId') != DEPLOYMENT_TENANT_ID:
+        raise _InternalAuthError('部署租户不匹配')
     run_id = str(run.get("runId") or "")
     capability = str(run.get("capabilityRef") or "conversation")
     token = _bearer_from_request(request)
@@ -276,7 +283,7 @@ def _authorize_internal(
 
 def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tuple[dict[str, Any], str]:
     """校验 HTTP JWT 与新 Run 请求的绑定，返回 claims 和仅供内存使用的原始 Token。"""
-    if not RUNTIME_JWT_SECRET:
+    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
         raise _InternalAuthError("Runtime JWT 未配置")
     capability = run_request.capability_ref or "conversation"
     wire = run_request.to_dict()
@@ -289,6 +296,7 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tu
             token,
             RUNTIME_JWT_SECRET,
             body=wire,
+            tenant_id=DEPLOYMENT_TENANT_ID,
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
             expected_scope="run.execute",
@@ -1127,7 +1135,7 @@ def internal_session_runs(
     limit: int = Query(50, ge=1, le=100), cursor: str | None = Query(None, max_length=345),
 ):
     """列出Java授权会话的公开执行摘要，不维护业务会话或消息。"""
-    if not RUNTIME_JWT_SECRET:
+    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
         return _plain("Runtime JWT 未配置", 503)
     try:
         claims = verify_session_read_jwt(
@@ -1135,6 +1143,8 @@ def internal_session_runs(
             business_session_id=business_session_id,
             audience=RUNTIME_JWT_AUDIENCE, issuer=RUNTIME_JWT_ISSUER,
         )
+        if claims['tenant'] != DEPLOYMENT_TENANT_ID:
+            raise _InternalAuthError('部署租户不匹配')
     except (JWTError, _InternalAuthError) as error:
         return _plain(str(error), 401)
     try:

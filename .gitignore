@@ -10,7 +10,7 @@ deploy/environments.local.md
 *.pem
 deploy/data-access.json
 /config/*
-!/config/databases.json
+!/config/nacos-ai-center-agent-service.yaml
 !/config/README.md
 !/config/application.yml
 *.secret.b64

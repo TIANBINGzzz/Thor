@@ -3,16 +3,15 @@
 import base64
 from io import BytesIO
 import json
-import os
 from pathlib import Path
 import time
-from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from PIL import Image
 
 from runtime.claude_sdk import create_sdk_mcp_server, sdk_tool
 from runtime.runtime_settings import RUNTIME_SETTINGS
+from runtime.deployment_config import deployment_section
 from tools.declarations import operation
 from tools.document_conversion import _resolve, _roots, _new_output
 
@@ -92,16 +91,9 @@ def create_image_server(base_dir, *, base_url, api_key, model, additional_dirs=N
 
 
 def image_configuration():
-    """解析部署侧生图配置；仅受信任的阿里云工作空间可复用模型连接。"""
-    base = os.environ.get('CCSDK_IMAGE_BASE_URL', '').strip()
-    key = os.environ.get('CCSDK_IMAGE_API_KEY', '').strip() or os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
-    if not base:
-        url = urlsplit(os.environ.get('ANTHROPIC_BASE_URL', ''))
-        if (url.scheme == 'https' and (url.hostname or '').endswith('.maas.aliyuncs.com')
-                and url.path.rstrip('/') == '/apps/anthropic'
-                and not url.username and not url.password and not url.query and not url.fragment):
-            base = urlunsplit((url.scheme, url.netloc, '/compatible-mode/v1', '', ''))
-    return base, key
+    """生图连接显式登记在 Nacos，不猜测地址或复用另一项密钥。"""
+    config = deployment_section('images', {})
+    return config.get('baseUrl', ''), config.get('apiKey', '')
 
 
 def provide_tool(definition, context):
@@ -111,6 +103,6 @@ def provide_tool(definition, context):
         return None
     work = context.get('work_directory') or context.get('cwd') or Path.cwd()
     server = create_image_server(work, base_url=base, api_key=key,
-                                 model=os.environ.get('CCSDK_IMAGE_MODEL', 'qwen-image-3.0'),
+                                 model=deployment_section('images', {}).get('model', ''),
                                  additional_dirs=context.get('additional_directories'))
     return definition.ref, server

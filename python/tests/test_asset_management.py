@@ -66,9 +66,9 @@ class AssetManagementTests(unittest.TestCase):
         app = FastAPI()
         app.include_router(create_asset_router(root=self.root))
         self.client = TestClient(app)
-        self.enterContext(patch.dict('os.environ', {
-            'CCSDK_ASSET_JWT_SECRET': 'asset-secret', 'CCSDK_RUNTIME_JWT_SECRET': 'run-secret',
-            'CCSDK_OBSERVATION_JWT_SECRET': 'observation-secret'}))
+        self.security = {'assetJwtSecret': 'asset-secret', 'runtimeJwtSecret': 'run-secret',
+                         'observationJwtSecret': 'observation-secret'}
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', {'security': self.security}))
 
     def headers(self, *, secret='asset-secret', **overrides):
         now = time.time()
@@ -108,7 +108,7 @@ class AssetManagementTests(unittest.TestCase):
                 self.assertEqual(self.client.post('/internal/v1/assets/capabilities', json=self.body(),
                                  headers=headers).status_code, 401)
         for secret in ('', 'run-secret', 'observation-secret'):
-            with patch.dict('os.environ', {'CCSDK_ASSET_JWT_SECRET': secret}):
+            with patch.dict(self.security, {'assetJwtSecret': secret}):
                 self.assertEqual(self.client.get('/internal/v1/assets/catalog',
                                  headers=self.headers()).status_code, 401)
         self.assertEqual(list(self.root.iterdir()), [])

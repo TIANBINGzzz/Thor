@@ -21,21 +21,23 @@ from tools.images import generate_image
 from tools.artifacts import create_artifact_server
 
 
-class ImageCapabilityTests(unittest.TestCase):
-    def test_image_defaults_reuse_general_key_and_workspace_url(self):
-        with patch.dict('os.environ', {
-                'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
-                'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic'}, clear=True), \
-                patch('tools.images.create_image_server', return_value={}) as create:
-            options = build_options({'capability_ref': 'image-generation'})
-        self.assertEqual(create.call_args.kwargs['api_key'], 'shared-private-key')
-        self.assertEqual(create.call_args.kwargs['base_url'],
-                         'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1')
-        self.assertNotIn('shared-private-key', options.system_prompt['append'])
+from tests.deployment_fixtures import deployment_document
 
-    def test_unknown_provider_is_not_guessed_as_image_endpoint(self):
-        with patch.dict('os.environ', {'ANTHROPIC_AUTH_TOKEN': 'shared-private-key',
-                'ANTHROPIC_BASE_URL': 'https://provider.test/apps/anthropic'}, clear=True):
+class ImageCapabilityTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
+    def test_image_configuration_is_explicit_and_independent_of_model_key(self):
+        with patch('tools.images.create_image_server', return_value={}) as create:
+            options = build_options({'capability_ref': 'image-generation'})
+        self.assertEqual(create.call_args.kwargs['api_key'], 'private-image-key')
+        self.assertEqual(create.call_args.kwargs['base_url'], 'https://images.example.test/v1')
+        self.assertNotIn('private-image-key', options.system_prompt['append'])
+
+    def test_image_endpoint_is_not_guessed_from_text_model_configuration(self):
+        document = deployment_document()
+        document.pop('images')
+        with patch('runtime.deployment_config._DEPLOYMENT', document):
             with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
@@ -66,7 +68,7 @@ class ImageCapabilityTests(unittest.TestCase):
         self.assertNotIn('private-image-key', options.system_prompt['append'])
 
     def test_missing_image_credentials_fails_explicitly(self):
-        with patch.dict('os.environ', {}, clear=True):
+        with patch('runtime.deployment_config._DEPLOYMENT', {}), patch.dict('os.environ', {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
@@ -97,7 +99,7 @@ class ImageCapabilityTests(unittest.TestCase):
                 with Image.open(root / 'output' / receipt['artifactId'] / 'content') as image:
                     self.assertEqual(image.format, 'PNG')
                     self.assertEqual(image.size, (32, 24))
-            self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+            self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', {
                 'fileService': {'baseUrl': 'https://files.test',
                     'domainName': 'routing.test', 'remoteUrl': 'https://public.test'}}))
             store = RunStore(':memory:')

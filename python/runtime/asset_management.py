@@ -16,6 +16,7 @@ from runtime.asset_registry import ENTRY_NAME, load_declared_asset
 from runtime.capabilities import CAPABILITIES, CAPABILITIES_ROOT, MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT, capability_entry
 from runtime.prompt_assembly import assemble_prompt, load_prompt_assets, shared_system_prompt
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
+from runtime.deployment_config import deployment_section
 
 LOGGER = logging.getLogger('ccsdk.runtime.assets')
 MAX_BODY_BYTES = 32_000
@@ -26,9 +27,9 @@ MANAGED_FIELDS = {'ref', 'title', 'description', 'supportsAttachments', 'skillRe
 
 def _authorize(request: Request):
     """管理授权与执行、观测密钥隔离；未配置即关闭，授权最长五分钟。"""
-    secret = os.environ.get('CCSDK_ASSET_JWT_SECRET', '').strip()
-    if not secret or secret in {os.environ.get('CCSDK_RUNTIME_JWT_SECRET', '').strip(),
-                                os.environ.get('CCSDK_OBSERVATION_JWT_SECRET', '').strip()}:
+    security = deployment_section('security', {})
+    secret = security.get('assetJwtSecret', '')
+    if not secret or secret in {security.get('runtimeJwtSecret', ''), security.get('observationJwtSecret', '')}:
         raise HTTPException(401, '资产管理鉴权未配置')
     scheme, _, token = request.headers.get('authorization', '').partition(' ')
     try:

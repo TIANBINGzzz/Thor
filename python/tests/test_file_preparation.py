@@ -259,7 +259,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         "capabilityRef": "conversation", "input": {"text": "read",
                         "attachmentRefs": [{"fileId": "file-1"}]}}
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
-                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUNTIME_JWT_SECRET="test-secret",
+                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, DEPLOYMENT_TENANT_ID="t", RUNTIME_JWT_SECRET="test-secret",
                                     internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileBroker", side_effect=broker), \

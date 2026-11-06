@@ -1,4 +1,4 @@
-"""业务身份与执行身份分离，授权学校分别查询且不依赖模型补租户条件。"""
+"""一部署一客户，固定和动态查询均不依赖模型补租户条件。"""
 
 import asyncio
 import json
@@ -22,18 +22,13 @@ class DataTenantScopeTests(unittest.TestCase):
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         for policy in self.fixture.config['policies'].values():
-            policy['tenant_id'] = ['self', 'business-b']
             policy['dynamic_sql_enabled'] = True
-        for connection in self.fixture.config['connections'].values():
-            connection.update(database_scope_enforced=True, scope_source_key=connection['source_key'])
-        for policy in self.fixture.config['policies'].values():
-            policy['domains']['sales']['tenant_column'] = 'tenant'
         with sqlite3.connect(self.fixture.root / 'first.db') as db:
             db.execute('INSERT INTO sales VALUES (?, ?, ?)', ('business-c', 777, 'forbidden'))
 
     def payload(self, tenant='business-a', run='tenant-run'):
         return {'run_id': run, 'capability_ref': 'qa',
-                '_data_identity': {'tenant_id': 'jwt-a', 'user_id': 'u1'},
+                '_data_identity': {'tenant_id': 'business-a', 'user_id': 'u1'},
                 '_data_run_directory': str(self.fixture.root / run),
                 'credentials': {'platformBearer': business_token(tenant)}}
 
@@ -43,24 +38,19 @@ class DataTenantScopeTests(unittest.TestCase):
     def schools(self, executor):
         return executor.resolve_entities('first', 'sales', 'school', '')['candidates']
 
-    def test_self_uses_business_tenant_and_extra_school_has_separate_fixed_results(self):
+    def test_customer_has_one_scope_and_only_own_rows(self):
         executor = self.executor()
         schools = self.schools(executor)
-        self.assertEqual(len(schools), 2)
-        self.assertEqual([executor.execute_query_spec('first', 'sales', 'total', {}, s['scope_ref'])['rows']
-                          for s in schools], [[{'total': 10}], [{'total': 999}]])
-        self.assertEqual(executor.context.tenant_id, 'jwt-a')
+        self.assertEqual(len(schools), 1)
+        self.assertEqual(executor.execute_query_spec('first','sales','total',{},schools[0]['scope_ref'])['rows'], [{'total':10}])
 
-    def test_self_is_deduplicated_and_does_not_fall_back_when_token_is_missing(self):
-        executor = self.executor('business-b')
-        self.assertEqual(len(self.schools(executor)), 1)
-        self.assertEqual(executor.execute_query_spec('first', 'sales', 'total', {},
-            self.schools(executor)[0]['scope_ref'])['rows'], [{'total': 999}])
+    def test_missing_business_token_uses_fixed_deployment_and_mismatch_is_rejected(self):
         payload = self.payload()
         payload.pop('credentials')
         executor = self.fixture.make_executor(DataContext.from_payload(payload))
-        with self.assertRaisesRegex(DataError, 'BUSINESS_IDENTITY_REQUIRED'):
-            executor.access('first')
+        self.assertEqual(len(self.schools(executor)), 1)
+        with self.assertRaisesRegex(DataError, 'TENANT_FORBIDDEN'):
+            self.executor('business-b').access('first')
 
     def test_dynamic_nested_queries_cannot_expand_either_school(self):
         executor = self.executor()
@@ -72,7 +62,7 @@ class DataTenantScopeTests(unittest.TestCase):
             'SELECT MAX(a.amount + b.amount) AS n FROM sales a LEFT JOIN sales b ON a.private_id = b.private_id',
             'SELECT SUM(amount) AS n FROM sales UNION SELECT MAX(amount) AS n FROM sales',
         ]
-        for school, expected in zip(self.schools(executor), (10, 999)):
+        for school, expected in zip(self.schools(executor), (10,)):
             for sql in queries:
                 with self.subTest(school=expected, sql=sql):
                     parameters = {'minimum': 0} if ':minimum' in sql else {}
@@ -108,49 +98,13 @@ class DataTenantScopeTests(unittest.TestCase):
         path.write_text(path.read_text().replace(' WHERE tenant = :tenant_id', ''), encoding='utf-8')
         executor = self.executor()
         self.assertEqual([executor.execute_query_spec('first', 'sales', 'total', {}, s['scope_ref'])['rows']
-                          for s in self.schools(executor)], [[{'total': 10}], [{'total': 999}]])
+                          for s in self.schools(executor)], [[{'total': 10}]])
 
-    def test_same_project_id_in_two_schools_cannot_mix_entity_references(self):
-        with sqlite3.connect(self.fixture.root / 'first.db') as db:
-            db.execute("UPDATE sales SET private_id = 'same-project'")
-        source_path = self.fixture.root / 'databases/first/source.json'
-        source = json.loads(source_path.read_text())
-        source['domains']['sales']['entities'] = {'project': {
-            'query_id': 'projects', 'id_field': 'project_id', 'name_field': 'project_name', 'parameter': 'project_id'}}
-        fixtures.save(source_path, source)
-        path = self.fixture.root / 'databases/first/metrics/sales/sales.yaml'
-        bundle = yaml.safe_load(path.read_text())
-        bundle['parameters']['project_id'] = {
-            'type': ['string', 'null'], 'required': True, 'origin': 'authorized_resolution'}
-        total = bundle['metrics'][0]
-        total['parameters'] = ['project_id']
-        total['sql'] += ' AND (:project_id IS NULL OR private_id = :project_id)'
-        bundle['metrics'].append({**total, 'id': 'projects',
-            'sql': "SELECT private_id AS project_id, 'Same project' AS project_name FROM sales WHERE tenant = :tenant_id AND (:project_id IS NULL OR private_id = :project_id)",
-            'output': [{'name': 'project_id', 'visibility': 'internal_only'}, {'name': 'project_name'}]})
-        path.write_text(yaml.safe_dump(bundle), encoding='utf-8')
-        self.fixture.config['policies']['first']['domains']['sales']['queries'].append('projects')
+    def test_user_cannot_export_tenant_identity(self):
         executor = self.executor()
-        projects = executor.resolve_entities('first', 'sales', 'project', '')['candidates']
-        self.assertEqual(len(projects), 2)
-        for project, expected in zip(projects, (10, 999)):
-            result = executor.execute_query_spec('first', 'sales', 'total', {}, project['scope_ref'],
-                {'project_id': project['entity_ref']})
-            self.assertEqual(result['rows'], [{'total': expected}])
-        with self.assertRaisesRegex(DataError, 'ENTITY_FORBIDDEN'):
-            executor.execute_query_spec('first', 'sales', 'total', {}, projects[0]['scope_ref'],
-                {'project_id': projects[1]['entity_ref']})
-        filtered = executor.resolve_entities('first', 'sales', 'project', '',
-            parent_ref=self.schools(executor)[1]['scope_ref'])['candidates']
-        self.assertEqual(len(filtered), 1)
-        self.assertEqual(filtered[0]['school'], projects[1]['school'])
-
-    def test_policy_requires_explicit_data_tenant_list(self):
-        for value in ([], 'self', '*', ['*'], ['default'], [' '], [1]):
-            with self.subTest(value=value):
-                self.fixture.config['policies']['first']['tenant_id'] = value
-                with self.assertRaisesRegex(DataError, 'CONFIG_INVALID'):
-                    self.executor().access('first')
+        scope = self.schools(executor)[0]['scope_ref']
+        with self.assertRaisesRegex(DataError, 'INTERNAL_COLUMN_FORBIDDEN'):
+            executor.execute_readonly_sql('first','sales','SELECT tenant AS identity FROM sales',{},'test',scope)
 
     def test_registered_hpm_dynamic_sql_cannot_return_tenant_identity(self):
         schema = fixtures.Catalog().schema('schoolDoubleHigh', 'hpm')
@@ -161,7 +115,7 @@ class DataTenantScopeTests(unittest.TestCase):
         executor = self.executor()
         context = executor.prepare_context(['schema'])
         domain = context['sources'][0]['domains'][0]
-        self.assertEqual(len(domain['school_scopes']), 2)
+        self.assertEqual(len(domain['school_scopes']), 1)
         self.assertEqual(domain['scope_ref'], domain['school_scopes'][0]['scope_ref'])
         result = executor.execute_query_spec('first', 'sales', 'total', {}, domain['scope_ref'])
         for secret in ('business-a', 'business-b', business_token('business-a')):
@@ -174,12 +128,12 @@ class DataTenantScopeTests(unittest.TestCase):
             try:
                 await services.bind(self.payload())
                 old_scope = self.schools(services.current())[0]['scope_ref']
-                await services.bind(self.payload('business-c', 'next-run'))
+                await services.bind(self.payload('business-a', 'next-run'))
                 executor = services.current()
                 with self.assertRaisesRegex(DataError, 'SCOPE_FORBIDDEN'):
                     executor.execute_query_spec('first', 'sales', 'total', {}, old_scope)
                 result = executor.execute_query_spec('first', 'sales', 'total', {}, self.schools(executor)[0]['scope_ref'])
-                self.assertEqual(result['rows'], [{'total': 777}])
+                self.assertEqual(result['rows'], [{'total': 10}])
             finally:
                 await services.close()
         asyncio.run(scenario())

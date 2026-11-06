@@ -12,22 +12,25 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "python"))
 from runtime.auth import encode_hs256_jwt
+from runtime.deployment_config import deployment_section
 
 
 async def main():
+    security = deployment_section('security', {})
+    tenant = deployment_section('deployment', {})['tenantId']
     suffix = uuid.uuid4().hex
     body = {"protocol": "agent-run/v1", "runId": "deploy-" + suffix,
             "messageId": "message-" + suffix, "businessSessionId": "deploy-" + suffix,
             "capabilityRef": "conversation", "input": {"text": "Compute 17 * 23. Reply only with the number. Do not use tools."}}
     now = int(time.time())
-    claims = {"iss": os.environ.get("CCSDK_RUNTIME_JWT_ISSUER", "string-ai-center-service"),
-              "aud": os.environ.get("CCSDK_RUNTIME_JWT_AUDIENCE", "ccsdk-runtime"),
+    claims = {"iss": security.get("runtimeJwtIssuer", "string-ai-center-service"),
+              "aud": security.get("runtimeJwtAudience", "ccsdk-runtime"),
               "iat": now, "exp": now + 600, "jti": suffix,
-              "sub": "deployment-check", "tenant": "deployment-check",
+              "sub": "deployment-check", "tenant": tenant,
               **{key: body[key] for key in ("runId", "messageId", "businessSessionId", "capabilityRef")}}
 
     def headers(scope):
-        token = encode_hs256_jwt({**claims, "scope": scope}, os.environ["CCSDK_RUNTIME_JWT_SECRET"])
+        token = encode_hs256_jwt({**claims, "scope": scope}, security["runtimeJwtSecret"])
         return {"Authorization": "Bearer " + token}
 
     # Loopback refers to this running container, not the deployment host.
@@ -57,7 +60,7 @@ async def main():
                 raise ValueError("SSE sequence check failed")
         except Exception:
             try:
-                await client.post(route + "/cancel", headers=headers("run.cancel"))
+                await client.post(route + "/cancel", headers=headers("run.execute"))
             except httpx.HTTPError:
                 pass
             raise
@@ -66,6 +69,8 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        from runtime.bootstrap import initialize_runtime
+        initialize_runtime()
         asyncio.run(main())
     except Exception:
         sys.exit("Deployment smoke failed; inspect Runtime with authorized diagnostics. Response bodies and credentials withheld.")

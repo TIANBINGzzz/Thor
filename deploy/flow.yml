@@ -20,8 +20,6 @@ variables:
     value: "1"
   - key: CCSDK_BIND_IP
     value: "127.0.0.1"
-  - key: CCSDK_WITH_DATABASE
-    value: "0"
   - key: CCSDK_WITH_APPLICATION
     value: "0"
   - key: CCSDK_SMOKE_TEST
@@ -89,7 +87,6 @@ stages:
             # This value must be the single-line output of encode-secret.py.
             export CCSDK_DEPLOY_ENV_B64='${CCSDK_DEPLOY_ENV_B64}'
             export CCSDK_BIND_IP='${CCSDK_BIND_IP}'
-            export CCSDK_WITH_DATABASE='${CCSDK_WITH_DATABASE}'
             export CCSDK_WITH_APPLICATION='${CCSDK_WITH_APPLICATION}'
             export CCSDK_CONFIG_DIRECTORY="${CCSDK_DEPLOY_ROOT}/config"
             export CCSDK_RELEASE_DIRECTORY=..

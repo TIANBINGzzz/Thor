@@ -25,8 +25,8 @@
 
 ## 数据、凭据与验证
 
-- 能力私有环境使用同目录、被忽略的 `capability.env`；数据库连接及策略只放部署侧 `databases.json`，配置基准目录见 [配置字段](config/README.md)。
-- 通用密钥放 `.env` 或 Secret Manager，不写入代码、执行资产、Prompt、日志或报告。仅 `config/databases.json` 经用户授权随本版私有源码和镜像交付，范围见 [ADR-028](doc/ADR/028-bundled-database-config.md)。
+- 能力私有环境使用同目录、被忽略的 `capability.env`；客户身份、数据库连接及查询预算统一放 Nacos，表列和指标范围只从受控资产派生，配置基准目录见 [配置字段](config/README.md)。
+- 模型、JWT 及业务连接密钥放 Nacos 或 Secret Manager；`.env` 仅保存 Nacos 引导与进程参数，不写入代码、执行资产、Prompt、日志或报告，范围见 [ADR-038](doc/ADR/038-customer-nacos-configuration.md)。
 - 业务 Token、Run JWT 和模型密钥用途分离；业务 Token 仅按 [REQ-001](doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入) 注入选定 MCP，不修改全局环境或跨 Run 复用凭据。
 - 真实问数使用临时进程配置和只读查询，与独立基准对照；真实租户值、内部 ID、原始结果及私密验证材料留在忽略目录，不提交 Git。
 - DBProcessing 的 `doc/model_context` 是双高问数外部语义来源；只提炼硬约束、业务口径及必要字段，`not_for_model` 中的 DDL、样例值、真实 ID 和人工快照不注入 Prompt。

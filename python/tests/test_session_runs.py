@@ -20,7 +20,7 @@ class SessionRunTests(unittest.TestCase):
     def setUp(self):
         self.store = RunStore(':memory:')
         self.addCleanup(self.store.close)
-        for name, value in {'RUN_STORE': self.store, 'RUNTIME_JWT_SECRET': 'session-test-secret'}.items():
+        for name, value in {'RUN_STORE': self.store, 'DEPLOYMENT_TENANT_ID': 'tenant-a', 'RUNTIME_JWT_SECRET': 'session-test-secret'}.items():
             patcher = patch.object(server, name, value)
             patcher.start()
             self.addCleanup(patcher.stop)

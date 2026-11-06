@@ -22,7 +22,7 @@ from runtime.protocol import AttachmentRef
 
 class FileBrokerTests(unittest.TestCase):
     def test_explicit_broker_address_overrides_platform_download(self):
-        with patch.dict('os.environ', {'CCSDK_FILE_BROKER_URL': 'https://override.test/broker'}):
+        with patch('runtime.deployment_config._DEPLOYMENT', {'fileBroker': {'url':'https://override.test/broker'}}):
             self.assertEqual(FileBroker().endpoint, 'https://override.test/broker')
             self.assertEqual(FileBroker('https://explicit.test/broker').endpoint, 'https://explicit.test/broker')
 

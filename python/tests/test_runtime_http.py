@@ -98,7 +98,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "credentials": {"platformBearer": "business-token"},
         }
         for name, value in {
-            "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
+            "DEPLOYMENT_TENANT_ID": "tenant-test", "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
             "OBSERVATION_JWT_SECRET": "test-observation-secret",
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
@@ -456,16 +456,14 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertNotIn('trusted-secret-tenant',payload['prompt'])
         self.assertNotIn('trusted-secret-user',payload['prompt'])
 
-    def test_double_high_requires_business_token_before_creating_run(self):
-        body = {**self.body, 'capabilityRef': 'national-excellence-data-qa',
-                'payload': {'auth': {'required': False}}}
+    def test_double_high_accepts_deployment_database_without_business_token(self):
+        body = {**self.body, 'capabilityRef': 'national-excellence-data-qa'}
         body.pop('credentials')
-        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock) as execute:
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
             response = self.client.post('/internal/v1/runs', json=body,
                 headers=self.headers('run.execute', capabilityRef=body['capabilityRef']))
-        self.assertEqual(response.status_code, 400)
-        self.assertIsNone(self.store.get_run('run-test'))
-        execute.assert_not_called()
+        self.assertEqual(response.status_code, 202)
+        self.assertIsNotNone(self.store.get_run('run-test'))
 
     def test_double_high_business_token_only_enters_private_worker_credentials(self):
         body = {**self.body, 'capabilityRef': 'national-excellence-data-qa'}
@@ -584,7 +582,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             for identity in ({"sub": "other-user"}, {"tenant": "other-tenant"}):
                 response = self.client.post("/internal/v1/runs", json=self.body,
                                             headers=self.headers("run.execute", **identity))
-                self.assertEqual(response.status_code, 409, response.text)
+                self.assertEqual(response.status_code, 401 if "tenant" in identity else 409, response.text)
         self.assertEqual(self.store.get_run("run-test")["userId"], "user-test")
 
     def test_control_requires_explicit_option_field(self):

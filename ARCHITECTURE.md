@@ -20,7 +20,7 @@
 | `python/runtime/` | 协议、鉴权、装配、Actor、存储、文件传输与事件 |
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
 | `python/capability_packs/<capabilityRef>/` | 随部署交付的能力业务代码；`pack.json` 登记 Schema，`operations.py` 提供动作，必要时设内部 Service |
-| `python/data_access/` | 来源授权、连接、查询校验及结果 |
+| `python/data_access/` | 客户数据范围、连接、查询校验及结果 |
 | `python/runtime/template_assets.py` | 可信模板与指南加载、参考副本 |
 | `python/runtime/prompt_assembly.py` | 显式提示词资产的统一加载、过滤、渲染及来源说明 |
 | `.claude/` | Capability 入口、Skill、工具规则、模板及数据库知识 |
@@ -36,12 +36,12 @@
 - 源码能力可用 `operationRefs` 选择同名代码包的业务动作；目录发现和预览只读静态声明，Worker 经 `capability_packs/registry.py` 加载代码，`capability_operations.py` 校验输入输出并适配为 `capability_ops` MCP Tool。操作复用本轮数据、文档及成果 Service，使用数据不必向模型开放通用数据 Tool；不为业务场景新建 Provider。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
 - 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
-- `artifact_delivery.py` 自动上传发布快照并保存文件状态；`deployment_config.py` 统一解析部署配置引用并生成选定值快照，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
+- `artifact_delivery.py` 自动上传发布快照并保存文件状态；`bootstrap.py` 在入口导入前加载 Nacos；`deployment_config.py` 校验单客户配置并冻结启动快照、解析选定引用，`nacos_config.py` 只负责配置中心连接，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
 - Capability、提示词、Tool/Service 及能力代码的归属规范见[工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)；固定流程是否可由 Agent 保证，按该要求区分模型决策和服务端执行。
 
 ## 5. Dependency directions
 
-入口 -> Runtime -> SDK Worker -> 模型 / MCP；能力业务代码 -> 本轮通用 Service，核心运行时不依赖具体能力实现或前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面和部署策略，发现资产不授予权限。
+入口 -> Runtime -> SDK Worker -> 模型 / MCP；能力业务代码 -> 本轮通用 Service，核心运行时不依赖具体能力实现或前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面，数据客户由部署绑定，发现资产不授予权限。
 
 ## 6. Architectural invariants
 
@@ -68,7 +68,7 @@
 - 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果、成果及管理端新建能力（`capabilities/`）；后者与源码能力合并发现、禁止重名覆盖，复用源码 Skill。终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
 - 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 `config/application.yml` 的 `runtime.observability.enabled`；关闭时不建观测库或写入线程，故障不阻断业务。采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；不采集浏览器接收/渲染或 Java 阶段。拉取接口用独立观测 JWT。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
-- 部署：单副本、单 HTTP worker；默认数据库配置随私有源码及镜像交付，模型/JWT 密钥由运行环境注入；数据卷保留。操作与回滚见部署说明。
+- 部署：单副本、单 HTTP worker；一客户一套 Runtime、数据库及服务地址；Nacos 管客户配置，源码 YAML 管产品默认值，env 只管引导；客户配置变更排空后重启，无需重建镜像；数据卷保留。操作与回滚见部署说明。
 
 ## 9. Where to look for X
 

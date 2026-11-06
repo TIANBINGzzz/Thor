@@ -147,7 +147,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
             current_manager = manager()
             settings = dict(RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / 'sessions',
-                DEFAULT_MODEL='test', RUNTIME_JWT_SECRET='workspace-test', SESSION_MANAGER=current_manager,
+                DEFAULT_MODEL='test', DEPLOYMENT_TENANT_ID='t', RUNTIME_JWT_SECRET='workspace-test', SESSION_MANAGER=current_manager,
                 internal_tasks={}, internal_subscribers={}, pending_terminals={}, RUN_TIMINGS={}, OBSERVATION_SECRETS={})
             # 此处验证会话生命周期；部署配置使用固定数据，禁止依赖真实外部服务。
             with patch.multiple(server, **settings), \
@@ -167,6 +167,9 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                             **{k: body[k] for k in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
                         headers = {'Authorization': 'Bearer ' + encode_hs256_jwt(claims, 'workspace-test')}
                         response = await client.post('/internal/v1/runs', json=body, headers=headers)
+                        if tenant != 't':
+                            self.assertEqual(response.status_code, 401)
+                            return None
                         self.assertEqual(response.status_code, 202, response.text)
                         self.assertNotIn(str(root), response.text)
                         await asyncio.wait_for(server.internal_tasks[run_id], 5)

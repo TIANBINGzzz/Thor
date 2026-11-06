@@ -1,8 +1,4 @@
-"""Shared runtime configuration for the Python Agent SDK worker.
-
-Capability-owned policy lives under ``.claude/capabilities``. Secrets remain in the
-process environment and are never copied into prompts or capability files.
-"""
+"""SDK Worker 的通用配置；能力规则归执行资产，秘密仅从部署快照按需注入。"""
 
 from __future__ import annotations
 
@@ -14,14 +10,15 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv, dotenv_values
+from dotenv import dotenv_values
 from dotenv.variables import parse_variables
 
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication, validate_capability_credentials
 from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS, AGENT_BUILTIN_TOOLS
 from runtime.capabilities import capability_entry, resolve_capability
-from runtime.deployment_config import ConfigSnapshot
+from runtime.deployment_config import (ConfigSnapshot, deployment_section, worker_configuration,
+                                       WORKER_CONFIGURATION_ENV)
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_model_settings
 from runtime.prompt_assembly import assemble_prompt, load_prompt_assets, shared_system_prompt
 from runtime.tool_services import ToolServices, load_tool_assets
@@ -63,16 +60,11 @@ SDK_ENV_KEYS = {
     "CLAUDE_CONFIG_DIR",
 }
 WORKER_CONFIG_ENV_KEYS = {
-    "CCSDK_IMAGE_BASE_URL",
-    "CCSDK_IMAGE_API_KEY",
-    "CCSDK_IMAGE_MODEL",
     "CCSDK_OFFICECLI_PATH",
     "CCSDK_LIBREOFFICE_PATH",
     "CCSDK_UNO_PYTHON",
     "CCSDK_RENDER_IMAGE",
-    "CCSDK_DATABASES_FILE",
     "BUSINESS_MCP_URL",
-    "CCSDK_CLIENT_CAPABILITIES",
     "CCSDK_ENABLE_TIMING",
 }
 DEFAULT_CAPABILITY_ENV_FILE = "capability.env"
@@ -82,30 +74,25 @@ _capability_environment_original = {}
 
 
 def load_runtime_environment(capability_ref: str | None = None) -> None:
-    """加载根配置及能力私有环境；切换能力时先撤销上轮覆盖。"""
+    """仅加载能力私有环境；根目录只由 bootstrap 读取引导项，避免 Worker 重载控制面秘密。"""
     for key, value in _capability_environment_original.items():
         if value is None:
             os.environ.pop(key, None)
         else:
             os.environ[key] = value
     _capability_environment_original.clear()
-    load_dotenv(PROJECT_ROOT / '.env', override=True)
-    load_dotenv(PROJECT_ROOT / '.env.local', override=True)
     if capability_ref:
         entry = capability_entry(resolve_capability(capability_ref).directory)
         env_path = capability_environment_path(entry)
         if env_path.is_file():
             _capability_environment_original.update({key: os.environ.get(key) for key in dotenv_values(env_path)})
-            load_dotenv(env_path, override=True)
+            os.environ.update({k: v for k, v in dotenv_values(env_path).items() if v is not None})
 
 def missing_environment() -> list[str]:
     """检查当前进程中的必需模型配置，返回缺失的环境变量名称列表。"""
-    return [
-        name
-        for name in REQUIRED_ENV
-        if not os.environ.get(name, "").strip()
-        or "YOUR_" in os.environ.get(name, "")
-    ]
+    model = deployment_section('model', {})
+    return [name for name, field in (('ANTHROPIC_AUTH_TOKEN', 'apiKey'), ('ANTHROPIC_BASE_URL', 'baseUrl'))
+            if not model.get(field)]
 
 
 def agent_environment(environ=None) -> dict[str, str]:
@@ -115,6 +102,11 @@ def agent_environment(environ=None) -> dict[str, str]:
     """
     environ = os.environ if environ is None else environ
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS, environ)
+    model = deployment_section('model', {})
+    environment.pop('ANTHROPIC_AUTH_TOKEN', None)
+    environment.pop('ANTHROPIC_BASE_URL', None)
+    if model:
+        environment.update(ANTHROPIC_AUTH_TOKEN=model['apiKey'], ANTHROPIC_BASE_URL=model['baseUrl'])
     environment.update(MODEL_SETTINGS.environment())
     # 禁用 CLI 的自动后台化；Hook 同时拒绝模型显式申请后台 Shell。
     environment['CLAUDE_CODE_DISABLE_BACKGROUND_TASKS'] = '1'
@@ -131,11 +123,14 @@ def agent_environment(environ=None) -> dict[str, str]:
 def worker_environment() -> dict[str, str]:
     """从当前进程环境返回可信 JSONL Worker 所需的变量字典。
 
-    数据库凭据由执行器读取私有 JSON；Worker 和 SDK 环境均使用白名单。
+    可信 Worker 接收必要的部署快照；SDK 环境另按白名单筛选。
     """
     environment = _select_environment(BASE_PROCESS_ENV_KEYS | SDK_ENV_KEYS
                                       | WORKER_CONFIG_ENV_KEYS)
     environment.update(MODEL_SETTINGS.environment())
+    configuration = worker_configuration()
+    if configuration is not None:
+        environment[WORKER_CONFIGURATION_ENV] = json.dumps(configuration, ensure_ascii=True, separators=(',', ':'))
     return environment
 
 
@@ -184,21 +179,13 @@ def is_direct_capability(capability_config: dict[str, Any] | None) -> bool:
 
 
 def runtime_mode_for(capability_ref: str | None, *, capability_config=None) -> str:
-    """能力声明运行方式，未声明时读取部署侧 Client 白名单。"""
+    """运行方式只由可信能力声明，未声明时使用 query。"""
     capability = str(capability_ref or 'conversation').strip()
     entry = capability_config if capability_config is not None else capability_entry(resolve_capability(capability).directory)
     runtime = entry.get('runtime', {})
     if runtime.get('mode') is not None:
         return runtime['mode']
-    return 'client' if capability in _csv_environment('CCSDK_CLIENT_CAPABILITIES') else 'query'
-
-def _csv_environment(name: str) -> set[str]:
-    """读取部署侧逗号分隔白名单，空项不授予权限。"""
-    return {
-        item.strip()
-        for item in os.environ.get(name, "").split(",")
-        if item.strip()
-    }
+    return 'query'
 
 
 def load_execution_entry(capability_ref):
@@ -392,14 +379,14 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
 
 
 def _connection_environment(capability_ref, *, entry=None):
-    """在副本中重放 Worker 的 dotenv 覆盖与插值，父进程不加载流程私有环境。"""
+    """在副本中展开能力私有环境，模型和数据库始终使用部署快照。"""
     environment = dict(os.environ)
     for key, value in _capability_environment_original.items():
         if value is None:
             environment.pop(key, None)
         else:
             environment[key] = value
-    paths = [PROJECT_ROOT / '.env', PROJECT_ROOT / '.env.local']
+    paths = []
     if entry is not None or capability_ref:
         entry = entry if entry is not None else capability_entry(resolve_capability(capability_ref).directory)
         paths.append(capability_environment_path(entry))

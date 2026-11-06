@@ -12,7 +12,12 @@ from runtime.config import build_options
 from tools.attachments import read_attachment
 
 
+from tests.deployment_fixtures import deployment_document
+
 class AttachmentTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
     def test_every_capability_mounts_the_same_scoped_reader(self):
         with tempfile.TemporaryDirectory() as folder:
             with patch('runtime.nacos_config.fetch_config', return_value={

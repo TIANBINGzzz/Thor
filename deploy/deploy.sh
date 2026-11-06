@@ -47,12 +47,10 @@ if [ "${CCSDK_GENERATE_ENV:-0}" = 1 ]; then
         for key in $keys; do set -- "$@" --env "$key"; done
     fi
     set -- "$@" "$CCSDK_IMAGE" /app/deploy/write-env.py --directory /config
-    if [ "${CCSDK_WITH_DATABASE:-0}" = 1 ]; then set -- "$@" --database; fi
     docker run "$@"
     export CCSDK_ENV_FILE="$config_directory/runtime.env"
 fi
 set -- -f compose.yaml
-if [ "${CCSDK_WITH_DATABASE:-0}" = 1 ]; then set -- "$@" -f compose.database.yaml; fi
 if [ "${CCSDK_WITH_APPLICATION:-0}" = 1 ]; then set -- "$@" -f compose.application.yaml; fi
 docker compose "$@" config --quiet
 docker compose "$@" run --rm --no-deps --pull never runtime --check

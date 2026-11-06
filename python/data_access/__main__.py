@@ -18,8 +18,11 @@ def main():
     args = parser.parse_args()
     catalog = Catalog()
     try:
+        if args.command in {'check-config', 'probe'}:
+            from runtime.bootstrap import initialize_runtime
+            initialize_runtime()
         if args.command == 'check-config':
-            # 构建机仅核验运行时可加载的 JSON 结构，不连接部署环境的内网数据库。
+            # 校验客户配置；数据库网络探测使用 probe。
             config = load_config(os.environ)
             if not config:
                 raise DataError('CONFIG_INVALID')

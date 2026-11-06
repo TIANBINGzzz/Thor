@@ -5,6 +5,7 @@ from types import MappingProxyType
 from collections.abc import Mapping
 
 import yaml
+from runtime.deployment_config import application_document
 
 
 APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
@@ -47,20 +48,28 @@ class RuntimeSettings:
     sse_heartbeat_ms: int
 
 
-def load_runtime_settings(path=None):
+def _documents(path=None, document=None):
+    if document is not None:
+        yield document
+    elif path is None:
+        yield application_document()
+    else:
+        path = Path(path)
+        for candidate in (path, path.with_name('application.local.yml')):
+            try:
+                yield yaml.safe_load(candidate.read_text(encoding='utf-8'))
+            except FileNotFoundError:
+                if candidate == path:
+                    raise
+
+
+def load_runtime_settings(path=None, *, document=None):
     """从公共与本地 YAML 读取完整部署预算；缺失、拼错或非法值在启动时失败。"""
-    path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
     sections = {'timeouts': TimeoutSettings, 'limits': LimitSettings}
     values = {name: {} for name in sections}
     heartbeat = None
     try:
-        for candidate in (path, path.with_name('application.local.yml')):
-            try:
-                document = yaml.safe_load(candidate.read_text(encoding='utf-8'))
-            except FileNotFoundError:
-                if candidate == path:
-                    raise
-                continue
+        for document in _documents(path, document):
             if not isinstance(document, dict) or not isinstance(document.get('runtime', {}), dict):
                 raise ValueError()
             runtime = document.get('runtime', {})
@@ -101,19 +110,12 @@ class ModelSettings:
                 'CLAUDE_CODE_SUBAGENT_MODEL': self.sdk['subagent']}
 
 
-def load_model_settings(path=None):
+def load_model_settings(path=None, *, document=None):
     """启动时读取明确的模型配置；本地逐字段覆盖，列表整体替换，缺失或非法即失败。"""
-    path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
     values = {}
     sdk = {}
     try:
-        for candidate in (path, path.with_name('application.local.yml')):
-            try:
-                document = yaml.safe_load(candidate.read_text(encoding='utf-8'))
-            except FileNotFoundError:
-                if candidate == path:
-                    raise
-                continue
+        for document in _documents(path, document):
             if not isinstance(document, dict) or not isinstance(document.get('runtime', {}), dict):
                 raise ValueError()
             runtime = document.get('runtime', {})
@@ -149,20 +151,13 @@ class WorkerPoolSettings:
     max_live: int = 24
 
 
-def load_worker_pool_settings(path=None):
+def load_worker_pool_settings(path=None, *, document=None):
     """公共 YAML 后叠加本地同名字段；缺省不开池，非法配置在启动时失败。"""
-    path = Path(path) if path is not None else APPLICATION_CONFIG_FILE
     values = {}
     fields = {'max-idle': 'max_idle', 'max-starting': 'max_starting',
               'min-available-memory-mib': 'min_available_memory_mib', 'max-live': 'max_live'}
     try:
-        for candidate in (path, path.with_name('application.local.yml')):
-            try:
-                document = yaml.safe_load(candidate.read_text(encoding='utf-8'))
-            except FileNotFoundError:
-                if candidate == path:
-                    raise
-                continue
+        for document in _documents(path, document):
             if not isinstance(document, dict):
                 raise ValueError()
             runtime = document.get('runtime', {})

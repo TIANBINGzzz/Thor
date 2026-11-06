@@ -208,16 +208,11 @@ def create_observer(root):
     root=Path(root)
     config={}
     try:
-        for path in (root/"config"/"application.yml",root/"config"/"application.local.yml"):
-            if path.exists():
-                value=yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-                if not isinstance(value,dict): raise ValueError('invalid observation configuration')
-                runtime=value.get('runtime',{})
-                if not isinstance(runtime,dict): raise ValueError('invalid runtime configuration')
-                section=runtime.get('observability',{})
-                if not isinstance(section,dict) or set(section)-{'enabled','storage','max-records','retention-seconds','queue-size'}:
-                    raise ValueError('invalid observation configuration')
-                config.update(section)
+        from runtime.deployment_config import _DEPLOYMENT, application_document
+        document = application_document() if _DEPLOYMENT is not None else application_document(root/'config/application.yml')
+        config = document.get('runtime', {}).get('observability', {})
+        if not isinstance(config, dict) or set(config)-{'enabled','storage','max-records','retention-seconds','queue-size'}:
+            raise ValueError('invalid observation configuration')
         enabled=config.get("enabled",False)
         if type(enabled) is not bool: raise ValueError('invalid enabled')
         if os.environ.get('CCSDK_OBSERVABILITY_ENABLED') in {'0','1'}:

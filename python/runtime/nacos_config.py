@@ -6,7 +6,6 @@ from urllib.parse import urlsplit
 
 import httpx
 import yaml
-from runtime.runtime_settings import RUNTIME_SETTINGS
 
 APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
 
@@ -18,12 +17,12 @@ class NacosConfigError(ValueError):
         super().__init__(code)
 
 
-def _response(client, method, url, deadline, **kwargs):
+def _response(client, method, url, deadline, request_timeout_ms, **kwargs):
     """限制完整响应大小和持续分块读取；单次阻塞另受网络超时约束。"""
     remaining = deadline - time.monotonic()
     if remaining <= 0:
         raise NacosConfigError('nacos_unavailable')
-    with client.stream(method, url, timeout=min(RUNTIME_SETTINGS.timeouts.nacos_request_ms / 1000, remaining), **kwargs) as response:
+    with client.stream(method, url, timeout=min(request_timeout_ms / 1000, remaining), **kwargs) as response:
         body = bytearray()
         for chunk in response.iter_bytes():
             if time.monotonic() >= deadline or len(body) + len(chunk) > 128 * 1024:
@@ -70,14 +69,14 @@ def _nacos_settings(env):
         raise NacosConfigError('nacos_config_invalid') from None
 
 
-def fetch_config(env, *, transport=None):
+def fetch_config(env, *, transport=None, timeout_ms=10000, request_timeout_ms=5000):
     """只读 Nacos 2.x 配置 API；凭据仅发给 Nacos，不记录响应或回退本地文件。"""
     settings = _nacos_settings(env)
     address = settings['CCSDK_NACOS_URL'].strip().rstrip('/')
     if not address:
         raise NacosConfigError('nacos_not_configured')
     try:
-        deadline = time.monotonic() + RUNTIME_SETTINGS.timeouts.nacos_ms / 1000
+        deadline = time.monotonic() + timeout_ms / 1000
         url = urlsplit(address)
         if (url.scheme not in ('http', 'https') or not url.hostname or url.username
                 or url.password or url.query or url.fragment or url.port == 0
@@ -101,11 +100,11 @@ def fetch_config(env, *, transport=None):
         params['tenant'] = namespace
     try:
         # 内网配置中心直连；不继承模型服务的工作站代理，不跟随认证重定向。
-        with httpx.Client(timeout=RUNTIME_SETTINGS.timeouts.nacos_request_ms / 1000,
+        with httpx.Client(timeout=request_timeout_ms / 1000,
                           trust_env=False, follow_redirects=False, transport=transport) as client:
             headers = {}
             if username:
-                response = _response(client, 'POST', address + '/v1/auth/login', deadline,
+                response = _response(client, 'POST', address + '/v1/auth/login', deadline, request_timeout_ms,
                                        data={'username': username, 'password': password})
                 response.raise_for_status()
                 token = response.json()['accessToken']
@@ -113,7 +112,7 @@ def fetch_config(env, *, transport=None):
                     raise ValueError()
                 # Nacos 2.5 支持 Bearer Header，避免 accessToken 出现在 URL/HTTP 日志中。
                 headers['Authorization'] = 'Bearer ' + token
-            response = _response(client, 'GET', address + '/v1/cs/configs', deadline,
+            response = _response(client, 'GET', address + '/v1/cs/configs', deadline, request_timeout_ms,
                                  params=params, headers=headers)
             if response.status_code == 404:
                 raise NacosConfigError('nacos_not_configured')

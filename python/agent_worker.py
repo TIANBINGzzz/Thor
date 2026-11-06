@@ -9,9 +9,14 @@ event contract.
 
 from __future__ import annotations
 
-import asyncio
-import json
+# 配置必须先于 Runtime/SDK 导入，避免 Worker 使用镜像默认预算或读取宿主秘密。
 import os
+import json
+from runtime.deployment_config import WORKER_CONFIGURATION_ENV, install_worker_configuration
+if WORKER_CONFIGURATION_ENV in os.environ:
+    install_worker_configuration(json.loads(os.environ.pop(WORKER_CONFIGURATION_ENV)))
+
+import asyncio
 import sys
 import time
 from dataclasses import dataclass

@@ -28,6 +28,7 @@ class RuntimeAuthorizationTests(unittest.TestCase):
         for target, name, value in (
             (auth, '_DEFAULT_REPLAY_CACHE', auth.ReplayCache()),
             (server, 'RUN_STORE', self.store),
+            (server, 'DEPLOYMENT_TENANT_ID', 'tenant'),
             (server, 'RUNTIME_JWT_SECRET', 'test-auth-secret'),
             (server, 'RUNTIME_JWT_ISSUER', 'test-java'),
             (server, 'RUNTIME_JWT_AUDIENCE', 'ccsdk-runtime'),

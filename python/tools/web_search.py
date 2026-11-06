@@ -2,6 +2,7 @@
 
 import json
 import os
+from runtime.deployment_config import deployment_section
 from urllib.parse import urlsplit
 
 import httpx
@@ -85,8 +86,8 @@ def create_web_server(*, base_url, api_key, model):
 
 def _valid_search_config(model: str | None) -> tuple[str, str] | None:
     """只允许复用受信任的百炼模型连接。"""
-    base = os.environ.get('ANTHROPIC_BASE_URL', '').strip()
-    key = os.environ.get('ANTHROPIC_AUTH_TOKEN', '').strip()
+    config = deployment_section('model', {})
+    base, key = config.get('baseUrl', ''), config.get('apiKey', '')
     endpoint = urlsplit(base)
     if (model and key and endpoint.scheme == 'https'
             and (endpoint.hostname or '').endswith('.maas.aliyuncs.com')

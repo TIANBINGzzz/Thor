@@ -45,15 +45,13 @@ COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./
 COPY --chown=10001:10001 --chmod=0400 config/application.yml ./config/application.yml
-# 本版本将数据库配置随镜像交付；/app/config 是容器内目录。
-COPY --chown=10001:10001 --chmod=0400 config/databases.json ./config/databases.json
 # Fixed /app paths are container-scoped; deployment helpers run from this image.
 COPY deploy/entrypoint.py deploy/write-env.py deploy/smoke.py ./deploy/
-# COPY 的 chmod 也作用于新建父目录；目录必须可进入，JSON 仍保持只读。
+# COPY 的 chmod 也作用于新建父目录；目录必须可进入，配置仍保持只读。
 RUN chmod 0500 /app/config \
     && mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
 USER 10001:10001
-RUN PYTHONPATH=python python -m data_access check-config
+RUN PYTHONPATH=python python -m data_access validate
 EXPOSE 4310
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=4 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4310/health', timeout=3)"
@@ -62,4 +60,4 @@ ENTRYPOINT ["python", "deploy/entrypoint.py"]
 FROM runtime AS test
 COPY deploy/ ./deploy/
 RUN python -m unittest discover -s python/tests -t python -p 'test_*.py'
-RUN python deploy/test_write_env.py && python deploy/test_build.py && python deploy/test_databases.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh
+RUN python deploy/test_write_env.py && python deploy/test_build.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh

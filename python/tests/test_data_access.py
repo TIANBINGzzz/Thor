@@ -14,6 +14,7 @@ from data_access.catalog import Catalog, PROJECT_ROOT
 from data_access.context import DataContext, DataError
 from data_access.executor import Executor
 from runtime.data_services import RunServices
+from runtime import deployment_config
 from data_access.sql_policy import validate_sql
 from runtime.template_assets import load_template
 from runtime.config import worker_environment, isolated_sdk_environment, data_source_keys
@@ -39,8 +40,9 @@ class DataAccessTests(unittest.TestCase):
         original = capability_entry
         self.enterContext(patch('runtime.config.capability_entry', side_effect=lambda directory:
             deepcopy(entry) if str(directory) == str(catalog['qa'].directory) else original(directory)))
-        self.config_path = self.root/'config/databases.json'
-        self.env = {'CCSDK_DATABASES_FILE': str(self.config_path)}
+        self.env = {}
+        self.deployment = {'deployment': {'tenantId': 'business-a'}, 'databases': {}}
+        self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', self.deployment))
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
         for source, amount in [('first', 10), ('second', 20)]:
             folder = self.root / 'databases' / source
@@ -61,7 +63,7 @@ class DataAccessTests(unittest.TestCase):
             db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
             db.commit()
             db.close()
-            self.config['connections'][source] = {'source_key':source,'tenant_id':'jwt-a','driver':'sqlite',
+            self.config['connections'][source] = {'source_key':source,'tenant_id':'business-a','driver':'sqlite',
                 'database':f'{source}.db','timeout_seconds':1,'max_rows':1000}
             self.config['policies'][source] = {'source_key':source,'tenant_id':['business-a'],
                 'capabilities':['qa'], 'templates':[],
@@ -70,7 +72,7 @@ class DataAccessTests(unittest.TestCase):
                 'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant'],
                 'tenant_column':'tenant'}}}
         self.catalog = Catalog(self.root/'databases')
-        self.context = DataContext('run-a','jwt-a','u1','qa',self.root/'run-a')
+        self.context = DataContext('run-a','business-a','u1','qa',self.root/'run-a')
         self.executor = self.make_executor()
 
     def make_executor(self, context=None):
@@ -80,17 +82,17 @@ class DataAccessTests(unittest.TestCase):
     def save_connections(self):
         sources = {}
         for source in ('first','second'):
-            policy=deepcopy(self.config['policies'][source])
-            for name,domain in policy['domains'].items():
+            policy = self.config['policies'][source]
+            for name, domain in policy['domains'].items():
                 save(self.root/f'databases/{source}/schema/{name}.json',
                      {k:domain[k] for k in ('tables','functions','internal_columns','tenant_column')})
-                domain['tables']=list(domain['tables'])
-                domain.pop('functions'); domain.pop('internal_columns'); domain.pop('tenant_column')
-            connection={**self.config['connections'][source], 'database':str(self.root/f'{source}.db')}
-            connection.pop('source_key')
-            policy.pop('source_key')
-            sources[source] = {'connection':connection,'policy':policy}
-        save(self.config_path, {'version':1,'sources':sources})
+            original = self.config['connections'][source]
+            connection = {k:v for k,v in original.items() if k in ('driver','host','port','username','password','tls')}
+            connection['database'] = str(self.root/f'{source}.db')
+            sources[source] = {'connection': connection, 'query': {
+                'timeout_seconds': original['timeout_seconds'], 'max_rows': original['max_rows'],
+                'dynamic_sql_enabled': policy.get('dynamic_sql_enabled', False)}}
+        self.deployment['databases'] = sources
 
     def school(self, executor=None, source='first'):
         return (executor or self.executor).resolve_entities(source,'sales','school','')['candidates'][0]['scope_ref']
@@ -107,10 +109,7 @@ class DataAccessTests(unittest.TestCase):
             found=self.executor.find_query_specs(source,'sales',metric_key='total.total')['queries']
             self.assertEqual([q['id'] for q in found],['total'])
         self.assertEqual(self.executor.find_query_specs('first','sales',metric_key='total.tenant')['queries'],[])
-        self.config['policies']['first']['domains']['sales']['queries']=[]
-        executor=self.make_executor()
-        self.assertEqual(executor.find_query_specs('first','sales',intent='Total')['queries'],[])
-        self.assertEqual(executor.find_query_specs('second','sales',intent='Total')['queries'][0]['id'],'total')
+        self.assertEqual(self.executor.find_query_specs('first','sales',intent='Total')['queries'][0]['id'],'total')
 
     def test_pending_definition_stays_discoverable_but_cannot_execute(self):
         domain=self.root/'databases/first/metrics/sales'
@@ -147,54 +146,36 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'DOCUMENT_UNAVAILABLE'):
             frozen.documents('first','sales',['unregistered'])
 
-    def test_access_denies_unlisted_connection_capability_and_empty_scope(self):
-        for change in [{'tenant_id':'jwt-b'}, {'capability_ref':'writing'}]:
-            executor = self.make_executor(replace(self.context, **change))
-            self.assertEqual(executor.list_data_sources()['sources'], [])
-        self.config['policies']['first']['project_scope']={'mode':'selected','project_ids':[]}
-        with self.assertRaises(DataError): self.school(self.make_executor())
+    def test_other_customer_cannot_discover_sources(self):
+        executor = self.make_executor(replace(self.context, tenant_id='other-customer'))
+        self.assertEqual(executor.list_data_sources()['sources'], [])
+        with self.assertRaisesRegex(DataError, 'TENANT_FORBIDDEN'):
+            executor.access('first')
 
-    def test_explicit_data_tenant_grant_is_independent_of_execution_identity(self):
-        self.config['connections']['first']['tenant_id'] = '*'
+    def test_all_customer_users_share_data_but_not_scope_or_result_references(self):
         previous = None
-        for tenant, user in [('jwt-b', 'u3'), ('jwt-c', 'u4')]:
-            with self.subTest(tenant=tenant):
-                executor = self.make_executor(replace(self.context, tenant_id=tenant, user_id=user))
-                self.assertEqual([s['source_key'] for s in executor.list_data_sources()['sources']], ['first'])
-                scope = self.school(executor)
-                result = executor.execute_query_spec('first', 'sales', 'total', {}, scope)
-                # 共享来源仍使用部署配置的业务范围，不读取另一业务租户的数据。
-                self.assertEqual(result['rows'], [{'total': 10}])
-                if previous:
-                    with self.assertRaisesRegex(DataError, 'SCOPE_FORBIDDEN'):
-                        executor.execute_query_spec('first', 'sales', 'total', {}, previous['scope'])
-                    with self.assertRaisesRegex(DataError, 'RESULT_FORBIDDEN'):
-                        executor.results.page(previous['result_ref'])
-                previous = {'scope': scope, 'result_ref': result['result_ref']}
+        for user in ('u1', 'u2'):
+            executor = self.make_executor(replace(self.context, user_id=user))
+            scope = self.school(executor)
+            result = executor.execute_query_spec('first', 'sales', 'total', {}, scope)
+            self.assertEqual(result['rows'], [{'total': 10}])
+            if previous:
+                with self.assertRaisesRegex(DataError, 'SCOPE_FORBIDDEN'):
+                    executor.execute_query_spec('first','sales','total',{},previous[0])
+                with self.assertRaisesRegex(DataError, 'RESULT_FORBIDDEN'):
+                    executor.results.page(previous[1])
+            previous = (scope, result['result_ref'])
 
-    def test_connection_permission_and_data_tenant_scope_are_independent(self):
-        context = replace(self.context, tenant_id='jwt-b', user_id='u3')
-        with self.assertRaisesRegex(DataError, 'CONNECTION_FORBIDDEN'):
-            self.make_executor(context).access('first')
-        self.config['connections']['first']['tenant_id'] = '*'
-        self.config['policies']['first']['tenant_id'] = ['self']
-        with self.assertRaisesRegex(DataError, 'BUSINESS_IDENTITY_REQUIRED'):
+    def test_business_identity_must_match_deployment(self):
+        context = replace(self.context, data_tenant_id='business-b')
+        with self.assertRaisesRegex(DataError, 'TENANT_FORBIDDEN'):
             self.make_executor(context).access('first')
 
-    def test_data_tenant_grants_keep_capability_template_and_query_restrictions(self):
-        self.config['connections']['first']['tenant_id'] = '*'
-        context = replace(self.context, tenant_id='jwt-b')
-        self.assertEqual(len(self.make_executor(context).list_data_sources()['sources']), 1)
-        self.assertEqual(len(self.make_executor(replace(context, user_id='u3')).list_data_sources()['sources']), 1)
-        denied = self.make_executor(replace(context, capability_ref='writing'))
-        self.assertEqual(denied.list_data_sources()['sources'], [])
-        denied = self.make_executor(replace(context, template_key='unregistered'))
-        with self.assertRaisesRegex(DataError, 'TEMPLATE_FORBIDDEN'):
-            denied.access('first')
-        self.config['policies']['first']['domains']['sales']['queries'] = []
-        executor = self.make_executor(context)
-        with self.assertRaisesRegex(DataError, 'QUERY_FORBIDDEN'):
-            executor.execute_query_spec('first', 'sales', 'total', {}, self.school(executor))
+    def test_source_selection_stays_bound_to_trusted_capability_assets(self):
+        executor = Executor(self.context, self.env, self.catalog, ['first'])
+        with self.assertRaisesRegex(DataError, 'SOURCE_FORBIDDEN'):
+            executor.access('second')
+        self.assertEqual(len(executor.list_data_sources()['sources']), 1)
 
     def test_grouped_yaml_rejects_duplicate_keys_and_duplicate_metric_ids(self):
         path=self.root/'databases/first/metrics/sales/sales.yaml'
@@ -252,31 +233,27 @@ class DataAccessTests(unittest.TestCase):
         revision=executor.catalog.revision('first')
         public=json.dumps([executor.list_data_sources(), executor.describe_data_source('first','sales')])
         assets=' '.join(executor.catalog._contents.values())
-        for marker in ('private-host-marker','PRIVATE_SECRET_MARKER','business-a','jwt-a'):
+        for marker in ('private-host-marker','PRIVATE_SECRET_MARKER','business-a','business-a'):
             self.assertNotIn(marker,public)
             self.assertNotIn(marker,assets)
-        path=self.config_path
-        config=json.loads(path.read_text());config['sources']['first']['policy']['capabilities']=[];save(path,config)
-        self.assertEqual(self.catalog.revision('first'),revision)
-        self.assertEqual(len(executor.list_data_sources()['sources']),2)
+        self.deployment['databases']['first']['query']['max_rows'] = 2
+        self.assertEqual(self.catalog.revision('first'), revision)
+        self.assertEqual(executor.access('first')[2]['max_rows'], 1000)
         refreshed=Executor(self.context,self.env,self.catalog,['first'])
-        self.assertEqual(refreshed.list_data_sources()['sources'],[])
+        self.assertEqual(refreshed.access('first')[2]['max_rows'], 2)
 
     def test_central_connection_rejects_conflicting_source_identity(self):
-        config=json.loads(self.config_path.read_text())
-        config['sources']['first']['connection']['source_key']='second'
-        save(self.config_path,config)
-        with self.assertRaisesRegex(DataError,'CONFIG_INVALID'):
+        self.deployment['databases']['first']['connection']['source_key'] = 'second'
+        with self.assertRaisesRegex(DataError, 'CONFIG_INVALID'):
             Executor(self.context,self.env,self.catalog,['first'])
 
-    def test_conversation_and_optional_writing_without_config_and_malformed_config(self):
-        with patch.dict('os.environ',self.env):
-            self.config_path.unlink()
-            self.assertEqual(data_source_keys({'capability_ref':'conversation'}),[])
-            writing={'capability_ref':'qa'}
-            self.assertEqual(data_source_keys(writing),[])
-            self.config_path.write_text('{broken')
-            with self.assertRaisesRegex(DataError,'CONFIG_INVALID'): data_source_keys(writing)
+    def test_conversation_and_optional_writing_without_database(self):
+        self.deployment['databases'] = {}
+        self.assertEqual(data_source_keys({'capability_ref':'conversation'}), [])
+        self.assertEqual(data_source_keys({'capability_ref':'qa'}), [])
+        self.deployment['databases'] = []
+        with self.assertRaisesRegex(DataError, 'CONFIG_INVALID'):
+            data_source_keys({'capability_ref':'qa'})
 
     def test_optional_writing_discovers_configured_sources_and_template_requires_them(self):
         payload={'capability_ref':'qa'}
@@ -285,9 +262,7 @@ class DataAccessTests(unittest.TestCase):
             return capability_entry(Path('.claude/capabilities/document-writing'))
         with patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
-            config=json.loads(self.config_path.read_text())
-            del config['sources']['second']
-            save(self.config_path,config)
+            del self.deployment['databases']['second']
             self.assertEqual(data_source_keys(payload),['first'])
             locked={**payload,'capability_ref':'document-writing','_template_key':'szpt-midterm'}
             with self.assertRaisesRegex(DataError,'SOURCE_FORBIDDEN'):
@@ -375,7 +350,8 @@ class DataAccessTests(unittest.TestCase):
         with patch.dict('os.environ', values, clear=True), \
              patch('runtime.data_services.Catalog', return_value=self.catalog):
             selected = worker_environment()
-            self.assertEqual(selected['CCSDK_DATABASES_FILE'],self.env['CCSDK_DATABASES_FILE'])
+            self.assertIn('CCSDK_WORKER_CONFIG_SECRET', selected)
+            self.assertNotIn('CCSDK_DATABASES_FILE', selected)
             self.assertNotIn('FIRST_DB_SECRET', selected)
             self.assertNotIn('SECOND_DB_SECRET', selected)
             self.assertNotIn('UNREGISTERED_SECRET', selected)
@@ -412,13 +388,12 @@ class DataAccessTests(unittest.TestCase):
             self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',scope)
         policy = self.config['policies']['first']
         policy['dynamic_sql_enabled']=True
-        self.config['connections']['first'].update(database_scope_enforced=True,scope_source_key='first')
         self.executor=self.make_executor()
         # 保留另一学校的数据，执行器必须在数据库读取前强制学校范围。
         scope=self.school()
         result=self.executor.execute_readonly_sql('first','sales','SELECT SUM(amount) AS n FROM sales WHERE amount > :minimum',{'minimum':0},'test',scope)
         self.assertEqual(result['rows'],[{'n':10}])
-        self.config['connections']['first']['scope_source_key']='second'
+        policy['dynamic_sql_enabled']=False
         self.executor=self.make_executor()
         with self.assertRaises(DataError):
             self.executor.execute_readonly_sql('first','sales','SELECT amount FROM sales',{},'test',self.school())
@@ -442,7 +417,7 @@ class DataAccessTests(unittest.TestCase):
         async def scenario():
             self.save_connections()
             services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
-            payload={'run_id':'r1','_data_identity':{'tenant_id':'jwt-a','user_id':'u1'},
+            payload={'run_id':'r1','_data_identity':{'tenant_id':'business-a','user_id':'u1'},
                      'capability_ref':'qa','_data_run_directory':str(self.root/'r1')}
             await services.bind(payload)
             old=services.current()
@@ -450,10 +425,10 @@ class DataAccessTests(unittest.TestCase):
             await services.bind({**payload,'run_id':'r2','_data_run_directory':str(self.root/'r2')})
             with self.assertRaises(DataError): services.current().results.page(ref)
             with self.assertRaises(DataError): old.access('first')
-            self.config['policies']['first']['capabilities']=[]
             self.save_connections()
-            await services.bind({**payload,'run_id':'r3'})
-            self.assertEqual([s['source_key'] for s in services.current().list_data_sources()['sources']],['second'])
+            del self.deployment['databases']['first']
+            with self.assertRaisesRegex(DataError, 'CONNECTION_UNAVAILABLE'):
+                await services.bind({**payload,'run_id':'r3'})
             await services.close()
             with self.assertRaises(DataError): services.current()
         asyncio.run(scenario())
@@ -470,7 +445,7 @@ class DataAccessTests(unittest.TestCase):
         result = executor.execute_query_spec('first', 'sales', 'total', {}, domain['scope_ref'])
         self.assertEqual(result['rows'], [{'total': 10}])
         serialized = json.dumps(context)
-        for private in ('private-db-password', 'jwt-a', 'business-a', str(self.root), 'username', 'password'):
+        for private in ('private-db-password', 'business-a', 'business-a', str(self.root), 'username', 'password'):
             self.assertNotIn(private, serialized)
 
     def test_prepared_context_fails_when_database_is_unavailable(self):
@@ -483,7 +458,7 @@ class DataAccessTests(unittest.TestCase):
         async def scenario():
             self.save_connections()
             services = RunServices(['first'], env=self.env, catalog=self.catalog, context_topics=['schema'])
-            payload = {'run_id': 'r1', '_data_identity': {'tenant_id': 'jwt-a', 'user_id': 'u1'},
+            payload = {'run_id': 'r1', '_data_identity': {'tenant_id': 'business-a', 'user_id': 'u1'},
                        'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1')}
             await services.bind(payload)
             old_scope = next(iter(services.current().scopes))
@@ -502,7 +477,7 @@ class DataAccessTests(unittest.TestCase):
         async def scenario():
             services = RunServices(['first'], env=self.env, catalog=self.catalog)
             with patch.object(Executor, 'prepare_context') as prepare:
-                await services.bind({'run_id': 'r1', '_data_identity': {'tenant_id': 'jwt-a', 'user_id': 'u1'},
+                await services.bind({'run_id': 'r1', '_data_identity': {'tenant_id': 'business-a', 'user_id': 'u1'},
                                      'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1')})
                 self.assertEqual(services.prepare_prompt('original question'), 'original question')
                 prepare.assert_not_called()
@@ -512,20 +487,11 @@ class DataAccessTests(unittest.TestCase):
 
 class RegisteredAssetsTests(unittest.TestCase):
     def test_chinese_business_queries_rank_existing_definitions(self):
-        config=json.loads((PROJECT_ROOT/'deploy/data-access.example.json').read_text(encoding='utf-8'))
-        entry=config['sources']['schoolDoubleHigh']
-        policy=entry['policy']
-        policy.update(tenant_id=['test'],
-                      capabilities=['national-excellence-data-qa'],project_scope={'mode':'all_school'})
-        entry['connection']['tenant_id']='test'
-        with tempfile.TemporaryDirectory() as directory:
-            folder=Path(directory)/'databases/schoolDoubleHigh'
-            shutil.copytree(PROJECT_ROOT/'.claude/databases/schoolDoubleHigh',folder,ignore=shutil.ignore_patterns('private'))
-            path=Path(directory)/'config/databases.json'
-            save(path,config)
+        document = {'deployment': {'tenantId': 'test'}, 'databases': {
+            'schoolDoubleHigh': {'connection': {'driver': 'sqlite', 'database': 'unused.db'}}}}
+        with tempfile.TemporaryDirectory() as directory, patch.object(deployment_config, '_DEPLOYMENT', document):
             executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory)),
-                              {'CCSDK_DATABASES_FILE':str(path)},
-                              Catalog(folder.parent),source_keys=['schoolDoubleHigh'])
+                              {}, Catalog(), source_keys=['schoolDoubleHigh'])
             cases={'专业群':'project_catalog','资金执行率':'fund_totals',
                    '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'first_task_progress_feedback',
                    '绩效反馈':'performance_feedback_candidates'}

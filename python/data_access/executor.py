@@ -66,7 +66,7 @@ class Executor:
                 continue
             result.append({"source_key": source_key, "name": source["name"],
                            "domains": [d for d in source["domains"] if d in policy["domains"]],
-                           "scope": policy["project_scope"]["mode"]})
+                           "scope": "all_school"})
         return {"sources": result}
 
     def describe_data_source(self, source_key, domain, topics=None):
@@ -143,8 +143,8 @@ class Executor:
 
     def _scope_ref(self, source_key, domain, project_id, policy, tenant_id=None):
         """范围绑定到单个获准学校，避免跨学校对象混用或混合统计。"""
-        tenant_id = tenant_id or policy['authorized_tenants'][0]
-        if tenant_id not in policy['authorized_tenants']:
+        tenant_id = tenant_id or policy['tenant_id']
+        if tenant_id != policy['tenant_id']:
             raise DataError('SCOPE_FORBIDDEN')
         reference = "scope_" + token_urlsafe(18)
         self.scopes[reference] = {"source_key": source_key, "domain": domain,
@@ -152,33 +152,25 @@ class Executor:
                                   "access": policy["fingerprint"]}
         return reference
 
-    def _school_name(self, policy, tenant_id):
-        """模型只需区分当前学校与额外授权学校，不暴露内部租户值。"""
-        if tenant_id == self.context.data_tenant_id:
-            return '当前学校'
-        return f"额外授权学校{policy['authorized_tenants'].index(tenant_id) + 1}"
-
     def resolve_entities(self, source_key, domain, entity_type, query, parent_ref=None, parameters=None):
         """在授权范围内解析业务对象，返回候选项及本轮引用。"""
         _, policy, connection = self.access(source_key)
+        domain_policy(policy, domain)
         if entity_type == "school":
-            if policy["project_scope"]["mode"] != "all_school":
-                raise DataError("SCOPE_FORBIDDEN")
-            return {"candidates": [{"name": self._school_name(policy, tenant),
-                "scope_ref": self._scope_ref(source_key, domain, None, policy, tenant)}
-                for tenant in policy['authorized_tenants']]}
+            return {"candidates": [{"name": "当前客户",
+                "scope_ref": self._scope_ref(source_key, domain, None, policy)}]}
         _, catalog = self.catalog.domain(source_key, domain)
         definition = catalog.get("entities", {}).get(entity_type)
         if not definition:
             raise DataError("ENTITY_UNSUPPORTED")
         parent = self.scope(source_key, domain, parent_ref) if parent_ref else None
         if entity_type in {"project", "task_project"}:
-            projects = policy["project_scope"].get("project_ids", [None])
+            projects = [parent["project_id"]] if parent else [None]
         else:
             if not parent:
                 raise DataError('SCOPE_FORBIDDEN')
             projects = [parent['project_id']]
-        tenants = [parent['tenant_id']] if parent else policy['authorized_tenants']
+        tenants = [parent['tenant_id']] if parent else [policy['tenant_id']]
         candidates = []
         with self.connections.snapshot(connection) as db:
             for tenant in tenants:
@@ -200,7 +192,7 @@ class Executor:
                         self.entities[reference] = {"source_key": source_key, "domain": domain,
                             "project_id": row.get("project_id", project), "value": row[definition["id_field"]],
                             "parameter": definition["parameter"], "tenant_id": tenant, "access": policy["fingerprint"]}
-                        item = {"name": name, "entity_ref": reference, "school": self._school_name(policy, tenant)}
+                        item = {"name": name, "entity_ref": reference, "school": "当前客户"}
                         if entity_type in {"project", "task_project"}:
                             item["scope_ref"] = self._scope_ref(source_key, domain, row[definition["id_field"]], policy, tenant)
                         for field in definition.get("context_fields", []):
@@ -310,14 +302,10 @@ class Executor:
         _, policy, connection = self.access(source_key)
         scope = self.scope(source_key, domain, scope_ref)
         allowed = domain_policy(policy, domain)
-        # 项目范围仍须由部署隔离；学校范围由可信 AST 改写强制约束。
-        if (policy.get("dynamic_sql_enabled") is not True
-                or connection.get("database_scope_enforced") is not True
-                or connection.get("scope_source_key") != source_key):
+        if policy.get("dynamic_sql_enabled") is not True:
             raise DataError("DYNAMIC_SQL_FORBIDDEN")
-        selected = policy["project_scope"].get("project_ids", [])
-        if not ((policy["project_scope"]["mode"] == "all_school" and scope["project_id"] is None)
-                or (len(selected) == 1 and scope["project_id"] == selected[0])):
+        # 项目选择是业务查询条件；任意 SQL 仅接受客户全量范围，避免误报项目统计。
+        if scope["project_id"] is not None:
             raise DataError("DYNAMIC_SCOPE_NOT_ENFORCED")
         if (TENANT_PARAMETER in parameters
                 or any(isinstance(v, (dict, list)) for v in parameters.values()) or len(parameters) > 100):

@@ -8,44 +8,39 @@ import time
 from sqlalchemy import URL, create_engine
 from sqlalchemy.pool import NullPool
 
-from .catalog import PROJECT_ROOT, key, read_json
+from .catalog import PROJECT_ROOT, key
+from runtime.deployment_config import deployment_section, require_tenant
 from .context import DataError
 
 
-def config_path(env):
-    """按调用方环境解析部署配置路径，相对路径以仓库根目录为基准。"""
-    location = Path(env.get('CCSDK_DATABASES_FILE') or 'config/databases.json')
-    return (location if location.is_absolute() else PROJECT_ROOT / location).resolve()
-
-
-def load_config(env, *, optional=False):
-    """校验部署连接配置，补入来源标识和相对路径基准。"""
-    location = config_path(env)
-    if optional and not location.exists():
-        return {}
-    config = read_json(location)
-    if not isinstance(config, dict) or config.get('version') != 1 or not isinstance(config.get('sources'), dict):
-        raise DataError("CONFIG_INVALID")
-    for source_key, entry in config['sources'].items():
+def load_config(env=None, *, optional=False):
+    """读取启动时冻结的客户连接；表和指标边界只来自登记资产。"""
+    config = deployment_section('databases', {})
+    if not isinstance(config, dict):
+        raise DataError('CONFIG_INVALID')
+    for source_key, entry in config.items():
         key(source_key)
-        if not isinstance(entry, dict):
+        if not isinstance(entry, dict) or set(entry) - {'connection', 'query'}:
             raise DataError('CONFIG_INVALID')
-        for field in ('connection', 'policy'):
-            value = entry.get(field)
-            if not isinstance(value, dict) or not value or 'source_key' in value:
-                raise DataError('CONFIG_INVALID')
-            value['source_key'] = source_key
-        entry['connection']['_base_directory'] = location.parent
-    return config['sources']
+        connection, query = entry.get('connection'), entry.get('query', {})
+        if (not isinstance(connection, dict) or not connection or 'source_key' in connection
+                or not isinstance(query, dict)):
+            raise DataError('CONFIG_INVALID')
+        entry['connection'] = {**connection, 'source_key': source_key,
+            '_base_directory': PROJECT_ROOT / 'config',
+            **{k: query[k] for k in ('timeout_seconds', 'max_rows') if k in query}}
+    return config
 
 
 def resolve_connection(context, source, config):
-    """独立校验来源与租户连接权限，返回本次连接配置副本。"""
+    """连接只能用于当前部署客户，不能由调用者改变来源。"""
+    try:
+        require_tenant(context.tenant_id)
+    except ValueError:
+        raise DataError('TENANT_FORBIDDEN') from None
     connection = dict(config['connection'])
-    # 连接必须单独显式允许所有租户，不能仅凭来源策略放开其他连接。
-    if (connection.get("source_key") != source["source_key"]
-            or connection.get("tenant_id") not in ("*", context.tenant_id)):
-        raise DataError("CONNECTION_FORBIDDEN")
+    if connection.get('source_key') != source['source_key']:
+        raise DataError('CONNECTION_FORBIDDEN')
     return connection
 
 

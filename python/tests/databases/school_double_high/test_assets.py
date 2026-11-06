@@ -18,7 +18,6 @@ class AssetContractTests(unittest.TestCase):
         self.specs = {q['id']: self.catalog.spec('schoolDoubleHigh','hpm',q['id'])
                       for q in self.catalog.domain('schoolDoubleHigh','hpm')[1]['queries']}
         self.source = json.loads((BASE.parents[1]/'source.json').read_text(encoding='utf-8'))
-        self.database_config = json.loads((ROOT/'config/databases.json').read_text(encoding='utf-8'))
         self.tables = self.catalog.schema('schoolDoubleHigh','hpm')['tables']
 
     def test_sql_parameters_outputs_tables_and_source_registration(self):
@@ -48,7 +47,7 @@ class AssetContractTests(unittest.TestCase):
                     self.assertIn(dependency,self.specs)
         self.assertEqual(len(files),28)
         self.assertEqual({p.name for p in BASE.iterdir()}, {'projects.yaml','tasks.yaml','performance.yaml','funds.yaml'})
-        self.assertIn('performance_latest_feedback', self.database_config['sources']['schoolDoubleHigh']['policy']['domains']['hpm']['queries'])
+        self.assertIn('performance_latest_feedback', self.specs)
 
     def test_catalog_and_18_question_coverage(self):
         catalog=self.catalog.domain('schoolDoubleHigh','hpm')[1]

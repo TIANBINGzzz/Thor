@@ -10,13 +10,24 @@ from unittest.mock import patch
 from runtime import capabilities
 
 
+from tests.deployment_fixtures import deployment_document
+
 class ExecutionEntryTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
     def test_builtin_tool_catalog_loads_declared_operations(self):
         from runtime.tool_registry import TOOL_CATALOG
 
         image = TOOL_CATALOG.resolve('images')
         self.assertEqual(image.implementation, 'images')
         self.assertEqual(image.operation('generate').input_schema['required'], ['prompt', 'output_path'])
+
+    def test_runtime_mode_is_owned_by_capability_not_legacy_environment(self):
+        from runtime.config import runtime_mode_for
+        with patch.dict(os.environ, {'CCSDK_CLIENT_CAPABILITIES': 'conversation'}):
+            self.assertEqual(runtime_mode_for(None, capability_config={}), 'query')
+            self.assertEqual(runtime_mode_for(None, capability_config={'runtime': {'mode': 'client'}}), 'client')
 
     def test_every_tool_uses_one_provider_catalog(self):
         from runtime.tool_registry import TOOL_CATALOG, PROVIDERS

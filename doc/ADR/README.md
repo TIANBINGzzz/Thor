@@ -17,7 +17,7 @@
 | [016](016-file-broker-for-runtime-inputs.md) | 显式 File Broker | 已采纳 | 显式 Broker 校验保留；032 替代默认输入通道 |
 | [018](018-extract-local-playground.md) | 本地自测独立项目 | 已采纳 | Runtime 边界保留；独立测试项目已移除，历史测试不代表 Java 生产授权 |
 | [023](023-database-scoped-asset-packages.md) | 按库组织知识与查询 | 已采纳 | 数据库包、主题指标已接入；业务口径缺口保留 |
-| [028](028-bundled-database-config.md) | 本版配置随镜像交付 | 已采纳 | 打包与离线检查已实现；仅限明确接受的交付范围 |
+| [028](028-bundled-database-config.md) | 本版配置随镜像交付 | 已替代 | 由038改为Nacos客户配置；历史交付记录保留 |
 | [029](029-native-office-document-tools.md) | 原生 Office 工具、自主撰写 | 已采纳 | 编辑及工具装配已验证；031 替代渲染选择 |
 | [030](030-runtime-artifact-delivery.md) | 自动上传、按 ID 交付 | 已采纳 | Python 已实现；Java 文件关联与 ACL 需独立验收 |
 | [031](031-unified-document-renderer.md) | 统一无桌面渲染 | 已采纳 | 完整测试稿经修订核验；正式报送及一次成稿效率未验收 |
@@ -27,6 +27,8 @@
 | [035](035-campus-query-adapter.md) | 校园问数的受控 MCP 适配 | 已采纳 | Python 已接入；真实验收及生产边界见正文 |
 | [036](036-explicit-prompt-assembly.md) | 提示词显式归属与统一装配 | 已采纳 | Python 装配和离线管理预览已接入；Java 页面及业务质量未验收 |
 | [037](037-capability-owned-operations.md) | 能力拥有业务 Operation，Tool 仅适配 | 已采纳 | 可信代码加载、逐轮授权及收尾已接入；未迁移既有业务或开放代码上传 |
+
+| [038](038-customer-nacos-configuration.md) | 单客户配置归入 Nacos | 已采纳 | 启动快照、连接拆分和客户绑定已接入；生产发布与Java验收待完成 |
 
 ## 已移除的正文
 

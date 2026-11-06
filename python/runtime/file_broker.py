@@ -27,6 +27,7 @@ import httpx
 
 from runtime.file_service import FileServiceError, file_service_config
 from runtime.protocol import SAFE_ID
+from runtime.deployment_config import deployment_section
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
@@ -127,10 +128,6 @@ def _positive_int(value: Any, name: str) -> int:
         raise FileBrokerConfigurationError(f"{name} 必须是正整数")
     return value
 
-
-def _split_csv(name: str) -> set[str]:
-    """将逗号分隔的环境配置规范化为小写非空集合。"""
-    return {item.strip().lower() for item in os.environ.get(name, "").split(",") if item.strip()}
 
 
 def _safe_filename(value: Any, *, fallback: str | None = None) -> str:
@@ -295,7 +292,7 @@ def _validate_expected_size(value: Any, max_bytes: int) -> int | None:
 
 def configured_broker_endpoint() -> str:
     """Broker 仅接受显式配置，不再从业务服务名称猜测尚未实现的接口。"""
-    return os.environ.get('CCSDK_FILE_BROKER_URL', '').strip()
+    return deployment_section('fileBroker', {}).get('url', '').strip()
 
 
 class FileBroker:
@@ -321,7 +318,7 @@ class FileBroker:
         if raw_endpoint:
             parsed = urlsplit(raw_endpoint)
             if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment:
-                raise ValueError("CCSDK_FILE_BROKER_URL 必须是无查询参数的 HTTPS 地址")
+                raise ValueError("fileBroker.url 必须是无查询参数的 HTTPS 地址")
             self.endpoint = raw_endpoint
         else:
             self.endpoint = ""
@@ -346,17 +343,17 @@ class FileBroker:
             self.max_bytes = min(self.max_bytes, self.file_service['maxFileBytes'])
         self.allowed_hosts = {
             host.lower().rstrip(".")
-            for host in (allowed_hosts if allowed_hosts is not None else _split_csv("CCSDK_FILE_BROKER_ALLOWED_HOSTS"))
+            for host in (allowed_hosts if allowed_hosts is not None else deployment_section('fileBroker', {}).get('allowedHosts', []))
         }
         # Broker 的服务身份和 mTLS 只用于显式 Broker，不能带到另一个下载服务。
-        broker_env = {} if self.file_service else os.environ
-        self.service_token = service_token if service_token is not None else broker_env.get("CCSDK_FILE_BROKER_SERVICE_TOKEN", "").strip()
-        self.auth_mode = (auth_mode if auth_mode is not None else broker_env.get("CCSDK_FILE_BROKER_AUTH_MODE", "run_jwt")).strip().lower()
+        broker_env = {} if self.file_service else deployment_section('fileBroker', {})
+        self.service_token = service_token if service_token is not None else broker_env.get("serviceToken", "").strip()
+        self.auth_mode = (auth_mode if auth_mode is not None else broker_env.get("authMode", "run_jwt")).strip().lower()
         if self.auth_mode not in {"run_jwt", "service"}:
-            raise ValueError("CCSDK_FILE_BROKER_AUTH_MODE 必须是 run_jwt 或 service")
-        self.verify = verify if verify is not None else broker_env.get("CCSDK_FILE_BROKER_CA", "").strip() or True
-        configured_cert = client_cert if client_cert is not None else broker_env.get("CCSDK_FILE_BROKER_CLIENT_CERT", "").strip()
-        configured_key = broker_env.get("CCSDK_FILE_BROKER_CLIENT_KEY", "").strip()
+            raise ValueError("fileBroker.authMode 必须是 run_jwt 或 service")
+        self.verify = verify if verify is not None else broker_env.get("caFile", "").strip() or True
+        configured_cert = client_cert if client_cert is not None else broker_env.get("clientCert", "").strip()
+        configured_key = broker_env.get("clientKey", "").strip()
         if configured_cert and configured_key:
             self.client_cert: str | tuple[str, str] | None = (configured_cert, configured_key)
         elif configured_cert or configured_key:
@@ -563,7 +560,7 @@ class FileBroker:
                     if grant.download_url:
                         if not self.allowed_hosts:
                             raise FileBrokerConfigurationError(
-                                "URL 下载模式必须配置 CCSDK_FILE_BROKER_ALLOWED_HOSTS"
+                                "URL 下载模式必须配置 fileBroker.allowedHosts"
                             )
                         url = _validate_download_url(grant.download_url, allowed_hosts=self.allowed_hosts)
                         pinned_url, host_header, sni_hostname = _pinned_download_target(url)

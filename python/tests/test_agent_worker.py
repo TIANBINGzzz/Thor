@@ -32,7 +32,12 @@ def compiled_prompt(entry, *, template=None):
                            active_tools=entry['tools'], preview=True)['text']
 
 
+from tests.deployment_fixtures import deployment_document
+
 class AgentWorkerTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
     def test_worker_reads_utf8_json_under_local_encoding(self):
         import json
         import os
@@ -81,15 +86,9 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("不要再次调用 Skill、Workflow、Task", options.system_prompt["append"])
         self.assertNotIn('business-token', str(options))
 
-    def test_double_high_requires_current_token_even_when_assets_are_cached(self):
-        from runtime.mcp_auth import MCPAuthError
-        payload = {'capability_ref': 'national-excellence-data-qa',
-                   'credentials': {'platformBearer': 'current-business-token'}}
+    def test_double_high_uses_deployment_database_without_business_mcp_token(self):
         with patch('runtime.data_services.Executor') as executor:
-            self.assertIsNotNone(create_run_services(payload))
-            payload.pop('credentials')
-            with self.assertRaises(MCPAuthError):
-                create_run_services(payload)
+            self.assertIsNotNone(create_run_services({'capability_ref':'national-excellence-data-qa'}))
             executor.assert_not_called()
 
     def test_writing_can_still_mount_shared_data_without_business_token(self):
@@ -100,7 +99,7 @@ class AgentWorkerTests(unittest.TestCase):
     def test_enabled_capabilities_and_fixed_template_mount_web_search(self):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
-        with patch.dict('os.environ', values, clear=True), tempfile.TemporaryDirectory() as folder:
+        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), tempfile.TemporaryDirectory() as folder:
             for payload in ({}, {'capability_ref': 'conversation'}, {'capability_ref': 'chart-generation'},
                             {'capability_ref': 'document-writing'},
                             {'capability_ref': 'document-writing',
@@ -123,7 +122,7 @@ class AgentWorkerTests(unittest.TestCase):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         from runtime.capabilities import CAPABILITIES
-        with patch.dict('os.environ', values, clear=True):
+        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)):
             for capability in CAPABILITIES.values():
                 if capability.ref in {'conversation', 'chart-generation', 'document-writing'}:
                     continue
@@ -142,7 +141,7 @@ class AgentWorkerTests(unittest.TestCase):
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         configured = capability_entry(CAPABILITIES['chart-generation'].directory)
         configured['tools'].remove('web')
-        with patch.dict('os.environ', values, clear=True), patch('runtime.config.capability_entry', return_value=configured):
+        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), patch('runtime.config.capability_entry', return_value=configured):
             options = build_options({'capability_ref': 'chart-generation', 'web_search': True,
                                      'tools': ['mcp__web__search']})
         self.assertNotIn('web', options.mcp_servers)
@@ -151,7 +150,7 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_missing_or_non_bailian_provider_does_not_advertise_web_search(self):
         for base in ('', 'https://other.test/apps/anthropic'):
-            with self.subTest(base=base), patch.dict('os.environ', {
+            with self.subTest(base=base), patch('runtime.deployment_config._DEPLOYMENT', deployment_document({'ANTHROPIC_BASE_URL': base})), patch.dict('os.environ', {
                 'ANTHROPIC_BASE_URL': base, 'ANTHROPIC_AUTH_TOKEN': 'secret', 'ANTHROPIC_MODEL': 'qwen'}, clear=True):
                 options = build_options({'capability_ref': 'conversation'})
                 self.assertNotIn('web', options.mcp_servers)
@@ -161,7 +160,7 @@ class AgentWorkerTests(unittest.TestCase):
         from tools.web_search import create_web_server
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'default-model'}
-        with patch.dict('os.environ', values, clear=True), patch(
+        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), patch(
                 'tools.web_search.create_web_server', wraps=create_web_server) as create:
             options = build_options({'capability_ref': 'conversation', 'model': 'selected-model',
                                      'credentials': {'platformBearer': 'business-secret'}})
@@ -196,7 +195,7 @@ class AgentWorkerTests(unittest.TestCase):
             copies=list(Path(directory).rglob('template.docx'))
             self.assertEqual(len(copies),1)
             self.assertIn(str(copies[0]),options.system_prompt['append'])
-        self.assertEqual(set(options.mcp_servers), {"data", "office", "documents", "artifacts"})
+        self.assertEqual(set(options.mcp_servers), {"data", "office", "documents", "artifacts", "images"})
         self.assertEqual(options.max_turns, 200)
         self.assertEqual(options.disallowed_tools, ['WebSearch'])
         self.assertIsInstance(options.tools, list)
@@ -243,7 +242,7 @@ class AgentWorkerTests(unittest.TestCase):
             "DB_USER": "qa_user",
             "DB_PASSWORD": "do-not-leak",
         }
-        with patch.dict("os.environ", values, clear=True):
+        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
             config = load_execution_entry("national-excellence-data-qa")["capability"]
             prompt = compiled_prompt(config)
         self.assertNotIn("do-not-leak", prompt)
@@ -255,7 +254,7 @@ class AgentWorkerTests(unittest.TestCase):
             "DB_PASSWORD": "do-not-leak",
             "ANTHROPIC_MODEL": "qwen",
         }
-        with patch.dict("os.environ", values, clear=True):
+        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
             environment = agent_environment()
         self.assertNotIn("DB_PASSWORD", environment)
         self.assertNotIn("DB_HOST", environment)
@@ -275,7 +274,7 @@ class AgentWorkerTests(unittest.TestCase):
             "CCSDK_UNO_PYTHON": "configured-python",
             "CCSDK_RENDER_IMAGE": "renderer:test",
         }
-        with patch.dict("os.environ", values, clear=True):
+        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
             provider = agent_environment()
             worker = worker_environment()
         self.assertEqual(provider["ANTHROPIC_AUTH_TOKEN"], "model-secret")
@@ -295,7 +294,7 @@ class AgentWorkerTests(unittest.TestCase):
             "BUSINESS_MCP_URL": "https://mcp.internal",
             "credentials": "unused",
         }
-        with patch.dict("os.environ", values, clear=True):
+        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
             options = build_options({
                 "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},
@@ -305,7 +304,7 @@ class AgentWorkerTests(unittest.TestCase):
         from runtime.capabilities import capability_entry, resolve_capability
         configured = capability_entry(resolve_capability('conversation').directory)
         configured['tools'].append('business')
-        with patch.dict("os.environ", values, clear=True), patch('runtime.config.capability_entry', return_value=configured):
+        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)), patch('runtime.config.capability_entry', return_value=configured):
             options = build_options({
                 "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},
@@ -357,7 +356,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn(template['_documents'][0]['text'].strip(),selected)
         self.assertEqual(selected.count(instructions),1)
 
-    def test_selected_capability_environment_is_loaded_after_root_defaults(self):
+    def test_selected_capability_environment_is_loaded_without_reloading_root_secrets(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / '.env').write_text('FLOW_VALUE=root\n', encoding='utf-8')
@@ -370,7 +369,7 @@ class AgentWorkerTests(unittest.TestCase):
                     load_runtime_environment('national-excellence-data-qa')
                     self.assertEqual(os.environ['FLOW_VALUE'], 'capability')
                     load_runtime_environment()
-                    self.assertEqual(os.environ['FLOW_VALUE'], 'local')
+                    self.assertNotIn('FLOW_VALUE', os.environ)
                 finally:
                     load_runtime_environment()
 
@@ -380,10 +379,10 @@ class AgentWorkerTests(unittest.TestCase):
             (root / '.env').write_text('HTTP_PROXY=http://default.test:80\n', encoding='utf-8')
             with patch('runtime.config.PROJECT_ROOT', root), patch.dict('os.environ', {}, clear=True):
                 load_runtime_environment()
-                self.assertEqual(os.environ['HTTP_PROXY'], 'http://default.test:80')
+                self.assertNotIn('HTTP_PROXY', os.environ)
                 (root / '.env.local').write_text('HTTP_PROXY=http://localhost:7897\n', encoding='utf-8')
                 load_runtime_environment()
-                self.assertEqual(os.environ['HTTP_PROXY'], 'http://localhost:7897')
+                self.assertNotIn('HTTP_PROXY', os.environ)
 
     def test_stream_text_is_not_emitted_again_by_assistant_message(self):
         streaming = {}

@@ -65,7 +65,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导正文携带新 messageId，Python 校验其格式及不与触发消息冲突；普通查询与控制不绑定触发消息的 messageId。
 - 创建、引导、控制和取消统一使用 run.execute；读取使用 run.read/run.execute。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
-- credentials.platformBearer是Java认证后透传的业务Token，按能力/工具auth.required校验且只向登记目标注入；数据访问层可提取tenantId以展开部署授权的self学校，见[数据库边界](data-source-connections.md#查询边界)。Runtime归属仍来自Run JWT；业务Token不写入JWT、Prompt、事件或Run存储，不授予额外工具权限。
+- credentials.platformBearer是Java认证后透传的业务Token，按能力/工具auth.required校验且只向登记目标注入；数据库客户固定为deployment.tenantId，收到业务JWT时只核对tenantId一致性，见[数据库边界](data-source-connections.md#查询边界)。Run JWT的tenant必须等于部署客户，用户归属来自sub；业务Token不写入JWT、Prompt、事件或Run存储，不授予额外工具权限。
 - scope、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
 
 ## 8. File Broker 模块

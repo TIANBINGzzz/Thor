@@ -1,145 +1,39 @@
-# 配置说明
+# 部署配置
 
-本目录的 [databases.json](databases.json) 保存数据库连接和访问策略；平台文件服务及校园 MCP 连接由 Nacos 提供。`databases.json` 中遗留的 `fileService` 不再读取，应删除，避免误以为修改它会生效。配置仅供服务端读取，不传给模型。
+一个 tenantId 对应一个客户，一套 Runtime 只服务一个客户；同客户不同 usercode 可查询客户全量业务数据，用户会话、文件、Run 和结果引用仍分别隔离。
 
-默认读取本目录配置；可用 `CCSDK_DATABASES_FILE` 指定其他文件，相对路径以项目根目录为基准。修改配置后排空任务并重启服务；使用镜像内配置时须重建部署。
-
-本文集中维护配置字段，不复制实际地址、账号、密码或业务租户值。资产职责与查询边界见 [数据契约](../doc/specs/data-source-connections.md)。
-
-## 独立观测出口
-
-[application.yml](application.yml) 的 `runtime.observability.enabled` 为总开关，默认关闭；`application.local.yml` 同路径覆盖本机值，不再读取独立观测 YAML。开启后采集所有会话、所有能力的 Timing、生命周期及脱敏详细事件，不补录历史；关闭时不创建待采库和写入线程，采集接口返回 404，业务记录仍按原流程保存。`CCSDK_OBSERVABILITY_ENABLED=0/1` 为部署与测试覆盖；测试使用 `0`，避免污染本机待采记录。
-
-同节点的 `storage`、`max-records`、`retention-seconds`、`queue-size` 只管理 Runtime 有界待采日志；相对存储路径以项目根目录为基准，长期观测库由平台维护。读取接口使用独立的 `CCSDK_OBSERVATION_JWT_SECRET` 校验观测 JWT，与 Run JWT 密钥分开；实例标识自动持久保存并由接入方发现。保留数据卷可维持标识和游标；替换待采库后重新登记接入源，避免新旧实例混淆。
-
-镜像挂载及 Hawkeye 接入见 [部署说明](../deploy/README.md#独立观测接入)。
-
-## 顶层结构
-
-| 字段 | 用途与约束 |
+| 配置位置 | 职责 |
 | --- | --- |
-| `version` | 配置文件格式版本，当前读取器要求为整数1；不是数据库或模板的版本。 |
-| `sources` | 业务数据源登记表；每个键必须对应.claude/databases下的数据源目录，不能在此表中插入注释条目。 |
-| `sources.schoolDoubleHigh` | 校双高业务数据源，hpm为其内部业务域；名称不代表另一套独立数据库。 |
+| `.env` / `.env.local` / 容器 `runtime.env` | Nacos 地址、命名空间、分组、Data ID、只读账号及代理、工具位置等进程参数 |
+| [application.yml](application.yml) | Nacos 引导默认值及通用 Runtime 预算、模型映射、池和观测默认值 |
+| Nacos `ai-center-agent-service` | 客户 tenantId、模型/JWT/数据库凭据、服务地址及 runtime 覆盖 |
+| [本地 Nacos 示例](nacos-ai-center-agent-service.yaml) | 带逐项中文注释的占位配置，编辑后发布到 Nacos；不是运行时本地回退文件 |
+| `.claude/databases/` | 已登记来源、表列、函数、业务口径和指标；不含连接凭据 |
 
-## 配置加载与注入
+## 加载与更新
 
-每个环境的 Nacos 创建 `public / DEFAULT_GROUP / ai-center-agent-service`，格式选 YAML，`fileService` 与 `campusMcp` 为并列节点；Data ID 不加扩展名。可从 Nacos 导出并导入其他环境，再修改该环境的地址。
-启动连接统一放在本目录 [application.yml](application.yml) 的 `nacos` 下：`server-addr`（主机:端口或 HTTP(S) URL）、`namespace`（Namespace ID，public 用空字符串）、`group`、`data-id`。固定读取仓库根目录下的 `config/application.yml`，不依赖启动工作目录，随镜像交付。
-本机可在同目录创建 `application.local.yml`，只写需要覆盖的字段，例如 `nacos: {server-addr: nacos-dev.example.internal:8848}`；未写字段继承公共配置。该文件被 Git 和 Docker 忽略，缺少时使用公共配置，存在但无效时明确报错。Nacos 字段优先级为环境变量 > 本地文件 > 公共文件，空字符串也是显式覆盖。
-镜像默认地址 `host.docker.internal:8848` 用于 Compose bridge 网络，Linux Compose 已配置 `host-gateway` 映射；Docker host 网络可在环境专属 YAML 中写 `127.0.0.1:8848`。各环境可挂载自己的 `application.yml` 到容器 `/app/config/application.yml`，复用同一镜像；宿主机 Nacos 须允许对应网络访问。
-Nacos 认证可在部署 YAML 的 `nacos.username`、`nacos.password` 配置；真实凭据只保存在部署文件或被忽略的本地覆盖文件，不提交 Git 或打进镜像。`CCSDK_NACOS_USERNAME`、`CCSDK_NACOS_PASSWORD` 及连接字段环境变量仍可显式覆盖 YAML，环境变量优先（包括空字符串）。容器须使用容器可达的地址。
-每批附件下载、每个成果上传开始前通过 Nacos 2.x HTTP API 获取并校验配置；认证与读取共用 `runtime.timeouts.nacos-ms` 预算，单次网络阻塞受 `nacos-request-ms` 约束，响应上限128 KiB。一次传输及其重试固定使用同一快照。下一次传输读取更新，因此同一 Run 的下载和后续上传可能使用不同版本，切换整套文件存储前应排空任务。
-没有本地文件回退或磁盘缓存；未配置、认证失败、不可达或内容无效时文件操作失败，不影响无文件的对话。更改 Nacos 启动参数须重启 Runtime。使用已有 httpx/PyYAML，无需额外 SDK 或 gRPC 端口。
+从仓库根目录运行 `npm start`，或通过 `deploy/entrypoint.py` 启动；自定义 ASGI 启动使用 `PYTHONPATH=python uvicorn --factory runtime.bootstrap:create_app`。初始化必须先于 server、SDK 和预算模块导入。
 
-`runtime/deployment_config.py` 的 `ConfigSnapshot` 是业务配置唯一取值入口：`get('fileService')` 读取节点，`resolve(资产配置)` 解析完整 `${节点.字段}` 引用，保留数字、布尔等原类型。只解析可信连接配置，不扫描用户输入、Prompt 或凭据，不支持表达式、字符串拼接、环境变量展开或远端值递归引用。缺失值直接失败。
-每个快照首次用到引用时读取一次 Nacos，后续引用复用同份 YAML；导出时只保留已引用的值。Runtime 按轮装配并将快照交给 Worker，Worker 不联网补值；文件传输按前述批次使用独立快照。新增连接只在可信资产中声明引用并使用公共解析器，不新增能力专用 Nacos 读取器；业务字段校验留在消费边界，Token 继续按 Run 独立注入。
+正式启动只读取一次 Nacos；先校验客户配置，再逐字段合并 `runtime` 默认值，映射递归覆盖、列表整体替换。读取、认证或校验失败直接拒绝启动，不回退旧 env、数据库 JSON 或示例地址。修改配置须排空任务并重启 Runtime，不需要重建镜像；本次不提供热更新。
 
-## Runtime 预算与限制
+Nacos 连接默认读取本目录 `application.yml` 的 `nacos`，`application.local.yml` 可覆盖本机默认值。`.env.local` 覆盖 `.env`，实际进程环境优先；仅白名单引导项生效。`CCSDK_NACOS_NAMESPACE` 填 Namespace ID，空值为 public，Data ID 默认不带扩展名。
 
-`application.yml` 的 `runtime.timeouts`（正整数毫秒）、`runtime.limits`（正整数，`*-bytes` 为字节）及 `sse-heartbeat-ms` 必须完整声明；`application.local.yml` 按字段覆盖。启动时固定，缺失、非法或未知预算字段直接失败，修改后重启；挂载环境 YAML 时须同步新增节点。对应旧超时、大小、轮数和心跳环境变量不再读取，部署 env 及云效密钥包应删除旧字段。
+同一启动快照用于父进程、Worker、文件服务和 MCP 地址装配。Worker 只接收模型、数据库和运行预算，以及本轮明确选择的连接引用，不接收 Nacos/Run JWT/管理 JWT/观测 JWT 密钥；SDK 环境只接收模型和必要进程参数。可信 Worker 和普通 Agent 不构成生产 OS 沙箱。
 
-`execution-ms` 默认一小时，从附件准备完成后开始；Capability 的 `runtime.timeout_ms` 优先于部署默认值。`runtime.limits.max-turns` 统一为200，能力的 `runtime.max_turns` 可覆盖 YAML；同会话未声明的 `max_turns`、`thinking`、`effort` 继承上轮，显式 null 重置默认值。`thinking: {type: enabled, budget_tokens: 正整数}` 指定思考预算，disabled / adaptive 只声明 type。`client-idle-ms` 从最后一次返回并清理完成后计算，只回收空闲 Client；容量压力可提前回收。`worker-start-ms` / `worker-close-ms` 同时用于 SDK 连接 / 断开，SDK 收发受执行预算约束；排队、附件准备、单次网络等待各自计时。HTTP 工具预算限制网络等待，不能保证整个多工具任务在同一时长内结束。
+## 客户字段
 
-协议/凭据安全上限、重试策略及内部清理宽限保留为代码约束；数据库访问策略仍在 `databases.json`，平台文件服务传输预算仍在 Nacos，避免两个来源同时管理同一参数。
+完整字段与简短描述以示例为准。`deployment.tenantId` 必须与 Java Run JWT 的 tenant 一致，禁止通配符、self 和 default。数据库调用若收到业务 JWT，其 tenantId 也必须一致；该解码仅作一致性检查，不替代 Java 验签、有效期和撤销控制。
 
-## Runtime 模型
+`security.runtimeJwtSecret` 用于执行授权；`observationJwtSecret`、`assetJwtSecret` 可省略以关闭对应接口，配置时必须各不相同。模型的 baseUrl/apiKey 和图像服务的 baseUrl/apiKey/model 分别显式配置，不推导端点或自动共用密钥。
 
-`application.yml` 的 `runtime.models` 是模型配置唯一来源；`application.local.yml` 按字段覆盖，`available` 列表整体替换，`sdk` 按映射项覆盖。启动时读取，更改后重启 Runtime；镜像内配置须重建镜像，挂载环境专属 YAML 时须保留该节点。
+`databases.<source>.connection` 只保存 driver、host、port、database、username、password、tls；`query` 只保存 timeout_seconds、max_rows、dynamic_sql_enabled。来源名称须与能力及来源资产登记一致，校双高使用大小写敏感的 schoolDoubleHigh。TLS 默认验证 CA 和主机名；如环境不支持，须显式设置 disabled，不自动降级。CA 与 SQLite 路径相对仓库 config 目录，绝对路径按部署注入。
 
-| 字段 | 用途与约束 |
-| --- | --- |
-| `default` | HTTP 执行及未指定模型的内部调用使用的明确默认值，不取列表首项。 |
-| `available` | 非空、无重复的模型名称列表；默认模型和全部 SDK 映射必须在其中。配置有效不代表供应商已开通该模型。 |
-| `sdk.haiku` / `sdk.sonnet` / `sdk.opus` | Claude Code 内部模型别名映射，均须显式声明。 |
-| `sdk.subagent` | SDK 内部子代理默认模型；不因此注册或启用项目子代理。 |
+数据库不再维护 Capability、模板、租户列表、项目授权或重复表/查询清单。Capability 与模板决定来源选择，Catalog 决定允许的域、表列、函数及指标，SQL AST 对每张物理表强制绑定当前部署客户；项目是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
 
-缺少模型节点、非法字段或映射在启动时失败，不回退环境变量。旧 `SCRIBE_MODELS`、`ANTHROPIC_MODEL`、`ANTHROPIC_DEFAULT_*_MODEL`、`CLAUDE_CODE_SUBAGENT_MODEL` 不再读取；清理部署 env 及云效密钥包中的旧字段。Runtime 仅向 SDK/Worker 环境副本生成所需模型变量；密钥 `ANTHROPIC_AUTH_TOKEN` 和端点 `ANTHROPIC_BASE_URL` 仍由环境注入。
+`fileService` 管理平台附件下载和成果上传，downloadPath 保留 `{fileId}`；可选 timeoutSeconds 为 1–3600 秒，maxFileBytes 为 1 字节–10 GiB，下载还受 Runtime 上限约束。显式独立下载 Broker 使用 Nacos fileBroker；不作为默认文件服务失败后的回退。`campusMcp` 只保存校园连接及域名，业务 Token 按 Run 绑定，不保存共享账号 Token。
 
-## Runtime 预连接 Client 池
+## Runtime 与观测
 
-`application.yml` 的 `runtime.worker-pool` 在 Runtime 启动时读取；同目录 `application.local.yml` 按字段覆盖，无环境变量覆盖。更改后重启 Runtime；未配置该节点的已有部署不开启预热。
+未覆盖项沿用 application.yml；毫秒超时按阶段分别计时，执行预算从附件准备完成后开始。模型 available 限制请求可选值，default 及 SDK 别名均须在 available 中。worker-pool 设置空闲预热、同时启动、存活上限及最低可用内存，不代表生产并发容量已验收。
 
-| 字段 | 用途与约束 |
-| --- | --- |
-| `max-idle` | 未绑定会话的预热库存上限，公共配置为6，0关闭；不是业务并发数或总进程上限。创建中的进程也占库存名额。 |
-| `max-starting` | 同时创建预热 Worker 的上限，公共配置为2，正整数；不限制按需冷启动或业务并发。 |
-| `max-live` | 全部空闲、保留、创建中、已领取及关闭中的 Client 总上限，公共配置为24，0不限；不得小于 `max-idle`。容量不足可释放空白连接或回收空闲最久的已绑定 Client，关闭真正完成才释放名额；全部繁忙时拒绝创建。 |
-| `min-available-memory-mib` | 内存保留阈值，公共配置为1024；宿主机或可读取的 cgroup 剩余内存低于此值时暂停补充并释放待命进程；至少冷却30秒且恢复到阈值的2倍才补充，防止反复创建。0关闭该保护，不是业务进程硬限额。 |
-
-预热完成 Python 导入和 SDK 连接，统一 system prompt 和原生 tools 底座，不装配业务身份、MCP 或历史。仅固定启动配置参与分组，各组共享 `max-idle=6` 库存，领取前匹配。无历史新会话原子绑定 `tenant + sub + businessSessionId` 与随机工作区后独占领取；已有活跃 Client 继续复用；历史会话在回收或重启后冷启动 resume。已绑定连接不跨会话归还；回收只释放进程，保留业务历史和工作区。新输入、排队、准备、执行和清理中的 Client 不可回收。业务连接期间暂停补池；低内存只回收空白连接。Windows 本地实测6个空闲 Client 的 Python、CLI及子进程合计约2.5 GiB RSS，部署容量须按完整进程树测量。
-
-模型、thinking、effort、模型端点/密钥/extra body、附加目录、权限模式及 MCP 按轮热更新，业务规则通过 Hook 动态注入；工具 Hook 校验本轮授权，适配器仅在本轮持有凭据。固定指纹包含工作目录、最大轮数、统一主提示词及其 snapshot、统一流式选项及其余 SDK 环境；capability.env 仅不可热更新的有效值参与指纹。固定项改变才重建并恢复历史。SDK 0.2.171 的部分热更新使用集中适配的私有协议，升级须运行真实 CLI 回归；失败连接退役，不自动重放业务请求。随机目录及 Hook 不是租户沙箱。
-
-Capability 可声明 `runtime.system_prompt_snapshot`，只接受布尔值，未声明沿用会话值，首次默认 true。对应 SDK custom / preset system prompt 的 `snapshot`：true 在恢复后沿用首轮主提示词，false 每次请求重建（适合更新统一底座后恢复）；SDK 的 compact / 新会话会更新快照。它是连接初始化项，变更会重建 Client，不能原地替换活跃连接的主提示词。query 与持久 Client 均使用统一主提示词底座，能力业务规则继续通过每轮 Hook 更新，不依赖 snapshot。
-
-所有业务输入启用 SDK `verbatim_prompts`，`@路径` 和 `/命令` 作为原文传递；附件继续通过授权工具显式读取，不依赖 CLI 自动展开。
-`ccsdk.worker_pool` 的 INFO 日志记录领取来源、库存/创建/失败计数，以及每15秒的各进程 RSS/PSS（平台不支持PSS时为空）；Actor 内部快照记录复用次数、重建原因与耗时。原始凭据不进入这些观测。内存采样不代表并发容量已验收。
-
-## Nacos 文件服务：fileService
-
-平台文件服务配置：输入附件下载和生成成果上传共用；不属于数据库连接，也不提供业务文件权限判断。
-
-```yaml
-fileService:
-  baseUrl: https://files.example.internal
-  domainName: business.example.internal
-  remoteUrl: https://business.example.internal
-  downloadPath: /fwk_manage_service/sys_attachment/{fileId}/ai/download/
-```
-
-| 字段 | 用途与约束 |
-| --- | --- |
-| `baseUrl` | 文件服务请求的基础地址，只填协议、主机和可选端口，不带业务路径、查询参数或账号密码。 |
-| `domainName` | 请求头domain-name的值，供平台选择业务域；它不是登录Token。 |
-| `remoteUrl` | 请求头remote-url的值，供平台路由识别来源；只填HTTP(S)来源地址，不带业务路径。 |
-| `downloadPath` | 文件下载GET路径；{fileId}由本轮授权附件引用替换，使用存文件接口返回的data.id，不是模板业务ID或会话附件ID。 |
-| `timeoutSeconds` | 默认600，范围1–3600秒；上传的全部尝试和等待共用预算，下载还受Runtime全部附件准备预算约束。 |
-| `maxFileBytes` | 默认1 GiB，范围1字节–10 GiB；单文件上传限制，下载与 `runtime.limits.file-max-bytes` 取较小值，不代表磁盘总配额。 |
-
-## Nacos 校园 MCP：campusMcp
-
-`url` 是完整 MCP HTTP(S) 地址，`domainName` 是路由头 `domain-name`；当前能力只引用这两项，其余未引用字段不注入。示例：
-```yaml
-campusMcp:
-  url: https://campus.example.internal/string_campus_brain_service/mcp
-  domainName: campus.example.internal
-```
-能力入口 `capability.json` 登记的 `assets/campus.json` 的 `connection.url` 声明 `${campusMcp.url}`，`connection.headers.domain-name` 声明 `${campusMcp.domainName}`，由公共解析器注入。校园资产由 `python/capability_packs/campus-brain-query/operations.py` 的内部 Service 装配，业务 Operation 复用该 Service，Agent 不直接挂载 `campus`。URL、Header 和业务规则变化时原位更新 Service，SDK Client 保留；URL、Header 不进入 Prompt。读取或校验失败则校园能力失败，不回退旧地址。工具、鉴权映射及静态 app-key 协议标识仍由可信能力资产控制。
-
-## 访问策略：sources.schoolDoubleHigh.policy
-
-该数据源的访问策略，限制身份、能力、模板、项目范围及可查询的业务资源。
-
-| 字段 | 用途与约束 |
-| --- | --- |
-| `tenant_id` | 非空数据租户列表；self取Java认证后通过credentials.platformBearer透传的业务JWT tenantId，其他字符串为额外授权学校。self缺凭据或租户时失败，不回退Run JWT或固定项。不同学校各有独立scope_ref，不混合统计。 |
-| `capabilities` | 允许使用该来源的业务Capability标识，还须位于能力 data.sourceRefs 声明中；不是Workflow或工具名称。 |
-| `templates` | 使用预制templateKey时允许访问来源的模板标识；仅为授权白名单，不负责登记或启用模板，上传附件不靠此列表识别。 |
-| `project_scope` | 业务项目访问范围配置，与报告年度、国双高筛选等查询口径区分。 |
-| `project_scope.mode` | all_school允许全校项目范围；selected只允许同级project_ids数组指定的项目。全校权限不取消查询自身的业务筛选。 |
-| `dynamic_sql_enabled` | 是否允许受控只读SQL；true仍须来源匹配、表列白名单和SQL校验。每个物理表由执行器强制过滤到所选学校；项目范围仍须满足数据库侧约束。 |
-| `domains` | 按业务域分别授权查询和表；域名须已登记在对应数据库资产包。 |
-| `domains.hpm` | 项目、建设任务、资金及绩效业务域。指标口径和关联规则维护在对应数据库资产包。 |
-| `domains.hpm.queries` | 允许调用的固定查询ID白名单；定义和SQL在.claude/databases/schoolDoubleHigh/metrics/hpm，列入白名单不会把待定义或受阻查询变成可执行查询。 |
-| `domains.hpm.tables` | 允许查询的物理表白名单，必须存在于该业务域已登记的schema；不是授权访问整库，也不允许写入。 |
-
-## 数据库连接：sources.schoolDoubleHigh.connection
-
-实际数据库连接参数及数据库侧权限约束声明；仅由运行时读取，不注入模型提示词。
-
-| 字段 | 用途与约束 |
-| --- | --- |
-| `tenant_id` | 允许使用此物理连接的Runtime租户ID；*允许共享连接，必须与policy.tenant_id分别校验。 |
-| `driver` | SQLAlchemy驱动名；mysql+pymysql通过PyMySQL连接MySQL，sqlite用于已存在的本地数据库文件。 |
-| `host` | 数据库服务器主机名或IP，不是文件服务器或Java业务服务地址。 |
-| `port` | 数据库TCP端口，MySQL常用3306；以实际部署为准。 |
-| `database` | MySQL物理库名；SQLite场景为数据库文件路径，相对路径以此配置文件目录为基准。 |
-| `tls` | 数据库连接的TLS设置，只作用于数据库，不影响平台文件服务的HTTP(S)连接。 |
-| `tls.mode` | disabled关闭数据库TLS；verify_identity启用证书及主机名校验，此时须同时配置tls.ca_file和tls.verify_identity=true，CA相对路径以本配置文件目录为基准。 |
-| `timeout_seconds` | 数据库连接、读写等待及查询执行的秒级预算，运行时限制为1至120秒；不是整个模型Run的超时。 |
-| `max_rows` | 一次查询物化结果的最大行数，运行时限制为1至100000；超出上限标记结果不完整，不能当作完整统计。 |
-| `database_scope_enforced` | 部署方声明数据库账号/视图已限制到获准业务范围；动态SQL要求true，但不自动创建数据库权限。学校范围还由执行器强制过滤，selected项目范围仍须数据库隔离。 |
-| `username` | 数据库登录账号，使用具备所需只读及范围限制的账号；不是业务系统登录用户名。 |
-| `password` | 上述数据库账号的密码；当前按项目授权随私有配置和镜像交付，不得写入日志、提示词或公开文档。 |
-| `scope_source_key` | 数据库侧范围约束所对应的数据源标识；执行动态SQL时必须与实际source_key一致。 |
+runtime.observability 控制有界待采日志，默认关闭；storage 相对仓库根目录。观测读取使用独立 JWT，长期存储与游标由采集平台维护。`CCSDK_OBSERVABILITY_ENABLED=0` 保留为进程紧急停采及测试开关；测试不写入本机观测库。连接、真实 Token、原始结果与验证材料只放忽略目录，不进入源码、镜像或 Prompt。

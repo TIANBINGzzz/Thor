@@ -91,7 +91,7 @@ Content-Type: application/json</pre></div>
 <tr><td>input.text</td><td>string</td><td>条件必填</td><td>最长 1,000,000 字符；文字、附件、payload 至少一个非空；input 对象仍必填，可以为 {}。</td></tr>
 <tr><td>payload</td><td>object</td><td>否</td><td>省略等同于 {}；当前仅 document-writing 选择预制模板时传 templateKey，不得自行添加字段。参与幂等比较，详见<a href="#business-payload">业务 payload 规范</a>。</td></tr>
 <tr><td>input.attachmentRefs</td><td>object[]</td><td>条件必填</td><td>最多 64 项；每项使用 <code>fileId</code> 和 <code>purpose</code>，用途只能是 <code>input</code> 或 <code>reference</code>。</td></tr>
-<tr><td>credentials.platformBearer</td><td>string</td><td>按能力/数据/工具声明</td><td>Java为各能力透传当前已认证业务Token。auth.required=true时必填；数据来源含self时用业务JWT的tenantId展开学校范围，缺身份失败。普通纯文稿无能力级Token要求。不写入Prompt、事件、日志或Run存储。</td></tr>
+<tr><td>credentials.platformBearer</td><td>string</td><td>按能力/工具声明</td><td>Java按需透传当前已认证业务Token。auth.required=true时必填；部署数据库固定客户范围，收到业务JWT时核对tenantId一致性。双高数据库问数无能力级Token要求。不写入Prompt、事件、日志或Run存储。</td></tr>
 </tbody></table>
 <p>新 Run 返回 <code>202</code>；相同请求的幂等重提交返回 <code>200</code>。</p>
 <div class="code-wrap"><div class="code-label">Response 202 / 200</div><button class="copy" type="button">复制</button><pre>{
@@ -113,7 +113,7 @@ Content-Type: application/json</pre></div>
 <tr><td>选择业务能力</td><td>capabilityRef</td><td>在请求顶层传 document-writing、image-generation 等标识，不放入 payload。普通会话可省略。</td></tr>
 <tr><td>选择系统预制模板</td><td>payload.templateKey</td><td>例如 szpt-midterm，由 Python 校验并解析已登记模板。</td></tr>
 <tr><td>外部文件与上传模板</td><td>input.attachmentRefs</td><td>传文件服务 fileId 和 purpose；Java先授权，Python按fileService配置获取。payload 中的 fileId 不触发下载。</td></tr>
-<tr><td>身份与凭据</td><td>JWT / credentials</td><td>执行归属来自签名Run JWT；数据学校self来自Java认证后透传的业务Token tenantId。业务Token仅放credentials.platformBearer，不能放payload。</td></tr>
+<tr><td>身份与凭据</td><td>JWT / credentials</td><td>执行归属来自签名Run JWT，tenant必须匹配部署客户；数据范围固定为本客户。业务Token仅放credentials.platformBearer，不能放payload。</td></tr>
 </tbody></table>
 <h3>通用格式与限制</h3>
 <table><thead><tr><th>项目</th><th>现行约束</th></tr></thead><tbody>
@@ -786,7 +786,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 }</pre></div>
 <p>失败事件没有 fileId，也不提供下载地址；Java 按 runId 和 artifactId 关联结果。文件失败不改变模型执行结果：SDK 成功时仍可随后收到 run.completed；全部已提交文件处理完毕后才结束 Run 事件流。GET 列表/详情返回相同文件结果（不含事件专用 displayName），用于断线补查，不触发上传。</p>
 <h3>部署侧文件服务配置</h3>
-<p>在当前环境 Nacos 的 <code>ai-center-agent-service</code> 中配置 <code>fileService</code>，文件传输开始前读取；连接与字段说明见 <a href="../config/README.md">配置参考</a>。不再读取 databases.json 中的 fileService。</p>
+<p>在当前环境 Nacos 的 <code>ai-center-agent-service</code> 中配置 <code>fileService</code>，Runtime启动时读取并冻结；连接与字段说明见 <a href="../config/README.md">配置参考</a>。客户配置更新排空后重启，无本地秘密回退。</p>
 <div class="code-wrap"><div class="code-label">配置片段 · fileService</div><button class="copy" type="button">复制</button><pre>{
   "fileService": {
     "baseUrl": "https://newtest.stringedu.com",
@@ -868,7 +868,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>控制、取消</td><td><code>run.execute</code></td><td>interrupt 消费；cancel 不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
-<div class="note"><code>credentials.platformBearer</code>是Java认证后透传的业务Token；Python可提取tenantId展开部署策略中的self数据学校，不自行验业务签名或替代Java业务授权。Runtime执行身份仍由Run JWT验证；业务Token不进入Prompt、事件、日志或持久化数据。</div></section>
+<div class="note"><code>credentials.platformBearer</code>是Java认证后透传的业务Token；数据库固定使用部署客户范围，收到业务JWT时仅提取tenantId核对客户一致性，不自行验业务签名或替代Java业务授权。Runtime执行身份仍由Run JWT验证；业务Token不进入Prompt、事件、日志或持久化数据。</div></section>
 
 <section id="file-broker"><h2>输入文件与模板下载</h2>
 <h3>文件流转</h3>

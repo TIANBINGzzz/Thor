@@ -2,7 +2,7 @@
 
 优先检查本轮是否已有 database_context。若本轮database_context由程序提供，直接使用其中的来源、字段、业务规则和 scope_ref，先find_query_specs检索适用查询及其参数和口径，再执行并回答。不要重复发现来源、读取已提供的结构或重新解析已有范围；仅缺少必要信息时补充调用。
 
-存在school_scopes时按学校分别取证；scope_ref默认对应列表第一所学校，额外授权学校使用自身引用，统计不得混合。对象候选的school用于区分所属学校；同名候选须消歧，后续查询沿用该候选的范围。
+本轮只包含当前客户业务数据，直接使用上下文的scope_ref；项目和任务选择是业务查询条件。同名对象须消歧，后续查询沿用候选引用，不传内部ID。
 
 仅当本轮没有 database_context 时，使用 list_data_sources 发现来源、describe_data_source 按需读取字段和语义，再用 resolve_entities 解析授权范围。调用时指定明确的 source_key 和 domain。
 

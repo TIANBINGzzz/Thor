@@ -1,4 +1,4 @@
-"""真实 Runtime 会话压测；在 Linux 主机运行，凭据从独立 JSON 文件读取且不输出。"""
+"""真实 Runtime 会话压测；Linux 主机读取私有 JSON 的 deployment/security 节点，不输出凭据。"""
 
 import argparse
 import base64
@@ -17,6 +17,24 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+
+
+def authorization_headers(config, body, scope):
+    """压测身份绑定目标部署客户；字段与 Nacos 配置一致，密钥仅用于本次签名。"""
+    security = config['security']
+    now = int(time.time())
+    claims = {'iss': security.get('runtimeJwtIssuer', 'string-ai-center-service'),
+              'aud': security.get('runtimeJwtAudience', 'ccsdk-runtime'),
+              'iat': now, 'exp': now + 600, 'jti': uuid.uuid4().hex,
+              'tenant': config['deployment']['tenantId'], 'sub': 'loadtest', 'scope': scope,
+              **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
+
+    def encode(value):
+        return base64.urlsafe_b64encode(value).rstrip(b'=')
+
+    signing = b'.'.join(encode(json.dumps(value).encode()) for value in ({'alg': 'HS256', 'typ': 'JWT'}, claims))
+    token = signing + b'.' + encode(hmac.new(security['runtimeJwtSecret'].encode(), signing, hashlib.sha256).digest())
+    return {'Authorization': 'Bearer ' + token.decode(), 'Content-Type': 'application/json'}
 
 
 def main():
@@ -66,22 +84,9 @@ def main():
                 unsafe.set()
             stop.wait(1)
 
-    def headers(body, scope):
-        now = int(time.time())
-        claims = {'iss': config.get('CCSDK_RUNTIME_JWT_ISSUER', 'string-ai-center-service'),
-                  'aud': config.get('CCSDK_RUNTIME_JWT_AUDIENCE', 'ccsdk-runtime'),
-                  'iat': now, 'exp': now + 600, 'jti': uuid.uuid4().hex,
-                  'tenant': 'loadtest', 'sub': 'loadtest', 'scope': scope,
-                  **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
-        def encode(value):
-            return base64.urlsafe_b64encode(value).rstrip(b'=')
-        signing = b'.'.join(encode(json.dumps(value).encode()) for value in ({'alg': 'HS256', 'typ': 'JWT'}, claims))
-        token = signing + b'.' + encode(hmac.new(config['CCSDK_RUNTIME_JWT_SECRET'].encode(), signing, hashlib.sha256).digest())
-        return {'Authorization': 'Bearer ' + token.decode(), 'Content-Type': 'application/json'}
-
     def request(method, path, body, scope, data=None):
         req = urllib.request.Request(args.base_url + path, data=None if data is None else json.dumps(data).encode(),
-                                     headers=headers(body, scope), method=method)
+                                     headers=authorization_headers(config, body, scope), method=method)
         return urllib.request.urlopen(req, timeout=360)
 
     def run(index, round_number, barrier):
@@ -123,7 +128,7 @@ def main():
         except Exception as error:
             row['error'] = type(error).__name__ + ': ' + str(error)
             try:
-                with request('POST', route + '/cancel', body, 'run.cancel') as response:
+                with request('POST', route + '/cancel', body, 'run.execute') as response:
                     response.read()
             except Exception:
                 pass

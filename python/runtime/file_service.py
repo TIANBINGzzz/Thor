@@ -26,6 +26,11 @@ def file_service_config(env, *, download=False, transport=None):
         raise FileServiceError(code) from None
     if not config:
         raise FileServiceError('file_service_not_configured')
+    return validate_file_service_config(config, download=download)
+
+
+def validate_file_service_config(config, *, download=False):
+    """启动校验与逐轮装配共用字段约束；只校验值，不连接远端。"""
     try:
         config = dict(config)
         for key in ('baseUrl', 'remoteUrl'):

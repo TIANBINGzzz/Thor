@@ -12,7 +12,12 @@ from tools.images import generate_image
 from runtime.config import agent_environment, worker_environment, build_options
 
 
+from tests.deployment_fixtures import deployment_document
+
 class ImageToolTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
     async def test_generate_and_reference_use_same_api_without_forwarding_key_to_download(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -65,9 +70,10 @@ class ImageToolTests(unittest.IsolatedAsyncioTestCase):
 
     def test_configuration_stays_in_worker_and_qa_cannot_mount_images(self):
         values = {'CCSDK_IMAGE_BASE_URL': 'https://api.test/v1', 'CCSDK_IMAGE_API_KEY': 'image-secret'}
-        with patch.dict('os.environ', values, clear=True):
+        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)):
             self.assertNotIn('CCSDK_IMAGE_API_KEY', agent_environment())
-            self.assertEqual(worker_environment()['CCSDK_IMAGE_API_KEY'], 'image-secret')
+            self.assertNotIn('CCSDK_IMAGE_API_KEY', worker_environment())
+            self.assertEqual(json.loads(worker_environment()['CCSDK_WORKER_CONFIG_SECRET'])['images']['apiKey'], 'image-secret')
             options = build_options({'capability_ref': 'conversation'})
             self.assertIn('images', options.mcp_servers)
             self.assertNotIn('image-secret', options.system_prompt['append'])
