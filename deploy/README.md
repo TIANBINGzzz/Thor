@@ -6,7 +6,7 @@
 
 ## 本地开发
 
-安装 `requirements.txt`，从 `.env.example` 准备 Nacos 引导，将[本地示例](../config/nacos-ai-center-agent-service.yaml)中的客户身份、模型及 JWT 等字段填入 Nacos。本机代理等进程差异写 `.env.local`，加载顺序见[配置说明](../config/README.md#加载与更新)；本机覆盖不提交、不进入镜像。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
+安装 `requirements.txt`，从 `.env.example` 准备实际 `.env`，将[字段模板](../config/nacos-ai-center-agent-service.yaml)中的客户身份、模型及 JWT 等字段填入 Nacos。Nacos 引导、代理及工具位置集中写 `.env`；仅在需要临时覆盖时创建 `.env.local`，加载顺序见[配置说明](../config/README.md#加载与更新)；实际 env 不提交、不进入镜像。`python python/server.py` 或 `npm start` 启动，默认 `127.0.0.1:4310`，端口由 SCRIBE_PORT 指定。
 
 回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，参数见 `--help`；单元测试不能代替真实模型、Java 授权和成稿验收。
 

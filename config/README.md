@@ -11,7 +11,7 @@
 | `config/nacos-ai-center-agent-service.local.yaml` | 本机真实 Nacos 配置，导入配置中心后生效；不提交 Git、不进入 Docker 构建上下文 |
 | `.claude/databases/` | 已登记来源、表列、函数、业务口径和指标；不含连接凭据 |
 
-配置按启动依赖和部署环境划分：本机实际 `.env.local` 只放连接 Nacos 前必须具备的地址/账号，以及代理、工具位置、端口和持久化路径。这些值绑定宿主机、容器或启动方式，变更通常需要重建进程；客户和运行策略统一在 Nacos 维护，当前同样须排空重启生效。`CCSDK_OFFICECLI_PATH` 保留实际安装位置，支持 `${LOCALAPPDATA}` 展开。
+配置按启动依赖和部署环境划分：本机实际参数集中写 `.env`，[.env.example](../.env.example) 列全启动字段，`.env.local` 仅在需要覆盖时创建，不重复维护。env 只放连接 Nacos 前必须具备的地址/账号，以及代理、工具位置、端口和持久化路径。这些值绑定宿主机、容器或启动方式；客户和运行策略统一在 Nacos 维护，均须排空重启生效。`CCSDK_OFFICECLI_PATH` 保留实际安装位置，支持 `${LOCALAPPDATA}` 展开。
 
 | 放置位置 | 选择依据与例子 |
 | --- | --- |
