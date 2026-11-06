@@ -31,10 +31,9 @@ def public_artifact(record):
 
 
 class ArtifactDelivery:
-    def __init__(self, store, root, notify, *, env=None, transport=None, on_observation=None):
-        """绑定可信存储与环境副本，初始化上传任务和接收锁。"""
+    def __init__(self, store, root, notify, *, transport=None, on_observation=None):
+        """绑定可信存储与配置快照，初始化上传任务和接收锁。"""
         self.store, self.root, self.notify = store, Path(root), notify
-        self.env = dict(os.environ if env is None else env)
         self.transport = transport
         self.tasks = {}
         self.lock = asyncio.Lock()
@@ -217,7 +216,7 @@ class ArtifactDelivery:
         last_failure = None
         try:
             configured = time.perf_counter()
-            config = await asyncio.to_thread(file_service_config, self.env)
+            config = await asyncio.to_thread(file_service_config)
             self._observe(record, 'artifact.configured', elapsedMs=(time.perf_counter()-configured)*1000)
             await self._state(record, 'uploading')
             async with asyncio.timeout(config['timeoutSeconds']):

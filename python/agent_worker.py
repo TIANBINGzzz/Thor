@@ -29,7 +29,6 @@ from runtime.config import (
     build_client_options,
     create_run_services,
     isolated_sdk_environment,
-    load_runtime_environment,
     missing_environment,
     prepare_capability_assets,
 )
@@ -481,7 +480,6 @@ async def run_client(initial: dict[str, Any]) -> None:
         emit_performance(timing)
         emit(event)
 
-    load_runtime_environment(initial.get("capability_ref"))
     missing = missing_environment()
     if missing:
         emit({"type": "client_error", "code": "configuration_error"})
@@ -560,7 +558,6 @@ async def run_client(initial: dict[str, Any]) -> None:
                 deadline = time.monotonic() + timeout_value / 1000
                 async with asyncio.timeout(timeout_value / 1000):
                     # 工具工厂在私有 Worker 环境中取配置，连接/查询时才切换 SDK 白名单。
-                    load_runtime_environment(command.get('capability_ref'))
                     assets = prepare_capability_assets(command)
                     if tool_services is None:
                         tool_services = ToolServices(assets, command.get('credentials'))
@@ -665,10 +662,9 @@ async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
     timing = Timing('worker_run')
     timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
-    load_runtime_environment(payload.get("capability_ref"))
     missing = missing_environment()
     if missing:
-        raise RuntimeError(f"请先在项目根目录的 .env 中配置：{', '.join(missing)}")
+        raise RuntimeError('Nacos 模型配置不完整')
     data_services = create_run_services(payload)
     streaming: dict[str, str] = {}
     # The SDK merges ``options.env`` with the worker process environment.  Keep

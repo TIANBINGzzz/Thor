@@ -197,7 +197,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
             self.assertNotEqual(first, client_connection_fingerprint(base))
 
 class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
-    async def test_private_capability_environment_matches_prewarmed_client(self):
+    async def test_yaml_host_tool_settings_match_prewarmed_client(self):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
@@ -227,7 +227,7 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             private.write_text(f'CCSDK_OFFICECLI_PATH={binary.as_posix()}\n', encoding='utf-8')
             entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
             with patch('runtime.config.PROJECT_ROOT', root), \
-                 patch('runtime.config.capability_environment_path', return_value=private), \
+                 patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH':str(binary)}), \
                  patch.object(server, 'CLIENT_SESSION_ROOT', root / 'clients'):
                 profile = server._startup_profile({'capability': entry})
                 pool = WorkerPool(max_idle=1, max_starting=1, profile_payloads=[{
@@ -438,58 +438,17 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await pool.close()
 
-class WorkflowEnvironmentTests(unittest.TestCase):
-    def test_connection_fingerprint_uses_selected_environment_without_mutation(self):
-        import os
-        import tempfile
+class ConfigurationEnvironmentTests(unittest.TestCase):
+    def test_connection_fingerprint_ignores_removed_environment_files(self):
+        import os,tempfile
         from pathlib import Path
         from unittest.mock import patch
         from runtime import config
-        with tempfile.TemporaryDirectory() as root:
-            root = Path(root)
-            (root / '.env').write_text('ANTHROPIC_BASE_URL=http://base.test\nSCRIBE_MAX_TURNS=30\n')
-            path = root / 'capability.env'
-            path.write_text('ANTHROPIC_BASE_URL=http://flow.test\nSCRIBE_MAX_TURNS=8\n'
-                            'ANTHROPIC_AUTH_TOKEN=${PROBE_AUTH}-flow\n')
-            with patch.object(config, 'PROJECT_ROOT', root), \
-                 patch.object(config, '_capability_environment_original', {}), \
-                 patch.dict(os.environ, {'PROBE_AUTH': 'synthetic'}), \
-                 patch.object(config, 'capability_entry', return_value={'_directory': str(path.parent)}), \
-                 patch.object(config, 'capability_environment_path', return_value=path), \
-                 patch.object(config, 'prepare_capability_assets', return_value={'runtime': {}}):
-                before = dict(os.environ)
-                base = config.client_connection_fingerprint({})
-                selected = config.client_connection_fingerprint({'capability_ref': 'conversation'})
-                self.assertEqual(base, selected)
-                self.assertEqual(before, dict(os.environ))
-                try:
-                    config.load_runtime_environment('conversation')
-                    values = config._client_connection_values({'capability_ref': 'conversation'})
-                    self.assertNotIn('ANTHROPIC_AUTH_TOKEN', values['env'])
-                    self.assertEqual(values['max_turns'], config.RUNTIME_SETTINGS.limits.max_turns)
-                    self.assertNotIn('ANTHROPIC_BASE_URL', values['env'])
-                    self.assertEqual(selected, config.client_connection_fingerprint({'capability_ref': 'conversation'}))
-                    self.assertEqual(base, config.client_connection_fingerprint({}))
-                finally:
-                    config.load_runtime_environment(None)
-
-    def test_switch_removes_prior_capability_values_and_restores_inherited_values(self):
-        import os
-        import tempfile
-        from pathlib import Path
-        from unittest.mock import patch
-        from runtime import config
-        with tempfile.TemporaryDirectory() as root, patch.dict(os.environ, {'FLOW_BASE': 'inherited'}):
-            path = Path(root) / 'capability.env'
-            path.write_text('FLOW_BASE=selected\nFLOW_ONLY=private\n')
-            with patch.object(config, 'PROJECT_ROOT', Path(root)), \
-                 patch.object(config, 'capability_entry', return_value={'_directory': str(path.parent)}), \
-                 patch.object(config, 'capability_environment_path', return_value=path):
-                try:
-                    config.load_runtime_environment('conversation')
-                    self.assertEqual(os.environ['FLOW_BASE'], 'selected')
-                    config.load_runtime_environment(None)
-                    self.assertEqual(os.environ['FLOW_BASE'], 'inherited')
-                    self.assertNotIn('FLOW_ONLY', os.environ)
-                finally:
-                    config.load_runtime_environment(None)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            (root/'capability.env').write_text('ANTHROPIC_AUTH_TOKEN=private-stale-value\n',encoding='utf-8')
+            with patch.object(config,'PROJECT_ROOT',root),patch.object(config,'prepare_capability_assets',return_value={'runtime':{}}):
+                before=dict(os.environ)
+                self.assertEqual(config.client_connection_fingerprint({}),config.client_connection_fingerprint({'capability_ref':'conversation'}))
+                self.assertEqual(dict(os.environ),before)
+                self.assertNotIn('ANTHROPIC_AUTH_TOKEN',config._client_connection_values({})['env'])

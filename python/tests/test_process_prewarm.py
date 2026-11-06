@@ -240,7 +240,6 @@ def options(*args, **kwargs):
     if mode == 'failed':
         raise ValueError('run setup failed')
     return build_agent_options(tools=[], strict_mcp_config=True)
-worker.load_runtime_environment = lambda _: None
 worker.missing_environment = lambda: []
 worker.prepare_capability_assets = lambda _: {}
 worker.create_run_services = lambda _: None

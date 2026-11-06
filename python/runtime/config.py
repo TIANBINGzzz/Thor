@@ -10,8 +10,6 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from dotenv import dotenv_values
-from dotenv.variables import parse_variables
 
 from data_access.context import fingerprint, DataError
 from runtime.mcp_auth import inject_mcp_authentication, validate_capability_credentials
@@ -47,6 +45,7 @@ BASE_PROCESS_ENV_KEYS = {
     "TZ",
     "TERM",
     "HTTPS_PROXY",
+    "ALL_PROXY",
     "HTTP_PROXY",
     "NO_PROXY",
 }
@@ -64,30 +63,9 @@ WORKER_CONFIG_ENV_KEYS = {
     "CCSDK_LIBREOFFICE_PATH",
     "CCSDK_UNO_PYTHON",
     "CCSDK_RENDER_IMAGE",
-    "BUSINESS_MCP_URL",
     "CCSDK_ENABLE_TIMING",
+    "CCSDK_OBSERVABILITY_ENABLED",
 }
-DEFAULT_CAPABILITY_ENV_FILE = "capability.env"
-
-
-_capability_environment_original = {}
-
-
-def load_runtime_environment(capability_ref: str | None = None) -> None:
-    """仅加载能力私有环境；根目录只由 bootstrap 读取引导项，避免 Worker 重载控制面秘密。"""
-    for key, value in _capability_environment_original.items():
-        if value is None:
-            os.environ.pop(key, None)
-        else:
-            os.environ[key] = value
-    _capability_environment_original.clear()
-    if capability_ref:
-        entry = capability_entry(resolve_capability(capability_ref).directory)
-        env_path = capability_environment_path(entry)
-        if env_path.is_file():
-            _capability_environment_original.update({key: os.environ.get(key) for key in dotenv_values(env_path)})
-            os.environ.update({k: v for k, v in dotenv_values(env_path).items() if v is not None})
-
 def missing_environment() -> list[str]:
     """检查当前进程中的必需模型配置，返回缺失的环境变量名称列表。"""
     model = deployment_section('model', {})
@@ -163,15 +141,6 @@ def _select_environment(allowed: set[str], environ=None) -> dict[str, str]:
     }
 
 
-def capability_environment_path(entry: dict[str, Any]) -> Path:
-    """能力私有环境仅从固定文件读取，不接受请求路径。"""
-    directory = Path(entry['_directory']).resolve()
-    path = (directory / DEFAULT_CAPABILITY_ENV_FILE).resolve()
-    if not path.is_relative_to(directory):
-        raise RuntimeError('能力环境文件路径越界')
-    return path
-
-
 def is_direct_capability(capability_config: dict[str, Any] | None) -> bool:
     """检查输入配置的 execution.mode，返回是否采用 direct 执行模式。"""
     execution = capability_config.get("execution") if capability_config else None
@@ -202,8 +171,8 @@ def prepare_capability_assets(payload):
         entry = local['capability']
         template_key = payload.get('_template_key')
         template = load_template(template_key, payload.get('capability_ref'), entry=entry) if template_key is not None else None
-        environment = _connection_environment(payload.get('capability_ref'), entry=entry)
-        settings = ConfigSnapshot(environment)
+        environment = dict(os.environ)
+        settings = ConfigSnapshot()
         tool_assets = load_tool_assets(entry, settings)
         mcp_connections = load_mcp_connections(entry, settings, environment=environment)
         prompt_assets = load_prompt_assets(entry, template=template)
@@ -339,7 +308,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     # Skill以受控引用按需读取，禁用SDK未登记的自动发现。
     skills = []
     runtime = {**assets["runtime"], **payload.get('_client_runtime', {})}
-    sdk_env = agent_environment(_connection_environment(payload.get('capability_ref'), entry=entry))
+    sdk_env = agent_environment(dict(os.environ))
     if (runtime.get('thinking') or {}).get('type') == 'disabled':
         # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
         sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
@@ -378,34 +347,13 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     return options
 
 
-def _connection_environment(capability_ref, *, entry=None):
-    """在副本中展开能力私有环境，模型和数据库始终使用部署快照。"""
-    environment = dict(os.environ)
-    for key, value in _capability_environment_original.items():
-        if value is None:
-            environment.pop(key, None)
-        else:
-            environment[key] = value
-    paths = []
-    if entry is not None or capability_ref:
-        entry = entry if entry is not None else capability_entry(resolve_capability(capability_ref).directory)
-        paths.append(capability_environment_path(entry))
-    for path in paths:
-        values = {}
-        for key, value in dotenv_values(path, interpolate=False).items():
-            values[key] = None if value is None else ''.join(
-                atom.resolve(environment | values) for atom in parse_variables(value))
-        environment.update({key: value for key, value in values.items() if value is not None})
-    return environment
-
-
 def _client_connection_values(payload):
     """仅包含 SDK 连接后无法可靠热更新的选项。秘密值只参与内存哈希。"""
     runtime = payload['_client_runtime'] if '_client_runtime' in payload else prepare_capability_assets(payload)['runtime']
     entry = ((payload.get('_execution_entry') or {}).get('capability')
              or (payload.get('_capability_assets') or {}).get('capability')
              or capability_entry(resolve_capability(payload.get('capability_ref')).directory))
-    effective = _connection_environment(payload.get('capability_ref'), entry=entry)
+    effective = dict(os.environ)
     environment = agent_environment(effective)
     environment = {key: value for key, value in environment.items() if key not in CLIENT_HOT_ENV_KEYS}
     return dict(cwd=str(Path(payload.get('cwd') or Path.cwd()).resolve()), env=environment,
@@ -440,7 +388,7 @@ def inherit_client_runtime(payload, previous=None):
 def build_client_options(payload, policy):
     """空白 Client 不加载业务 MCP、数据连接或凭据，领取后的首轮才装配。"""
     values = _client_connection_values(payload)
-    values['env'] = agent_environment(_connection_environment(payload.get('capability_ref')))
+    values['env'] = agent_environment()
     return build_agent_options(**values, thinking=None, effort=None, add_dirs=[],
         model=payload.get('model') or MODEL_SETTINGS.default, resume=payload.get('resume'),
         verbatim_prompts=True,

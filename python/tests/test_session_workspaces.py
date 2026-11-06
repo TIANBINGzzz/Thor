@@ -115,7 +115,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
             with RunStore(root / 'runs.sqlite3') as store:
                 delivery = ArtifactDelivery(store, root / 'archive', notify,
-                    env={}, transport=httpx.MockTransport(upload))
+                    transport=httpx.MockTransport(upload))
                 with patch.multiple(server, RUN_STORE=store, CLIENT_SESSION_ROOT=root / 'sessions',
                                     ARTIFACT_DELIVERY=delivery, RUN_TIMINGS={}), \
                      patch('runtime.nacos_config.fetch_config', return_value={'fileService': {

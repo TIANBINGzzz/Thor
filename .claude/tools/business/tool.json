@@ -16,8 +16,6 @@
   "displayKeys": {},
   "optional": true,
   "connection": {
-    "url": {
-      "env": "BUSINESS_MCP_URL"
-    }
+    "url": "${businessMcp.url}"
   }
 }

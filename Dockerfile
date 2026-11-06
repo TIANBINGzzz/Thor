@@ -44,9 +44,9 @@ COPY --from=node-deps /usr/local/bin/node /usr/local/bin/node
 COPY python/ ./python/
 COPY .claude/ ./.claude/
 COPY .mcp.json ./
-COPY --chown=10001:10001 --chmod=0400 config/application.yml ./config/application.yml
+COPY --chown=10001:10001 --chmod=0400 config/application.production.yml ./config/application.yml
 # Fixed /app paths are container-scoped; deployment helpers run from this image.
-COPY deploy/entrypoint.py deploy/write-env.py deploy/smoke.py ./deploy/
+COPY deploy/entrypoint.py deploy/smoke.py ./deploy/
 # COPY 的 chmod 也作用于新建父目录；目录必须可进入，配置仍保持只读。
 RUN chmod 0500 /app/config \
     && mkdir -p /app/.scribe-runs/claude-config && chown -R scribe:scribe /app/.scribe-runs
@@ -59,6 +59,6 @@ ENTRYPOINT ["python", "deploy/entrypoint.py"]
 
 FROM runtime AS test
 COPY deploy/ ./deploy/
-COPY config/nacos-ai-center-agent-service.yaml ./config/nacos-ai-center-agent-service.yaml
+COPY config/*.example.yml config/*.production.yml ./config/
 RUN python -m unittest discover -s python/tests -t python -p 'test_*.py'
-RUN python deploy/test_write_env.py && python deploy/test_build.py && sh -n deploy/build.sh && sh -n deploy/deploy.sh
+RUN python -m unittest discover -s deploy -p 'test_*.py' && sh -n deploy/build.sh && sh -n deploy/deploy.sh

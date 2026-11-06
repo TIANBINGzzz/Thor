@@ -116,7 +116,7 @@ class ImageCapabilityTests(unittest.TestCase):
             async def notify(event):
                 states.append(event)
             delivery = ArtifactDelivery(store, root / 'archive', notify,
-                env={}, transport=httpx.MockTransport(upload))
+                transport=httpx.MockTransport(upload))
             try:
                 for receipt in receipts:
                     await delivery.accept('images-run', root / 'output', receipt['artifactId'])

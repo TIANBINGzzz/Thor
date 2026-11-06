@@ -16,7 +16,10 @@ umask 077
 mkdir -p "$CCSDK_CONFIG_DIRECTORY"
 config_directory=$(cd "$CCSDK_CONFIG_DIRECTORY" && pwd -P)
 export CCSDK_CONFIG_DIRECTORY="$config_directory"
-export CCSDK_ENV_FILE="${CCSDK_ENV_FILE:-$config_directory/runtime.env}"
+application_file=${CCSDK_APPLICATION_FILE:-$config_directory/application.production.yml}
+[ -f "$application_file" ] || { echo "Missing application.production.yml." >&2; exit 1; }
+application_parent=$(cd "$(dirname "$application_file")" && pwd -P)
+export CCSDK_APPLICATION_FILE="$application_parent/$(basename "$application_file")"
 # Prevent two host deployment jobs from replacing the same service concurrently.
 exec 9>"${CCSDK_DEPLOY_LOCK_FILE:-$config_directory/deploy.lock}"
 flock -n 9 || { echo 'Another deployment is running.' >&2; exit 1; }
@@ -35,23 +38,8 @@ if [ -n "${CCSDK_RELEASE_DIRECTORY:-}" ]; then
 fi
 : "${CCSDK_IMAGE:?Set the imported image or CCSDK_RELEASE_DIRECTORY}"
 docker image inspect "$CCSDK_IMAGE" >/dev/null
-if [ "${CCSDK_GENERATE_ENV:-0}" = 1 ]; then
-    # /app and /config below are container paths. No host Python is required.
-    set -- --rm --pull never --network none --user 0 --entrypoint python \
-        --mount "type=bind,source=$config_directory,target=/config"
-    if [ "${CCSDK_DEPLOY_ENV_B64+x}" = x ]; then
-        set -- "$@" --env CCSDK_DEPLOY_ENV_B64
-    else
-        keys=$(docker run --rm --pull never --network none --entrypoint python \
-            "$CCSDK_IMAGE" /app/deploy/write-env.py --list-keys)
-        for key in $keys; do set -- "$@" --env "$key"; done
-    fi
-    set -- "$@" "$CCSDK_IMAGE" /app/deploy/write-env.py --directory /config
-    docker run "$@"
-    export CCSDK_ENV_FILE="$config_directory/runtime.env"
-fi
+
 set -- -f compose.yaml
-if [ "${CCSDK_WITH_APPLICATION:-0}" = 1 ]; then set -- "$@" -f compose.application.yaml; fi
 docker compose "$@" config --quiet
 docker compose "$@" run --rm --no-deps --pull never runtime --check
 docker compose "$@" up -d --force-recreate --wait --wait-timeout 120 --pull never runtime

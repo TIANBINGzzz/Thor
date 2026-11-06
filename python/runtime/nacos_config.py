@@ -1,13 +1,12 @@
 """Nacos 启动配置与 HTTP 读取；不包含能力或业务字段。"""
 
 import time
-from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
 import yaml
 
-APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config' / 'application.yml'
+from runtime.application_config import UniqueKeyLoader, application_settings, validate_nacos
 
 
 class NacosConfigError(ValueError):
@@ -33,52 +32,22 @@ def _response(client, method, url, deadline, request_timeout_ms, **kwargs):
         return httpx.Response(response.status_code, content=bytes(body), request=response.request)
 
 
-def _nacos_settings(env):
-    """按公共文件、本地文件、环境变量顺序覆盖；凭据不进入业务配置快照。"""
-    fields = {'server-addr': 'CCSDK_NACOS_URL', 'namespace': 'CCSDK_NACOS_NAMESPACE',
-              'group': 'CCSDK_NACOS_GROUP', 'data-id': 'CCSDK_NACOS_DATA_ID',
-              'username': 'CCSDK_NACOS_USERNAME', 'password': 'CCSDK_NACOS_PASSWORD'}
-    budgets = {'timeout-ms': 10000, 'request-timeout-ms': 5000}
+def _nacos_settings(settings=None):
+    """只用显式启动快照或完整 YAML，不读取环境覆盖和 .local 文件。"""
     try:
-        document = yaml.safe_load(APPLICATION_CONFIG_FILE.read_text(encoding='utf-8'))
-        config = document['nacos']
-        if (not isinstance(config, dict) or set(config) - (fields.keys() | budgets.keys())
-                or not {'server-addr', 'namespace', 'group', 'data-id'}.issubset(config)
-                or any(not isinstance(config[field], str) for field in config.keys() & fields.keys())):
-            raise ValueError()
-        local_path = APPLICATION_CONFIG_FILE.with_name('application.local.yml')
-        try:
-            local_text = local_path.read_text(encoding='utf-8')
-        except FileNotFoundError:
-            pass
-        else:
-            document = yaml.safe_load(local_text)
-            if not isinstance(document, dict):
-                raise ValueError()
-            local = document.get('nacos', {})
-            if (not isinstance(local, dict) or set(local) - (fields.keys() | budgets.keys())
-                    or any(not isinstance(local[field], str) for field in local.keys() & fields.keys())):
-                raise ValueError()
-            config.update(local)
-        for key, default in budgets.items():
-            budgets[key] = config.get(key, default)
-            if type(budgets[key]) is not int or budgets[key] <= 0:
-                raise ValueError()
-        settings = {variable: env.get(variable, config.get(field, '')) for field, variable in fields.items()}
-        address = settings['CCSDK_NACOS_URL'].strip()
-        if address and '://' not in address:
-            address = 'http://' + address
-        settings['CCSDK_NACOS_URL'] = address
-        return settings | budgets
-    except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
+        config = validate_nacos(settings if settings is not None else application_settings()['nacos'])
+        address = config['server-addr']
+        config['server-addr'] = address if '://' in address else 'http://' + address
+        return config
+    except ValueError:
         raise NacosConfigError('nacos_config_invalid') from None
 
 
-def fetch_config(env, *, transport=None):
+def fetch_config(settings=None, *, transport=None):
     """只读 Nacos 2.x 配置 API；凭据仅发给 Nacos，不记录响应或回退本地文件。"""
-    settings = _nacos_settings(env)
+    settings = _nacos_settings(settings)
     timeout_ms, request_timeout_ms = settings['timeout-ms'], settings['request-timeout-ms']
-    address = settings['CCSDK_NACOS_URL'].strip().rstrip('/')
+    address = settings['server-addr'].strip().rstrip('/')
     if not address:
         raise NacosConfigError('nacos_not_configured')
     try:
@@ -90,18 +59,18 @@ def fetch_config(env, *, transport=None):
             raise ValueError()
         if not url.path:
             address += '/nacos'
-        username = settings['CCSDK_NACOS_USERNAME'].strip()
-        password = settings['CCSDK_NACOS_PASSWORD']
+        username = settings['username'].strip()
+        password = settings['password']
         if bool(username) != bool(password):
             raise ValueError()
-        group = settings['CCSDK_NACOS_GROUP'].strip()
-        data_id = settings['CCSDK_NACOS_DATA_ID'].strip()
+        group = settings['group'].strip()
+        data_id = settings['data-id'].strip()
         if not group or not data_id:
             raise ValueError()
     except ValueError:
         raise NacosConfigError('nacos_config_invalid') from None
     params = {'group': group, 'dataId': data_id}
-    namespace = settings['CCSDK_NACOS_NAMESPACE'].strip()
+    namespace = settings['namespace'].strip()
     if namespace and namespace != 'public':
         params['tenant'] = namespace
     try:
@@ -128,7 +97,7 @@ def fetch_config(env, *, transport=None):
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         raise NacosConfigError('nacos_unavailable') from None
     try:
-        value = yaml.safe_load(response.text)
+        value = yaml.load(response.text, Loader=UniqueKeyLoader)
         if not isinstance(value, dict):
             raise ValueError()
         return value

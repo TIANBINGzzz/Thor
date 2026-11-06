@@ -1,0 +1,98 @@
+# 生产客户配置；所有 replace-* 和示例地址必须替换，按本客户值导入 Nacos。
+deployment: # 一套 Runtime 绑定一个客户。
+  tenantId: "customer-example" # 与 Java Run JWT、业务 JWT 中的客户标识一致。
+model: # 文本模型的 Anthropic 兼容服务。
+  baseUrl: "https://model.example.com/anthropic" # 模型 API 地址，必须使用 HTTPS。
+  apiKey: "replace-model-api-key" # 模型服务密钥，不与业务 Token 或 JWT 密钥共用。
+security: # 控制面授权；未配置的可选接口保持关闭。
+  runtimeJwtSecret: "replace-runtime-jwt-secret" # Java 与 Runtime 共用的执行 JWT 签名密钥。
+  runtimeJwtIssuer: "string-ai-center-service" # 允许签发执行 JWT 的服务标识。
+  runtimeJwtAudience: "ccsdk-runtime" # 执行 JWT 的接收方标识。
+  observationJwtSecret: "replace-observation-jwt-secret" # 可选的观测读取密钥，必须独立。
+  assetJwtSecret: "replace-asset-jwt-secret" # 可选的资产管理密钥，必须独立。
+databases: # 客户部署启用的数据库来源，名称须与资产 source_key 一致。
+  schoolDoubleHigh: # 校双高来源，保留大小写。
+    connection: # 仅连接信息；表、列、函数和指标从登记资产读取。
+      driver: "mysql+pymysql" # 数据库驱动，生产使用 MySQL。
+      host: "database.example.com" # 客户数据库主机名或 IP。
+      port: 3306 # 数据库端口，范围为 1–65535。
+      database: "customer_business" # 客户业务库名。
+      username: "readonly_user" # 仅授予查询权限的数据库账号。
+      password: "replace-database-password" # 数据库密码，按原文使用，不做变量展开。
+      tls: # 数据库 TLS 设置，默认为验证证书及主机名。
+        mode: "verify_identity" # verify_identity 或显式 disabled。
+        ca_file: "certificates/database-ca.pem" # CA 文件路径，相对仓库 config 目录，部署时只读挂载。
+        verify_identity: true # 验证模式下必须为 true。
+    query: # 查询执行预算，不承担用户或项目授权。
+      timeout_seconds: 30 # 单次查询与数据库连接超时，范围为 1–120 秒。
+      max_rows: 10000 # 单次取数上限，范围为 1–100000 行。
+      dynamic_sql_enabled: true # 允许受 SQL AST 校验和客户过滤保护的只读动态查询。
+fileService: # Java 附件下载与成果上传服务。
+  baseUrl: "https://files.example.com" # 附件服务根地址。
+  domainName: "files.example.com" # 附件接口需要的客户域名参数。
+  remoteUrl: "https://files.example.com" # 成果上传接口使用的远端地址参数。
+  downloadPath: "/fwk_manage_service/sys_attachment/{fileId}/ai/download/" # 下载路由，保留 fileId 占位符。
+  timeoutSeconds: 600 # 文件服务单次请求超时，范围为 1–3600 秒。
+  maxFileBytes: 1073741824 # 文件服务大小上限，下载还受 Runtime 上限约束。
+fileBroker: # 可选独立下载 Broker，关闭时不参与下载装配。
+  enabled: false # 是否启用独立 Broker，false 使用 fileService。
+  url: "" # 启用时填写 HTTPS Broker 地址。
+  allowedHosts: [] # Broker 返回的下载 URL 主机白名单。
+  authMode: "run_jwt" # run_jwt 转发执行 JWT；service 使用独立凭据。
+  serviceToken: "" # service 模式的独立凭据，不复用业务 Token。
+  caFile: "" # 自定义 CA 文件，留空使用系统信任库。
+  clientCert: "" # 可选 mTLS 证书，与 clientKey 成对填写。
+  clientKey: "" # 可选 mTLS 私钥，与 clientCert 成对填写。
+campusMcp: # 校园大脑业务服务，凭据按 Run 注入。
+  url: "https://campus.example.com/string_campus_brain_service/mcp" # 校园 MCP 的 HTTPS 地址。
+  domainName: "campus.example.com" # 校园业务接口使用的域名参数。
+businessMcp: # 可选通用业务 MCP，仍按 Run 注入业务 Token。
+  url: "" # 留空不挂载；启用时填写可信 HTTP/HTTPS 地址。
+images: # 可选图像服务，关闭时仍保留完整字段。
+  enabled: true # 是否启用图像服务，false 时不装配图片工具。
+  baseUrl: "https://images.example.com/v1" # 图像 API 根地址，必须显式配置。
+  apiKey: "replace-image-api-key" # 图像服务密钥，不自动复用文本模型密钥。
+  model: "qwen-image-3.0" # 图像模型名称。
+runtime: # Runtime 运行配置唯一来源；必须完整配置，不从本地 YAML 补值。
+  timeouts: # 以下超时单位均为毫秒。
+    execution-ms: 3600000 # 附件准备完成后的单轮执行预算。
+    client-queue-ms: 300000 # 等待可用 Client 的最长时间。
+    client-idle-ms: 300000 # 会话空闲多久后回收 Client。
+    file-prepare-ms: 600000 # 本轮全部附件准备预算。
+    file-broker-ms: 15000 # 独立下载 Broker 的单次请求预算。
+    file-upload-connect-ms: 10000 # 成果上传连接超时。
+    worker-start-ms: 60000 # Worker 与 SDK 建立连接的预算。
+    worker-send-ms: 5000 # 向 Worker 写入一条命令的预算。
+    worker-close-ms: 20000 # Worker 与 SDK 退出收尾预算，须覆盖完整清理。
+    worker-control-ms: 5000 # 取消、引导及控制回执预算。
+    document-render-ms: 180000 # 文档渲染与转换预算。
+    document-start-ms: 30000 # 文档渲染进程启动预算。
+    image-ms: 600000 # 图像生成请求预算。
+    web-search-ms: 90000 # 网络检索请求预算。
+    mcp-http-ms: 30000 # 通用 HTTP MCP 请求预算。
+  limits: # 单轮输入与执行上限。
+    max-turns: 200 # SDK 单轮最大工具交互轮数。
+    file-max-bytes: 268435456 # Runtime 单个附件下载大小上限，单位为字节。
+    sdk-buffer-bytes: 16777216 # SDK 单条消息缓冲上限，单位为字节。
+    http-body-bytes: 2097152 # Runtime HTTP 请求正文上限，单位为字节。
+    prompt-bytes: 32768 # 用户文本提示上限，单位为 UTF-8 字节。
+  sse-heartbeat-ms: 15000 # SSE 无业务事件时的心跳间隔，单位为毫秒。
+  models: # 客户可选模型与 SDK 模型别名映射。
+    default: "deepseek-v4.1-flash" # 未指定模型时使用的名称。
+    available: ["deepseek-v4.1-flash", "qwen3.8-flash", "qwen3.8-max"] # 允许请求选择的模型列表。
+    sdk: # SDK 内部别名，值须在 available 中。
+      haiku: "deepseek-v4.1-flash" # 轻量任务模型。
+      sonnet: "deepseek-v4.1-flash" # 常规任务模型。
+      opus: "qwen3.8-max" # 高复杂度任务模型。
+      subagent: "deepseek-v4.1-flash" # SDK 子任务模型，不声明额外项目代理。
+  worker-pool: # 所有能力共享的 Client 容量。
+    max-idle: 6 # 可预热的空闲 Client 数量。
+    max-starting: 2 # 同时启动的 Client 数量。
+    max-live: 24 # 同时存活的 Client 上限。
+    min-available-memory-mib: 1024 # 启动新 Client 所需的最低可用内存。
+  observability: # 本地有界观测缓冲，不配置外部采集平台地址。
+    enabled: false # 是否采集脱敏观测事件。
+    storage: ".scribe-runs/observation.sqlite" # 缓冲库路径，相对仓库根目录。
+    max-records: 20000 # 最多保留的观测记录数。
+    retention-seconds: 86400 # 观测记录保留秒数。
+    queue-size: 2048 # 内存待写队列上限。

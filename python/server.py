@@ -25,7 +25,7 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_runtime_environment, load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint
+from runtime.config import load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint
 from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
 from runtime.file_broker import FileBroker, FetchedFile
 from runtime.capabilities import CAPABILITIES
@@ -43,6 +43,7 @@ from runtime.config import MODEL_SETTINGS
 from runtime import telemetry
 from runtime.observability import create_observer, trace_id
 from runtime.deployment_config import deployment_section
+from runtime.application_config import application_settings
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -51,10 +52,9 @@ OBSERVATION_SECRETS: dict[str, tuple[str, ...]] = {}
 RUN_TIMINGS: dict[str, telemetry.Timing] = {}
 
 
-load_runtime_environment()
 OBSERVATION = create_observer(PROJECT_ROOT)
-HOST = "127.0.0.1"
-PORT = int(os.environ.get("SCRIBE_PORT", "4310"))
+HOST = application_settings()['server']['host']
+PORT = application_settings()['server']['port']
 MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
 DEFAULT_MODEL = MODEL_SETTINGS.default
 SECURITY = deployment_section('security', {})
@@ -66,7 +66,7 @@ RUNTIME_JWT_AUDIENCE = SECURITY.get('runtimeJwtAudience', 'ccsdk-runtime')
 # control-plane identity.  Deployments may override it, but an omitted issuer
 # must not silently disable this binding check.
 RUNTIME_JWT_ISSUER = SECURITY.get('runtimeJwtIssuer', 'string-ai-center-service')
-RUN_STORE = RunStore(os.environ.get("SCRIBE_RUN_DB", str(PROJECT_ROOT / ".scribe-runs" / "runs.sqlite3")))
+RUN_STORE = RunStore(application_settings()['server']['run-db'])
 internal_tasks: dict[str, asyncio.Task[Any]] = {}
 internal_cancellations: dict[str, asyncio.Task[Any]] = {}
 internal_steering_tasks: dict[tuple[str, str], asyncio.Task[Any]] = {}

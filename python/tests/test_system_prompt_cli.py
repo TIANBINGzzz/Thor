@@ -166,8 +166,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                     'model': 'claude-sonnet-4-6', 'prompt': 'HISTORY_' + marker,
                     'system_prompt_append': 'QUERY_RULE_' + marker}
                 events = []
-                with patch.object(agent_worker, 'load_runtime_environment'), \
-                        patch.object(agent_worker, 'missing_environment', return_value=[]), \
+                with patch.object(agent_worker, 'missing_environment', return_value=[]), \
                         patch.object(agent_worker, 'emit', events.append), \
                         patch('runtime.config.capability_entry', return_value=entry), \
                         patch('runtime.config.agent_environment', return_value=environment):

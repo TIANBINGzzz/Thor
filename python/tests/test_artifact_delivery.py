@@ -43,7 +43,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         async def notify(event):
             self.events.append(event)
         self.delivery = ArtifactDelivery(self.store, self.root / 'archive', notify,
-            env={}, transport=httpx.MockTransport(handler))
+            transport=httpx.MockTransport(handler))
         self.addAsyncCleanup(self.delivery.close)
         self.work = self.root / 'session' / '.work'
         self.work.mkdir(parents=True)

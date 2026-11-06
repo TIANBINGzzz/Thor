@@ -10,6 +10,7 @@ import httpx
 import yaml
 
 from runtime.file_service import FileServiceError, file_service_config
+from tests.deployment_fixtures import application_document
 
 
 class NacosFileServiceTests(unittest.TestCase):
@@ -23,20 +24,22 @@ class NacosFileServiceTests(unittest.TestCase):
                        'downloadPath': '/files/{fileId}/download'}}
 
     def read(self, handler, **kwargs):
-        return file_service_config(self.env, transport=httpx.MockTransport(handler), **kwargs)
+        fields = {'server-addr':'CCSDK_NACOS_URL','namespace':'CCSDK_NACOS_NAMESPACE',
+                  'group':'CCSDK_NACOS_GROUP','data-id':'CCSDK_NACOS_DATA_ID',
+                  'username':'CCSDK_NACOS_USERNAME','password':'CCSDK_NACOS_PASSWORD'}
+        settings = application_document()
+        for field, key in fields.items():
+            settings['nacos'][field] = self.env.get(key, '' if field in {'username','password','namespace'} else settings['nacos'][field])
+        with patch('runtime.nacos_config.application_settings', return_value=settings):
+            return file_service_config(transport=httpx.MockTransport(handler), **kwargs)
 
     def test_nacos_network_budgets_come_from_bootstrap_before_remote_runtime(self):
         from runtime.nacos_config import fetch_config
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'nacos.test', 'namespace': '',
-                'group': 'DEFAULT_GROUP', 'data-id': 'service', 'timeout-ms': 1450,
-                'request-timeout-ms': 1250}}), encoding='utf-8')
-            def respond(request):
-                self.assertEqual(request.extensions['timeout']['read'], 1.25)
-                return httpx.Response(200, json=self.config)
-            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                self.assertEqual(fetch_config({}, transport=httpx.MockTransport(respond)), self.config)
+        settings = application_document()['nacos'] | {'timeout-ms':1450, 'request-timeout-ms':1250}
+        def respond(request):
+            self.assertEqual(request.extensions['timeout']['read'],1.25)
+            return httpx.Response(200,json=self.config)
+        self.assertEqual(fetch_config(settings,transport=httpx.MockTransport(respond)),self.config)
 
     def test_authentication_namespace_and_snapshot(self):
         requests = []
@@ -143,100 +146,36 @@ class NacosFileServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_unavailable$'):
             self.read(lambda _: httpx.Response(200, content=b' ' * (128 * 1024 + 1)))
 
-    def test_application_yaml_supplies_bootstrap_and_environment_can_override(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'yaml-nacos.test:8848',
-                'namespace': 'yaml-namespace', 'group': 'yaml-group', 'data-id': 'yaml-service'}}))
-            self.env = {}
-            def handle(request):
-                self.assertEqual(request.url.host, 'yaml-nacos.test')
-                self.assertEqual(request.url.path, '/nacos/v1/cs/configs')
-                self.assertEqual(dict(request.url.params), {'tenant': 'yaml-namespace',
-                    'group': 'yaml-group', 'dataId': 'yaml-service'})
-                return httpx.Response(200, json=self.config)
-            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                self.read(handle)
-                self.env = {'CCSDK_NACOS_URL': 'https://override.test/nacos',
-                    'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'override',
-                    'CCSDK_NACOS_DATA_ID': 'override-service'}
-                def overridden(request):
-                    self.assertEqual(str(request.url).split('?')[0], 'https://override.test/nacos/v1/cs/configs')
-                    self.assertEqual(dict(request.url.params), {'group': 'override', 'dataId': 'override-service'})
-                    return httpx.Response(200, json=self.config)
-                self.read(overridden)
-
-    def test_invalid_application_yaml_fails_before_network(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                for content in (None, '[]', 'nacos: [bad]', 'nacos: {server-addr: 123}',
-                                'nacos: {server-addr: localhost:8848, namespace: null}',
-                                'nacos: {server-addr: localhost:8848, password: secret}'):
-                    if content is not None:
-                        path.write_text(content)
-                    with self.subTest(content=content):
-                        with self.assertRaisesRegex(FileServiceError, '^file_service_nacos_config_invalid$'):
-                            self.read(lambda _: self.fail('invalid YAML must not access Nacos'))
-
-    def test_local_yaml_merges_fields_and_environment_has_highest_priority(self):
-        from runtime.nacos_config import _nacos_settings
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
-                'namespace': 'base-tenant', 'group': 'base-group', 'data-id': 'base-service'}}))
-            local = path.with_name('application.local.yml')
-            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
-                local.write_text('nacos:\n  server-addr: local.test:8848\n  namespace: ""\n')
-                merged = _nacos_settings({})
-                self.assertEqual(merged, {'CCSDK_NACOS_URL': 'http://local.test:8848',
-                    'CCSDK_NACOS_NAMESPACE': '', 'CCSDK_NACOS_GROUP': 'base-group',
-                    'CCSDK_NACOS_DATA_ID': 'base-service',
-                    'CCSDK_NACOS_USERNAME': '', 'CCSDK_NACOS_PASSWORD': '',
-                    'timeout-ms': 10000, 'request-timeout-ms': 5000})
-                self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': 'https://env.test'})['CCSDK_NACOS_URL'],
-                                 'https://env.test')
-                self.assertEqual(_nacos_settings({'CCSDK_NACOS_URL': ''})['CCSDK_NACOS_URL'], '')
-                local.unlink()
-                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
-                local.write_text('runtime:\n  worker-pool:\n    max-idle: 0\n')
-                self.assertEqual(_nacos_settings({})['CCSDK_NACOS_URL'], 'http://base.test:8848')
-
-    def test_invalid_local_yaml_is_not_silently_ignored(self):
-        from runtime.nacos_config import _nacos_settings, NacosConfigError
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'base.test:8848',
-                'namespace': '', 'group': 'base-group', 'data-id': 'base-service'}}))
-            local = path.with_name('application.local.yml')
-            with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                for content in ('[]', '', 'nacos: null', 'nacos: {server-addr: null}',
-                                'nacos: {password: 123}', 'nacos: {unknown: value}', 'nacos: ['):
-                    local.write_text(content)
-                    with self.subTest(content=content), self.assertRaisesRegex(
-                            NacosConfigError, '^nacos_config_invalid$'):
-                        _nacos_settings({})
-
-    def test_yaml_credentials_authenticate_and_environment_overrides(self):
+    def test_complete_yaml_authentication_and_old_environment_are_not_merged(self):
         from runtime.nacos_config import fetch_config
+        from runtime.application_config import load_application
+        document = application_document()
+        document['nacos'].update({'username':'yaml-user','password':'yaml-$^password'})
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'application.yml'
-            path.write_text(yaml.safe_dump({'nacos': {'server-addr': 'nacos.test:8848',
-                'namespace': '', 'group': 'DEFAULT_GROUP', 'data-id': 'service',
-                'username': 'yaml-user', 'password': 'yaml-$^password'}}))
-            for env, expected in (({}, b'username=yaml-user&password=yaml-%24%5Epassword'),
-                    ({'CCSDK_NACOS_USERNAME': 'env-user', 'CCSDK_NACOS_PASSWORD': 'env-password'},
-                     b'username=env-user&password=env-password')):
-                calls = []
-                def handle(request):
-                    calls.append(request.url.path)
-                    if request.url.path.endswith('/auth/login'):
-                        self.assertEqual(request.content, expected)
-                        return httpx.Response(200, json={'accessToken': 'test-token'})
-                    self.assertEqual(request.headers['Authorization'], 'Bearer test-token')
-                    return httpx.Response(200, text='fileService: {}\ncampusMcp: {}\n')
-                with patch('runtime.nacos_config.APPLICATION_CONFIG_FILE', path):
-                    self.assertEqual(set(fetch_config(env, transport=httpx.MockTransport(handle))),
-                                     {'fileService', 'campusMcp'})
-                self.assertEqual(calls, ['/nacos/v1/auth/login', '/nacos/v1/cs/configs'])
+            path=Path(folder)/'application.yml'
+            path.write_text(yaml.safe_dump(document),encoding='utf-8')
+            path.with_name('application.local.yml').write_text('not valid: [',encoding='utf-8')
+            calls=[]
+            def handle(request):
+                calls.append(request.url.path)
+                self.assertEqual(request.url.host,'nacos.test')
+                if request.method=='POST':
+                    self.assertEqual(request.content,b'username=yaml-user&password=yaml-%24%5Epassword')
+                    return httpx.Response(200,json={'accessToken':'test-token'})
+                self.assertEqual(request.headers['Authorization'],'Bearer test-token')
+                return httpx.Response(200,json=self.config)
+            with patch.dict('os.environ',{'CCSDK_NACOS_URL':'https://old-env.test'}):
+                settings=load_application(path)['nacos']
+                self.assertEqual(fetch_config(settings,transport=httpx.MockTransport(handle)),self.config)
+            self.assertEqual(calls,['/nacos/v1/auth/login','/nacos/v1/cs/configs'])
+
+    def test_incomplete_or_invalid_application_yaml_fails_before_network(self):
+        from runtime.nacos_config import fetch_config,NacosConfigError
+        from runtime.application_config import load_application
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'application.yml'
+            with patch('runtime.nacos_config.application_settings',side_effect=lambda:load_application(path)):
+                for text in ('[]','nacos: {}','nacos: [','nacos: {password: private-secret}'):
+                    path.write_text(text,encoding='utf-8')
+                    with self.subTest(text=text),self.assertRaisesRegex(NacosConfigError,'nacos_config_invalid'):
+                        fetch_config(transport=httpx.MockTransport(lambda _:self.fail('invalid YAML accessed network')))

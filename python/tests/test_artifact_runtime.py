@@ -44,7 +44,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 5,
                         'fileSuffix': 'txt', 'url': 'private/path'}})
                 delivery = ArtifactDelivery(store, root / 'archive', notify,
-                    env={}, transport=httpx.MockTransport(upload))
+                    transport=httpx.MockTransport(upload))
                 work = root / 'work'
                 work.mkdir()
                 (work / 'result.txt').write_bytes(b'hello')
@@ -79,7 +79,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     'id': 'file_01', 'fileName': 'result.txt', 'fileSize': 5,
                     'fileSuffix': 'txt', 'url': 'private/path'}})
             delivery = ArtifactDelivery(store, root / 'archive', server._notify_stored_event,
-                env={}, transport=httpx.MockTransport(upload))
+                transport=httpx.MockTransport(upload))
             request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run_01',
                 'messageId': 'msg_01', 'businessSessionId': 'session_01', 'input': {'text': 'write'}})
             store.create_run('run_01', request=request, tenant_id='tenant', user_id='user')

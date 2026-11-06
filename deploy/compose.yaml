@@ -7,18 +7,20 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    env_file:
-      - path: ${CCSDK_ENV_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/runtime.env}
-        format: raw
     # Paths below are inside the image, matching Dockerfile and the named volume.
     environment:
       HOME: /home/scribe
       CLAUDE_CONFIG_DIR: /app/.scribe-runs/claude-config
-      SCRIBE_RUN_DB: /app/.scribe-runs/runs.sqlite3
     ports:
       - "${CCSDK_BIND_IP:-127.0.0.1}:${CCSDK_HOST_PORT:-4310}:4310"
     volumes:
       - runtime-data:/app/.scribe-runs
+      - type: bind
+        source: ${CCSDK_APPLICATION_FILE:-${CCSDK_CONFIG_DIRECTORY:?Set a persistent host configuration directory}/application.production.yml}
+        target: /app/config/application.yml
+        read_only: true
+        bind:
+          create_host_path: false
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     stop_grace_period: 30s

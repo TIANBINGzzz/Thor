@@ -24,7 +24,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.connection = {'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                            'domainName': 'campus.example.test'}
         self.enterContext(patch('runtime.nacos_config.fetch_config',
-                                side_effect=lambda env, **kw: {'campusMcp': dict(self.connection)}))
+                                side_effect=lambda **kw: {'campusMcp': dict(self.connection)}))
 
     def operation_tools(self, service, on_error=None):
         from runtime.capabilities import CAPABILITIES, capability_entry

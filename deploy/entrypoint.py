@@ -22,4 +22,6 @@ if __name__ == "__main__":
         print("Deployment environment check passed.")
     else:
         import uvicorn
-        uvicorn.run('server:app', host='0.0.0.0', port=4310, workers=1)
+        from runtime.application_config import application_settings
+        settings = application_settings()['server']
+        uvicorn.run('server:app', host=settings['host'], port=settings['port'], workers=1)

@@ -21,8 +21,6 @@ from runtime.config import (
     MODEL_SETTINGS,
     worker_environment,
     load_execution_entry,
-    load_runtime_environment,
-    capability_environment_path,
 )
 from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
 
@@ -281,7 +279,7 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", provider)
         self.assertNotIn("SCRIBE_TOKEN", provider)
         self.assertNotIn("DB_PASSWORD", provider)
-        self.assertIn("BUSINESS_MCP_URL", worker)
+        self.assertNotIn("BUSINESS_MCP_URL", worker)
         self.assertNotIn("CCSDK_RUNTIME_JWT_SECRET", worker)
         self.assertEqual(provider["CCSDK_LIBREOFFICE_PATH"], "configured-office")
         self.assertEqual(provider["CCSDK_UNO_PYTHON"], "configured-python")
@@ -334,12 +332,6 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertIn("问数流程", documents)
         self.assertNotIn("HPM 术语与指标语义层", documents)
 
-    def test_capability_environment_path_is_colocated(self):
-        config = load_execution_entry("national-excellence-data-qa")["capability"]
-        path = capability_environment_path(config)
-        self.assertEqual(path.name, "capability.env")
-        self.assertEqual(path.parent.name, "national-excellence-data-qa")
-
     def test_common_instructions_are_injected_with_only_selected_template_guide(self):
         from runtime.template_assets import load_template
         config=load_execution_entry('document-writing')['capability']
@@ -355,34 +347,6 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertNotIn('writing-guide.md',common)
         self.assertIn(template['_documents'][0]['text'].strip(),selected)
         self.assertEqual(selected.count(instructions),1)
-
-    def test_selected_capability_environment_is_loaded_without_reloading_root_secrets(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / '.env').write_text('FLOW_VALUE=root\n', encoding='utf-8')
-            (root / '.env.local').write_text('FLOW_VALUE=local\n', encoding='utf-8')
-            env_file = root / 'capability.env'
-            env_file.write_text('FLOW_VALUE=capability\n', encoding='utf-8')
-            with patch.dict('os.environ', {}, clear=True), patch('runtime.config.PROJECT_ROOT', root), \
-                 patch('runtime.config.capability_environment_path', return_value=env_file):
-                try:
-                    load_runtime_environment('national-excellence-data-qa')
-                    self.assertEqual(os.environ['FLOW_VALUE'], 'capability')
-                    load_runtime_environment()
-                    self.assertNotIn('FLOW_VALUE', os.environ)
-                finally:
-                    load_runtime_environment()
-
-    def test_local_environment_overrides_defaults_and_is_optional(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / '.env').write_text('HTTP_PROXY=http://default.test:80\n', encoding='utf-8')
-            with patch('runtime.config.PROJECT_ROOT', root), patch.dict('os.environ', {}, clear=True):
-                load_runtime_environment()
-                self.assertNotIn('HTTP_PROXY', os.environ)
-                (root / '.env.local').write_text('HTTP_PROXY=http://localhost:7897\n', encoding='utf-8')
-                load_runtime_environment()
-                self.assertNotIn('HTTP_PROXY', os.environ)
 
     def test_stream_text_is_not_emitted_again_by_assistant_message(self):
         streaming = {}
@@ -451,7 +415,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
             raise ValueError('provider rejected business-private-value')
         with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}, clear=True), \
              patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
-             patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+             patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
                             prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=events.append):
             await agent_worker.main()
@@ -476,7 +440,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
             scope = agent_worker.SDKToolScope()
             scope.drain = drain
             with self.subTest(query_fails=query_fails), patch.multiple(
-                    agent_worker, load_runtime_environment=lambda _: None, missing_environment=lambda: [],
+                    agent_worker,  missing_environment=lambda: [],
                     create_run_services=lambda _: SimpleNamespace(bind=bind, close=close, prepare_prompt=lambda p: p),
                     prepare_capability_assets=lambda _: {},
                     ToolServices=lambda *args: SimpleNamespace(clear=lambda: cleaned.append('credentials')),
@@ -501,7 +465,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                     raise ValueError('provider rejected business-private-value')
                 with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1' if enabled else '0'}, clear=True), \
                      patch.object(agent_worker.sys, 'stdin', io.StringIO(json.dumps(payload) + '\n')), \
-                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                     patch.multiple(agent_worker,
                                     missing_environment=lambda: [], create_run_services=lambda _: None,
                                     prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=emit):
                     await agent_worker.main()
@@ -552,7 +516,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                     if event['type'] == 'client_run_completed':
                         done.set()
                 with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}, clear=True), \
-                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                     patch.multiple(agent_worker,
                                     missing_environment=lambda: [], create_run_services=lambda _: Data(),
                                     prepare_capability_assets=lambda _: {},
                                     ToolServices=lambda *args: SimpleNamespace(clear=lambda: None),

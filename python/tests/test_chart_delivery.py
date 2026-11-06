@@ -125,7 +125,7 @@ class ChartDeliveryTests(unittest.IsolatedAsyncioTestCase):
             yield SDKMessage(kind='assistant', data={'content': [{'type': 'text', 'text': '图已生成。'}]})
             yield SDKMessage(kind='result', data={'subtype': 'success'})
 
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
                             build_options=options, stream_query=query,
                             isolated_sdk_environment=nullcontext, emit=events.append):

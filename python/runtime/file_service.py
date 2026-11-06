@@ -14,10 +14,10 @@ class FileServiceError(ValueError):
         super().__init__(code)
 
 
-def file_service_config(env, *, download=False, transport=None):
+def file_service_config(*, download=False, transport=None):
     """通过公共配置快照取值；本模块只负责文件字段校验与文件错误码。"""
     try:
-        config = ConfigSnapshot(env, transport=transport).get('fileService')
+        config = ConfigSnapshot(transport=transport).get('fileService')
     except ConfigReferenceError:
         raise FileServiceError('file_service_not_configured') from None
     except NacosConfigError as error:

@@ -10,9 +10,7 @@ deploy/environments.local.md
 *.pem
 deploy/data-access.json
 /config/*
-!/config/nacos-ai-center-agent-service.yaml
 !/config/README.md
-!/config/application.yml
 *.secret.b64
 /dist/
 *.log
@@ -32,3 +30,10 @@ __pycache__/
 ~$*.docx
 
 !/config/observability.yml
+
+/config/application.yml
+/config/nacos-ai-center-agent-service.yml
+!/config/application.example.yml
+!/config/application.production.yml
+!/config/nacos-ai-center-agent-service.example.yml
+!/config/nacos-ai-center-agent-service.production.yml

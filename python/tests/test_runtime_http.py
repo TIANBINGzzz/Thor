@@ -151,7 +151,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "internal_cancellations": {},
             "OBSERVATION": Observer(Path(self.temp.name)/'unused'),
             "ARTIFACT_DELIVERY": ArtifactDelivery(self.store, Path(self.temp.name) / 'archive',
-                server._notify_stored_event, env={'CCSDK_NACOS_URL': ''}),
+                server._notify_stored_event),
         }.items():
             patcher = patch.object(server, name, value)
             patcher.start()

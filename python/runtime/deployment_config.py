@@ -1,11 +1,11 @@
 """部署配置统一取值和引用注入；业务代码不负责连接配置中心。"""
 
 import copy
-import os
 import re
 from urllib.parse import urlsplit
 
 from runtime import nacos_config
+from runtime.application_config import is_placeholder
 
 _PATH = re.compile(r'[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*')
 _DEPLOYMENT = None
@@ -57,6 +57,23 @@ def _validated(document, *, worker=False):
         if not isinstance(document, dict):
             raise ValueError()
         document = copy.deepcopy(document)
+        for optional in ('images', 'fileBroker'):
+            section = document.get(optional)
+            if isinstance(section, dict) and 'enabled' in section:
+                if type(section['enabled']) is not bool:
+                    raise ValueError()
+                if not section['enabled']:
+                    del document[optional]
+        def check_placeholders(value):
+            if isinstance(value, dict):
+                for item in value.values():
+                    check_placeholders(item)
+            elif isinstance(value, list):
+                for item in value:
+                    check_placeholders(item)
+            elif is_placeholder(value):
+                raise ValueError()
+        check_placeholders(document)
         tenant = _text(document['deployment'], 'tenantId')
         if tenant in {'*', 'self', 'default'}:
             raise ValueError()
@@ -78,6 +95,12 @@ def _validated(document, *, worker=False):
             _endpoint(document['images'], 'baseUrl')
             _text(document['images'], 'apiKey', secret=True)
             _text(document['images'], 'model')
+        if 'businessMcp' in document:
+            business = document['businessMcp']
+            if not isinstance(business, dict) or set(business) != {'url'} or not isinstance(business['url'], str):
+                raise ValueError()
+            if business['url']:
+                _endpoint(business, 'url', allow_http=True)
         if not worker and 'fileBroker' in document:
             broker = document['fileBroker']
             _endpoint(broker, 'url')
@@ -89,8 +112,10 @@ def _validated(document, *, worker=False):
             if broker.get('authMode') == 'service':
                 _text(broker, 'serviceToken', secret=True)
             for field in ('serviceToken', 'caFile', 'clientCert', 'clientKey'):
-                if field in broker:
+                if broker.get(field):
                     _text(broker, field, secret=field == 'serviceToken')
+                elif field in broker and not isinstance(broker[field], str):
+                    raise ValueError()
             if bool(broker.get('clientCert')) != bool(broker.get('clientKey')):
                 raise ValueError()
         if not worker and document.get('fileService') is not None:
@@ -146,11 +171,11 @@ def _validated(document, *, worker=False):
         raise ValueError('deployment_config_invalid') from None
 
 
-def initialize_deployment(env=None, *, transport=None, document=None):
+def initialize_deployment(*, nacos=None, transport=None, document=None):
     """启动时读取一次 Nacos，校验完成后才原子发布；故障不回退旧秘密或地址。"""
     global _DEPLOYMENT, _WORKER
     if document is None:
-        document = nacos_config.fetch_config(dict(os.environ if env is None else env), transport=transport)
+        document = nacos_config.fetch_config(nacos, transport=transport)
     document = _validated(document)
     settings = _runtime_configuration(document)
     _DEPLOYMENT, _WORKER = document, False
@@ -210,9 +235,8 @@ class ConfigReferenceError(ValueError):
 class ConfigSnapshot:
     """按需读取一次 YAML；values 模式只使用服务端传入的引用快照，禁止联网补值。"""
 
-    def __init__(self, env=None, *, transport=None, values=None):
+    def __init__(self, *, transport=None, values=None):
         """隔离调用方环境与配置副本；传入引用快照时禁用远端补值。"""
-        self._env = dict(os.environ if env is None else env) if values is None else {}
         self._transport = transport
         self._offline = values is not None
         self._values = copy.deepcopy(values) if values is not None else {}
@@ -228,7 +252,7 @@ class ConfigSnapshot:
             if self._document is None:
                 if _WORKER:
                     raise ConfigReferenceError('config_reference_missing')
-                self._document = copy.deepcopy(nacos_config.fetch_config(self._env, transport=self._transport))
+                self._document = copy.deepcopy(nacos_config.fetch_config(transport=self._transport))
             value = self._document
             for key in path.split('.'):
                 if not isinstance(value, dict) or key not in value:

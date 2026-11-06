@@ -93,6 +93,9 @@ class RuntimeSettingsTests(unittest.TestCase):
             script = '''import sys
 import yaml
 from runtime.deployment_config import initialize_deployment
+from tests.deployment_fixtures import application_document
+from runtime.application_config import install_application
+install_application(application_document())
 from pathlib import Path
 initialize_deployment(document=yaml.safe_load(Path(sys.argv[1]).read_text(encoding='utf-8')))
 import server, agent_worker

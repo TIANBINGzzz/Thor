@@ -92,7 +92,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 completed.set()
 
         provider, data = Provider(), Data()
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None, missing_environment=lambda: [],
+        with patch.multiple(agent_worker,  missing_environment=lambda: [],
                             prepare_capability_assets=lambda _: {}, ToolServices=services,
                             create_run_services=lambda _: data,
                             build_client_options=lambda *a: build_agent_options(),
@@ -195,7 +195,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                     events.append(event)
 
                 with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}), \
-                     patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+                     patch.multiple(agent_worker,
                                     missing_environment=lambda: [], create_run_services=lambda _: data,
                                     ToolServices=lambda *args: tools,
                                     build_options=lambda _, **kw: build_agent_options(tools=[], strict_mcp_config=True),
@@ -248,7 +248,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 completed.set()
 
         with patch.dict('os.environ', {'CCSDK_ENABLE_TIMING': '1'}), \
-             patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+             patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
                             build_options=lambda _, **kw: build_agent_options(tools=[], strict_mcp_config=True),
                             ClaudeSDKClient=lambda *a, **kw: Client(), isolated_sdk_environment=nullcontext,
@@ -282,7 +282,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 self.state = ClientState.CLOSED
         async def commands(queue):
             await queue.put({'type': 'client_query', 'run_id': 'failed', 'prompt': 'test'})
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [],
                             ClaudeSDKClient=lambda *a, **kw: Client(),
                             isolated_sdk_environment=nullcontext,
@@ -307,7 +307,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_one_shot_tool_service_setup_failure_closes_data_services(self):
         data = SimpleNamespace(close=AsyncMock())
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: data,
                             ToolServices=Mock(side_effect=RuntimeError('tool setup failed'))):
             with self.assertRaisesRegex(RuntimeError, 'tool setup failed'):
@@ -335,7 +335,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
         async def query(*args, **kwargs):
             callback()
             yield SDKMessage(kind='result', data={'subtype': 'success', 'is_error': False})
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: None,
                             build_options=options, stream_query=query,
                             isolated_sdk_environment=nullcontext, emit=events.append):
@@ -369,7 +369,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
             seen.append(prompt)
             yield SDKMessage(kind='result', data={'subtype': 'success'})
 
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: services,
                             build_options=lambda _, **kwargs: build_agent_options(tools=[], strict_mcp_config=True),
                             stream_query=query, isolated_sdk_environment=nullcontext, emit=lambda _: None):
@@ -438,7 +438,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 completed.set()
 
         services = Services()
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [], create_run_services=lambda _: services,
                             build_options=options,
                             ClaudeSDKClient=lambda *args, **kwargs: Client(),
@@ -517,7 +517,7 @@ class ClientWorkerLoopTests(unittest.IsolatedAsyncioTestCase):
                 completed.set()
 
         client = Client()
-        with patch.multiple(agent_worker, load_runtime_environment=lambda _: None,
+        with patch.multiple(agent_worker,
                             missing_environment=lambda: [],
                             build_options=lambda _, **kwargs: build_agent_options(tools=None, strict_mcp_config=False),
                             ClaudeSDKClient=lambda *args, **kwargs: client,

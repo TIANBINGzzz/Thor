@@ -1,0 +1,27 @@
+# 生产启动配置；填写实际 Nacos 地址与账号后，只读挂载为 application.yml；不得提交真实秘密。
+nacos: # 只用于启动时读取客户配置，凭据不传入 Worker。
+  server-addr: "http://host.docker.internal:8848" # Nacos HTTP 地址，可带 /nacos 前缀。
+  namespace: "" # Namespace ID，空值表示 public。
+  group: "DEFAULT_GROUP" # Nacos 配置分组。
+  data-id: "ai-center-agent-service" # 客户配置 Data ID。
+  username: "replace-nacos-reader" # Nacos 账号；匿名访问时与密码同时留空。
+  password: "replace-nacos-password" # Nacos 密码，按原文使用，不展开变量。
+  timeout-ms: 10000 # 启动读取配置的总预算，单位为毫秒。
+  request-timeout-ms: 5000 # Nacos 单次网络超时，单位为毫秒。
+server: # 监听与持久化，路径相对启动工作目录，从仓库根目录启动。
+  host: "0.0.0.0" # 本机监听地址；容器使用 0.0.0.0。
+  port: 4310 # HTTP 监听端口；标准容器契约固定为 4310。
+  run-db: "/app/.scribe-runs/runs.sqlite3" # Run SQLite 库位置，生产必须位于持久化卷。
+tools: # 宿主机工具；仅 libreoffice/uno-python 可留空，其余必填。
+  officecli: "/usr/local/bin/officecli" # 必填；可填 officecli 从 PATH 查找，Windows 可用 ${LOCALAPPDATA} 路径。
+  libreoffice: "/usr/bin/soffice" # LibreOffice 入口，空值时自动查找。
+  uno-python: "/usr/bin/python3" # 具备 UNO 模块的 Python 入口，空值时使用渲染器约定。
+  render-image: "ccsdkscribe-renderer:local" # 必填；Windows 文档渲染使用的容器镜像名称。
+network: # 模型和工具的出站网络设置；空代理覆盖旧进程代理，Nacos 始终直连。
+  http-proxy: "" # HTTP 出站代理，留空表示不使用。
+  https-proxy: "" # HTTPS 出站代理，留空表示不使用。
+  all-proxy: "" # 全协议出站代理，留空避免继承系统 ALL_PROXY。
+  no-proxy: "localhost,127.0.0.1,host.docker.internal,.aliyuncs.com" # 直连主机与域名后缀，用逗号分隔。
+diagnostics: # 宿主进程诊断开关，不重复保存 Nacos 观测预算。
+  timing-enabled: false # 是否输出阶段耗时诊断。
+  disable-observability: false # 紧急停采；true 覆盖 Nacos 开关，false 仍以 Nacos 为准。

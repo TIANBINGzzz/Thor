@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from runtime import capabilities
+from tests.deployment_fixtures import deployment_document
 from runtime.config import build_options, prepare_capability_assets
 
 
@@ -26,7 +27,8 @@ class CapabilityCompositionTests(unittest.TestCase):
         entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
         entry['data'] = {'access': 'required', 'sourceRefs': ['schoolDoubleHigh']}
         entry['tools'] = ['data']
-        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
+                 patch('runtime.deployment_config._DEPLOYMENT', {**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
             self.assertEqual(data_source_keys({'capability_ref': 'new-business'}), ['schoolDoubleHigh'])
 
     def test_old_workflow_field_is_rejected(self):
@@ -40,20 +42,18 @@ class CapabilityCompositionTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 capabilities.capability_entry(directory)
 
-    def test_mcp_preparation_uses_private_environment_without_global_changes(self):
+    def test_mcp_preparation_uses_yaml_process_settings_and_nacos_without_global_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            private = root / 'capability.env'
             binary = root / 'bin' / 'officecli'
             binary.parent.mkdir()
             binary.touch()
-            private.write_text(f'CCSDK_OFFICECLI_PATH={binary.as_posix()}\n'
-                               'BUSINESS_MCP_URL=https://business.test/mcp\n', encoding='utf-8')
             entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
             entry['tools'].append('business')
             with patch('runtime.config.PROJECT_ROOT', root), \
-                 patch('runtime.config.capability_environment_path', return_value=private), \
-                 patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
+                 patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH':binary.as_posix()}), \
+                 patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
+                 patch('runtime.deployment_config._DEPLOYMENT', {**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
                 before = dict(os.environ)
                 payload = {'capability_ref': 'conversation', 'credentials': {'platformBearer': 'run-token'}}
                 assets = prepare_capability_assets(payload)

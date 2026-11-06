@@ -13,7 +13,7 @@ import httpx
 
 from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
 from runtime import deployment_config
-from tests.deployment_fixtures import deployment_document
+from tests.deployment_fixtures import deployment_document, application_document
 
 
 def customer_config():
@@ -90,6 +90,28 @@ class CustomerDeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tenant'):
             deployment_config.require_tenant('customer-b')
 
+    def test_production_placeholders_cannot_publish_a_customer_snapshot(self):
+        for section, field, value in [('deployment', 'tenantId', 'customer-example'),
+                ('model', 'apiKey', 'replace-model-api-key'),
+                ('security', 'runtimeJwtSecret', 'replace-runtime-jwt-secret'),
+                ('model', 'baseUrl', 'https://model.example.com/anthropic')]:
+            invalid = copy.deepcopy(self.document)
+            invalid[section][field] = value
+            with self.subTest(section=section, field=field), self.assertRaisesRegex(ValueError, '^deployment_config_invalid$'):
+                self.initialize(invalid)
+            self.assertIsNone(deployment_config._DEPLOYMENT)
+
+    def test_optional_image_service_keeps_full_yaml_fields_when_disabled(self):
+        self.document['images'] = {'enabled': False, 'baseUrl': '', 'apiKey': '', 'model': 'qwen-image-3.0'}
+        self.initialize()
+        self.assertNotIn('images', deployment_config.worker_configuration())
+        self.document['images'].update(enabled=True, baseUrl='https://images.test/v1', apiKey='image-private-key')
+        self.initialize()
+        self.assertEqual(deployment_config.worker_configuration()['images']['model'], 'qwen-image-3.0')
+        self.document['images']['enabled'] = 'false'
+        with self.assertRaisesRegex(ValueError, '^deployment_config_invalid$'):
+            self.initialize()
+
     def test_missing_nacos_runtime_fields_cannot_be_filled_by_local_yaml(self):
         for section, field in [('timeouts', 'worker-close-ms'), ('limits', 'max-turns'),
                                ('models', 'default'), ('worker-pool', 'max-idle'),
@@ -118,31 +140,11 @@ class CustomerDeploymentTests(unittest.TestCase):
                 self.initialize(invalid)
             self.assertIsNone(deployment_config._DEPLOYMENT)
 
-    def test_bootstrap_loads_only_bootstrap_keys_and_process_environment_wins(self):
-        import tempfile
-        from runtime import bootstrap
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            (root / '.env').write_text('CCSDK_NACOS_GROUP=base\nCCSDK_NACOS_PASSWORD=base\n'
-                                      'ANTHROPIC_AUTH_TOKEN=old-secret\n', encoding='utf-8')
-            (root / '.env.local').write_text('CCSDK_NACOS_GROUP=local\nCCSDK_NACOS_PASSWORD=local\n'
-                                            'CCSDK_RUNTIME_JWT_SECRET=old-secret\n', encoding='utf-8')
-            before = dict(os.environ)
-            with patch.object(bootstrap, '__file__', str(root / 'python/runtime/bootstrap.py')), \
-                    patch.object(bootstrap, 'initialize_deployment', return_value={}) as initialize:
-                bootstrap.initialize_runtime(env={'CCSDK_NACOS_GROUP': 'process'})
-            selected = initialize.call_args.args[0]
-            self.assertEqual(selected['CCSDK_NACOS_GROUP'], 'process')
-            self.assertEqual(selected['CCSDK_NACOS_PASSWORD'], 'local')
-            self.assertNotIn('ANTHROPIC_AUTH_TOKEN', selected)
-            self.assertNotIn('CCSDK_RUNTIME_JWT_SECRET', selected)
-            self.assertEqual(dict(os.environ), before)
-
     def test_nacos_unavailable_does_not_publish_old_environment_secrets(self):
         environment = {'CCSDK_NACOS_URL': 'https://nacos.example.test',
                        'ANTHROPIC_AUTH_TOKEN': 'old-secret', 'CCSDK_RUNTIME_JWT_SECRET': 'old-secret'}
         with self.assertRaises(ValueError) as caught:
-            deployment_config.initialize_deployment(environment,
+            deployment_config.initialize_deployment(nacos=application_document()['nacos'],
                 transport=httpx.MockTransport(lambda request: httpx.Response(503, text='private-response')))
         self.assertNotIn('private-response', str(caught.exception))
         self.assertIsNone(deployment_config._DEPLOYMENT)
@@ -198,6 +200,7 @@ assert not any('DATABASE' in key or 'WORKER_CONFIG' in key or 'JWT' in key for k
 class ConfigSnapshotTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', None))
+        self.enterContext(patch('runtime.nacos_config.application_settings', return_value=application_document()))
 
     def test_one_read_resolves_nested_references_without_mutating_assets(self):
         requests = []
@@ -210,8 +213,7 @@ class ConfigSnapshotTests(unittest.TestCase):
         template = {'url': '${service.url}', 'options': ['${service.timeout}', '${service.enabled}'],
                     'static': 'fixed'}
         original = copy.deepcopy(template)
-        config = ConfigSnapshot({'CCSDK_NACOS_URL': 'http://nacos.test'},
-                                transport=httpx.MockTransport(respond))
+        config = ConfigSnapshot(transport=httpx.MockTransport(respond))
         result = config.resolve(template)
         self.assertEqual(result, {'url': 'https://service.test/mcp', 'options': [12, False], 'static': 'fixed'})
         self.assertEqual(config.get('service.url'), 'https://service.test/mcp')
@@ -223,7 +225,7 @@ class ConfigSnapshotTests(unittest.TestCase):
     def test_worker_uses_only_exported_values_without_network_or_credentials(self):
         with patch('runtime.nacos_config.fetch_config', return_value={
                 'service': {'url': 'https://one.test', 'unused': 'private'}}):
-            server = ConfigSnapshot({'CCSDK_NACOS_PASSWORD': 'private-password'})
+            server = ConfigSnapshot()
             server.get('service.url')
         values = server.export()
         worker = ConfigSnapshot(values=values)
@@ -253,7 +255,7 @@ class ConfigSnapshotTests(unittest.TestCase):
 
     def test_snapshots_and_returned_sections_do_not_share_mutable_values(self):
         document = {'service': {'hosts': ['first']}}
-        with patch('runtime.nacos_config.fetch_config', side_effect=lambda env, **kw: document):
+        with patch('runtime.nacos_config.fetch_config', side_effect=lambda **kw: document):
             first = ConfigSnapshot()
             section = first.get('service')
             section['hosts'].append('caller')

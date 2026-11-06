@@ -325,7 +325,7 @@ class FileBroker:
         self.file_service = None
         if endpoint is None and not raw_endpoint:
             try:
-                self.file_service = file_service_config(os.environ, download=True)
+                self.file_service = file_service_config(download=True)
             except FileServiceError as error:
                 if error.code != 'file_service_not_configured':
                     raise FileBrokerConfigurationError('fileService 下载配置无效') from None
