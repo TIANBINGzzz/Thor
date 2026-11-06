@@ -595,8 +595,8 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 }</pre></div>
 <p>常用默认名称：data.query → 查询业务数据，document.process → 处理文档，document.preview → 生成文档预览，image.generate → 生成或编辑图片，file.publish → 提交生成文件。通用命令执行、内部规划、资料检索等默认隐藏状态名称；只改变展示，不关闭工具能力，也不代表已实现模型生成的任务规划说明。</p>
 <table><thead><tr><th>事件 type / 什么时候收到</th><th>payload 字段是什么意思</th><th>前端怎么处理</th></tr></thead><tbody>
-<tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>显示“正在处理”。不代表已经开始生成回答。</td></tr>
-<tr><td><code>phase</code><br>当前处理步骤有变化</td><td><code>name</code> 是步骤名称，取值见下表。例如 thinking 表示模型正在思考；该事件可带 <code>visible: true</code>，但没有思考内容。</td><td>更新“正在准备文件”“正在思考”“正在保存文件”等提示；不要把步骤名加进回答正文。</td></tr>
+<tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>初始提示为“正在思考”，表示本轮正在处理，不代表模型已经启动。模型思考增量不再生成公共状态事件。</td></tr>
+<tr><td><code>phase</code><br>当前处理步骤有变化</td><td><code>name</code> 是步骤名称，取值见下表。不包含模型思考内容。</td><td>displayName 非空时更新步骤提示；不要把步骤名加进回答正文。</td></tr>
 <tr><td><code>message.delta</code><br>收到一小段新回答</td><td><code>textDelta</code> 是这次新生成的文字，不是完整回答。例如本次是“你好”，下次可能是“，有什么可以帮你？”。</td><td>把这段文字加在已有回答的末尾，效果像逐字显示。按 sequence 的顺序处理，同一条事件只加一次，详见下面示例。</td></tr>
 <tr><td><code>tool.started</code><br>开始调用一个工具</td><td><code>toolCallId</code> 是调用 ID（上游提供时返回）；<code>toolKey</code> 是公开分类；<code>displayName</code> 是显示名称；<code>status: "started"</code> 表示开始。</td><td>displayName 非空时显示该工具正在处理；空字符串时不新增工具提示。工具状态与正文分开显示。</td></tr>
 <tr><td><code>tool.progress</code><br>工具报告自己仍在执行</td><td>调用 ID、分类和名称同上；<code>status: "running"</code> 表示未结束。不包含完成百分比，Python 会按调用 ID 补齐已知名称。</td><td>更新该工具的处理中状态。并非每次调用都会收到此事件，没有收到不等于卡住。</td></tr>
@@ -615,7 +615,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <p><code>sequence</code> 是同一次 Run 中所有事件的序号，从 1 开始递增。它不是字数，也不是“第几段回答”；工具、步骤和文件事件同样占用序号，所以两段回答的序号可能不连续。</p>
 <table><thead><tr><th>依次收到的事件</th><th>本次操作</th><th>页面上的完整回答</th></tr></thead><tbody>
 <tr><td>sequence=4，message.delta，textDelta 为“你好”</td><td>加入第一段文字</td><td>你好</td></tr>
-<tr><td>sequence=5，phase，name 为 thinking</td><td>只更新状态提示，正文不变</td><td>你好</td></tr>
+<tr><td>sequence=5，tool.started，displayName 为“读取资料”</td><td>只更新状态提示，正文不变</td><td>你好</td></tr>
 <tr><td>sequence=6，message.delta，textDelta 为“，有什么可以帮你？”</td><td>在末尾接上新文字，不替换已有文字</td><td>你好，有什么可以帮你？</td></tr>
 <tr><td>重连时又收到 sequence=6</td><td>已处理过，忽略这条重复事件</td><td>你好，有什么可以帮你？</td></tr>
 </tbody></table>
@@ -623,7 +623,6 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <h3>通用处理步骤</h3>
 <table><thead><tr><th>phase.name</th><th>含义与建议显示</th></tr></thead><tbody>
 <tr><td>started</td><td>SDK 已初始化，默认 displayName 为空，不单独显示。它与 run.started 是两个不同层次的通知。</td></tr>
-<tr><td>thinking</td><td>模型报告正在思考，可显示“正在思考”；不返回思考文字，也不保证每次请求都有此事件。</td></tr>
 <tr><td>response</td><td>收到没有正文的回答信号，默认不显示状态；真正要显示的文字看 message.delta。</td></tr>
 <tr><td>working</td><td>收到其他运行活动，默认不显示状态；不能由此推算剩余时间。</td></tr>
 </tbody></table>
@@ -638,7 +637,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td>validating_file</td><td>fileId、receivedBytes、totalBytes</td><td>正在校验文件，尚未开始模型执行。</td></tr>
 <tr><td>file_ready</td><td>fileId、receivedBytes、totalBytes</td><td>当前文件就绪。</td></tr>
 <tr><td>files_ready</td><td>fileCount</td><td>全部附件就绪。</td></tr>
-<tr><td>model_starting</td><td>无</td><td>正在处理；收到 thinking 后才显示模型思考。</td></tr>
+<tr><td>model_starting</td><td>无</td><td>附件已就绪，即将请求模型；显示“正在思考”，从排队或附件准备提示切回本轮处理状态。</td></tr>
 <tr><td>saving_files</td><td>无</td><td>SDK 已结束，正在等待已发布文件上传结束；不是模型思考。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">事件 JSON · 文件下载进度</div><button class="copy" type="button">复制</button><pre>{

@@ -47,6 +47,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 - 每 Run 的 sequence 从 1 递增。afterSequence 优先于 Last-Event-ID，只补发更大的序号；消费端保存已处理游标，不能用服务端 lastSequence 跳过尚未消费事件。回放不重新执行模型。
 - message.delta 只追加新增正文；按 Run/sequence 去重。所有 payload 含 displayName，空值只隐藏状态提示，正文、文件及终态仍须处理。工具按 Run、scope、toolCallId 关联，失败不自动等于 Run 失败。
+- 初始状态提示由 run.started 提供；思考增量只进入私有观测，不生成公共 phase。显示名称及终态处理见 [API 参考](../python-api.html#events)。
 - 公共事件仅提供公开 toolKey 和显示名，不包含内部工具名、参数、结果、思考正文、Prompt、路径、凭据或 SDK 原始消息；显示字典只在 Python 维护。
 - 引导状态以 `steering.accepted`、`steering.delivered`、`steering.applied`、`steering.rejected`、`steering.unknown` 事件公开，payload 仅含 messageId、状态、稳定错误码及可信显示名。引导正文不写入 RunStore 或公共事件；SDK 对话历史由 SDK 管理。事件协议仍为 `agent-events/v1`。
 - running 同时覆盖文件准备和模型执行。先顺序下载并核验全部附件，准备失败/取消时不启动模型，无附件跳过文件阶段；进度属于当前文件，不是整个 Run 的百分比，文件字节不经 SSE。

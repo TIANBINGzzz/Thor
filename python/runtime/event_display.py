@@ -37,16 +37,15 @@ PHASE_DISPLAY_NAMES = {
     'validating_file': '正在校验文件',
     'file_ready': '',
     'files_ready': '',
-    'model_starting': '正在处理',
+    'model_starting': '正在思考',
     'started': '',
-    'thinking': '正在思考',
     'response': '',
     'working': '',
     'saving_files': '正在保存文件',
 }
 EVENT_DISPLAY_NAMES = {
     'message.delta': '',
-    'run.started': '正在处理',
+    'run.started': '正在思考',
     'run.completed': '已完成',
     'run.failed': '执行失败',
     'run.cancelled': '已停止',

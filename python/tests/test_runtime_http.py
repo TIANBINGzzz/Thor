@@ -19,9 +19,53 @@ from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from tools.artifacts import publish_artifact
 from runtime.observability import Observer
+from runtime.telemetry import Timing
 
 
 class RuntimeHTTPTests(unittest.TestCase):
+    def test_thinking_chunks_stay_private_through_run_completion(self):
+        self.seed()
+        observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)
+        self.addCleanup(observer.close)
+        timing = Timing('runtime', active=True)
+
+        async def exercise():
+            await server._publish_internal_event('run-test', {
+                'runId': 'run-test', 'type': 'run.started', 'payload': {'status': 'running'}})
+            await server._run_phase('run-test', {'name': 'queued'})
+            await server._run_phase('run-test', {'name': 'model_starting'})
+            for _ in range(20):
+                await server._handle_agent_event('run-test', {
+                    'type': 'thinking', 'scope': 'main', 'text': 'private-reasoning'})
+            await server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'c1', 'name': 'Read'})
+            await server._handle_agent_event('run-test', {'type': 'tool_result', 'id': 'c1', 'text': 'private-source'})
+            await server._handle_agent_event('run-test', {'type': 'text', 'text': 'answer'})
+            await server._handle_client_public_event('run-test', {
+                'type': 'thinking', 'scope': 'sub:task', 'text': 'private-child-reasoning'})
+            await server._handle_agent_event('run-test', {'type': 'result', 'ok': True})
+            await server._finish_run('run-test', server.pending_terminals.pop('run-test'))
+
+        with patch.object(server, 'OBSERVATION', observer), patch.dict(server.RUN_TIMINGS, {'run-test': timing}):
+            asyncio.run(exercise())
+        observer.flush()
+        events = self.store.events_after('run-test')
+        self.assertEqual([event['type'] for event in events], [
+            'run.started', 'phase', 'phase', 'tool.started', 'tool.finished', 'message.delta', 'run.completed'])
+        self.assertEqual(events[0]['payload']['displayName'], '正在思考')
+        self.assertEqual(events[2]['payload']['displayName'], '正在思考')
+        self.assertEqual(events[-1]['payload']['displayName'], '已完成')
+        self.assertEqual(events[-2]['payload']['textDelta'], 'answer')
+        self.assertNotIn('private-', json.dumps(events))
+        self.assertIn('first_thinking', timing.elapsed)
+        evidence = [record['data'] for record in observer.read(0, 500)['records']
+                    if record['kind'] == 'evidence' and record['data'].get('type') == 'thinking']
+        self.assertEqual(len(evidence), 21)
+        self.assertEqual(evidence[-1]['text'], 'private-child-reasoning')
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        self.assertEqual(response.status_code, 200)
+        streamed = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+        self.assertEqual(streamed, events)
+
     def test_public_text_chunks_do_not_evict_diagnostic_evidence(self):
         self.seed()
         observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True, max_records=10)

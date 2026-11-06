@@ -309,9 +309,11 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tu
     return claims, token
 
 
-def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
-    """接收 Run 标识和 Worker 原始事件，返回公共协议事件，省略思考正文及工具输入输出详情。"""
+def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any] | None:
+    """转换公共事件；思考增量只供私有观测，不重复发布状态。"""
     raw_type = str(raw.get("type") or "activity")
+    if raw_type == "thinking":
+        return None
     if raw_type == "text":
         text = raw.get("text")
         if isinstance(text, str) and text:
@@ -321,8 +323,6 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any]:
                 "payload": {"textDelta": text},
             }
         return {"runId": run_id, "type": "phase", "payload": {"name": "response"}}
-    if raw_type == "thinking":
-        return {"runId": run_id, "type": "phase", "payload": {"name": "thinking", "visible": True}}
     if raw_type in {"tool_use", "tool_progress", "tool_result"}:
         status = {"tool_use": "started", "tool_progress": "running", "tool_result": "finished"}[raw_type]
         payload: dict[str, Any] = {"status": status, "scope": raw.get("scope") or "main"}
@@ -479,6 +479,8 @@ async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
         await _artifact_delivery().accept(run_id, root / '.deliverables', raw.get('artifactId'))
         return
     public = _public_internal_event(run_id, raw)
+    if public is None:
+        return
     if public['type'] in {'run.completed', 'run.failed'}:
         # SDK 已结束，但交付物可能仍在上传；终态在上传收敛后统一发布。
         pending_terminals[run_id] = public
