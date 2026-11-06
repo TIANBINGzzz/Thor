@@ -20,7 +20,7 @@ class SessionRunTests(unittest.TestCase):
     def setUp(self):
         self.store = RunStore(':memory:')
         self.addCleanup(self.store.close)
-        for name, value in {'RUN_STORE': self.store, 'DEPLOYMENT_TENANT_ID': 'tenant-a', 'RUNTIME_JWT_SECRET': 'session-test-secret'}.items():
+        for name, value in {'RUN_STORE': self.store, 'RUNTIME_JWT_SECRET': 'session-test-secret'}.items():
             patcher = patch.object(server, name, value)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -76,6 +76,9 @@ class SessionRunTests(unittest.TestCase):
                          {'runs': [], 'nextCursor': None})
         self.assertEqual(self.client.get('/internal/v1/sessions/empty/runs',
                          headers=self.headers(businessSessionId='empty')).json(), {'runs': [], 'nextCursor': None})
+        other = self.client.get(self.path, headers=self.headers(tenant='tenant-b'))
+        self.assertEqual(other.status_code, 200)
+        self.assertEqual([r['runId'] for r in other.json()['runs']], ['run-tenant'])
 
     def test_run_tokens_and_invalid_session_claims_are_rejected(self):
         self.seed('run-own')

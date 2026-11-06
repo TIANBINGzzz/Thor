@@ -15,6 +15,7 @@ from data_access.context import DataContext, DataError
 from data_access.executor import Executor
 from runtime.data_services import RunServices
 from runtime import deployment_config
+from runtime.auth import encode_hs256_jwt
 from data_access.sql_policy import validate_sql
 from runtime.template_assets import load_template
 from runtime.config import worker_environment, isolated_sdk_environment, data_source_keys
@@ -41,7 +42,7 @@ class DataAccessTests(unittest.TestCase):
         self.enterContext(patch('runtime.config.capability_entry', side_effect=lambda directory:
             deepcopy(entry) if str(directory) == str(catalog['qa'].directory) else original(directory)))
         self.env = {}
-        self.deployment = {'deployment': {'tenantId': 'business-a'}, 'databases': {}}
+        self.deployment = {'databases': {}}
         self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', self.deployment))
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
         for source, amount in [('first', 10), ('second', 20)]:
@@ -63,16 +64,14 @@ class DataAccessTests(unittest.TestCase):
             db.executemany('INSERT INTO sales VALUES (?, ?, ?)', [('business-a',amount,'hidden'), ('business-b',999,'other')])
             db.commit()
             db.close()
-            self.config['connections'][source] = {'source_key':source,'tenant_id':'business-a','driver':'sqlite',
+            self.config['connections'][source] = {'driver':'sqlite',
                 'database':f'{source}.db','timeout_seconds':1,'max_rows':1000}
-            self.config['policies'][source] = {'source_key':source,'tenant_id':['business-a'],
-                'capabilities':['qa'], 'templates':[],
-                'project_scope':{'mode':'all_school'},'domains':{'sales':{'queries':['total'],
+            self.config['policies'][source] = {'domains':{'sales':{
                 'tables':{'sales':{'tenant':'TEXT','amount':'INTEGER','private_id':'TEXT'}},
                 'functions':['SUM','COUNT','MAX','COALESCE','CASE','IF','ROUND'], 'internal_columns':['private_id','tenant'],
                 'tenant_column':'tenant'}}}
         self.catalog = Catalog(self.root/'databases')
-        self.context = DataContext('run-a','business-a','u1','qa',self.root/'run-a')
+        self.context = DataContext('run-a','runtime-a','u1','qa',self.root/'run-a',data_tenant_id='business-a')
         self.executor = self.make_executor()
 
     def make_executor(self, context=None):
@@ -89,7 +88,8 @@ class DataAccessTests(unittest.TestCase):
             original = self.config['connections'][source]
             connection = {k:v for k,v in original.items() if k in ('driver','host','port','username','password','tls')}
             connection['database'] = str(self.root/f'{source}.db')
-            sources[source] = {'connection': connection, 'query': {
+            sources[source] = {'connection': connection,
+                'access': {'tenantIds': policy.get('tenantIds', ['self'])}, 'query': {
                 'timeout_seconds': original['timeout_seconds'], 'max_rows': original['max_rows'],
                 'dynamic_sql_enabled': policy.get('dynamic_sql_enabled', False)}}
         self.deployment['databases'] = sources
@@ -116,7 +116,6 @@ class DataAccessTests(unittest.TestCase):
         path=domain/'pending.yaml'
         path.write_text(yaml.safe_dump({'pending':{'score':{'name':'Scoring','description':'Scoring rule missing',
              'status':'needs_definition','version':1,'blockers':['No scoring formula']}}}),encoding='utf-8')
-        self.config['policies']['first']['domains']['sales']['queries'].append('score')
         executor=self.make_executor()
         self.assertEqual(executor.find_query_specs('first','sales',intent='Scoring')['queries'][0]['blockers'],['No scoring formula'])
         with patch.object(executor.connections, 'snapshot') as snapshot:
@@ -146,11 +145,11 @@ class DataAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(DataError,'DOCUMENT_UNAVAILABLE'):
             frozen.documents('first','sales',['unregistered'])
 
-    def test_other_customer_cannot_discover_sources(self):
+    def test_runtime_tenant_does_not_choose_business_data(self):
         executor = self.make_executor(replace(self.context, tenant_id='other-customer'))
-        self.assertEqual(executor.list_data_sources()['sources'], [])
-        with self.assertRaisesRegex(DataError, 'TENANT_FORBIDDEN'):
-            executor.access('first')
+        self.assertEqual(len(executor.list_data_sources()['sources']), 2)
+        result = executor.execute_query_spec('first','sales','total',{},self.school(executor))
+        self.assertEqual(result['rows'], [{'total': 10}])
 
     def test_all_customer_users_share_data_but_not_scope_or_result_references(self):
         previous = None
@@ -166,10 +165,11 @@ class DataAccessTests(unittest.TestCase):
                     executor.results.page(previous[1])
             previous = (scope, result['result_ref'])
 
-    def test_business_identity_must_match_deployment(self):
+    def test_business_identity_selects_self_independently_of_run_identity(self):
         context = replace(self.context, data_tenant_id='business-b')
-        with self.assertRaisesRegex(DataError, 'TENANT_FORBIDDEN'):
-            self.make_executor(context).access('first')
+        executor = self.make_executor(context)
+        result = executor.execute_query_spec('first','sales','total',{},self.school(executor))
+        self.assertEqual(result['rows'], [{'total': 999}])
 
     def test_source_selection_stays_bound_to_trusted_capability_assets(self):
         executor = Executor(self.context, self.env, self.catalog, ['first'])
@@ -418,7 +418,8 @@ class DataAccessTests(unittest.TestCase):
             self.save_connections()
             services=RunServices(['first','second'],env=self.env,catalog=self.catalog)
             payload={'run_id':'r1','_data_identity':{'tenant_id':'business-a','user_id':'u1'},
-                     'capability_ref':'qa','_data_run_directory':str(self.root/'r1')}
+                     'capability_ref':'qa','_data_run_directory':str(self.root/'r1'),
+                     'credentials': {'platformBearer': encode_hs256_jwt({'tenantId':'business-a'},'test-business-key')}}
             await services.bind(payload)
             old=services.current()
             ref=old.results.save([{'amount':0}],{'complete':True},[{'name':'amount'}])
@@ -459,7 +460,8 @@ class DataAccessTests(unittest.TestCase):
             self.save_connections()
             services = RunServices(['first'], env=self.env, catalog=self.catalog, context_topics=['schema'])
             payload = {'run_id': 'r1', '_data_identity': {'tenant_id': 'business-a', 'user_id': 'u1'},
-                       'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1')}
+                       'capability_ref': 'qa', '_data_run_directory': str(self.root/'r1'),
+                       'credentials': {'platformBearer': encode_hs256_jwt({'tenantId':'business-a'},'test-business-key')}}
             await services.bind(payload)
             old_scope = next(iter(services.current().scopes))
             self.assertIn(old_scope, services.prepare_prompt('question-one'))
@@ -487,10 +489,11 @@ class DataAccessTests(unittest.TestCase):
 
 class RegisteredAssetsTests(unittest.TestCase):
     def test_chinese_business_queries_rank_existing_definitions(self):
-        document = {'deployment': {'tenantId': 'test'}, 'databases': {
-            'schoolDoubleHigh': {'connection': {'driver': 'sqlite', 'database': 'unused.db'}}}}
+        document = {'databases': {
+            'schoolDoubleHigh': {'connection': {'driver': 'sqlite', 'database': 'unused.db'},
+                                 'access': {'tenantIds': ['self']}}}}
         with tempfile.TemporaryDirectory() as directory, patch.object(deployment_config, '_DEPLOYMENT', document):
-            executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory)),
+            executor=Executor(DataContext('r','test','tester','national-excellence-data-qa',Path(directory),data_tenant_id='business-a'),
                               {}, Catalog(), source_keys=['schoolDoubleHigh'])
             cases={'专业群':'project_catalog','资金执行率':'fund_totals',
                    '2025年三级任务完成情况':'task_progress_summary','加强党的建设':'first_task_progress_feedback',

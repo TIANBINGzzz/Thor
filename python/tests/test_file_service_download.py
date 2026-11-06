@@ -12,7 +12,7 @@ from unittest.mock import patch
 import httpx
 from docx import Document
 
-from runtime.file_broker import FileBroker, FileBrokerError, FileBrokerConfigurationError
+from runtime.file_download import FileDownloader, FileDownloadError, FileDownloadConfigurationError
 from runtime.protocol import AttachmentRef
 
 
@@ -33,10 +33,9 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.dict('os.environ', {}, clear=True))
 
     async def fetch(self, handler, refs=None, **kwargs):
-        broker = FileBroker(transport=httpx.MockTransport(handler), **kwargs)
-        return await broker.fetch_all(refs or [AttachmentRef('file_1', 'reference')],
-            run_id='run_1', tenant_id='tenant', user_id='user',
-            workspace=self.root / 'input', bearer_token='private-run-jwt')
+        downloader = FileDownloader(transport=httpx.MockTransport(handler), **kwargs)
+        return await downloader.fetch_all(refs or [AttachmentRef('file_1', 'reference')],
+                                         workspace=self.root / 'input')
 
     async def test_downloads_docx_using_configured_route_without_forwarding_credentials(self):
         document = Document()
@@ -81,23 +80,19 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(files[0].path.read_bytes(), b'%PDF-content')
         self.assertEqual(files[0].size, 12)
 
-    async def test_platform_download_does_not_load_broker_credentials_or_reuse_cookies(self):
+    async def test_platform_download_does_not_reuse_cookies_or_environment_proxy(self):
         requests = []
         def handler(request):
             requests.append(request)
             return httpx.Response(200, content=b'%PDF-content', headers={
                 'content-disposition': 'attachment;filename=source.pdf',
-                'set-cookie': 'broker-session=private; Path=/; Secure'})
-        with patch.dict('os.environ', {
-            'CCSDK_FILE_BROKER_AUTH_MODE': 'service',
-            'CCSDK_FILE_BROKER_SERVICE_TOKEN': 'private-service-token',
-            'CCSDK_FILE_BROKER_CA': 'missing-broker-ca.pem',
-            'CCSDK_FILE_BROKER_CLIENT_CERT': 'missing-broker-cert.pem',
-            'CCSDK_FILE_BROKER_CLIENT_KEY': 'missing-broker-key.pem',
-        }), patch('runtime.file_broker.httpx.AsyncClient', wraps=httpx.AsyncClient) as client:
+                'set-cookie': 'session=private; Path=/; Secure'})
+        with patch.dict('os.environ', {'HTTPS_PROXY': 'https://private-proxy.test:8080'}), \
+                patch('runtime.file_download.httpx.AsyncClient', wraps=httpx.AsyncClient) as client:
             files = await self.fetch(handler, [AttachmentRef('file_1'), AttachmentRef('file_2')])
-        self.assertIsNone(client.call_args.kwargs['cert'])
-        self.assertIs(client.call_args.kwargs['verify'], True)
+        self.assertIs(client.call_args.kwargs['trust_env'], False)
+        self.assertNotIn('cert', client.call_args.kwargs)
+        self.assertNotIn('verify', client.call_args.kwargs)
         self.assertEqual(len(files), 2)
         self.assertNotEqual(files[0].path, files[1].path)
         for request in requests:
@@ -115,7 +110,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         ]
         for reply in replies:
             with self.subTest(status=reply.status_code, headers=dict(reply.headers)):
-                with self.assertRaises(FileBrokerError):
+                with self.assertRaises(FileDownloadError):
                     await self.fetch(lambda _: reply)
                 self.assertEqual(list((self.root / 'input').iterdir()), [])
 
@@ -141,14 +136,14 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, headers=headers, stream=Stream())
 
             with self.subTest(outcome=outcome):
-                expected = asyncio.CancelledError if outcome == 'cancelled' else FileBrokerError
+                expected = asyncio.CancelledError if outcome == 'cancelled' else FileDownloadError
                 with self.assertRaises(expected):
                     await self.fetch(handler, [AttachmentRef('file_1'), AttachmentRef('file_2')], max_bytes=300000)
                 self.assertEqual(list((self.root / 'input').iterdir()), [])
 
     async def test_invalid_ids_never_reach_network(self):
         for file_id in ('../other', 'a/b', 'a?query=1', 'a#fragment', ''):
-            with self.subTest(file_id=file_id), self.assertRaises(FileBrokerError):
+            with self.subTest(file_id=file_id), self.assertRaises(FileDownloadError):
                 await self.fetch(lambda _: self.fail('unsafe file ID sent'), [AttachmentRef(file_id)])
 
     async def test_writing_run_prepares_external_template_before_sdk_and_cleans_input(self):
@@ -199,17 +194,16 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                         'content-disposition': 'attachment;filename=template.docx',
                         'content-type': 'application/octet-stream'})
 
-                def broker(**kwargs):
-                    return FileBroker(transport=httpx.MockTransport(response), **kwargs)
+                def downloader(**kwargs):
+                    return FileDownloader(transport=httpx.MockTransport(response), **kwargs)
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=self.root,
                         CLIENT_SESSION_ROOT=self.root / 'sessions', SESSION_MANAGER=manager,
                         DEFAULT_MODEL='test', internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, '_runtime_mode_for_request', return_value=mode), \
-                     patch.object(server, 'FileBroker', side_effect=broker), \
+                     patch.object(server, 'FileDownloader', side_effect=downloader), \
                      patch.object(server, 'stream_agent', query):
-                    await server._execute_internal_run(request, {'tenant': 'tenant', 'sub': 'user'},
-                                                       runtime_bearer='private-run-jwt')
+                    await server._execute_internal_run(request, {'tenant': 'tenant', 'sub': 'user'})
                     self.assertEqual(store.get_run('run_1')['status'], 'succeeded', store.get_run('run_1'))
                     self.assertEqual(len(sdk_calls), 1)
                     self.assertEqual(fetched[0].method, 'GET')
@@ -234,6 +228,6 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(field=field, value=value):
                 original = self.settings['fileService'][field]
                 self.settings['fileService'][field] = value
-                with self.assertRaises(FileBrokerConfigurationError):
-                    FileBroker()
+                with self.assertRaises(FileDownloadConfigurationError):
+                    FileDownloader()
                 self.settings['fileService'][field] = original

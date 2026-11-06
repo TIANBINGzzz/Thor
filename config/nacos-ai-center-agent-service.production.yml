@@ -1,6 +1,4 @@
 # 生产客户配置；所有 replace-* 和示例地址必须替换，按本客户值导入 Nacos。
-deployment: # 一套 Runtime 绑定一个客户。
-  tenantId: "customer-example" # 与 Java Run JWT、业务 JWT 中的客户标识一致。
 model: # 文本模型的 Anthropic 兼容服务。
   baseUrl: "https://model.example.com/anthropic" # 模型 API 地址，必须使用 HTTPS。
   apiKey: "replace-model-api-key" # 模型服务密钥，不与业务 Token 或 JWT 密钥共用。
@@ -23,6 +21,8 @@ databases: # 客户部署启用的数据库来源，名称须与资产 source_ke
         mode: "verify_identity" # verify_identity 或显式 disabled。
         ca_file: "certificates/database-ca.pem" # CA 文件路径，相对仓库 config 目录，部署时只读挂载。
         verify_identity: true # 验证模式下必须为 true。
+    access: # 仅约束本数据源，身份与会话租户仍来自本次请求。
+      tenantIds: ["self"] # self 解析本轮业务 Token；额外 ID 仅用于获准测试数据。
     query: # 查询执行预算，不承担用户或项目授权。
       timeout_seconds: 30 # 单次查询与数据库连接超时，范围为 1–120 秒。
       max_rows: 10000 # 单次取数上限，范围为 1–100000 行。
@@ -34,15 +34,6 @@ fileService: # Java 附件下载与成果上传服务。
   downloadPath: "/fwk_manage_service/sys_attachment/{fileId}/ai/download/" # 下载路由，保留 fileId 占位符。
   timeoutSeconds: 600 # 文件服务单次请求超时，范围为 1–3600 秒。
   maxFileBytes: 1073741824 # 文件服务大小上限，下载还受 Runtime 上限约束。
-fileBroker: # 可选独立下载 Broker，关闭时不参与下载装配。
-  enabled: false # 是否启用独立 Broker，false 使用 fileService。
-  url: "" # 启用时填写 HTTPS Broker 地址。
-  allowedHosts: [] # Broker 返回的下载 URL 主机白名单。
-  authMode: "run_jwt" # run_jwt 转发执行 JWT；service 使用独立凭据。
-  serviceToken: "" # service 模式的独立凭据，不复用业务 Token。
-  caFile: "" # 自定义 CA 文件，留空使用系统信任库。
-  clientCert: "" # 可选 mTLS 证书，与 clientKey 成对填写。
-  clientKey: "" # 可选 mTLS 私钥，与 clientCert 成对填写。
 campusMcp: # 校园大脑业务服务，凭据按 Run 注入。
   url: "https://campus.example.com/string_campus_brain_service/mcp" # 校园 MCP 的 HTTPS 地址。
   domainName: "campus.example.com" # 校园业务接口使用的域名参数。
@@ -59,7 +50,7 @@ runtime: # Runtime 运行配置唯一来源；必须完整配置，不从本地 
     client-queue-ms: 300000 # 等待可用 Client 的最长时间。
     client-idle-ms: 300000 # 会话空闲多久后回收 Client。
     file-prepare-ms: 600000 # 本轮全部附件准备预算。
-    file-broker-ms: 15000 # 独立下载 Broker 的单次请求预算。
+    file-download-ms: 15000 # 文件服务器单次下载请求预算。
     file-upload-connect-ms: 10000 # 成果上传连接超时。
     worker-start-ms: 60000 # Worker 与 SDK 建立连接的预算。
     worker-send-ms: 5000 # 向 Worker 写入一条命令的预算。

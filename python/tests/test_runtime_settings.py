@@ -62,24 +62,24 @@ class RuntimeSettingsTests(unittest.TestCase):
                 runtime_settings.load_runtime_settings(path)
 
     def test_yaml_limits_reach_sdk_and_file_download(self):
-        from runtime import config, file_broker
+        from runtime import config, file_download
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
             document = yaml.safe_load(path.read_text(encoding='utf-8'))
             document['runtime']['limits'].update({'max-turns': 47, 'sdk-buffer-bytes': 8388608,
                                                    'file-max-bytes': 4096})
-            document['runtime']['timeouts']['file-broker-ms'] = 2500
+            document['runtime']['timeouts']['file-download-ms'] = 2500
             path.write_text(yaml.safe_dump(document), encoding='utf-8')
             settings = runtime_settings.load_runtime_settings(path)
             with patch.object(config, 'RUNTIME_SETTINGS', settings), \
-                 patch.object(file_broker, 'RUNTIME_SETTINGS', settings), \
+                 patch.object(file_download, 'RUNTIME_SETTINGS', settings), \
                  patch.dict('os.environ', {'SCRIBE_MAX_TURNS': '1', 'CCSDK_FILE_MAX_BYTES': '1',
                                           'CCSDK_FILE_BROKER_TIMEOUT_MS': '1'}):
                 options = config.build_options({})
                 self.assertEqual(options.max_turns, 47)
                 self.assertEqual(options.max_buffer_size, 8388608)
                 self.assertEqual(config._client_connection_values({})['max_turns'], 47)
-                broker = file_broker.FileBroker('https://broker.example.test/grant')
+                broker = file_download.FileDownloader()
                 self.assertEqual(broker.max_bytes, 4096)
                 self.assertEqual(broker.timeout_ms, 2500)
 

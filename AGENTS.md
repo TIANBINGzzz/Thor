@@ -25,7 +25,7 @@
 
 ## 数据、凭据与验证
 
-- 启动及宿主机参数只放完整 `config/application.yml`；客户身份、连接、秘密和运行预算只放 Nacos，不加载 env 或 .local 覆盖，三版本字段须一致，见[配置字段](config/README.md)。
+- 启动及宿主机参数只放完整 `config/application.yml`；客户连接、数据源范围、秘密和运行预算只放 Nacos，不加载 env 或 .local 覆盖，三版本字段须一致，见[配置字段](config/README.md)。
 - Nacos 引导密钥只在私有启动 YAML，其余密钥只在 Nacos；本机真实 YAML 不提交、不进镜像，不写入代码、执行资产、Prompt、日志或报告，见[ADR-038](doc/ADR/038-customer-nacos-configuration.md)。
 - 业务 Token、Run JWT 和模型密钥用途分离；业务 Token 仅按 [REQ-001](doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入) 注入选定 MCP，不修改全局环境或跨 Run 复用凭据。
 - 真实问数使用临时进程配置和只读查询，与独立基准对照；真实租户值、内部 ID、原始结果及私密验证材料留在忽略目录，不提交 Git。
@@ -46,5 +46,5 @@
 ## 可部署路径
 
 - 代码、配置、资产和文档不硬编码宿主机盘符、UNC 或 Linux/macOS 主机目录。项目内用仓库相对路径，运行时由 `Path(__file__)`、配置或环境变量解析。
-- 部署目录、锁文件和远端发布路径用参数或环境变量，并说明相对路径基准；运行时解析成绝对路径允许。文件引用遵循 [Runtime 文件契约](doc/specs/ccsdk-runtime-interface.md#8-file-broker-模块)。
+- 部署目录、锁文件和远端发布路径用参数或环境变量，并说明相对路径基准；运行时解析成绝对路径允许。文件引用遵循 [Runtime 文件契约](doc/specs/ccsdk-runtime-interface.md#8-文件下载模块)。
 - 固定容器路径仅按明确的容器契约使用；系统解释器入口与 HTTP 路由不是宿主机路径。外部项目或用户文件只记录项目名、文件名和相对位置。

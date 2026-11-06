@@ -14,10 +14,10 @@
 
 ## 决策
 
-- 按用户进一步确认，删除 env 与 .local 配置覆盖；application.yml 完整保存 Nacos 引导及宿主机参数；启动与 Nacos 两组均保留本机、example、production 三版，字段路径/类型一致，可选项用空值或开关表达。本机真实文件不提交、不进镜像；生产只读挂载完整 YAML。Nacos 是客户身份、秘密、地址及完整 runtime 参数的唯一来源。启动读取、校验并冻结，缺项或失败不回退本地值，修改后排空重启。
-- 数据库按 connection/query 拆分；移除数据库 JSON 打包、跨客户列表、selected 项目授权和重复 Capability/模板/表/查询清单，SQL 边界从 Catalog 派生。
-- Run JWT 必须匹配部署客户；业务 JWT 仅在数据库调用收到时核对客户一致性。固定和动态 SQL 均保留 AST 客户过滤、绑定参数及只读事务；用户会话、文件、结果与 Run 控制仍隔离。
-- 只用部署数据库的双高能力不要求业务 Token；校园 MCP 仍按轮绑定当前业务凭据。Worker 不接收控制面密钥，SDK 不接收数据库秘密。
+- 按用户进一步确认，删除 env 与 .local 配置覆盖；application.yml 完整保存 Nacos 引导及宿主机参数；启动与 Nacos 两组均保留本机、example、production 三版，字段路径/类型一致，可选项用空值或开关表达。本机真实文件不提交、不进镜像；生产只读挂载完整 YAML。Nacos 是数据源范围、秘密、地址及完整 runtime 参数的唯一来源。启动读取、校验并冻结，缺项或失败不回退本地值，修改后排空重启。
+- 数据库按 connection/access/query 拆分；access.tenantIds 的 self 逐轮从业务 Token 解析，本机/测试允许额外获准测试租户，生产默认仅 self。移除数据库 JSON 打包、selected 项目授权和重复 Capability/模板/表/查询清单，SQL 边界从 Catalog 派生。
+- 删除全局 deployment.tenantId；Run JWT 的 tenant/sub 只绑定执行、会话、文件与结果归属。数据库必须携带业务 Token 解析 self，缺失或非法不回退额外测试租户。固定和动态 SQL 均保留 AST 客户过滤、绑定参数及只读事务；用户会话、文件、结果与 Run 控制仍隔离。
+- 双高只在数据层读取本轮业务 tenantId，不将 Token 交给模型或数据库驱动；校园 MCP 仍按轮绑定当前业务凭据。Worker 不接收控制面密钥，SDK 不接收数据库秘密。
 
 ## 后果与验收边界
 

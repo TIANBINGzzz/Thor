@@ -9,7 +9,7 @@ from sqlalchemy import URL, create_engine
 from sqlalchemy.pool import NullPool
 
 from .catalog import PROJECT_ROOT, key
-from runtime.deployment_config import deployment_section, require_tenant
+from runtime.deployment_config import deployment_section, validate_database_access
 from .context import DataError
 
 
@@ -20,12 +20,16 @@ def load_config(env=None, *, optional=False):
         raise DataError('CONFIG_INVALID')
     for source_key, entry in config.items():
         key(source_key)
-        if not isinstance(entry, dict) or set(entry) - {'connection', 'query'}:
+        if not isinstance(entry, dict) or set(entry) - {'connection', 'access', 'query'}:
             raise DataError('CONFIG_INVALID')
         connection, query = entry.get('connection'), entry.get('query', {})
         if (not isinstance(connection, dict) or not connection or 'source_key' in connection
                 or not isinstance(query, dict)):
             raise DataError('CONFIG_INVALID')
+        try:
+            validate_database_access(entry.get('access'))
+        except ValueError:
+            raise DataError('CONFIG_INVALID') from None
         entry['connection'] = {**connection, 'source_key': source_key,
             '_base_directory': PROJECT_ROOT / 'config',
             **{k: query[k] for k in ('timeout_seconds', 'max_rows') if k in query}}
@@ -33,11 +37,7 @@ def load_config(env=None, *, optional=False):
 
 
 def resolve_connection(context, source, config):
-    """连接只能用于当前部署客户，不能由调用者改变来源。"""
-    try:
-        require_tenant(context.tenant_id)
-    except ValueError:
-        raise DataError('TENANT_FORBIDDEN') from None
+    """连接来自可信来源配置，调用者不能用 Run 身份切换连接。"""
     connection = dict(config['connection'])
     if connection.get('source_key') != source['source_key']:
         raise DataError('CONNECTION_FORBIDDEN')

@@ -14,7 +14,7 @@ class TimeoutSettings:
     client_queue_ms: int
     client_idle_ms: int
     file_prepare_ms: int
-    file_broker_ms: int
+    file_download_ms: int
     file_upload_connect_ms: int
     worker_start_ms: int
     worker_send_ms: int

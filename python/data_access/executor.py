@@ -97,7 +97,8 @@ class Executor:
                 if source['scope'] == 'all_school':
                     schools = self.resolve_entities(source_key, domain, 'school', '')['candidates']
                     description['school_scopes'] = schools
-                    description['scope_ref'] = schools[0]['scope_ref']
+                    if len(schools) == 1:
+                        description['scope_ref'] = schools[0]['scope_ref']
                 domains.append(description)
             prepared.append({**source, 'domains': domains})
         return {'sources': prepared}
@@ -143,8 +144,8 @@ class Executor:
 
     def _scope_ref(self, source_key, domain, project_id, policy, tenant_id=None):
         """范围绑定到单个获准学校，避免跨学校对象混用或混合统计。"""
-        tenant_id = tenant_id or policy['tenant_id']
-        if tenant_id != policy['tenant_id']:
+        tenant_id = tenant_id or policy['authorized_tenants'][0]
+        if tenant_id not in policy['authorized_tenants']:
             raise DataError('SCOPE_FORBIDDEN')
         reference = "scope_" + token_urlsafe(18)
         self.scopes[reference] = {"source_key": source_key, "domain": domain,
@@ -152,13 +153,20 @@ class Executor:
                                   "access": policy["fingerprint"]}
         return reference
 
+    def _school_name(self, policy, tenant_id):
+        """只提供可区分的学校标签，不向模型暴露内部租户值。"""
+        if tenant_id == self.context.data_tenant_id:
+            return '当前学校'
+        return f"额外授权学校{policy['authorized_tenants'].index(tenant_id) + 1}"
+
     def resolve_entities(self, source_key, domain, entity_type, query, parent_ref=None, parameters=None):
         """在授权范围内解析业务对象，返回候选项及本轮引用。"""
         _, policy, connection = self.access(source_key)
         domain_policy(policy, domain)
         if entity_type == "school":
-            return {"candidates": [{"name": "当前客户",
-                "scope_ref": self._scope_ref(source_key, domain, None, policy)}]}
+            return {"candidates": [{"name": self._school_name(policy, tenant),
+                "scope_ref": self._scope_ref(source_key, domain, None, policy, tenant)}
+                for tenant in policy['authorized_tenants']]}
         _, catalog = self.catalog.domain(source_key, domain)
         definition = catalog.get("entities", {}).get(entity_type)
         if not definition:
@@ -170,7 +178,7 @@ class Executor:
             if not parent:
                 raise DataError('SCOPE_FORBIDDEN')
             projects = [parent['project_id']]
-        tenants = [parent['tenant_id']] if parent else [policy['tenant_id']]
+        tenants = [parent['tenant_id']] if parent else policy['authorized_tenants']
         candidates = []
         with self.connections.snapshot(connection) as db:
             for tenant in tenants:
@@ -192,7 +200,7 @@ class Executor:
                         self.entities[reference] = {"source_key": source_key, "domain": domain,
                             "project_id": row.get("project_id", project), "value": row[definition["id_field"]],
                             "parameter": definition["parameter"], "tenant_id": tenant, "access": policy["fingerprint"]}
-                        item = {"name": name, "entity_ref": reference, "school": "当前客户"}
+                        item = {"name": name, "entity_ref": reference, "school": self._school_name(policy, tenant)}
                         if entity_type in {"project", "task_project"}:
                             item["scope_ref"] = self._scope_ref(source_key, domain, row[definition["id_field"]], policy, tenant)
                         for field in definition.get("context_fields", []):

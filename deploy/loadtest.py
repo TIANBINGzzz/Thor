@@ -1,4 +1,4 @@
-"""真实 Runtime 会话压测；Linux 主机读取私有 JSON 的 deployment/security 节点，不输出凭据。"""
+"""真实 Runtime 会话压测；私有配置只读取 security，测试身份由命令参数指定。"""
 
 import argparse
 import base64
@@ -19,14 +19,14 @@ import urllib.request
 import uuid
 
 
-def authorization_headers(config, body, scope):
-    """压测身份绑定目标部署客户；字段与 Nacos 配置一致，密钥仅用于本次签名。"""
+def authorization_headers(config, body, scope, *, tenant_id):
+    """为本次明确指定的压测身份签名，不从部署配置取业务租户。"""
     security = config['security']
     now = int(time.time())
     claims = {'iss': security.get('runtimeJwtIssuer', 'string-ai-center-service'),
               'aud': security.get('runtimeJwtAudience', 'ccsdk-runtime'),
               'iat': now, 'exp': now + 600, 'jti': uuid.uuid4().hex,
-              'tenant': config['deployment']['tenantId'], 'sub': 'loadtest', 'scope': scope,
+              'tenant': tenant_id, 'sub': 'loadtest', 'scope': scope,
               **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
 
     def encode(value):
@@ -40,6 +40,7 @@ def authorization_headers(config, body, scope):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True)
+    parser.add_argument('--tenant', required=True, help='本次压测 Run 的测试身份租户')
     parser.add_argument('--output', required=True)
     parser.add_argument('--concurrency', type=int, required=True)
     parser.add_argument('--rounds', type=int, default=3)
@@ -86,7 +87,7 @@ def main():
 
     def request(method, path, body, scope, data=None):
         req = urllib.request.Request(args.base_url + path, data=None if data is None else json.dumps(data).encode(),
-                                     headers=authorization_headers(config, body, scope), method=method)
+                                     headers=authorization_headers(config, body, scope, tenant_id=args.tenant), method=method)
         return urllib.request.urlopen(req, timeout=360)
 
     def run(index, round_number, barrier):

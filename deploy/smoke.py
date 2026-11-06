@@ -1,6 +1,7 @@
 """Verify a deployed Runtime with a signed Run and a real model request; log no credentials."""
 
 import asyncio
+import argparse
 import json
 import os
 from pathlib import Path
@@ -15,9 +16,10 @@ from runtime.auth import encode_hs256_jwt
 from runtime.deployment_config import deployment_section
 
 
-async def main():
+async def main(*, tenant):
+    if not isinstance(tenant, str) or not tenant.strip() or tenant in {'*', 'self', 'default'}:
+        raise ValueError('Explicit smoke identity required')
     security = deployment_section('security', {})
-    tenant = deployment_section('deployment', {})['tenantId']
     suffix = uuid.uuid4().hex
     body = {"protocol": "agent-run/v1", "runId": "deploy-" + suffix,
             "messageId": "message-" + suffix, "businessSessionId": "deploy-" + suffix,
@@ -68,9 +70,12 @@ async def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--tenant', required=True, help='本次冒烟 Run 的测试身份租户，不改变数据库访问范围')
+    arguments = parser.parse_args()
     try:
         from runtime.bootstrap import initialize_runtime
         initialize_runtime()
-        asyncio.run(main())
+        asyncio.run(main(tenant=arguments.tenant))
     except Exception:
         sys.exit("Deployment smoke failed; inspect Runtime with authorized diagnostics. Response bodies and credentials withheld.")

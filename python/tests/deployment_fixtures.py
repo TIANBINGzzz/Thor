@@ -5,8 +5,7 @@ import yaml
 
 def deployment_document(values=None):
     values = values or {}
-    return {'deployment': {'tenantId': 'test-customer'},
-        'runtime': yaml.safe_load((Path(__file__).resolve().parents[2] / 'config/nacos-ai-center-agent-service.example.yml')
+    return {'runtime': yaml.safe_load((Path(__file__).resolve().parents[2] / 'config/nacos-ai-center-agent-service.example.yml')
                                  .read_text(encoding='utf-8'))['runtime'],
         'security': {'runtimeJwtSecret': 'test-runtime-secret'},
         'model': {'baseUrl': values.get('ANTHROPIC_BASE_URL', 'https://model.example.test/anthropic'),

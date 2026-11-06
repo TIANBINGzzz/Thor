@@ -89,13 +89,13 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.addCleanup(observer.close)
         async def stream(payload, *, timing_enabled=False):
             yield {'type': 'tool_use', 'id': 'c1', 'name': 'Read'}
-            raise ValueError('upstream exploded business-token test-runtime-token')
+            raise ValueError('upstream exploded business-token')
         with patch.object(server, 'OBSERVATION', observer), \
              patch.object(server, '_runtime_mode_for_request', return_value='query'), \
              patch.object(server, '_internal_worker_payload', return_value={'timeout_ms': 2000}), \
              patch.object(server, 'stream_agent', stream):
             asyncio.run(server._execute_internal_run(AgentRunRequest.from_dict(self.body),
-                {'tenant': 'tenant-test', 'sub': 'user-test'}, runtime_bearer='test-runtime-token'))
+                {'tenant': 'tenant-test', 'sub': 'user-test'}))
         observer.flush()
         records = observer.read(0, 500)['records']
         errors = [r['data'] for r in records if r['kind'] == 'evidence' and r['data'].get('type') == 'diagnostic']
@@ -104,7 +104,6 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertIn('upstream exploded', errors[-1]['message'])
         self.assertTrue(errors[-1]['frames'])
         self.assertNotIn('business-token', json.dumps(records))
-        self.assertNotIn('test-runtime-token', json.dumps(records))
         self.assertNotIn('upstream exploded', json.dumps(self.store.events_after('run-test')))
         self.assertEqual(self.store.get_run('run-test')['status'], 'failed')
         summary = [r['data'] for r in records if r['kind'] == 'run'][-1]
@@ -142,7 +141,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "credentials": {"platformBearer": "business-token"},
         }
         for name, value in {
-            "DEPLOYMENT_TENANT_ID": "tenant-test", "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
+            "RUN_STORE": self.store, "RUNTIME_JWT_SECRET": "test-runtime-secret",
             "OBSERVATION_JWT_SECRET": "test-observation-secret",
             "SESSION_MANAGER": None, "internal_tasks": {}, "internal_subscribers": {},
             "PROJECT_ROOT": Path(self.temp.name),
@@ -306,7 +305,7 @@ class RuntimeHTTPTests(unittest.TestCase):
              patch.object(server, '_clear_runtime_input') as clear, \
              patch.object(server, 'stream_agent', stream):
             asyncio.run(server._execute_internal_run(AgentRunRequest.from_dict(self.body),
-                {'tenant': 'tenant-test', 'sub': 'user-test'}, runtime_bearer='test-runtime-token'))
+                {'tenant': 'tenant-test', 'sub': 'user-test'}))
         self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
         self.assertNotIn('run-test', server.RUN_TIMINGS)
         self.assertNotIn('run-test', server.OBSERVATION_SECRETS)
@@ -337,7 +336,6 @@ class RuntimeHTTPTests(unittest.TestCase):
             asyncio.run(server._execute_internal_run(
                 AgentRunRequest.from_dict(self.body),
                 {'tenant': 'tenant-test', 'sub': 'user-test'},
-                runtime_bearer='test-runtime-token',
             ))
         self.assertEqual(timing_values, [True])
         self.assertEqual(self.store.get_run('run-test')['status'], 'succeeded')
@@ -500,7 +498,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertNotIn('trusted-secret-tenant',payload['prompt'])
         self.assertNotIn('trusted-secret-user',payload['prompt'])
 
-    def test_double_high_accepts_deployment_database_without_business_token(self):
+    def test_database_request_can_be_queued_before_worker_validates_business_identity(self):
         body = {**self.body, 'capabilityRef': 'national-excellence-data-qa'}
         body.pop('credentials')
         with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
@@ -626,7 +624,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             for identity in ({"sub": "other-user"}, {"tenant": "other-tenant"}):
                 response = self.client.post("/internal/v1/runs", json=self.body,
                                             headers=self.headers("run.execute", **identity))
-                self.assertEqual(response.status_code, 401 if "tenant" in identity else 409, response.text)
+                self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(self.store.get_run("run-test")["userId"], "user-test")
 
     def test_control_requires_explicit_option_field(self):

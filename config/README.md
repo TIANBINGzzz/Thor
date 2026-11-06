@@ -12,7 +12,7 @@
 | 放置位置 | 职责与选择依据 |
 | --- | --- |
 | application.yml | 连接 Nacos 前必需，或绑定宿主机：Nacos 引导、监听地址/端口、Run 库、OfficeCLI/渲染器、代理、诊断 |
-| Nacos ai-center-agent-service | 客户身份、模型及图像服务、JWT 密钥、数据库和业务服务地址、完整 runtime 预算/模型/池/观测 |
+| Nacos ai-center-agent-service | 模型及图像服务、JWT 密钥、数据库和业务服务地址、完整 runtime 预算/模型/池/观测 |
 | .claude/ 与代码 | 需验证发布的 Capability、Tool Schema、权限映射、数据库表列/口径及模板，不开放为任意配置 |
 
 ## 加载与更新
@@ -27,15 +27,15 @@ Nacos namespace 填 Namespace ID，空值为 public；读取超时只在 applica
 
 ## 客户字段与隔离
 
-deployment.tenantId 必须匹配 Java Run JWT，禁止通配符、self 和 default；数据库调用若收到业务 JWT，还须核对其 tenantId。该解码仅核对客户一致性，不替代 Java 验签、有效期或撤销。
+Run、用户及会话身份来自已验证的 Java Run JWT，不在部署配置固定 tenantId。数据库访问的 self 每轮解析 credentials.platformBearer 中的业务 tenantId；缺少业务 Token 或解析失败即拒绝，不回退测试 ID。本地解码不替代 Java 验签、有效期或撤销。
 
 security.runtimeJwtSecret 用于执行授权；observationJwtSecret、assetJwtSecret 留空关闭对应接口，配置时三种密钥必须独立。model 与 images 的连接和密钥显式配置；供应商允许共用模型密钥时，可用 YAML 锚点 &model_api_key 和 *model_api_key 表达，不隐式复用。images.enabled=false 不装配图片工具，仍保留其全部字段。
 
 databases.<source>.connection 只保存 driver、host、port、database、username、password、tls；query 只保存超时、行数与动态只读 SQL 开关。校双高来源名称为大小写敏感的 schoolDoubleHigh。TLS 验证 CA 和主机名，不支持时须显式 disabled，不自动降级；CA 和 SQLite 相对路径基准为仓库 config 目录。
 
-数据库不重复维护 Capability、模板、租户列表、项目授权或表/查询清单。能力/模板选择来源，Catalog 决定域、表列、函数及指标，SQL AST 对物理表强制绑定部署客户；项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
+每来源 access.tenantIds 声明数据租户范围：生产和 example 仅 [self]，本机/测试可显式添加获准测试数据 ID；额外 ID 不改变 Run 身份，不影响其他来源或校园大脑。数据库不重复维护 Capability、模板、项目授权或表/查询清单；Catalog 决定域、表列、函数及指标，每个学校 scope 单独绑定 SQL 租户过滤，项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
 
-fileService 管理附件下载和成果上传，downloadPath 保留 {fileId}。fileBroker.enabled=false 使用 fileService；启用后不是下载失败回退路径。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
+fileService 是附件下载和成果上传的唯一文件通道，downloadPath 保留 {fileId}；不转发 Run JWT、业务 Token 或 Cookie，Java 须先授权 fileId。旧 Java File Broker 通道及配置已删除。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
 
 runtime 的预算、模型、池及观测字段必须完整；default 和 SDK 别名须在 available 中。观测 storage 相对仓库根目录；启动 YAML diagnostics.disable-observability=true 用于紧急停采，false 仍以 Nacos 开关为准。
 

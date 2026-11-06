@@ -66,25 +66,18 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导正文携带新 messageId，Python 校验其格式及不与触发消息冲突；普通查询与控制不绑定触发消息的 messageId。
 - 创建、引导、控制和取消统一使用 run.execute；读取使用 run.read/run.execute。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
-- credentials.platformBearer是Java认证后透传的业务Token，按能力/工具auth.required校验且只向登记目标注入；数据库客户固定为deployment.tenantId，收到业务JWT时只核对tenantId一致性，见[数据库边界](data-source-connections.md#查询边界)。Run JWT的tenant必须等于部署客户，用户归属来自sub；业务Token不写入JWT、Prompt、事件或Run存储，不授予额外工具权限。
+- credentials.platformBearer 是 Java 认证后透传的业务 Token，只向登记目标注入；数据库 self 每轮解析其中的 tenantId，按所选来源的 access.tenantIds 生成学校范围，见[数据库边界](data-source-connections.md#查询边界)。Run JWT 的 tenant/sub 绑定执行归属，不来自部署固定值；业务 Token 不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
 - scope、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
 
-## 8. File Broker 模块
+## 8. 文件下载模块
 
 Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Python 只下载本轮显式引用；后续再次使用仍须提交引用，不扫描文件库或从正文猜 ID。
 
-默认通道使用可信 fileService 的 baseUrl/domainName/remoteUrl/downloadPath；字段见 [配置说明](../../config/README.md)。只发送部署路由头，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
-
-显式设置 CCSDK_FILE_BROKER_URL 时改用 POST Broker，正文为 runId/fileId/purpose；默认以本次 Run JWT 鉴权，auth_mode=service 时使用专用服务 Token。Broker 必须重验文件与 Run 归属，不能只信正文身份；平台下载失败不会自动回退到 Broker。
-
-| Broker 返回方式 | 必需契约 |
-| --- | --- |
-| 一次性 URL JSON | fileId 与请求一致；name、mimeType、size、sha256、downloadUrl、expiresAt、oneTime=true；URL 仅 HTTPS:443，TTL 不超过 5 分钟，主机在 CCSDK_FILE_BROKER_ALLOWED_HOSTS 内，所有 DNS 地址须为公网并固定已验证 IP；不转发鉴权头、不跟随重定向 |
-| 原始文件流 | X-File-Id、X-File-Name、X-File-Mime-Type、X-File-Size、X-File-Sha256；Python 不直连业务附件表或存储，按声明核验文件 ID、大小和摘要 |
+唯一通道使用可信 fileService 的 baseUrl/domainName/remoteUrl/downloadPath；字段见 [配置说明](../../config/README.md)。只发送部署路由头，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
 
 输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
 
-排队、全部文件准备、单次网络等待、SDK 执行分别计时；默认与限制见 [超时字段](../python-api.html#file-broker)。平台下载还与 fileService.maxFileBytes/timeoutSeconds 取较小限额，单文件限制不是磁盘总配额。
+排队、全部文件准备、单次网络等待、SDK 执行分别计时；默认与限制见 [超时字段](../python-api.html#file-download)。平台下载还与 fileService.maxFileBytes/timeoutSeconds 取较小限额，单文件限制不是磁盘总配额。
 
 ## 9. 错误响应
 

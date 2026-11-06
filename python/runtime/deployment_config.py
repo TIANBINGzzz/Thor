@@ -25,13 +25,6 @@ def deployment_section(name, default=None):
     return copy.deepcopy((_DEPLOYMENT or {}).get(name, default))
 
 
-def require_tenant(tenant_id):
-    """一部署只接收绑定客户，空值和通配符不能扩大租户范围。"""
-    expected = deployment_section('deployment', {}).get('tenantId')
-    if not expected or tenant_id != expected:
-        raise ValueError('deployment_tenant_mismatch')
-
-
 def _text(section, field, *, secret=False):
     value = section.get(field)
     if not isinstance(value, str) or not value.strip() or (not secret and value != value.strip()):
@@ -51,19 +44,29 @@ def _endpoint(section, field, *, allow_http=False):
         raise ValueError('deployment_config_invalid') from None
 
 
+def validate_database_access(access):
+    """来源范围必须显式登记；self 是业务 Token 租户的占位符。"""
+    tenants = access.get('tenantIds') if isinstance(access, dict) else None
+    if (not isinstance(access, dict) or set(access) != {'tenantIds'}
+            or not isinstance(tenants, list) or not tenants
+            or any(not isinstance(t, str) or not t or t != t.strip()
+                   or t in {'*', 'default'} for t in tenants)
+            or len(tenants) != len(set(tenants))):
+        raise ValueError('deployment_config_invalid')
+
+
 def _validated(document, *, worker=False):
     """校验启动必需项和可选秘密，错误不包含配置值。"""
     try:
         if not isinstance(document, dict):
             raise ValueError()
         document = copy.deepcopy(document)
-        for optional in ('images', 'fileBroker'):
-            section = document.get(optional)
-            if isinstance(section, dict) and 'enabled' in section:
-                if type(section['enabled']) is not bool:
-                    raise ValueError()
-                if not section['enabled']:
-                    del document[optional]
+        images = document.get('images')
+        if isinstance(images, dict) and 'enabled' in images:
+            if type(images['enabled']) is not bool:
+                raise ValueError()
+            if not images['enabled']:
+                del document['images']
         def check_placeholders(value):
             if isinstance(value, dict):
                 for item in value.values():
@@ -74,9 +77,6 @@ def _validated(document, *, worker=False):
             elif is_placeholder(value):
                 raise ValueError()
         check_placeholders(document)
-        tenant = _text(document['deployment'], 'tenantId')
-        if tenant in {'*', 'self', 'default'}:
-            raise ValueError()
         _endpoint(document['model'], 'baseUrl')
         _text(document['model'], 'apiKey', secret=True)
         if not worker:
@@ -101,23 +101,6 @@ def _validated(document, *, worker=False):
                 raise ValueError()
             if business['url']:
                 _endpoint(business, 'url', allow_http=True)
-        if not worker and 'fileBroker' in document:
-            broker = document['fileBroker']
-            _endpoint(broker, 'url')
-            hosts = broker.get('allowedHosts', [])
-            if (not isinstance(hosts, list) or any(not isinstance(host, str) or not host
-                    or any(c.isspace() for c in host) or any(c in host for c in '/?#@') for host in hosts)
-                    or broker.get('authMode', 'run_jwt') not in {'run_jwt', 'service'}):
-                raise ValueError()
-            if broker.get('authMode') == 'service':
-                _text(broker, 'serviceToken', secret=True)
-            for field in ('serviceToken', 'caFile', 'clientCert', 'clientKey'):
-                if broker.get(field):
-                    _text(broker, field, secret=field == 'serviceToken')
-                elif field in broker and not isinstance(broker[field], str):
-                    raise ValueError()
-            if bool(broker.get('clientCert')) != bool(broker.get('clientKey')):
-                raise ValueError()
         if not worker and document.get('fileService') is not None:
             from runtime.file_service import validate_file_service_config
             validate_file_service_config(document['fileService'], download=True)
@@ -133,8 +116,9 @@ def _validated(document, *, worker=False):
             raise ValueError()
         for ref, entry in databases.items():
             if (not isinstance(ref, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,95}', ref)
-                    or not isinstance(entry, dict) or set(entry) - {'connection', 'query'}):
+                    or not isinstance(entry, dict) or set(entry) - {'connection', 'access', 'query'}):
                 raise ValueError()
+            validate_database_access(entry.get('access'))
             connection = entry['connection']
             allowed = {'driver', 'host', 'port', 'database', 'username', 'password', 'tls'}
             if not isinstance(connection, dict) or set(connection) - allowed:
@@ -209,13 +193,13 @@ def worker_configuration():
     if _DEPLOYMENT is None:
         return None
     return {key: copy.deepcopy(_DEPLOYMENT[key]) for key in
-            ('deployment', 'runtime', 'model', 'images', 'databases') if key in _DEPLOYMENT}
+            ('runtime', 'model', 'images', 'databases') if key in _DEPLOYMENT}
 
 
 def install_worker_configuration(document):
     """Worker 导入 SDK 前安装父进程快照，后续不得连接 Nacos 补值。"""
     global _DEPLOYMENT, _WORKER
-    if not isinstance(document, dict) or set(document) - {'deployment', 'runtime', 'model', 'images', 'databases'}:
+    if not isinstance(document, dict) or set(document) - {'runtime', 'model', 'images', 'databases'}:
         raise ValueError('worker_config_invalid')
     document = _validated(document, worker=True)
     settings = _runtime_configuration(document)

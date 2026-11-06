@@ -21,12 +21,12 @@ def customer_config():
     runtime['timeouts']['execution-ms'] = 4200000
     runtime['models'] = {'default': 'custom-model', 'available': ['custom-model'],
                         'sdk': dict.fromkeys(('haiku', 'sonnet', 'opus', 'subagent'), 'custom-model')}
-    return {'deployment': {'tenantId': 'customer-a'},
-            'model': {'baseUrl': 'https://model.example.test/apps/anthropic', 'apiKey': 'private-model-key'},
+    return {'model': {'baseUrl': 'https://model.example.test/apps/anthropic', 'apiKey': 'private-model-key'},
             'security': {'runtimeJwtSecret': 'private-runtime-key',
                          'observationJwtSecret': 'private-observation-key'},
             'runtime': runtime,
             'databases': {'schoolDoubleHigh': {
+                'access': {'tenantIds': ['self', 'extra-school']},
                 'connection': {'driver': 'mysql+pymysql', 'host': 'db.example.test', 'database': 'customer',
                                'username': 'reader', 'password': 'private-database-key', 'tls': {'mode': 'disabled'}},
                 'query': {'timeout_seconds': 30, 'max_rows': 10000, 'dynamic_sql_enabled': True}}},
@@ -68,13 +68,14 @@ class CustomerDeploymentTests(unittest.TestCase):
         self.assertNotIn('nacos', worker)
         self.assertIn('private-model-key', serialized)
         self.assertIn('private-database-key', serialized)
-        worker['deployment']['tenantId'] = 'changed'
-        self.assertEqual(deployment_config.deployment_section('deployment')['tenantId'], 'customer-a')
+        self.assertNotIn('deployment', worker)
+        worker['databases']['schoolDoubleHigh']['access']['tenantIds'].append('changed')
+        self.assertEqual(deployment_config.deployment_section('databases')['schoolDoubleHigh']['access']['tenantIds'],
+                         ['self', 'extra-school'])
 
     def test_invalid_deployment_fails_without_publishing_or_echoing_secrets(self):
         self.assertTrue(callable(getattr(deployment_config, 'initialize_deployment', None)))
-        for section, field, value in [('deployment', 'tenantId', '*'), ('deployment', 'tenantId', ''),
-                                      ('model', 'baseUrl', 'http://model.test'), ('model', 'apiKey', ''),
+        for section, field, value in [('model', 'baseUrl', 'http://model.test'), ('model', 'apiKey', ''),
                                       ('security', 'runtimeJwtSecret', ''),
                                       ('security', 'observationJwtSecret', 'private-runtime-key')]:
             invalid = copy.deepcopy(self.document)
@@ -84,15 +85,28 @@ class CustomerDeploymentTests(unittest.TestCase):
             self.assertNotIn('private-', str(caught.exception))
             self.assertIsNone(deployment_config._DEPLOYMENT)
 
-    def test_deployment_binding_rejects_other_customer(self):
+    def test_source_access_tenants_are_required_and_validated_before_publish(self):
+        for access in (None, {}, {'tenantIds': []}, {'tenantIds': '*'}, {'tenantIds': ['*']},
+                       {'tenantIds': ['default']}, {'tenantIds': ['']}, {'tenantIds': [' self']},
+                       {'tenantIds': [7]}, {'tenantIds': ['self', 'self']},
+                       {'tenantIds': ['self'], 'tenantId': 'other'}):
+            invalid = copy.deepcopy(self.document)
+            invalid['databases']['schoolDoubleHigh']['access'] = access
+            with self.subTest(access=access), self.assertRaisesRegex(ValueError, '^deployment_config_invalid$'):
+                self.initialize(invalid)
+            self.assertIsNone(deployment_config._DEPLOYMENT)
+
+    def test_source_self_scope_and_worker_snapshot_need_no_deployment_identity(self):
+        self.document['databases']['schoolDoubleHigh']['access'] = {'tenantIds': ['self']}
         self.initialize()
-        deployment_config.require_tenant('customer-a')
-        with self.assertRaisesRegex(ValueError, 'tenant'):
-            deployment_config.require_tenant('customer-b')
+        worker = deployment_config.worker_configuration()
+        self.assertNotIn('deployment', worker)
+        deployment_config.install_worker_configuration(worker)
+        self.assertEqual(deployment_config.deployment_section('databases')['schoolDoubleHigh']['access'],
+                         {'tenantIds': ['self']})
 
     def test_production_placeholders_cannot_publish_a_customer_snapshot(self):
-        for section, field, value in [('deployment', 'tenantId', 'customer-example'),
-                ('model', 'apiKey', 'replace-model-api-key'),
+        for section, field, value in [('model', 'apiKey', 'replace-model-api-key'),
                 ('security', 'runtimeJwtSecret', 'replace-runtime-jwt-secret'),
                 ('model', 'baseUrl', 'https://model.example.com/anthropic')]:
             invalid = copy.deepcopy(self.document)
@@ -151,11 +165,7 @@ class CustomerDeploymentTests(unittest.TestCase):
 
     def test_empty_issuer_and_optional_service_mistakes_are_rejected_before_publish(self):
         cases = [({'runtimeJwtIssuer': None}, 'security'), ({'runtimeJwtIssuer': ''}, 'security'),
-                 ({'runtimeJwtAudience': None}, 'security'), (None, 'images'), (False, 'images'), ({}, 'images'),
-                 (None, 'fileBroker'), ({'url': 'http://broker.example.test'}, 'fileBroker'),
-                 ({'url': 'https://broker.example.test', 'allowedHosts': 'host.test'}, 'fileBroker'),
-                 ({'url': 'https://broker.example.test', 'authMode': 'service'}, 'fileBroker'),
-                 ({'url': 'https://broker.example.test', 'clientKey': 'client.key'}, 'fileBroker')]
+                 ({'runtimeJwtAudience': None}, 'security'), (None, 'images'), (False, 'images'), ({}, 'images')]
         for changes, section in cases:
             invalid = copy.deepcopy(self.document)
             invalid[section] = {**invalid[section], **changes} if section == 'security' else changes

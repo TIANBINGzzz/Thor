@@ -28,7 +28,6 @@ class RuntimeAuthorizationTests(unittest.TestCase):
         for target, name, value in (
             (auth, '_DEFAULT_REPLAY_CACHE', auth.ReplayCache()),
             (server, 'RUN_STORE', self.store),
-            (server, 'DEPLOYMENT_TENANT_ID', 'tenant'),
             (server, 'RUNTIME_JWT_SECRET', 'test-auth-secret'),
             (server, 'RUNTIME_JWT_ISSUER', 'test-java'),
             (server, 'RUNTIME_JWT_AUDIENCE', 'ccsdk-runtime'),
@@ -39,24 +38,31 @@ class RuntimeAuthorizationTests(unittest.TestCase):
         self.client = TestClient(server.app)
         self.addCleanup(self.client.close)
 
-    def headers(self, scope):
+    def headers(self, scope, **identity):
         now = time.time()
-        token = auth.encode_hs256_jwt({
+        claims = {
             'iss': 'test-java', 'aud': 'ccsdk-runtime', 'iat': now, 'exp': now + 60,
             'jti': uuid.uuid4().hex, 'sub': 'user', 'tenant': 'tenant', 'scope': scope,
             'runId': 'auth-run', 'capabilityRef': 'conversation',
             'businessSessionId': 'auth-session', 'messageId': 'auth-message',
-        }, 'test-auth-secret')
+        }
+        claims.update(identity)
+        token = auth.encode_hs256_jwt(claims, 'test-auth-secret')
         return {'authorization': 'Bearer ' + token}
 
     def test_scope_denial_preserves_jti_for_authorized_creation(self):
         request = SimpleNamespace(headers=self.headers('run.execute'))
         with self.assertRaises(server._InternalAuthError):
             server._authorize_internal(request, self.run, allowed_scopes={'run.read'}, consume_jti=True)
-        claims, _ = server._authorize_new_request(request, self.request)
+        claims = server._authorize_new_request(request, self.request)
         self.assertEqual(claims['runId'], 'auth-run')
         with self.assertRaisesRegex(server._InternalAuthError, 'already been used'):
             server._authorize_new_request(request, self.request)
+
+    def test_new_run_identity_comes_from_signed_grant_without_deployment_pin(self):
+        request = SimpleNamespace(headers=self.headers('run.execute', tenant='runtime-other', sub='other-user'))
+        claims = server._authorize_new_request(request, self.request)
+        self.assertEqual((claims['tenant'], claims['sub']), ('runtime-other', 'other-user'))
 
     def test_identity_denial_preserves_jti_for_the_authorized_run(self):
         for identity in ({'tenantId': 'other-tenant'}, {'userId': 'other-user'}):

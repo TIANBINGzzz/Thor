@@ -1,5 +1,5 @@
 import asyncio
-import hashlib
+from dataclasses import replace
 import json
 import tempfile
 import time
@@ -11,7 +11,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 
 import server
-from runtime.file_broker import FileBroker, FileBrokerTimeoutError, FileBrokerValidationError
+from runtime.file_download import FileDownloader, FileDownloadTimeoutError, FileDownloadValidationError
+from runtime.runtime_settings import RUNTIME_SETTINGS
 from runtime.protocol import AgentRunRequest, AttachmentRef
 from runtime.run_store import RunStore
 from runtime.session_actor import SessionManager
@@ -31,47 +32,46 @@ class Chunks(httpx.AsyncByteStream):
                 await self.gate.wait()
 
 
-def file_response(chunk, count, *, gate=None, started=None, valid=True):
-    digest = hashlib.sha256()
-    for _ in range(count):
-        digest.update(chunk)
+def file_response(chunk, count, *, gate=None, started=None, complete=True):
     return httpx.Response(200, headers={
-        "content-type": "application/octet-stream", "x-file-id": "file-1",
-        "x-file-name": "template.docx", "x-file-mime-type": "application/octet-stream",
-        "x-file-size": str(len(chunk) * count),
-        "x-file-sha256": digest.hexdigest() if valid else "0" * 64,
+        "content-type": "application/octet-stream",
+        "content-disposition": "attachment;filename=template.docx",
+        "content-length": str(len(chunk) * count + (0 if complete else 1)),
     }, stream=Chunks(chunk, count, gate, started))
 
 
 class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.enterContext(patch('runtime.file_download.file_service_config', return_value={
+            'baseUrl': 'https://files.test', 'domainName': 'routing.test',
+            'remoteUrl': 'https://public.test', 'downloadPath': '/file/{fileId}/download',
+            'maxFileBytes': 1024 * 1024 * 1024, 'timeoutSeconds': 600,
+        }))
+
     async def test_payload_file_id_does_not_authorize_fetch(self):
         """业务 payload 中的文件 ID 不能替代授权附件引用。"""
         request = AgentRunRequest.from_dict({
             "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
             "capabilityRef": "conversation", "input": {}, "payload": {"fileId": "file-id"},
         })
-        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker:
-            result = await server._fetch_run_files(request, {"tenant": "t", "sub": "u"},
-                                                   Path(folder), "runtime-jwt")
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileDownloader") as downloader:
+            result = await server._fetch_run_files(request, Path(folder))
             self.assertEqual(result, ())
-            broker.assert_not_called()
+            downloader.assert_not_called()
 
-    async def test_authorized_attachments_use_claims_and_runtime_token(self):
-        """文件准备将已验证身份和 Run Token 传入统一 File Broker。"""
+    async def test_authorized_attachments_only_pass_references_and_workspace(self):
+        """下载器只接收已授权引用和本轮目录，不接收身份或 Run 凭据。"""
         request = AgentRunRequest.from_dict({
             "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
             "businessSessionId": "session-file", "capabilityRef": "conversation",
             "input": {"text": "read", "attachmentRefs": [{"fileId": "file-id", "purpose": "input"}]},
         })
-        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileBroker") as broker, \
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileDownloader") as downloader, \
                 patch.object(server, "_run_phase", new_callable=AsyncMock):
-            broker.return_value.fetch_all = AsyncMock(return_value=())
-            await server._fetch_run_files(request, {"tenant": "tenant-test", "sub": "user-test"},
-                                          Path(folder), "runtime-jwt")
-            broker.return_value.fetch_all.assert_awaited_once_with(
-                request.input.attachment_refs, run_id="run-file", tenant_id="tenant-test",
-                user_id="user-test", workspace=Path(folder), bearer_token="runtime-jwt",
-                timeout_ms=server.FILE_PREPARE_TIMEOUT_MS)
+            downloader.return_value.fetch_all = AsyncMock(return_value=())
+            await server._fetch_run_files(request, Path(folder))
+            downloader.return_value.fetch_all.assert_awaited_once_with(
+                request.input.attachment_refs, workspace=Path(folder))
 
     async def test_progress_arrives_before_download_finishes(self):
         chunk = b"x" * 262144
@@ -94,10 +94,9 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         response = file_response(chunk, 3)
         response.stream = SlowStream()
         with tempfile.TemporaryDirectory() as folder:
-            broker = FileBroker("https://java.test/files", progress_sink=progress,
+            downloader = FileDownloader(progress_sink=progress,
                                 transport=httpx.MockTransport(lambda _: response))
-            task = asyncio.create_task(broker.fetch_all([AttachmentRef("file-1")], run_id="r",
-                                       tenant_id="t", user_id="u", workspace=folder, bearer_token="jwt"))
+            task = asyncio.create_task(downloader.fetch_all([AttachmentRef("file-1")], workspace=folder))
             try:
                 await asyncio.wait_for(reported.wait(), 2)
                 self.assertFalse(task.done())
@@ -120,10 +119,9 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 if event["name"] in {"downloading_file", "validating_file"}:
                     self.assertFalse((root / "template.docx").exists())
 
-            broker = FileBroker("https://java.test/files", progress_sink=progress,
+            downloader = FileDownloader(progress_sink=progress,
                                 transport=httpx.MockTransport(lambda _: file_response(chunk, 104)))
-            files = await broker.fetch_all([AttachmentRef("file-1")], run_id="run-1",
-                tenant_id="t", user_id="u", workspace=root, bearer_token="jwt")
+            files = await downloader.fetch_all([AttachmentRef("file-1")], workspace=root)
             self.assertEqual(files[0].path.stat().st_size, 104 * 1024 * 1024)
             self.assertTrue(any(e["name"] == "downloading_file" and e["receivedBytes"] > 0 for e in events))
             self.assertEqual(events[-2]["name"], "validating_file")
@@ -131,22 +129,23 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(events[-1]["receivedBytes"], 104 * 1024 * 1024)
             self.assertFalse(list(root.glob("*.part")))
 
-    async def test_cancel_timeout_and_invalid_digest_remove_partial_files(self):
-        for outcome in ("cancel", "timeout", "invalid"):
+    async def test_cancel_timeout_and_truncated_body_remove_partial_files(self):
+        for outcome in ("cancel", "timeout", "truncated"):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as folder:
                 gate, started = asyncio.Event(), asyncio.Event()
-                broker = FileBroker("https://java.test/files", transport=httpx.MockTransport(
+                downloader = FileDownloader(transport=httpx.MockTransport(
                     lambda _: file_response(b"x" * 262144, 2, gate=gate,
-                                            started=started if outcome != "invalid" else None,
-                                            valid=outcome != "invalid")))
-                task = asyncio.create_task(broker.fetch_all([AttachmentRef("file-1")],
-                    run_id="r", tenant_id="t", user_id="u", workspace=folder,
-                    bearer_token="jwt", timeout_ms=30 if outcome == "timeout" else 1000))
+                                            started=started if outcome != "truncated" else None,
+                                            complete=outcome != "truncated")))
+                settings = replace(RUNTIME_SETTINGS, timeouts=replace(RUNTIME_SETTINGS.timeouts,
+                    file_prepare_ms=30 if outcome == "timeout" else 1000))
+                self.enterContext(patch('runtime.file_download.RUNTIME_SETTINGS', settings))
+                task = asyncio.create_task(downloader.fetch_all([AttachmentRef("file-1")], workspace=folder))
                 if outcome == "cancel":
                     await started.wait()
                     task.cancel()
-                expected = {"cancel": asyncio.CancelledError, "timeout": FileBrokerTimeoutError,
-                            "invalid": FileBrokerValidationError}[outcome]
+                expected = {"cancel": asyncio.CancelledError, "timeout": FileDownloadTimeoutError,
+                            "truncated": FileDownloadValidationError}[outcome]
                 with self.assertRaises(expected):
                     await task
                 self.assertEqual(list(Path(folder).iterdir()), [])
@@ -180,18 +179,18 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         await super().send(message)
 
                 manager = SessionManager(worker_factory=lambda **_: Worker([complete_script()], worker_id=0))
-                def broker(**kwargs):
-                    return FileBroker("https://java.test/files", **kwargs, transport=httpx.MockTransport(
+                def downloader(**kwargs):
+                    return FileDownloader(**kwargs, transport=httpx.MockTransport(
                         lambda _: file_response(b"x" * 262144, 2, gate=gate, started=started)))
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
                                     DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=500,
                                     FILE_PREPARE_TIMEOUT_MS=3000, internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
-                     patch.object(server, "FileBroker", side_effect=broker), patch.object(server, "stream_agent", query):
-                    task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}, runtime_bearer="jwt"))
+                     patch.object(server, "FileDownloader", side_effect=downloader), patch.object(server, "stream_agent", query):
+                    task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}))
                     await asyncio.wait_for(started.wait(), 1)
-                    # Preparation must outlast the SDK budget, with enough scheduling headroom on CI.
+                    # 文件准备超过 SDK 预算仍须继续，直到准备完毕才启动 SDK 计时。
                     await asyncio.sleep(0.7)
                     self.assertFalse(task.done())
                     self.assertEqual(sdk_calls, [])
@@ -205,7 +204,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(all(e["sequence"] > cursor for e in store.events_after("run-1", cursor)))
                     serialized = json.dumps(events)
                     self.assertNotIn("jwt", serialized)
-                    self.assertNotIn("java.test", serialized)
+                    self.assertNotIn("files.test", serialized)
                     self.assertNotIn(str(root), serialized)
                     self.assertFalse(list(root.rglob("template.docx")))
                     await manager.close_all()
@@ -226,12 +225,12 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=Path(folder), DEFAULT_MODEL="test",
                                     internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value="query"), \
-                     patch.object(server, "FileBroker", side_effect=FileBrokerValidationError("bad")) as broker, \
+                     patch.object(server, "FileDownloader", side_effect=FileDownloadValidationError("bad")) as downloader, \
                      patch.object(server, "stream_agent", query):
-                    await server._execute_internal_run(request, {"tenant": "t", "sub": "u"}, runtime_bearer="jwt")
+                    await server._execute_internal_run(request, {"tenant": "t", "sub": "u"})
                     self.assertEqual(len(calls), 0 if attachments else 1)
                     if not attachments:
-                        broker.assert_not_called()
+                        downloader.assert_not_called()
                     self.assertEqual(store.get_run("run-1")["status"], "failed" if attachments else "succeeded")
                 store.close()
 
@@ -246,8 +245,8 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     workers.append(True)
                     return FakeClientWorker([complete_script()], worker_id=0)
                 manager = SessionManager(worker_factory=worker_factory)
-                def broker(**kwargs):
-                    return FileBroker("https://java.test/files", **kwargs, transport=httpx.MockTransport(
+                def downloader(**kwargs):
+                    return FileDownloader(**kwargs, transport=httpx.MockTransport(
                         lambda _: file_response(b"x" * 262144, 2, gate=gate, started=started)))
                 def headers(scope):
                     claims = {"iss": server.RUNTIME_JWT_ISSUER, "aud": server.RUNTIME_JWT_AUDIENCE,
@@ -259,10 +258,10 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         "capabilityRef": "conversation", "input": {"text": "read",
                         "attachmentRefs": [{"fileId": "file-1"}]}}
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
-                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, DEPLOYMENT_TENANT_ID="t", RUNTIME_JWT_SECRET="test-secret",
+                                    DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUNTIME_JWT_SECRET="test-secret",
                                     internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
-                     patch.object(server, "FileBroker", side_effect=broker), \
+                     patch.object(server, "FileDownloader", side_effect=downloader), \
                      patch.object(server, "stream_agent", side_effect=AssertionError("SDK must not start")):
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url="http://runtime") as client:
                         run_headers = headers("run.execute")

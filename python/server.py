@@ -27,7 +27,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 
 from runtime.config import load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint
 from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
-from runtime.file_broker import FileBroker, FetchedFile
+from runtime.file_download import FileDownloader, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.mcp_auth import validate_capability_credentials
 from runtime.asset_management import create_asset_router
@@ -58,7 +58,6 @@ PORT = application_settings()['server']['port']
 MAX_PROMPT_BYTES = RUNTIME_SETTINGS.limits.prompt_bytes
 DEFAULT_MODEL = MODEL_SETTINGS.default
 SECURITY = deployment_section('security', {})
-DEPLOYMENT_TENANT_ID = deployment_section('deployment', {}).get('tenantId')
 RUNTIME_JWT_SECRET = SECURITY.get('runtimeJwtSecret', '')
 OBSERVATION_JWT_SECRET = SECURITY.get('observationJwtSecret', '')
 RUNTIME_JWT_AUDIENCE = SECURITY.get('runtimeJwtAudience', 'ccsdk-runtime')
@@ -254,10 +253,8 @@ def _authorize_internal(
     message_id: str | None = None,
 ) -> dict[str, Any]:
     """校验请求 JWT、允许权限及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
-    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
+    if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
-    if run.get('tenantId') != DEPLOYMENT_TENANT_ID:
-        raise _InternalAuthError('部署租户不匹配')
     run_id = str(run.get("runId") or "")
     capability = str(run.get("capabilityRef") or "conversation")
     token = _bearer_from_request(request)
@@ -281,9 +278,9 @@ def _authorize_internal(
     return claims
 
 
-def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tuple[dict[str, Any], str]:
-    """校验 HTTP JWT 与新 Run 请求的绑定，返回 claims 和仅供内存使用的原始 Token。"""
-    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
+def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> dict[str, Any]:
+    """校验 HTTP JWT 与新 Run 请求的绑定，只返回已验证身份。"""
+    if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
     capability = run_request.capability_ref or "conversation"
     wire = run_request.to_dict()
@@ -296,17 +293,13 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> tu
             token,
             RUNTIME_JWT_SECRET,
             body=wire,
-            tenant_id=DEPLOYMENT_TENANT_ID,
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
             expected_scope="run.execute",
         )
     except JWTError as error:
         raise _InternalAuthError(str(error)) from error
-    # Keep the raw Run JWT only in the in-memory task closure.  It is needed
-    # for the Java File Broker, but it must not enter RunStore or worker data
-    # that can be replayed as public events.
-    return claims, token
+    return claims
 
 
 def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any] | None:
@@ -658,20 +651,17 @@ async def _run_phase(run_id: str, payload: dict[str, Any]) -> None:
     await _publish_internal_event(run_id, {"runId": run_id, "type": "phase", "payload": public})
 
 
-async def _fetch_run_files(run_request: AgentRunRequest, claims: dict[str, Any], workspace: Path,
-                           runtime_bearer: str | None) -> tuple[FetchedFile, ...]:
+async def _fetch_run_files(run_request: AgentRunRequest, workspace: Path) -> tuple[FetchedFile, ...]:
     """按请求附件引用和已验证身份获取文件到工作目录，发布准备进度并返回 FetchedFile 元组。"""
     if not run_request.input.attachment_refs:
         return ()
     async def progress(payload: dict[str, Any]) -> None:
-        """将文件代理进度绑定到当前 Run 的公共阶段事件。"""
+        """将文件下载进度绑定到当前 Run 的公共阶段事件。"""
         await _run_phase(run_request.run_id, payload)
 
     await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
-    broker = await asyncio.to_thread(FileBroker, progress_sink=progress)
-    files = await broker.fetch_all(run_request.input.attachment_refs, run_id=run_request.run_id,
-        tenant_id=claims["tenant"], user_id=claims["sub"], workspace=workspace,
-        bearer_token=runtime_bearer, timeout_ms=FILE_PREPARE_TIMEOUT_MS)
+    downloader = await asyncio.to_thread(FileDownloader, progress_sink=progress)
+    files = await downloader.fetch_all(run_request.input.attachment_refs, workspace=workspace)
     await progress({"name": "files_ready", "fileCount": len(files)})
     return files
 
@@ -767,7 +757,6 @@ async def _execute_internal_run(
     run_request: AgentRunRequest,
     claims: dict[str, Any],
     *,
-    runtime_bearer: str | None = None,
     execution_entry: dict[str, Any] | None = None,
 ) -> None:
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
@@ -781,7 +770,7 @@ async def _execute_internal_run(
         timing.on_mark = lambda name, elapsed: OBSERVATION.timing_mark(run_id, timing, name)
     timing.mark('accepted')
     timing.mark('scheduled')
-    OBSERVATION_SECRETS[run_id] = tuple(v for v in (runtime_bearer, run_request.credentials.platform_bearer) if v)
+    OBSERVATION_SECRETS[run_id] = tuple(v for v in (run_request.credentials.platform_bearer,) if v)
     input_workspace: Path | None = None
     session_directory: Path | None = None
     runtime_mode: str | None = None
@@ -828,7 +817,7 @@ async def _execute_internal_run(
                 if not run_request.input.attachment_refs:
                     prepared_files: tuple[FetchedFile, ...] = ()
                 else:
-                    prepared_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
+                    prepared_files = await _fetch_run_files(run_request, input_workspace)
                 prepared_payload = await asyncio.to_thread(_internal_worker_payload,
                     run_request,
                     run_directory,
@@ -850,7 +839,7 @@ async def _execute_internal_run(
                 _clear_runtime_input(input_workspace)
         else:
             if run_request.input.attachment_refs:
-                attachment_files = await _fetch_run_files(run_request, claims, input_workspace, runtime_bearer)
+                attachment_files = await _fetch_run_files(run_request, input_workspace)
             worker_payload = await asyncio.to_thread(_internal_worker_payload,
                 run_request,
                 run_directory,
@@ -970,7 +959,7 @@ async def internal_create_run(request: Request):
     try:
         payload = await _small_json(request, INTERNAL_BODY_BYTES)
         run_request = AgentRunRequest.from_dict(payload)
-        claims, runtime_bearer = _authorize_new_request(request, run_request)
+        claims = _authorize_new_request(request, run_request)
     except (ValueError, ProtocolError, _InternalAuthError) as error:
         status = 401 if isinstance(error, _InternalAuthError) else 400
         if isinstance(error, _InternalAuthError) and str(error) == "Runtime JWT 未配置":
@@ -1010,7 +999,7 @@ async def internal_create_run(request: Request):
                 if manager:
                     manager.pin_session(_client_session_key(run_request, claims))
                 internal_tasks[run_request.run_id] = asyncio.create_task(
-                    _execute_internal_run(run_request, claims, runtime_bearer=runtime_bearer,
+                    _execute_internal_run(run_request, claims,
                                           execution_entry=execution_entry),
                     name=f"ccsdk-run:{run_request.run_id}",
                 )
@@ -1137,7 +1126,7 @@ def internal_session_runs(
     limit: int = Query(50, ge=1, le=100), cursor: str | None = Query(None, max_length=345),
 ):
     """列出Java授权会话的公开执行摘要，不维护业务会话或消息。"""
-    if not RUNTIME_JWT_SECRET or not DEPLOYMENT_TENANT_ID:
+    if not RUNTIME_JWT_SECRET:
         return _plain("Runtime JWT 未配置", 503)
     try:
         claims = verify_session_read_jwt(
@@ -1145,8 +1134,6 @@ def internal_session_runs(
             business_session_id=business_session_id,
             audience=RUNTIME_JWT_AUDIENCE, issuer=RUNTIME_JWT_ISSUER,
         )
-        if claims['tenant'] != DEPLOYMENT_TENANT_ID:
-            raise _InternalAuthError('部署租户不匹配')
     except (JWTError, _InternalAuthError) as error:
         return _plain(str(error), 401)
     try:

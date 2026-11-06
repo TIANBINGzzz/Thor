@@ -44,6 +44,8 @@ def business_tenant(credentials):
 
 @dataclass(frozen=True)
 class DataContext:
+    """tenant_id 绑定签名 Run 的归属；data_tenant_id 仅来自本轮业务 Token。"""
+
     run_id: str
     tenant_id: str
     user_id: str

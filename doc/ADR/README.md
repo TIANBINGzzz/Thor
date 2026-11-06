@@ -14,7 +14,7 @@
 
 | 编号 | 取舍 | 决策状态 | 实现范围与差距 |
 | --- | --- | --- | --- |
-| [016](016-file-broker-for-runtime-inputs.md) | 显式 File Broker | 已采纳 | 显式 Broker 校验保留；032 替代默认输入通道 |
+| [016](016-file-broker-for-runtime-inputs.md) | 显式 File Broker | 已替代 | 032 完整替代；旧 Java 通道已移除 |
 | [018](018-extract-local-playground.md) | 本地自测独立项目 | 已采纳 | Runtime 边界保留；独立测试项目已移除，历史测试不代表 Java 生产授权 |
 | [023](023-database-scoped-asset-packages.md) | 按库组织知识与查询 | 已采纳 | 数据库包、主题指标已接入；业务口径缺口保留 |
 | [028](028-bundled-database-config.md) | 本版配置随镜像交付 | 已替代 | 由038改为Nacos客户配置；历史交付记录保留 |

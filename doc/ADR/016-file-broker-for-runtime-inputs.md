@@ -3,18 +3,18 @@
 | 字段 | 内容 |
 | --- | --- |
 | 决策日期 | 2026-09-04 |
-| 决策状态 | 已采纳 |
-| 实现状态 | Python 下载与校验已接入；真实 Java Broker 未闭环 |
-| 最近核对 | 2026-09-22（整理契约，未重跑外部接口） |
+| 决策状态 | 已替代 |
+| 实现状态 | 旧 Java Broker 通道已移除；现行附件下载见 032 |
+| 最近核对 | 2026-11-06（按用户确认移除旧通道） |
 | 替代的旧 ADR | 无 |
-| 被哪份 ADR 替代 | [032](032-platform-file-download.md) 替代默认通道及远端摘要要求，显式 Broker 保留 |
+| 被哪份 ADR 替代 | [032](032-platform-file-download.md) 完整替代输入文件通道 |
 
 ## 背景
 固定附件是执行前资源准备，不应依赖模型选工具或允许模型读取业务附件库。
 
 ## 决策
 - 显式设置 CCSDK_FILE_BROKER_URL 时由 Runtime 携带 runId/fileId/purpose 请求受信 Broker，Broker 重验文件 ACL 与 Run 绑定；不是平台下载失败的回退。
-- 代理流及一次性 HTTPS URL 均须验证文件身份、大小和摘要；下载、SSRF、时限和清理契约统一见 [Runtime 文件边界](../specs/ccsdk-runtime-interface.md#8-file-broker-模块)。
+- 代理流及一次性 HTTPS URL 均须验证文件身份、大小和摘要；下载、SSRF、时限和清理契约统一见 [Runtime 文件边界](../specs/ccsdk-runtime-interface.md#8-文件下载模块)。
 - 授权或准备失败时不启动模型；不向模型暴露下载凭据、永久 URL 或内部路径，不因提供引用扩大能力权限。
 
 ## 后果与验证
@@ -28,4 +28,4 @@
 | REQ-001 | 不适用 | Broker 用 Run 授权，不向下载端广播业务 Token |
 | REQ-002 | 部分满足 | 输入为受控引用，失败关闭；真实 Java 文件 ACL 与授权仍未验收 |
 
-状态变更：2026-09-07 归一为部分实现；032 更改默认下载通道，未撤销显式 Broker 契约。
+状态变更：2026-11-06 用户确认不再使用 Java Broker，删除授权 POST、一次性 URL、独立密钥/mTLS 及配置；平台下载保留限额、进度和取消清理。上文决策为被替代的历史。

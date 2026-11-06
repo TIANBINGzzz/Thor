@@ -20,6 +20,8 @@ variables:
     value: "127.0.0.1"
   - key: CCSDK_SMOKE_TEST
     value: "0"
+  - key: CCSDK_SMOKE_TENANT
+    value: "deployment-check" # 合成冒烟身份，不是数据库数据范围。
 stages:
   build_stage:
     name: 构建测试并打包
@@ -85,6 +87,7 @@ stages:
             export CCSDK_CONFIG_DIRECTORY="${CCSDK_DEPLOY_ROOT}/config"
             export CCSDK_RELEASE_DIRECTORY=..
             export CCSDK_SMOKE_TEST='${CCSDK_SMOKE_TEST}'
+            export CCSDK_SMOKE_TENANT='${CCSDK_SMOKE_TENANT}'
             release_directory="${CCSDK_DEPLOY_ROOT}/releases/${PIPELINE_ID}-${BUILD_NUMBER}"
             mkdir -p "$release_directory"
             tar -xzf "${CCSDK_DEPLOY_ROOT}/packages/${PIPELINE_ID}-${BUILD_NUMBER}.tgz" -C "$release_directory"

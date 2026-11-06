@@ -1,18 +1,18 @@
-"""客户范围来自部署绑定，SQL 边界来自可信来源登记。"""
+"""数据范围按来源授权，self 每轮从业务 Token 解析；SQL 边界来自登记资产。"""
 
-from runtime.deployment_config import deployment_section, require_tenant
 from .context import DataError, fingerprint
 
 
 def resolve_data_access(context, source, config, catalog):
-    """同客户用户共享业务数据；不能通过 Run 或业务 Token 切换客户。"""
-    try:
-        require_tenant(context.tenant_id)
-    except ValueError:
-        raise DataError('TENANT_FORBIDDEN') from None
-    tenant = deployment_section('deployment')['tenantId']
-    if context.data_tenant_id is not None and context.data_tenant_id != tenant:
-        raise DataError('TENANT_FORBIDDEN')
+    """Run 身份只约束结果归属；数据库租户只由业务身份和可信来源配置决定。"""
+    if not context.data_tenant_id:
+        raise DataError('BUSINESS_IDENTITY_REQUIRED')
+    tenants = config['access']['tenantIds']
+    resolved = []
+    for tenant in tenants:
+        tenant = context.data_tenant_id if tenant == 'self' else tenant
+        if tenant not in resolved:
+            resolved.append(tenant)
     domains = {}
     for domain in source['domains']:
         schema = catalog.schema(source['source_key'], domain)
@@ -24,7 +24,7 @@ def resolve_data_access(context, source, config, catalog):
             raise DataError('TENANT_SCOPE_NOT_ENFORCED')
         allowed['queries'] = [q['id'] for q in assets['queries']]
         domains[domain] = allowed
-    policy = {'tenant_id': tenant, 'domains': domains,
+    policy = {'authorized_tenants': resolved, 'domains': domains,
               'dynamic_sql_enabled': config.get('query', {}).get('dynamic_sql_enabled', False)}
     policy['fingerprint'] = fingerprint(policy)
     return policy
