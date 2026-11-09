@@ -92,11 +92,14 @@ class RuntimeSettingsTests(unittest.TestCase):
             path.write_text(yaml.safe_dump(document), encoding='utf-8')
             script = '''import sys
 import yaml
+from pathlib import Path
 from runtime.deployment_config import initialize_deployment
 from tests.deployment_fixtures import application_document
 from runtime.application_config import install_application
-install_application(application_document())
-from pathlib import Path
+application = application_document()
+# 子进程沿用源码目录导入模块，但数据库必须隔离到本次测试的可写临时目录。
+application['server']['run-db'] = str(Path(sys.argv[1]).with_name('runs.sqlite3'))
+install_application(application)
 initialize_deployment(document=yaml.safe_load(Path(sys.argv[1]).read_text(encoding='utf-8')))
 import server, agent_worker
 from runtime.process import ClientWorkerProcess
@@ -113,3 +116,4 @@ assert client._query_timeout_ms == client._receive_timeout_ms == 4200000
                                     cwd=Path(__file__).resolve().parents[1],
                                     capture_output=True, text=True, encoding='utf-8', timeout=30)
             self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(path.with_name('runs.sqlite3').is_file())
