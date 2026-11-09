@@ -18,7 +18,7 @@
 
 1. Java 从当前已认证请求/安全上下文获取业务 Token，完成业务授权后，按需通过内部字段 `credentials.platformBearer` 传给 Python；不换成共享账号，不接受正文中任意指定其他用户凭据。
 2. 业务 Token、Java 签发的 Run JWT、模型供应商密钥是三类凭据；不得相互替代。Run JWT 用于授权 Python 执行请求，不能把业务 Token 嵌入 JWT 或模型输入。
-3. 业务 Token 由 Java 和下游业务服务负责认证与业务授权。按用户2026-11-06修正确认，不在部署配置固定 Runtime tenantId；Run JWT 的 tenant/sub 只绑定执行身份。数据库 self 每轮从认证后透传的业务 JWT 提取 tenantId，来源 access.tenantIds 限定可访问数据范围；额外测试租户仅本机/测试配置，生产默认 self。缺 Token 或解析失败不回退测试数据；本地解码不替代业务验签、有效期或撤销校验。其余 MCP 仍将 Token 当不透明凭据。
+3. 业务 Token 由 Java 和下游业务服务负责认证与业务授权。按用户2026-11-06修正确认，不在部署配置固定 Runtime tenantId；Run JWT 的 tenant/sub 只绑定执行身份。数据库 self 每轮从认证后透传的业务 JWT 提取 tenantId，来源 access.tenantIds 限定可访问数据范围；通用生产模板默认 self。按2026-11-09确认，明确授权的部署环境也可暂时加入测试租户，具体环境及范围保存在私有部署交接记录，结束测试后恢复 self，不据此放开其他客户。缺 Token 或解析失败不回退测试数据；本地解码不替代业务验签、有效期或撤销校验。其余 MCP 仍将 Token 当不透明凭据。
 4. 规则表由可信服务端配置维护，描述 MCP 标识、是否需要业务 Token、传输类型、目标 Header/环境变量及前缀或可信参数映射；不保存 Token 值。初期可以是 Python 静态配置表，不要求新增数据库或配置服务。
 5. 先按 Capability 的受控配置选择 MCP，再按规则注入。仅仅携带 Token 不得增加工具权限；前端、模型和普通业务输入不得覆盖 MCP 地址、凭据映射或接收方。
 6. 需要凭据的 MCP 缺少 Token、未注册或注入配置无效时，必须在调用前失败；不需要业务 Token 的 MCP 不接收该 Token，也不因其缺失失败。

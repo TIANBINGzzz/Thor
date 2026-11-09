@@ -23,7 +23,7 @@ Capability 在 capability.json 中以 data.access=required/optional 和 data.sou
 
 一个 tenantId 对应一个客户，一客户一套 Runtime、数据库和服务地址。同客户所有 usercode 查询同一业务数据。Run JWT 只绑定本次执行、用户、会话和文件归属，不在 Nacos 固定 Runtime tenantId；数据库 self 每轮从 Java 认证后透传的业务 Token 解析，缺失或非法时拒绝访问。用户授权、业务验签和撤销仍由 Java 负责。
 
-Nacos 每来源分 connection/access/query；access.tenantIds 默认仅 self。本机/测试可显式加入获准测试数据租户，生产模板仅 self；该范围只作用于选中数据源，不扩大 Runtime 或其他业务系统身份。表列、函数和指标范围由 Catalog 派生，不重复配置 Capability/模板清单或 selected 项目授权。项目/任务仍可作为业务筛选条件，引用仅本轮有效。TLS 默认校验 CA 与主机身份，显式 disabled 不自动降级；字段和路径基准见[配置说明](../../config/README.md)。
+Nacos 每来源分 connection/access/query；access.tenantIds 默认仅 self。额外测试租户的环境授权和退出要求见[REQ-001](engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)，生产模板仍仅 self；该范围只作用于选中数据源，不扩大 Runtime 或其他业务系统身份。表列、函数和指标范围由 Catalog 派生，不重复配置 Capability/模板清单或 selected 项目授权。项目/任务仍可作为业务筛选条件，引用仅本轮有效。TLS 默认校验 CA 与主机身份，显式 disabled 不自动降级；字段和路径基准见[配置说明](../../config/README.md)。
 
 ## 查询边界
 

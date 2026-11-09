@@ -33,7 +33,7 @@ security.runtimeJwtSecret 用于执行授权；observationJwtSecret、assetJwtSe
 
 databases.<source>.connection 只保存 driver、host、port、database、username、password、tls；query 只保存超时、行数与动态只读 SQL 开关。校双高来源名称为大小写敏感的 schoolDoubleHigh。TLS 验证 CA 和主机名，不支持时须显式 disabled，不自动降级；CA 和 SQLite 相对路径基准为仓库 config 目录。
 
-每来源 access.tenantIds 声明数据租户范围：生产和 example 仅 [self]，本机/测试可显式添加获准测试数据 ID；额外 ID 不改变 Run 身份，不影响其他来源或校园大脑。数据库不重复维护 Capability、模板、项目授权或表/查询清单；Catalog 决定域、表列、函数及指标，每个学校 scope 单独绑定 SQL 租户过滤，项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
+每来源 access.tenantIds 声明数据租户范围：production 和 example 模板仅 [self]；额外测试数据须按[工程要求 REQ-001](../doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)明确授权，具体环境例外保存在私有部署交接记录。额外 ID 不改变 Run 身份，不影响其他来源或校园大脑。数据库不重复维护 Capability、模板、项目授权或表/查询清单；Catalog 决定域、表列、函数及指标，每个学校 scope 单独绑定 SQL 租户过滤，项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
 
 fileService 是附件下载和成果上传的唯一文件通道，downloadPath 保留 {fileId}；不转发 Run JWT、业务 Token 或 Cookie，Java 须先授权 fileId。旧 Java File Broker 通道及配置已删除。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
 
