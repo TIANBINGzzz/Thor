@@ -1,7 +1,8 @@
 """获取内部测试环境的业务 Token。
 
 59 使用认证服务现有的免验证码测试分支；appai 保持验证码校验，脚本只自动
-获取图片和提交请求，验证码由操作者在本地确认后输入。Token 只写入忽略目录。
+获取图片和提交请求，验证码由操作者或 Agent 在本地识别后输入。appai 的
+登录域名须取所选学校的 domainName，不使用平台主域名代替。Token 只写入忽略目录。
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ class EnvironmentSettings:
     account: str
     password: str
     school: str | None = None
+    domain_name: str | None = None
 
 
 def _field(section: str, label: str, *, required: bool = True) -> str | None:
@@ -66,6 +68,7 @@ def load_environment(config_path: Path, environment: str) -> EnvironmentSettings
         account=_field(section, "登录账号") or "",
         password=_field(section, "登录密码") or "",
         school=_field(section, "登录学校", required=False),
+        domain_name=_field(section, "登录域名", required=environment == "appai"),
     )
 
 
@@ -105,7 +108,7 @@ def _json_request(url: str, *, data: bytes | None = None, headers: dict[str, str
 
 
 def fetch_captcha(settings: EnvironmentSettings) -> tuple[str, Path]:
-    result = _json_request(settings.origin + CAPTCHA_PATH, headers={"Accept": "application/json"})
+    result = _json_request(settings.origin + CAPTCHA_PATH, headers=_login_headers(settings))
     data = result.get("data") or {}
     image = data.get("img")
     captcha_id = data.get("id")
@@ -128,11 +131,22 @@ def login(settings: EnvironmentSettings, *, captcha_id: str | None = None, captc
     result = _json_request(
         settings.origin + LOGIN_PATH,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        headers={**_login_headers(settings), "Content-Type": "application/json"},
     )
     if result.get("state") != 200 or not (result.get("data") or {}).get("token"):
         raise RuntimeError(f"登录失败：state={result.get('state')} message={result.get('message')}")
     return result["data"]
+
+
+def _login_headers(settings: EnvironmentSettings) -> dict[str, str]:
+    """验证码和登录绑定同一学校；主域名上的同名账号可能属于不同租户。"""
+    headers = {"Accept": "application/json"}
+    if settings.environment == "appai":
+        domain = (settings.domain_name or "").strip()
+        if not domain:
+            raise ValueError("appai 缺少登录域名，请填写所选学校的 domainName")
+        headers["domain-name"] = domain
+    return headers
 
 
 def _default_output(environment: str) -> Path:

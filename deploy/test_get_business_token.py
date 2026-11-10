@@ -1,4 +1,6 @@
 import importlib.util
+import base64
+import dataclasses
 import sys
 import tempfile
 import unittest
@@ -25,6 +27,7 @@ class BusinessTokenLoginTests(unittest.TestCase):
             '\n'
             '## appai 连接\n'
             '| 登录学校 | `湘中幼儿师范高等专科学校` |\n'
+            '| 登录域名 | `school.example` |\n'
             '| 登录账号 | `admin` |\n'
             '| 登录密码 | `secret-appai` |\n'
             '| 业务网页 | https://appai.example/ai_center_web/#/ai |\n',
@@ -41,6 +44,43 @@ class BusinessTokenLoginTests(unittest.TestCase):
         self.assertEqual(settings.password, 'secret-appai')
         self.assertEqual(settings.school, '湘中幼儿师范高等专科学校')
         self.assertEqual(settings.origin, 'https://appai.example')
+        self.assertEqual(settings.domain_name, 'school.example')
+
+    def test_appai_missing_domain_is_rejected_before_login(self):
+        text = self.config.read_text(encoding='utf-8')
+        self.config.write_text(text.replace('| 登录域名 | `school.example` |\n', ''), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, '登录域名'):
+            MODULE.load_environment(self.config, 'appai')
+
+    def test_appai_captcha_and_login_use_the_same_school_domain(self):
+        settings = MODULE.load_environment(self.config, 'appai')
+        responses = [
+            {'state': 200, 'data': {'id': 'school-challenge', 'img': base64.b64encode(b'image').decode()}},
+            {'state': 200, 'data': {'token': 'private-token'}},
+        ]
+        with patch.object(MODULE, '_json_request', side_effect=responses) as request, patch.object(
+            MODULE.tempfile, 'gettempdir', return_value=self.temp.name
+        ):
+            challenge, image = MODULE.fetch_captcha(settings)
+            result = MODULE.login(settings, captcha_id=challenge, captcha_code='A1B2')
+        self.assertEqual(image.read_bytes(), b'image')
+        self.assertEqual(result['token'], 'private-token')
+        for call in request.call_args_list:
+            self.assertEqual(call.kwargs['headers']['domain-name'], 'school.example')
+            self.assertNotIn('Authorization', call.kwargs['headers'])
+        import json
+        payload = json.loads(request.call_args_list[1].kwargs['data'])
+        self.assertEqual(payload['imgId'], 'school-challenge')
+        self.assertEqual(payload['captcha'], 'A1B2')
+
+    def test_direct_appai_settings_cannot_silently_use_the_main_domain(self):
+        settings = dataclasses.replace(MODULE.load_environment(self.config, 'appai'), domain_name=None)
+        with patch.object(MODULE, '_json_request') as request:
+            with self.assertRaisesRegex(ValueError, '登录域名'):
+                MODULE.fetch_captcha(settings)
+            with self.assertRaisesRegex(ValueError, '登录域名'):
+                MODULE.login(settings, captcha_id='challenge', captcha_code='A1B2')
+        request.assert_not_called()
 
     def test_59_uses_its_configured_automatic_login_payload(self):
         settings = MODULE.load_environment(self.config, '59')
