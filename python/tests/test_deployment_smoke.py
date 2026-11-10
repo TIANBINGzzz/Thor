@@ -24,7 +24,8 @@ class DeploymentSmokeTests(unittest.TestCase):
             'runtimeJwtSecret': 'private-loadtest-key', 'runtimeJwtIssuer': 'configured-issuer',
             'runtimeJwtAudience': 'configured-audience'}}
         body = {'runId': 'loadtest-run', 'messageId': 'loadtest-message',
-                'businessSessionId': 'loadtest-session', 'capabilityRef': 'conversation'}
+                'businessSessionId': 'loadtest-session', 'capabilityRef': 'conversation',
+                'domainName': 'school.example.test'}
         headers = loadtest.authorization_headers(config, body, 'run.execute', tenant_id='customer-a')
         claims = verify_run_jwt(headers['Authorization'][7:], 'private-loadtest-key', body=body,
             tenant_id='customer-a', issuer='configured-issuer', audience='configured-audience')
@@ -53,7 +54,7 @@ class DeploymentSmokeTests(unittest.TestCase):
                          patch.object(server, '_runtime_mode_for_request', return_value='query'), \
                          patch.object(smoke.httpx, 'AsyncClient', client), \
                          patch('runtime.deployment_config._DEPLOYMENT', {'security': {'runtimeJwtSecret':'probe-secret'}}):
-                        await smoke.main(tenant='deployment-check')
+                        await smoke.main(tenant='deployment-check', domain_name='school.example.test')
                         await asyncio.gather(*server.internal_tasks.values())
 
         asyncio.run(exercise())

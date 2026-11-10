@@ -99,7 +99,8 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 (work / 'draft.txt').write_bytes(b'hello')
                 artifact = publish_artifact('draft.txt', 'draft.txt', work,
                                             workspace / '.deliverables', workspace)
-                store.create_run('artifact-run', {'sessionKey': key}, tenant_id='t',
+                store.create_run('artifact-run', {'sessionKey': key,
+                                 'domainName': 'school.example.test'}, tenant_id='t',
                                  user_id='u', business_session_id='same')
 
             events, requests = [], []
@@ -119,7 +120,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 with patch.multiple(server, RUN_STORE=store, CLIENT_SESSION_ROOT=root / 'sessions',
                                     ARTIFACT_DELIVERY=delivery, RUN_TIMINGS={}), \
                      patch('runtime.nacos_config.fetch_config', return_value={'fileService': {
-                         'baseUrl': 'https://files.example.test', 'domainName': 'routing.example.test',
+                         'baseUrl': 'https://files.example.test',
                          'remoteUrl': 'https://public.example.test'}}):
                     try:
                         await server._handle_agent_event('artifact-run', {
@@ -163,10 +164,12 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         run_id = f'run-{index}'
                         body = {'protocol': 'agent-run/v1', 'runId': run_id, 'messageId': f'message-{index}',
                             'businessSessionId': 'same', 'capabilityRef': capability,
+                            'domainName': 'school.example.test',
                             'input': {'text': 'test'}, 'credentials': {'platformBearer': token}}
                         claims = {'iss': server.RUNTIME_JWT_ISSUER, 'aud': server.RUNTIME_JWT_AUDIENCE,
                             'iat': int(time.time()), 'exp': int(time.time()) + 120, 'jti': uuid.uuid4().hex,
                             'tenant': tenant, 'sub': user, 'scope': 'run.execute',
+                            'domainName': body['domainName'],
                             **{k: body[k] for k in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
                         headers = {'Authorization': 'Bearer ' + encode_hs256_jwt(claims, 'workspace-test')}
                         response = await client.post('/internal/v1/runs', json=body, headers=headers)

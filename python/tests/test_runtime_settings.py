@@ -73,15 +73,14 @@ class RuntimeSettingsTests(unittest.TestCase):
             settings = runtime_settings.load_runtime_settings(path)
             with patch.object(config, 'RUNTIME_SETTINGS', settings), \
                  patch.object(file_download, 'RUNTIME_SETTINGS', settings), \
-                 patch.dict('os.environ', {'SCRIBE_MAX_TURNS': '1', 'CCSDK_FILE_MAX_BYTES': '1',
-                                          'CCSDK_FILE_BROKER_TIMEOUT_MS': '1'}):
+                 patch.dict('os.environ', {'SCRIBE_MAX_TURNS': '1', 'CCSDK_FILE_MAX_BYTES': '1'}):
                 options = config.build_options({})
                 self.assertEqual(options.max_turns, 47)
                 self.assertEqual(options.max_buffer_size, 8388608)
                 self.assertEqual(config._client_connection_values({})['max_turns'], 47)
-                broker = file_download.FileDownloader()
-                self.assertEqual(broker.max_bytes, 4096)
-                self.assertEqual(broker.timeout_ms, 2500)
+                downloader = file_download.FileDownloader(domain_name='school.example.test')
+                self.assertEqual(downloader.max_bytes, 4096)
+                self.assertEqual(downloader.timeout_ms, 2500)
 
     def test_fresh_process_uses_one_budget_in_server_worker_and_sdk(self):
         with tempfile.TemporaryDirectory() as folder:

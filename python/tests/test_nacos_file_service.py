@@ -20,7 +20,7 @@ class NacosFileServiceTests(unittest.TestCase):
                     'CCSDK_NACOS_USERNAME': 'reader', 'CCSDK_NACOS_PASSWORD': 'private-password',
                     'CCSDK_NACOS_NAMESPACE': 'test-id'}
         self.config = {'fileService': {'baseUrl': 'https://files.test',
-                       'remoteUrl': 'https://public.test', 'domainName': 'routing.test',
+                       'remoteUrl': 'https://public.test',
                        'downloadPath': '/files/{fileId}/download'}}
 
     def read(self, handler, **kwargs):

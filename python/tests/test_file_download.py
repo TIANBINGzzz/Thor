@@ -1,4 +1,4 @@
-"""下载器只接收本轮附件引用和隔离目录，不接受旧 Broker 地址或凭据。"""
+"""下载器只使用本轮附件引用、Run 域名和隔离目录。"""
 
 import inspect
 from dataclasses import replace
@@ -22,7 +22,7 @@ from runtime.runtime_settings import RUNTIME_SETTINGS
 class FileDownloadContractTests(unittest.TestCase):
     def test_constructor_only_exposes_download_limits_and_observers(self):
         self.assertEqual(set(inspect.signature(FileDownloader).parameters), {
-            'max_bytes', 'timeout_ms', 'transport', 'event_sink', 'progress_sink',
+            'domain_name', 'max_bytes', 'timeout_ms', 'transport', 'event_sink', 'progress_sink',
         })
 
     def test_fetch_only_takes_authorized_references_and_workspace(self):
@@ -34,7 +34,7 @@ class FileDownloadContractTests(unittest.TestCase):
 class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.config = {
-            'baseUrl': 'https://files.test', 'domainName': 'routing.test',
+            'baseUrl': 'https://files.test',
             'remoteUrl': 'https://public.test', 'downloadPath': '/file/{fileId}/download',
             'maxFileBytes': 1024 * 1024, 'timeoutSeconds': 600,
         }
@@ -49,6 +49,7 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(request.content, b'')
             self.assertNotIn('authorization', request.headers)
             return handler(request)
+        kwargs.setdefault('domain_name', 'routing.test')
         return await FileDownloader(transport=httpx.MockTransport(respond), **kwargs).fetch_all(
             refs or [AttachmentRef('file_1')], workspace=self.root / 'input')
 
@@ -56,7 +57,7 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
         events = []
         with patch('runtime.file_download.file_service_config',
                    side_effect=FileServiceError('file_service_not_configured')):
-            downloader = FileDownloader(event_sink=lambda kind, data: events.append((kind, data)))
+            downloader = FileDownloader(domain_name='routing.test', event_sink=lambda kind, data: events.append((kind, data)))
         self.assertFalse(downloader.configured)
         self.assertEqual(await downloader.fetch_all([], workspace=self.root / 'input'), ())
         with self.assertRaises(FileDownloadUnavailableError) as caught:
@@ -69,7 +70,7 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
         for field in ('max_bytes', 'timeout_ms'):
             for value in (0, -1, True, 1.5, '100'):
                 with self.subTest(field=field, value=value), self.assertRaises(FileDownloadConfigurationError):
-                    FileDownloader(**{field: value})
+                    FileDownloader(domain_name='routing.test', **{field: value})
 
     async def test_response_names_and_mime_cannot_escape_file_boundary(self):
         for name in ('..%2Fsecret.docx', '..%5Csecret.docx', '.', 'CON', 'con.data.docx',

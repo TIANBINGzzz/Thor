@@ -33,6 +33,7 @@ def validate_file_service_config(config, *, download=False):
     """启动校验与逐轮装配共用字段约束；只校验值，不连接远端。"""
     try:
         config = dict(config)
+        config.pop('domainName', None)
         for key in ('baseUrl', 'remoteUrl'):
             url = config[key]
             if not isinstance(url, str) or url != url.strip() or any(c.isspace() for c in url):
@@ -43,10 +44,6 @@ def validate_file_service_config(config, *, download=False):
                     or parsed.path not in ('', '/')):
                 raise ValueError()
             config[key] = url.rstrip('/')
-        domain = config['domainName']
-        if not isinstance(domain, str) or not domain or any(c.isspace() for c in domain) or '/' in domain:
-            raise ValueError()
-        domain.encode('ascii')
         for key, default, maximum in (('timeoutSeconds', 600, 3600), ('maxFileBytes', 1073741824, 10737418240)):
             config.setdefault(key, default)
             if type(config[key]) is not int or not 1 <= config[key] <= maximum:
@@ -61,3 +58,14 @@ def validate_file_service_config(config, *, download=False):
     except (ValueError, KeyError, TypeError, UnicodeError):
         raise FileServiceError('file_service_config_invalid') from None
     return config
+
+
+def with_run_domain(config, domain_name):
+    """把已校验的 Run 域名并入部署路由配置，不读取旧全局域名字段。"""
+    if not isinstance(domain_name, str) or len(domain_name) > 253:
+        raise FileServiceError('file_service_domain_missing' if not domain_name else 'file_service_config_invalid')
+    labels = domain_name.split('.')
+    if any(not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', label)
+           for label in labels):
+        raise FileServiceError('file_service_config_invalid')
+    return {**config, 'domainName': domain_name}

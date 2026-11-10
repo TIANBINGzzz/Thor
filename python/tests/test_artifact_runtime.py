@@ -22,7 +22,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
         """只替换 Nacos 返回值，保留配置解析及文件交付链路。"""
         self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
             'fileService': {'baseUrl': 'https://files.test',
-                'remoteUrl': 'https://files.test', 'domainName': 'files.test'}}))
+                'remoteUrl': 'https://files.test'}}))
 
     async def test_run_waits_for_automatic_retries_before_final_file_result(self):
         for succeeds in (True, False):
@@ -30,7 +30,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 root = Path(directory)
                 store = RunStore(root / 'runs.sqlite3')
                 self.addCleanup(store.close)
-                store.create_run('run_01')
+                store.create_run('run_01', metadata={'domainName': 'files.test'})
                 store.update_status('run_01', 'running')
                 requests, events = [], []
                 async def notify(event):
@@ -81,8 +81,10 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
             delivery = ArtifactDelivery(store, root / 'archive', server._notify_stored_event,
                 transport=httpx.MockTransport(upload))
             request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run_01',
-                'messageId': 'msg_01', 'businessSessionId': 'session_01', 'input': {'text': 'write'}})
-            store.create_run('run_01', request=request, tenant_id='tenant', user_id='user')
+                'messageId': 'msg_01', 'businessSessionId': 'session_01',
+                'domainName': 'school.example.test', 'input': {'text': 'write'}})
+            store.create_run('run_01', request=request, tenant_id='tenant', user_id='user',
+                             metadata={'domainName': request.domain_name})
             async def stream(payload, **kwargs):
                 work = Path(payload['work_directory'])
                 work.mkdir(parents=True, exist_ok=True)

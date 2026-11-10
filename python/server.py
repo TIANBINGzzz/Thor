@@ -660,7 +660,8 @@ async def _fetch_run_files(run_request: AgentRunRequest, workspace: Path) -> tup
         await _run_phase(run_request.run_id, payload)
 
     await progress({"name": "preparing_files", "fileCount": len(run_request.input.attachment_refs)})
-    downloader = await asyncio.to_thread(FileDownloader, progress_sink=progress)
+    downloader = await asyncio.to_thread(FileDownloader, domain_name=run_request.domain_name,
+                                         progress_sink=progress)
     files = await downloader.fetch_all(run_request.input.attachment_refs, workspace=workspace)
     await progress({"name": "files_ready", "fileCount": len(files)})
     return files
@@ -986,6 +987,7 @@ async def internal_create_run(request: Request):
                 metadata={
                     "messageId": run_request.message_id,
                     "runtimeMode": runtime_mode,
+                    "domainName": run_request.domain_name,
                     "sessionKey": _client_session_key(run_request, claims) if runtime_mode == "client" else None,
                 },
             )

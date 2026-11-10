@@ -16,20 +16,21 @@ from runtime.auth import encode_hs256_jwt
 from runtime.deployment_config import deployment_section
 
 
-async def main(*, tenant):
+async def main(*, tenant, domain_name):
     if not isinstance(tenant, str) or not tenant.strip() or tenant in {'*', 'self', 'default'}:
         raise ValueError('Explicit smoke identity required')
     security = deployment_section('security', {})
     suffix = uuid.uuid4().hex
     body = {"protocol": "agent-run/v1", "runId": "deploy-" + suffix,
             "messageId": "message-" + suffix, "businessSessionId": "deploy-" + suffix,
-            "capabilityRef": "conversation", "input": {"text": "Compute 17 * 23. Reply only with the number. Do not use tools."}}
+            "capabilityRef": "conversation", "domainName": domain_name,
+            "input": {"text": "Compute 17 * 23. Reply only with the number. Do not use tools."}}
     now = int(time.time())
     claims = {"iss": security.get("runtimeJwtIssuer", "string-ai-center-service"),
               "aud": security.get("runtimeJwtAudience", "ccsdk-runtime"),
               "iat": now, "exp": now + 600, "jti": suffix,
               "sub": "deployment-check", "tenant": tenant,
-              **{key: body[key] for key in ("runId", "messageId", "businessSessionId", "capabilityRef")}}
+              **{key: body[key] for key in ("runId", "messageId", "businessSessionId", "capabilityRef", "domainName")}}
 
     def headers(scope):
         token = encode_hs256_jwt({**claims, "scope": scope}, security["runtimeJwtSecret"])
@@ -72,10 +73,11 @@ async def main(*, tenant):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tenant', required=True, help='本次冒烟 Run 的测试身份租户，不改变数据库访问范围')
+    parser.add_argument('--domain-name', required=True, help='本次冒烟 Run 的学校域名')
     arguments = parser.parse_args()
     try:
         from runtime.bootstrap import initialize_runtime
         initialize_runtime()
-        asyncio.run(main(tenant=arguments.tenant))
+        asyncio.run(main(tenant=arguments.tenant, domain_name=arguments.domain_name))
     except Exception:
         sys.exit("Deployment smoke failed; inspect Runtime with authorized diagnostics. Response bodies and credentials withheld.")

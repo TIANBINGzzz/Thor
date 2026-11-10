@@ -27,7 +27,7 @@ def authorization_headers(config, body, scope, *, tenant_id):
               'aud': security.get('runtimeJwtAudience', 'ccsdk-runtime'),
               'iat': now, 'exp': now + 600, 'jti': uuid.uuid4().hex,
               'tenant': tenant_id, 'sub': 'loadtest', 'scope': scope,
-              **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
+              **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef', 'domainName')}}
 
     def encode(value):
         return base64.urlsafe_b64encode(value).rstrip(b'=')
@@ -41,6 +41,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True)
     parser.add_argument('--tenant', required=True, help='本次压测 Run 的测试身份租户')
+    parser.add_argument('--domain-name', required=True, help='本次压测 Run 的学校域名')
     parser.add_argument('--output', required=True)
     parser.add_argument('--concurrency', type=int, required=True)
     parser.add_argument('--rounds', type=int, default=3)
@@ -94,6 +95,7 @@ def main():
         suffix = uuid.uuid4().hex
         body = {'protocol': 'agent-run/v1', 'runId': 'load-' + suffix, 'messageId': 'msg-' + suffix,
                 'businessSessionId': f'load-{batch}-{index}', 'capabilityRef': 'conversation',
+                'domainName': args.domain_name,
                 'input': {'text': 'Compute 17 * 23. Reply only with the number. Do not use tools.'}}
         row = {'index': index, 'round': round_number, 'runId': body['runId'], 'success': False, 'response': '', 'ttft_s': None}
         route = '/internal/v1/runs/' + body['runId']

@@ -43,7 +43,7 @@ def file_response(chunk, count, *, gate=None, started=None, complete=True):
 class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.enterContext(patch('runtime.file_download.file_service_config', return_value={
-            'baseUrl': 'https://files.test', 'domainName': 'routing.test',
+            'baseUrl': 'https://files.test',
             'remoteUrl': 'https://public.test', 'downloadPath': '/file/{fileId}/download',
             'maxFileBytes': 1024 * 1024 * 1024, 'timeoutSeconds': 600,
         }))
@@ -52,7 +52,8 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         """业务 payload 中的文件 ID 不能替代授权附件引用。"""
         request = AgentRunRequest.from_dict({
             "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
-            "capabilityRef": "conversation", "input": {}, "payload": {"fileId": "file-id"},
+            "capabilityRef": "conversation", "domainName": "school.example.test",
+            "input": {}, "payload": {"fileId": "file-id"},
         })
         with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileDownloader") as downloader:
             result = await server._fetch_run_files(request, Path(folder))
@@ -64,6 +65,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         request = AgentRunRequest.from_dict({
             "protocol": "agent-run/v1", "runId": "run-file", "messageId": "msg-file",
             "businessSessionId": "session-file", "capabilityRef": "conversation",
+            "domainName": "school.example.test",
             "input": {"text": "read", "attachmentRefs": [{"fileId": "file-id", "purpose": "input"}]},
         })
         with tempfile.TemporaryDirectory() as folder, patch.object(server, "FileDownloader") as downloader, \
@@ -94,7 +96,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         response = file_response(chunk, 3)
         response.stream = SlowStream()
         with tempfile.TemporaryDirectory() as folder:
-            downloader = FileDownloader(progress_sink=progress,
+            downloader = FileDownloader(domain_name='school.example.test', progress_sink=progress,
                                 transport=httpx.MockTransport(lambda _: response))
             task = asyncio.create_task(downloader.fetch_all([AttachmentRef("file-1")], workspace=folder))
             try:
@@ -119,7 +121,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 if event["name"] in {"downloading_file", "validating_file"}:
                     self.assertFalse((root / "template.docx").exists())
 
-            downloader = FileDownloader(progress_sink=progress,
+            downloader = FileDownloader(domain_name='school.example.test', progress_sink=progress,
                                 transport=httpx.MockTransport(lambda _: file_response(chunk, 104)))
             files = await downloader.fetch_all([AttachmentRef("file-1")], workspace=root)
             self.assertEqual(files[0].path.stat().st_size, 104 * 1024 * 1024)
@@ -133,7 +135,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         for outcome in ("cancel", "timeout", "truncated"):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as folder:
                 gate, started = asyncio.Event(), asyncio.Event()
-                downloader = FileDownloader(transport=httpx.MockTransport(
+                downloader = FileDownloader(domain_name='school.example.test', transport=httpx.MockTransport(
                     lambda _: file_response(b"x" * 262144, 2, gate=gate,
                                             started=started if outcome != "truncated" else None,
                                             complete=outcome != "truncated")))
@@ -157,6 +159,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 store = RunStore(":memory:")
                 request = AgentRunRequest.from_dict({"protocol": "agent-run/v1", "runId": "run-1",
                     "messageId": "msg-1", "capabilityRef": "conversation", "businessSessionId": "session-1",
+                    "domainName": "school.example.test",
                     "input": {"text": "read", "attachmentRefs": [{"fileId": "file-1"}]}})
                 store.create_run("run-1", request=request, tenant_id="t", user_id="u")
                 gate, started = asyncio.Event(), asyncio.Event()
@@ -216,6 +219,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 store = RunStore(":memory:")
                 request = AgentRunRequest.from_dict({"protocol": "agent-run/v1", "runId": "run-1",
                     "messageId": "msg-1", "capabilityRef": "conversation",
+                    "domainName": "school.example.test",
                     "input": {"text": "hello", "attachmentRefs": attachments}})
                 store.create_run("run-1", request=request, tenant_id="t", user_id="u")
                 calls = []
@@ -252,10 +256,12 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     claims = {"iss": server.RUNTIME_JWT_ISSUER, "aud": server.RUNTIME_JWT_AUDIENCE,
                               "iat": int(time.time()), "exp": int(time.time()) + 60, "jti": uuid.uuid4().hex,
                               "sub": "u", "tenant": "t", "runId": "run-1", "messageId": "msg-1",
-                              "capabilityRef": "conversation", "scope": scope}
+                              "capabilityRef": "conversation", "domainName": "school.example.test",
+                              "scope": scope}
                     return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-secret")}
                 body = {"protocol": "agent-run/v1", "runId": "run-1", "messageId": "msg-1",
-                        "capabilityRef": "conversation", "input": {"text": "read",
+                        "capabilityRef": "conversation", "domainName": "school.example.test",
+                        "input": {"text": "read",
                         "attachmentRefs": [{"fileId": "file-1"}]}}
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
                                     DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUNTIME_JWT_SECRET="test-secret",

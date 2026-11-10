@@ -70,7 +70,7 @@ class ModelSettingsTests(unittest.TestCase):
         import server
         from runtime.protocol import AgentRunRequest
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'model-config',
-            'messageId': 'm1', 'input': {'text': 'hello'}})
+            'messageId': 'm1', 'domainName': 'school.example.test', 'input': {'text': 'hello'}})
         with tempfile.TemporaryDirectory() as folder:
             settings = runtime_settings.load_model_settings(self.config(folder))
             with patch.object(server, 'DEFAULT_MODEL', settings.default):

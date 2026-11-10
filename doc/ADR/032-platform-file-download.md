@@ -14,7 +14,7 @@
 
 ## 决策
 
-- Java在创建Run前授权文件引用；Python默认从fileService配置读取baseUrl、domainName、remoteUrl和含fileId的downloadPath，输入下载与上传共用配置解析。
+- Java在创建Run前授权文件引用，并将当前学校domainName写入Run请求及JWT；Python从可信配置读取baseUrl、remoteUrl和含fileId的downloadPath，域名随Run保存并用于输入下载和成果上传。
 - 不转发Run JWT、业务Token、Cookie，不跟随重定向，不从backendService猜测Broker地址；2026-11-06按用户确认删除显式Java Broker及相关配置，无其他下载通道。
 - 支持编码中文文件名，流式限额、长度校验及原子落盘；无服务端摘要时只记录实际SHA-256，不宣称远端指纹一致。
 - 复用每轮输入准备和终态清理，模板作为授权附件进入同一撰写能力；模板库、版本及持久原件仍归Java，不在Python另建模板库。

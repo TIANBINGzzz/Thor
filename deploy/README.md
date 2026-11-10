@@ -8,7 +8,7 @@
 
 安装 requirements.txt，从 config/application.example.yml 准备完整 config/application.yml；按带注释的 Nacos 客户模板填入配置中心。本机文件已保留真实值，不提交、不进镜像。只加载 YAML，不加载 env 或 .local 覆盖。python python/server.py 或 npm start 启动，监听地址/端口取 application.server。
 
-回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，参数见 `--help`；单元测试不能代替真实模型、Java 授权和成稿验收。
+回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，必须传本次获准的 `--tenant` 和 `--domain-name`；单元测试不能代替真实模型、Java 授权和成稿验收。
 
 文档编辑依赖 OfficeCLI，版本、来源和校验值见 [构建依赖](vendor/officecli/README.md)。Linux 镜像内置 LibreOffice/PDFium；Windows 开发先构建 `docker build --target document-renderer -t ccsdkscribe-renderer:local .`，可在 application.tools.render-image 指定镜像。渲染复测入口为 `scripts/benchmark-document.py`。
 
@@ -51,7 +51,7 @@ Nacos runtime.observability.enabled 控制采集；开启后采集脱敏事件�
 
 ## 回归题目与验收
 
-自动测试输入在 `python/tests/test_*.py` 及其夹具；基础模型冒烟题在 `deploy/smoke.py`。真实能力回归统一使用下列来源，不自动并入 `npm test` 或云效构建；每次完整能力回归包含两套问数题库、简单撰写及预热池6并发观测，专项抽测须列出选题及未测范围。
+自动测试输入在 `python/tests/test_*.py` 及其夹具；基础模型冒烟题在 `deploy/smoke.py`。真实能力回归统一使用下列来源，不自动并入 `npm test` 或云效构建；每次完整能力回归包含两套问数题库、简单撰写及预热池6并发观测，专项抽测须列出选题及未测范围。创建 Run 时须同时传本次学校的 `domainName`，冒烟与压测脚本以 `--domain-name` 接收。
 
 | 能力 | 题目来源 | 预期结果 |
 | --- | --- | --- |

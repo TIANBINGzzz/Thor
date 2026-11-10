@@ -168,6 +168,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.body = {
             "protocol": "agent-run/v1", "runId": "run-test", "messageId": "msg-test",
             "businessSessionId": "session-test", "capabilityRef": "conversation",
+            "domainName": "school.example.test",
             "input": {"text": "hello"},
             "credentials": {"platformBearer": "business-token"},
         }
@@ -196,6 +197,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             "sub": "user-test", "tenant": "tenant-test", "runId": "run-test",
             "capabilityRef": "conversation", "businessSessionId": "session-test",
             "messageId": "msg-test", "scope": scope,
+            "domainName": "school.example.test",
         }
         claims.update(overrides)
         return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-runtime-secret")}
@@ -228,6 +230,13 @@ class RuntimeHTTPTests(unittest.TestCase):
             await server.ARTIFACT_DELIVERY.wait('run-test')
         asyncio.run(register())
         return server.ARTIFACT_DELIVERY.list('run-test')[0]
+
+    def test_run_idempotency_binds_domain_name(self):
+        self.seed()
+        changed = dict(self.body, domainName='other-school.example.test')
+        request = AgentRunRequest.from_dict(changed)
+        with self.assertRaisesRegex(PermissionError, 'Run request mismatch'):
+            self.store.create_run('run-test', request=request, tenant_id='tenant-test', user_id='user-test')
 
     def test_observation_requires_observation_jwt_and_business_reports_stay_identity_bound(self):
         self.seed()

@@ -55,6 +55,8 @@ memory_limit=$(docker inspect --format '{{.HostConfig.Memory}}' "$container_id")
 [ "$pids_limit" -gt 0 ] || { echo 'Runtime container must have a positive PID limit.' >&2; exit 1; }
 [ "$memory_limit" -gt 0 ] || { echo 'Runtime container must have a positive memory limit.' >&2; exit 1; }
 if [ "${CCSDK_SMOKE_TEST:-0}" = 1 ]; then
-    docker compose "$@" exec -T runtime python /app/deploy/smoke.py --tenant "${CCSDK_SMOKE_TENANT:?Set an explicit smoke test identity}"
+    docker compose "$@" exec -T runtime python /app/deploy/smoke.py \
+        --tenant "${CCSDK_SMOKE_TENANT:?Set an explicit smoke test identity}" \
+        --domain-name "${CCSDK_SMOKE_DOMAIN_NAME:?Set the smoke test school domain}"
 fi
 echo 'Deployment healthy. Java file authorization and business data acceptance remain separate checks.'

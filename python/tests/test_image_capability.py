@@ -50,7 +50,8 @@ class ImageCapabilityTests(unittest.TestCase):
         self.assertFalse(hasattr(resolve_capability('image-generation'), 'workflow_ref'))
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'image-test',
             'messageId': 'msg-test', 'businessSessionId': 'session-test',
-            'capabilityRef': 'image-generation', 'input': {'text': '参考此图生成两张插画',
+            'capabilityRef': 'image-generation', 'domainName': 'school.example.test',
+            'input': {'text': '参考此图生成两张插画',
             'attachmentRefs': [{'fileId': 'reference-1', 'purpose': 'input'}]}})
         self.assertEqual(request.input.attachment_refs[0].file_id, 'reference-1')
 
@@ -101,9 +102,10 @@ class ImageCapabilityTests(unittest.TestCase):
                     self.assertEqual(image.size, (32, 24))
             self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', {
                 'fileService': {'baseUrl': 'https://files.test',
-                    'domainName': 'routing.test', 'remoteUrl': 'https://public.test'}}))
+                    'remoteUrl': 'https://public.test'}}))
             store = RunStore(':memory:')
-            store.create_run('images-run', tenant_id='tenant', user_id='user')
+            store.create_run('images-run', tenant_id='tenant', user_id='user',
+                             metadata={'domainName': 'school.example.test'})
             uploaded = []
             states = []
             def upload(request):

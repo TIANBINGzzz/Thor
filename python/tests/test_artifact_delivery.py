@@ -25,9 +25,10 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.root = Path(self.temp.name)
         self.store = RunStore(self.root / 'runs.sqlite3')
         self.addCleanup(self.store.close)
-        self.store.create_run('run_01', tenant_id='tenant', user_id='user')
+        self.store.create_run('run_01', tenant_id='tenant', user_id='user',
+                              metadata={'domainName': 'sc1.ai.stringedu.com'})
         self.config = {'fileService': {
-            'baseUrl': 'https://files.example.test', 'domainName': 'routing.example.test',
+            'baseUrl': 'https://files.example.test',
             'remoteUrl': 'https://public.example.test',
         }}
         self.enterContext(patch('runtime.nacos_config.fetch_config', return_value=self.config))
@@ -64,7 +65,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.requests), 1)
         request = self.requests[0]
         self.assertEqual(str(request.url), 'https://files.example.test/fwk_manage_service/sys_attachment/ai/upload/')
-        self.assertEqual(request.headers['domain-name'], 'routing.example.test')
+        self.assertEqual(request.headers['domain-name'], 'sc1.ai.stringedu.com')
         self.assertEqual(request.headers['remote-url'], 'https://public.example.test')
         self.assertNotIn('authorization', request.headers)
         self.assertIn(b'name="file"', request.content)

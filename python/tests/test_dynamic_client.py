@@ -174,7 +174,8 @@ class ConnectionFingerprintTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root, patch.object(server, 'CLIENT_SESSION_ROOT', Path(root)):
             blank = server._blank_client_payload()
             request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'r',
-                'messageId': 'm', 'businessSessionId': 's', 'input': {'text': 'hello'}})
+                'messageId': 'm', 'businessSessionId': 's', 'domainName': 'school.example.test',
+                'input': {'text': 'hello'}})
             actual = server._internal_worker_payload(request, Path(root) / 'run',
                 runtime_mode='client', session_directory=Path(blank['session_directory']))
             self.assertEqual(blank['_client_connection_fingerprint'], client_connection_fingerprint(actual))

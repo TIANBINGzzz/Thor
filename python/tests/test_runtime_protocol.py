@@ -4,11 +4,24 @@ from runtime.protocol import AgentRunRequest, ProtocolError
 
 class RuntimeProtocolTests(unittest.TestCase):
     def payload(self):
-        return {"protocol":"agent-run/v1","runId":"run-1","messageId":"msg-1","capabilityRef":"document-writing","input":{"text":"写文档"}}
+        return {"protocol":"agent-run/v1","runId":"run-1","messageId":"msg-1","capabilityRef":"document-writing","domainName":"sc1.ai.stringedu.com","input":{"text":"写文档"}}
     def test_capability_request(self):
         request=AgentRunRequest.from_dict(self.payload())
         self.assertEqual(request.capability_ref,"document-writing")
+        self.assertEqual(request.domain_name,"sc1.ai.stringedu.com")
+        self.assertEqual(request.to_dict()["domainName"],"sc1.ai.stringedu.com")
         self.assertNotIn("credentials",request.to_dict())
+
+    def test_domain_name_is_required_and_must_be_a_dns_host(self):
+        for value in (None, "", "school.example/path", "-bad.example", "school..example", "school.example\r\nX: y"):
+            with self.subTest(domain_name=value):
+                body = self.payload()
+                if value is None:
+                    body.pop("domainName")
+                else:
+                    body["domainName"] = value
+                with self.assertRaises(ProtocolError):
+                    AgentRunRequest.from_dict(body)
     def test_conversation_omits_capability_and_cannot_select_tools(self):
         from runtime.capabilities import resolve_capability
         body=self.payload()
@@ -54,6 +67,7 @@ class RuntimeJWTTests(unittest.TestCase):
             'aud': 'ccsdk-runtime', 'iat': 99, 'exp': expires, 'jti': jti,
             'sub': 'user', 'tenant': 'tenant', 'scope': 'run.execute',
             'runId': 'run-1', 'capabilityRef': 'document-writing',
+            'domainName': 'sc1.ai.stringedu.com',
         }, 'test-secret')
 
     def test_full_replay_cache_preserves_unexpired_grants_until_expiry(self):
@@ -81,8 +95,22 @@ class RuntimeJWTTests(unittest.TestCase):
                 with self.assertRaisesRegex(JWTError, 'capabilityRef mismatch'):
                     verify_run_jwt(token, 'test-secret', body=body, replay_cache=cache, now=100)
                 claims = verify_run_jwt(token, 'test-secret', replay_cache=cache, now=100,
-                                        body={'runId': 'run-1', 'capabilityRef': 'document-writing'})
+                                        body={'runId': 'run-1', 'capabilityRef': 'document-writing',
+                                              'domainName': 'sc1.ai.stringedu.com'})
                 self.assertEqual(claims['capabilityRef'], 'document-writing')
+
+    def test_jwt_binds_file_domain_to_run_body(self):
+        token = self.token('domain')
+        with self.assertRaisesRegex(JWTError, 'domainName mismatch'):
+            verify_run_jwt(token, 'test-secret', now=100, body={
+                'runId': 'run-1', 'capabilityRef': 'document-writing',
+                'domainName': 'other-school.example',
+            })
+        claims = verify_run_jwt(token, 'test-secret', now=100, body={
+            'runId': 'run-1', 'capabilityRef': 'document-writing',
+            'domainName': 'sc1.ai.stringedu.com',
+        })
+        self.assertEqual(claims['domainName'], 'sc1.ai.stringedu.com')
 
 
 if __name__ == "__main__": unittest.main()

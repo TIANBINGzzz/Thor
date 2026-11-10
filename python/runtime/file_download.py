@@ -18,7 +18,7 @@ import uuid
 
 import httpx
 
-from runtime.file_service import FileServiceError, file_service_config
+from runtime.file_service import FileServiceError, file_service_config, with_run_domain
 from runtime.protocol import SAFE_ID
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
@@ -149,12 +149,13 @@ def _filename(headers: httpx.Headers) -> str:
 class FileDownloader:
     """只下载可信 Java 本轮提交的附件引用；文件 ACL 由 Java 提交前校验。"""
 
-    def __init__(self, *, max_bytes: int | None = None, timeout_ms: int | None = None,
+    def __init__(self, *, domain_name: str,
+                 max_bytes: int | None = None, timeout_ms: int | None = None,
                  transport: httpx.AsyncBaseTransport | None = None,
                  event_sink: EventSink | None = None,
                  progress_sink: ProgressSink | None = None) -> None:
         try:
-            self.file_service = file_service_config(download=True)
+            self.file_service = with_run_domain(file_service_config(download=True), domain_name)
         except FileServiceError as error:
             if error.code != "file_service_not_configured":
                 raise FileDownloadConfigurationError() from None

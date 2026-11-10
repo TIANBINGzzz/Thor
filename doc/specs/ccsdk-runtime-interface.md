@@ -63,7 +63,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 ## 7. 鉴权模块
 
-- Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
+- Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。JWT 与 Run 请求同时绑定 domainName，文件路由使用已授权的 Run 值。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导正文携带新 messageId，Python 校验其格式及不与触发消息冲突；普通查询与控制不绑定触发消息的 messageId。
 - 创建、引导、控制和取消统一使用 run.execute；读取使用 run.read/run.execute。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
 - credentials.platformBearer 是 Java 认证后透传的业务 Token，只向登记目标注入；数据库 self 每轮解析其中的 tenantId，按所选来源的 access.tenantIds 生成学校范围，见[数据库边界](data-source-connections.md#查询边界)。Run JWT 的 tenant/sub 绑定执行归属，不来自部署固定值；业务 Token 不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
@@ -73,7 +73,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Python 只下载本轮显式引用；后续再次使用仍须提交引用，不扫描文件库或从正文猜 ID。
 
-唯一通道使用可信 fileService 的 baseUrl/domainName/remoteUrl/downloadPath；字段见 [配置说明](../../config/README.md)。只发送部署路由头，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
+唯一通道使用可信 fileService 的 baseUrl/remoteUrl/downloadPath 和限额；学校 domainName 随 Java 创建 Run 提交，并与 JWT 绑定，RunStore 保存于 runs.metadata_json 供文件上传重试恢复。下载及上传只发送本 Run 的 domain-name 与部署 remote-url，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
 
 输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
 

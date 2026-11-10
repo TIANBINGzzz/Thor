@@ -29,7 +29,6 @@ databases: # 客户部署启用的数据库来源，名称须与资产 source_ke
       dynamic_sql_enabled: true # 允许受 SQL AST 校验和客户过滤保护的只读动态查询。
 fileService: # Java 附件下载与成果上传服务。
   baseUrl: "https://files.example.com" # 附件服务根地址。
-  domainName: "files.example.com" # 附件接口需要的客户域名参数。
   remoteUrl: "https://files.example.com" # 成果上传接口使用的远端地址参数。
   downloadPath: "/fwk_manage_service/sys_attachment/{fileId}/ai/download/" # 下载路由，保留 fileId 占位符。
   timeoutSeconds: 600 # 文件服务单次请求超时，范围为 1–3600 秒。

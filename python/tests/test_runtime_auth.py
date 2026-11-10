@@ -17,6 +17,7 @@ class RuntimeAuthorizationTests(unittest.TestCase):
         self.request = AgentRunRequest.from_dict({
             'protocol': 'agent-run/v1', 'runId': 'auth-run', 'messageId': 'auth-message',
             'businessSessionId': 'auth-session', 'capabilityRef': 'conversation',
+            'domainName': 'school.example.test',
             'input': {'text': 'hello'},
         })
         self.store = RunStore(':memory:')
@@ -44,6 +45,7 @@ class RuntimeAuthorizationTests(unittest.TestCase):
             'iss': 'test-java', 'aud': 'ccsdk-runtime', 'iat': now, 'exp': now + 60,
             'jti': uuid.uuid4().hex, 'sub': 'user', 'tenant': 'tenant', 'scope': scope,
             'runId': 'auth-run', 'capabilityRef': 'conversation',
+            'domainName': 'school.example.test',
             'businessSessionId': 'auth-session', 'messageId': 'auth-message',
         }
         claims.update(identity)

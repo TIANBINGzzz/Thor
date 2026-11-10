@@ -25,7 +25,6 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         (self.root / 'input').mkdir()
         self.settings = {'fileService': {
             'baseUrl': 'https://files.example.test',
-            'domainName': 'routing.example.test',
             'remoteUrl': 'https://public.example.test',
             'downloadPath': '/fwk_manage_service/sys_attachment/{fileId}/ai/download/',
         }}
@@ -33,6 +32,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.dict('os.environ', {}, clear=True))
 
     async def fetch(self, handler, refs=None, **kwargs):
+        kwargs.setdefault('domain_name', 'routing.example.test')
         downloader = FileDownloader(transport=httpx.MockTransport(handler), **kwargs)
         return await downloader.fetch_all(refs or [AttachmentRef('file_1', 'reference')],
                                          workspace=self.root / 'input')
@@ -51,13 +51,14 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                 'content-type': 'application/octet-stream',
                 'content-disposition': 'attachment;filename=%E6%A8%A1%E6%9D%BF+1.docx'})
 
-        files = await self.fetch(handler, event_sink=lambda kind, data: events.append((kind, data)))
+        files = await self.fetch(handler, event_sink=lambda kind, data: events.append((kind, data)),
+                                 domain_name='sc1.ai.stringedu.com')
         self.assertEqual(len(requests), 1)
         request = requests[0]
         self.assertEqual(request.method, 'GET')
         self.assertEqual(str(request.url),
             'https://files.example.test/fwk_manage_service/sys_attachment/file_1/ai/download/')
-        self.assertEqual(request.headers['domain-name'], 'routing.example.test')
+        self.assertEqual(request.headers['domain-name'], 'sc1.ai.stringedu.com')
         self.assertEqual(request.headers['remote-url'], 'https://public.example.test')
         self.assertNotIn('authorization', request.headers)
         self.assertEqual(request.content, b'')
@@ -163,6 +164,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
                 self.addCleanup(store.close)
                 request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'run_1',
                     'messageId': 'msg_1', 'capabilityRef': 'document-writing',
+                    'domainName': 'sc1.ai.stringedu.com',
                     'input': {'text': '根据模板撰写会议纪要，仅使用提供的材料。',
                               'attachmentRefs': [{'fileId': 'file_1', 'purpose': 'reference'}]}})
                 store.create_run('run_1', request=request, tenant_id='tenant', user_id='user')
@@ -222,12 +224,14 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
             ('downloadPath', '/file/{fileId}?extra=1'),
             ('downloadPath', '/file/static'),
             ('downloadPath', '/file/../{fileId}'),
-            ('domainName', 'host\r\ninjected: true'),
             ('baseUrl', 'https://files.test:invalid'),
         ):
             with self.subTest(field=field, value=value):
                 original = self.settings['fileService'][field]
                 self.settings['fileService'][field] = value
                 with self.assertRaises(FileDownloadConfigurationError):
-                    FileDownloader()
+                    FileDownloader(domain_name='routing.example.test')
                 self.settings['fileService'][field] = original
+        for domain_name in ('host\r\ninjected: true', 'bad host', 'https://school.example'):
+            with self.subTest(domain_name=domain_name), self.assertRaises(FileDownloadConfigurationError):
+                FileDownloader(domain_name=domain_name)

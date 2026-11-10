@@ -103,7 +103,7 @@ def _validated(document, *, worker=False):
                 _endpoint(business, 'url', allow_http=True)
         if not worker and document.get('fileService') is not None:
             from runtime.file_service import validate_file_service_config
-            validate_file_service_config(document['fileService'], download=True)
+            document['fileService'] = validate_file_service_config(document['fileService'], download=True)
         if not worker and document.get('campusMcp') is not None:
             campus = document['campusMcp']
             _endpoint(campus, 'url', allow_http=True)

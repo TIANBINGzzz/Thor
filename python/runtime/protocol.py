@@ -15,6 +15,8 @@ MAX_STEERING_TEXT_LENGTH = 16_384
 MAX_TOKEN_LENGTH = 16_384
 MAX_PAYLOAD_BYTES = 65_536
 SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
+DOMAIN_LABEL = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+DOMAIN_NAME = re.compile(rf"{DOMAIN_LABEL}(?:\.{DOMAIN_LABEL})*")
 
 
 class ProtocolError(ValueError):
@@ -78,6 +80,13 @@ def _id(value: Any, name: str, *, required: bool = True) -> str | None:
         return None
     if not isinstance(value, str) or not SAFE_ID.fullmatch(value):
         raise ProtocolError(f"{name} must contain only letters, digits, '_' or '-'")
+    return value
+
+
+def _domain_name(value: Any) -> str:
+    """校验请求级文件路由域名，拒绝 URL、端口、空白和非法 DNS 标签。"""
+    if not isinstance(value, str) or len(value) > 253 or not DOMAIN_NAME.fullmatch(value):
+        raise ProtocolError("domainName is invalid")
     return value
 
 
@@ -188,6 +197,7 @@ class AgentRunRequest:
     run_id: str
     message_id: str
     capability_ref: str | None
+    domain_name: str
     input: Input
     business_session_id: str | None = None
     credentials: Credentials = field(default_factory=Credentials)
@@ -199,7 +209,7 @@ class AgentRunRequest:
         data = _object(value, "request")
         _keys(
             data,
-            {"protocol", "runId", "messageId", "businessSessionId", "capabilityRef", "input", "credentials", "payload"},
+            {"protocol", "runId", "messageId", "businessSessionId", "capabilityRef", "domainName", "input", "credentials", "payload"},
             "request",
         )
         if data.get("protocol") != PROTOCOL:
@@ -210,6 +220,7 @@ class AgentRunRequest:
             message_id=_id(data.get("messageId"), "messageId") or "",
             business_session_id=_id(data.get("businessSessionId"), "businessSessionId", required=False),
             capability_ref=_id(data.get("capabilityRef"), "capabilityRef", required=False),
+            domain_name=_domain_name(data.get("domainName")),
             input=Input.from_dict(data.get("input")),
             credentials=Credentials.from_dict(data.get("credentials")),
             payload=_payload(data.get("payload", {})),
@@ -226,6 +237,7 @@ class AgentRunRequest:
             "messageId": self.message_id,
             "businessSessionId": self.business_session_id,
             "capabilityRef": self.capability_ref,
+            "domainName": self.domain_name,
             "input": self.input.to_dict(),
             "payload": self.payload,
         }

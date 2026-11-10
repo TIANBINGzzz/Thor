@@ -14,7 +14,7 @@ from pathlib import Path
 
 import httpx
 
-from runtime.file_service import FileServiceError as DeliveryError, file_service_config
+from runtime.file_service import FileServiceError as DeliveryError, file_service_config, with_run_domain
 from runtime.event_display import with_display_name
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
@@ -216,7 +216,9 @@ class ArtifactDelivery:
         last_failure = None
         try:
             configured = time.perf_counter()
-            config = await asyncio.to_thread(file_service_config)
+            run = self.store.get_run(record['runId'])
+            domain_name = (run or {}).get('metadata', {}).get('domainName')
+            config = with_run_domain(await asyncio.to_thread(file_service_config), domain_name)
             self._observe(record, 'artifact.configured', elapsedMs=(time.perf_counter()-configured)*1000)
             await self._state(record, 'uploading')
             async with asyncio.timeout(config['timeoutSeconds']):
