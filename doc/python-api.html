@@ -338,7 +338,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
   }
 }</pre></div>
 <p>Python 的内部图表工具校验标签与数值后生成 Mermaid，由模型安排正文位置；Runtime在终态前核对完整图块并补齐遗漏结果，已出现的同一图表不重复追加。工具参数不是 Java 请求字段，不能放进 payload。当前每张图一个数值系列，两类柱状图、折线图和矩形树图最多 50 项，饼图最多 12 项，雷达图 3–12 项；折线图至少 2 点。数值绝对值不超过 10<sup>15</sup>，不接受 null、布尔值、数字字符串或非有限数值；分类标签不能重复。饼图合计须大于 0，且每个正值占比至少 1%（当前渲染器会省略更小的扇区）；不符合时改用柱状图或表格，不能删除或擅自合并小项。雷达图上限取本组最大值（全零时为1），不代表满分；矩形树图不接受零值，极小分类应在正文补充原始数字。不得擅自改数或截断数据。</p>
-<p><strong>正文事件仍为 message.delta。</strong>textDelta 是本次新增的原始 Markdown，围栏与图表代码可能分散在多个事件中；以下把一块放在单个事件里只是便于阅读。工具状态仍是 tool.started / progress / finished，公开分类为 <code>chart.generate</code>，显示名称为“生成图表”。</p>
+<p><strong>正文事件仍为 message.delta。</strong>textDelta 是本次新增的原始 Markdown，围栏与图表代码可能分散在多个事件中；以下把一块放在单个事件里只是便于阅读。工具阶段使用 phase（name=working），公开分类为 <code>chart.generate</code>，显示名称为“生成图表”；连续同名阶段合并，工具结束不回退状态。</p>
 <div class="code-wrap"><div class="code-label">事件 JSON · 图表作为正文发送</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
   "runId": "run_chart_01",
@@ -562,52 +562,30 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <h3>显示名称由 Python 提供</h3>
 <p>所有事件的 payload 都带字符串 <code>displayName</code>。前端直接使用这个名称，无需自己维护工具名称或状态名称字典。<strong>displayName 为 "" 时，只是不显示这条事件的状态提示，不能丢弃整个事件。</strong>正文仍需追加、文件记录仍需更新、Run 结束仍需停止加载；已有聊天组件处理正文时，不要再追加一次。</p>
 <table><thead><tr><th>字段</th><th>含义</th><th>前端如何使用</th></tr></thead><tbody>
-<tr><td>type</td><td>发生了什么，例如 tool.started 或 message.delta。</td><td>决定这条事件要更新正文、工具、文件还是整次请求。</td></tr>
+<tr><td>type</td><td>发生了什么，例如 phase 或 message.delta。</td><td>决定这条事件要更新正文、阶段、文件还是整次请求。</td></tr>
 <tr><td>payload.displayName</td><td>Python 字典提供的中文显示名称，允许空字符串；不是模型自由生成的文字。</td><td>非空时显示状态名称；空字符串时不新增状态提示。不用于判断成功或失败。</td></tr>
-<tr><td>payload.toolKey</td><td>仅工具事件包含，稳定的公开工具分类，例如 data.query；不是内部工具名，也不授予调用权限。</td><td>可用于选择图标。多次查询可能有相同 toolKey，不能用它区分每次调用。</td></tr>
-<tr><td>payload.toolCallId</td><td>上游提供时返回，标识这一次工具调用。</td><td>同一 Run 内结合 scope 关联开始、进行中和结束；不同 Run 不共用调用记录。</td></tr>
+<tr><td>payload.toolKey</td><td>working 阶段携带的公开工具分类，例如 data.query；不是内部工具名，也不授予调用权限。</td><td>可用于选择图标。多次查询可能有相同 toolKey，不能用它区分每次调用。</td></tr>
 </tbody></table>
 <p>MCP 操作到公开 toolKey 的映射由可信 <code>.claude/tools/*/tool.json.displayKeys</code> 维护，按当前资产解析；内置 SDK 工具映射及安全中文名称仍在 <code>python/runtime/event_display.py</code>，代码修改需重新部署。TOOL_DISPLAY_NAMES 维护工具名称，PHASE_DISPLAY_NAMES 维护阶段名称，EVENT_DISPLAY_NAMES 维护其余事件名称。把名称设为空字符串即可隐藏状态提示。回放也按当前映射显示，未知工具固定为 toolKey=other、displayName=""。内部 toolName 不再对外返回，旧记录回放同样移除它；没有公开分类的旧工具事件默认隐藏。</p>
-<p>例如查询工具的名称是“查询业务数据”；开始、进行中、结束分别由 status=started/running/finished 表示，结束是否报错看 isError。前端可呈现“查询业务数据 · 处理中 / 已完成 / 失败”，不需要把内部 MCP 名称发给浏览器。名称为空时也需关闭之前已经显示的同一次调用状态。</p>
-<div class="code-wrap"><div class="code-label">事件 JSON · 查询工具开始</div><button class="copy" type="button">复制</button><pre>{
+<p>Python 将可见工具开始转换为 <code>phase</code>（<code>name=working</code>），同一 Run 相邻同名纯状态只发送一次。工具结束、进度和思考增量不再触发公共状态；提示沿用到其他业务阶段或 Run 终态。完整工具生命周期仍在私有观测中按 Run、scope、调用 ID 关联。正文、文件进度和成果事件不受合并影响。</p>
+<div class="code-wrap"><div class="code-label">事件 JSON · 查询业务阶段</div><button class="copy" type="button">复制</button><pre>{
   "protocolVersion": "agent-events/v1",
   "runId": "run_01",
   "sequence": 5,
   "eventId": "evt_05",
   "occurredAt": 1725400001600,
-  "type": "tool.started",
+  "type": "phase",
   "payload": {
-    "toolCallId": "call_01",
+    "name": "working",
     "toolKey": "data.query",
-    "displayName": "查询业务数据",
-    "status": "started",
-    "scope": "main"
-  }
-}</pre></div>
-<div class="code-wrap"><div class="code-label">事件 JSON · 不展示状态的工具结束</div><button class="copy" type="button">复制</button><pre>{
-  "protocolVersion": "agent-events/v1",
-  "runId": "run_01",
-  "sequence": 6,
-  "eventId": "evt_06",
-  "occurredAt": 1725400001700,
-  "type": "tool.finished",
-  "payload": {
-    "toolCallId": "call_02",
-    "toolKey": "task.plan",
-    "displayName": "",
-    "status": "finished",
-    "scope": "main",
-    "isError": false
+    "displayName": "查询业务数据"
   }
 }</pre></div>
 <p>常用默认名称：data.query → 查询业务数据，document.process → 处理文档，document.preview → 生成文档预览，image.generate → 生成或编辑图片，file.publish → 提交生成文件。通用命令执行、内部规划、资料检索等默认隐藏状态名称；只改变展示，不关闭工具能力，也不代表已实现模型生成的任务规划说明。</p>
 <table><thead><tr><th>事件 type / 什么时候收到</th><th>payload 字段是什么意思</th><th>前端怎么处理</th></tr></thead><tbody>
-<tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>初始提示为“正在思考”，表示本轮正在处理，不代表模型已经启动。模型思考增量不再生成公共状态事件。</td></tr>
+<tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>displayName 为空；开始处理不代表模型已经启动。初始“正在思考”由 model_starting 阶段发送。</td></tr>
 <tr><td><code>phase</code><br>当前处理步骤有变化</td><td><code>name</code> 是步骤名称，取值见下表。不包含模型思考内容。</td><td>displayName 非空时更新步骤提示；不要把步骤名加进回答正文。</td></tr>
 <tr><td><code>message.delta</code><br>收到一小段新回答</td><td><code>textDelta</code> 是这次新生成的文字，不是完整回答。例如本次是“你好”，下次可能是“，有什么可以帮你？”。</td><td>把这段文字加在已有回答的末尾，效果像逐字显示。按 sequence 的顺序处理，同一条事件只加一次，详见下面示例。</td></tr>
-<tr><td><code>tool.started</code><br>开始调用一个工具</td><td><code>toolCallId</code> 是调用 ID（上游提供时返回）；<code>toolKey</code> 是公开分类；<code>displayName</code> 是显示名称；<code>status: "started"</code> 表示开始。</td><td>displayName 非空时显示该工具正在处理；空字符串时不新增工具提示。工具状态与正文分开显示。</td></tr>
-<tr><td><code>tool.progress</code><br>工具报告自己仍在执行</td><td>调用 ID、分类和名称同上；<code>status: "running"</code> 表示未结束。不包含完成百分比，Python 会按调用 ID 补齐已知名称。</td><td>更新该工具的处理中状态。并非每次调用都会收到此事件，没有收到不等于卡住。</td></tr>
-<tr><td><code>tool.finished</code><br>这一次工具调用结束</td><td><code>status: "finished"</code> 表示结束；<code>isError: true</code> 表示这次工具调用报错，false 表示未报告错误；调用 ID、分类和名称同上。</td><td>结束该工具的加载状态，非空名称才展示提示。一次工具失败不代表整次请求失败，模型可能继续处理。</td></tr>
 <tr><td><code>artifact.pending</code><br>最终文件已提交给 Python</td><td>文件 ID、名称、大小等，<code>status: "pending"</code>。Python 已保存这一版文件，等待上传。</td><td>按 artifactId 新建文件卡片，显示“等待上传”，暂不提供远端下载。</td></tr>
 <tr><td><code>artifact.uploading</code><br>Python 开始上传文件</td><td>同一个文件的描述，<code>status: "uploading"</code>。当前没有上传百分比。</td><td>把该卡片改为“正在上传”。不要根据回答里的“已完成”提前启用下载。</td></tr>
 <tr><td><code>artifact.ready</code><br>文件服务确认已保存</td><td><code>status: "ready"</code>；新增 <code>fileId</code>，它是文件服务分配的 ID，不是下载网址。</td><td>Java 将 fileId 关联到本条消息并提供有权限检查的下载入口后，卡片才启用“下载”。</td></tr>
@@ -618,20 +596,17 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td><code>run.cancelled</code><br>本次执行已取消并结束</td><td><code>displayName</code> 默认“已停止”，没有其他业务字段。</td><td>停止加载，非空时显示名称，保留之前收到的文字和文件。该事件不表示删除文件。</td></tr>
 </tbody></table>
 <h3>一段段回答如何显示</h3>
-<p>三个工具事件还带 <code>scope</code>：<code>main</code> 表示主助手，<code>sub:...</code> 表示内部子任务；用于区分工具状态，不是回答文字。它们不返回工具的具体输入或结果内容。</p>
 <p><code>sequence</code> 是同一次 Run 中所有事件的序号，从 1 开始递增。它不是字数，也不是“第几段回答”；工具、步骤和文件事件同样占用序号，所以两段回答的序号可能不连续。</p>
 <table><thead><tr><th>依次收到的事件</th><th>本次操作</th><th>页面上的完整回答</th></tr></thead><tbody>
 <tr><td>sequence=4，message.delta，textDelta 为“你好”</td><td>加入第一段文字</td><td>你好</td></tr>
-<tr><td>sequence=5，tool.started，displayName 为“读取资料”</td><td>只更新状态提示，正文不变</td><td>你好</td></tr>
+<tr><td>sequence=5，phase，displayName 为“读取资料”</td><td>只更新状态提示，正文不变</td><td>你好</td></tr>
 <tr><td>sequence=6，message.delta，textDelta 为“，有什么可以帮你？”</td><td>在末尾接上新文字，不替换已有文字</td><td>你好，有什么可以帮你？</td></tr>
 <tr><td>重连时又收到 sequence=6</td><td>已处理过，忽略这条重复事件</td><td>你好，有什么可以帮你？</td></tr>
 </tbody></table>
 <p>每个 runId 单独保存“最后成功处理的 sequence”。按服务返回的顺序逐条处理，处理成功才更新序号；重连从这个序号继续读取。不要只给 message.delta 计数，也不要自行增加空格或换行，按 textDelta 原文追加。</p>
 <h3>通用处理步骤</h3>
 <table><thead><tr><th>phase.name</th><th>含义与建议显示</th></tr></thead><tbody>
-<tr><td>started</td><td>SDK 已初始化，默认 displayName 为空，不单独显示。它与 run.started 是两个不同层次的通知。</td></tr>
-<tr><td>response</td><td>收到没有正文的回答信号，默认不显示状态；真正要显示的文字看 message.delta。</td></tr>
-<tr><td>working</td><td>收到其他运行活动，默认不显示状态；不能由此推算剩余时间。</td></tr>
+<tr><td>working</td><td>业务工具阶段；toolKey 对应可信 displayName，未知或隐藏工具不发布提示，不能由此推算剩余时间。</td></tr>
 </tbody></table>
 </tbody></table>
 <h3>文件准备进度</h3>

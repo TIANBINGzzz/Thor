@@ -7,10 +7,89 @@ from unittest.mock import patch
 
 import server
 from runtime.run_store import RunStore
-from runtime.event_display import ToolCallDisplays, with_display_name, TOOL_DISPLAY_NAMES
+from runtime.event_display import RunStatusDisplays, ToolCallDisplays, with_display_name, TOOL_DISPLAY_NAMES
 
 
 class EventDisplayTests(unittest.TestCase):
+    def test_public_status_stays_on_tool_until_different_work_or_run_end(self):
+        async def exercise():
+            run_id = 'display-run-1'
+            await server._publish_internal_event(run_id, {
+                'runId': run_id, 'type': 'run.started', 'payload': {'status': 'running'}})
+            await server._run_phase(run_id, {'name': 'model_starting'})
+            await server._run_phase(run_id, {'name': 'model_starting'})
+            for call_id in ('query-1', 'query-2'):
+                for raw in (
+                    {'type': 'tool_use', 'id': call_id, 'name': 'mcp__data__execute_query_spec'},
+                    {'type': 'thinking', 'text': 'private-reasoning'},
+                    {'type': 'tool_progress', 'id': call_id},
+                    {'type': 'tool_result', 'id': call_id, 'text': 'private-data'},
+                    {'type': 'text', 'text': '结果'},
+                ):
+                    await server._handle_agent_event(run_id, raw)
+            await server._handle_agent_event(run_id, {
+                'type': 'tool_use', 'id': 'chart', 'name': 'mcp__charts__build_mermaid'})
+            await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'chart'})
+            await server._run_phase(run_id, {'name': 'model_starting'})
+            await server._publish_internal_event(run_id, {
+                'runId': run_id, 'type': 'run.completed', 'payload': {}})
+        asyncio.run(exercise())
+        events = self.store.events_after('display-run-1')
+        self.assertEqual([e['payload']['displayName'] for e in events if e['payload']['displayName']],
+                         ['正在思考', '查询业务数据', '生成图表', '已完成'])
+        working = [e for e in events if e['type'] == 'phase' and e['payload'].get('name') == 'working']
+        self.assertEqual([e['payload']['toolKey'] for e in working], ['data.query', 'chart.generate'])
+        self.assertTrue(all('toolCallId' not in e['payload'] for e in working))
+        self.assertFalse(any(e['type'].startswith('tool.') for e in events))
+        self.assertEqual(''.join(e['payload'].get('textDelta', '') for e in events), '结果结果')
+        self.assertNotIn('private-', json.dumps(events))
+        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.runs)
+        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.thinking_started)
+
+    def test_scoped_parallel_tools_keep_latest_stage_on_out_of_order_finishes(self):
+        async def exercise():
+            for scope, name in [('main', 'mcp__data__execute_query_spec'), ('sub:task', 'mcp__images__generate')]:
+                await server._handle_agent_event('display-run-1', {
+                    'type': 'tool_use', 'id': 'same-id', 'scope': scope, 'name': name})
+            for scope in ('main', 'sub:task'):
+                await server._handle_agent_event('display-run-1', {
+                    'type': 'tool_result', 'id': 'same-id', 'scope': scope, 'isError': True})
+            await server._publish_internal_event('display-run-1', {
+                'runId': 'display-run-1', 'type': 'run.cancelled', 'payload': {}})
+        asyncio.run(exercise())
+        self.assertEqual([e['payload']['displayName'] for e in self.store.events_after('display-run-1')],
+                         ['查询业务数据', '生成或编辑图片', '已停止'])
+        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.runs)
+
+    def test_hidden_tools_do_not_change_status_and_run_status_is_isolated(self):
+        async def exercise():
+            for run_id in ('display-run-1', 'display-run-2'):
+                await server._run_phase(run_id, {'name': 'model_starting'})
+                await server._handle_agent_event(run_id, {
+                    'type': 'tool_use', 'id': 'query', 'name': 'mcp__data__execute_query_spec'})
+                await server._handle_agent_event(run_id, {
+                    'type': 'tool_use', 'id': 'hidden', 'name': 'private-unknown-tool'})
+                await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'hidden'})
+                await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'query'})
+        asyncio.run(exercise())
+        for run_id in ('display-run-1', 'display-run-2'):
+            events = self.store.events_after(run_id)
+            self.assertEqual([e['payload']['displayName'] for e in events], ['正在思考', '查询业务数据'])
+
+    def test_status_coalescing_keeps_file_progress_and_failure_data(self):
+        async def exercise():
+            run_id = 'display-run-1'
+            for received in (10, 20):
+                await server._run_phase(run_id, {
+                    'name': 'downloading_file', 'fileId': 'file', 'receivedBytes': received, 'totalBytes': 30})
+            await server._publish_internal_event(run_id, {
+                'runId': run_id, 'type': 'run.failed', 'payload': {'code': 'sdk_execution_error'}})
+        asyncio.run(exercise())
+        events = self.store.events_after('display-run-1')
+        self.assertEqual([e['payload']['receivedBytes'] for e in events[:-1]], [10, 20])
+        self.assertEqual(events[-1]['type'], 'run.failed')
+        self.assertEqual(events[-1]['payload']['code'], 'sdk_execution_error')
+
     def test_known_failures_explain_the_stage_without_echoing_private_details(self):
         cases = {
             'worker_memory_pressure': '内存不足', 'worker_capacity_exceeded': '并发处理上限',
@@ -47,6 +126,7 @@ class EventDisplayTests(unittest.TestCase):
             self.assertNotEqual(event['payload']['message'], code)
 
     def setUp(self):
+        self.enterContext(patch.object(server, 'STATUS_DISPLAYS', RunStatusDisplays()))
         self.store = RunStore(':memory:')
         self.addCleanup(self.store.close)
         for run in ('display-run-1', 'display-run-2'):

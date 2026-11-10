@@ -20,6 +20,7 @@ from runtime.artifact_delivery import ArtifactDelivery
 from tools.artifacts import publish_artifact
 from runtime.observability import Observer
 from runtime.telemetry import Timing
+from runtime.event_display import RunStatusDisplays
 
 
 class RuntimeHTTPTests(unittest.TestCase):
@@ -81,9 +82,11 @@ class RuntimeHTTPTests(unittest.TestCase):
         observer.flush()
         events = self.store.events_after('run-test')
         self.assertEqual([event['type'] for event in events], [
-            'run.started', 'phase', 'phase', 'tool.started', 'tool.finished', 'message.delta', 'run.completed'])
-        self.assertEqual(events[0]['payload']['displayName'], '正在思考')
+            'run.started', 'phase', 'phase', 'phase', 'message.delta', 'run.completed'])
+        self.assertEqual(events[0]['payload']['displayName'], '')
         self.assertEqual(events[2]['payload']['displayName'], '正在思考')
+        self.assertEqual(events[3]['payload'], {
+            'name': 'working', 'toolKey': 'file.read', 'displayName': '读取资料'})
         self.assertEqual(events[-1]['payload']['displayName'], '已完成')
         self.assertEqual(events[-2]['payload']['textDelta'], 'answer')
         self.assertNotIn('private-', json.dumps(events))
@@ -92,6 +95,9 @@ class RuntimeHTTPTests(unittest.TestCase):
                     if record['kind'] == 'evidence' and record['data'].get('type') == 'thinking']
         self.assertEqual(len(evidence), 21)
         self.assertEqual(evidence[-1]['text'], 'private-child-reasoning')
+        tool_evidence = [record['data']['type'] for record in observer.read(0, 500)['records']
+                         if record['kind'] == 'evidence' and record['data'].get('type') in {'tool_use', 'tool_result'}]
+        self.assertEqual(tool_evidence, ['tool_use', 'tool_result'])
         response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
         self.assertEqual(response.status_code, 200)
         streamed = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
@@ -161,6 +167,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(self.store.events_after('run-test'), [])
 
     def setUp(self):
+        self.enterContext(patch.object(server, 'STATUS_DISPLAYS', RunStatusDisplays()))
         self.store = RunStore(":memory:")
         self.addCleanup(self.store.close)
         self.temp = tempfile.TemporaryDirectory()
