@@ -50,6 +50,14 @@ async def until(predicate):
 
 
 class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_capacity_rejection_has_its_own_error_code(self):
+        self.pool.max_live = 1
+        leased = await self.pool.acquire()
+        leased.alive = True
+        with self.assertRaises(ClientWorkerError) as caught:
+            await self.pool.acquire()
+        self.assertEqual(getattr(caught.exception, 'code', None), 'worker_capacity_exceeded')
+
     async def asyncSetUp(self):
         FakeWorker.running = FakeWorker.peak = 0
         FakeWorker.created = []

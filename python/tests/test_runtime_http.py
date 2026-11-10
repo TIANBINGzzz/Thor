@@ -23,6 +23,37 @@ from runtime.telemetry import Timing
 
 
 class RuntimeHTTPTests(unittest.TestCase):
+    def test_memory_admission_failure_reaches_run_and_sse_replay(self):
+        from runtime.session_actor import SessionManager
+        from runtime.worker_pool import WorkerPool
+        self.seed()
+
+        async def exercise():
+            pool = WorkerPool(max_idle=0, max_starting=1, min_available_memory_mib=1024)
+            manager = SessionManager(worker_factory=pool.acquire)
+            try:
+                with patch.object(server, 'SESSION_MANAGER', manager), \
+                     patch.object(server, '_runtime_mode_for_request', return_value='client'), \
+                     patch.object(server, 'DEFAULT_MODEL', 'test-model'), \
+                     patch('runtime.worker_pool.available_memory_mib', return_value=684):
+                    await server._execute_internal_run(AgentRunRequest.from_dict(self.body),
+                        {'tenant': 'tenant-test', 'sub': 'user-test'})
+                self.assertEqual(pool.snapshot()['live'], 0)
+            finally:
+                await manager.close_all()
+                await pool.close()
+
+        asyncio.run(exercise())
+        run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
+        self.assertEqual(run['error'], 'worker_memory_pressure')
+        events = self.store.events_after('run-test')
+        failure = next(event for event in events if event['type'] == 'run.failed')
+        self.assertIn('服务器可用内存不足', failure['payload']['message'])
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        replay = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+        self.assertEqual(replay, events)
+        self.assertNotIn('business-token', response.text)
+
     def test_thinking_chunks_stay_private_through_run_completion(self):
         self.seed()
         observer = Observer(Path(self.temp.name) / 'observe.db', enabled=True)

@@ -85,6 +85,31 @@ def complete_script(session_id="session-1"):
 
 
 class SessionActorTests(unittest.TestCase):
+    def test_worker_error_codes_survive_acquisition_and_connection(self):
+        from runtime.process import ClientWorkerError
+        async def exercise(stage, code):
+            original = ClientWorkerError('private connection details')
+            original.code = code
+            worker = FakeClientWorker([], worker_id=0)
+            async def fail(*args, **kwargs):
+                raise original
+            if stage == 'connection':
+                worker.start = fail
+            actor = SessionActor('session', {}, worker_factory=fail if stage == 'acquisition' else lambda **_: worker)
+            try:
+                with self.assertRaises(SessionActorError) as caught:
+                    await actor.submit('failed-run', {})
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(actor.snapshot()['lastErrorCode'], code)
+                self.assertIs(caught.exception.__cause__, original)
+            finally:
+                await actor.close()
+        for stage, code in [('acquisition', 'worker_capacity_exceeded'),
+                            ('connection', 'mcp_authentication_error'),
+                            ('connection', 'worker_start_timeout')]:
+            with self.subTest(stage=stage, code=code):
+                asyncio.run(exercise(stage, code))
+
     def test_close_simultaneous_with_run_terminal_waits_for_cleanup_and_exit(self):
         async def exercise(terminal):
             cleaned = False
@@ -895,7 +920,7 @@ class SessionActorTests(unittest.TestCase):
             actor = SessionActor("session", {}, worker_factory=factory, idle_ttl_ms=10_000)
             with self.assertRaises(SessionActorError) as error:
                 await actor.submit("run-broken", {"prompt": "break"})
-            self.assertIn(error.exception.code, {"worker_error", "session_actor_error"})
+            self.assertEqual(error.exception.code, "worker_exited")
             self.assertEqual(actor.snapshot()["streamingState"], "failed")
 
             result = await actor.submit("run-rebuilt", {"prompt": "recover"})

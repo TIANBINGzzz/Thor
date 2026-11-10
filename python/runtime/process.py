@@ -83,7 +83,7 @@ async def stream_agent(payload: dict[str, Any], *, timing_enabled: bool = False)
     """将执行 payload 发送给一次性 Worker，逐条产出事件字典，结束或取消时回收进程。"""
     process = await _spawn_worker_process(timing_enabled=timing_enabled)
     saw_done = False
-    worker_error: str | None = None
+    worker_error: ClientWorkerError | None = None
     stderr_task: asyncio.Task[Any] | None = None
 
     async def relay_stderr() -> None:
@@ -113,15 +113,15 @@ async def stream_agent(payload: dict[str, Any], *, timing_enabled: bool = False)
                 saw_done = True
                 continue
             if event.get("type") == "worker_error":
-                worker_error = str(event.get("message") or "Python Agent 执行失败")
+                worker_error = ClientWorkerError("Python Agent 执行失败", code=event.get("code") or "worker_error")
                 continue
             yield event
         code = await process.wait()
         await stderr_task
         if worker_error:
-            raise RuntimeError(worker_error)
+            raise worker_error
         if code != 0 or not saw_done:
-            raise RuntimeError(f"Python Agent worker 退出（code={code}）")
+            raise ClientWorkerError(f"Python Agent worker 退出（code={code}）", code="worker_exited")
     except asyncio.CancelledError:
         await _terminate_process_tree(process)
         raise
@@ -134,7 +134,11 @@ async def stream_agent(payload: dict[str, Any], *, timing_enabled: bool = False)
 
 
 class ClientWorkerError(RuntimeError):
-    """Raised when a persistent Client worker exits or violates its protocol."""
+    """跨进程边界保留稳定错误码，异常正文仅用于私有诊断。"""
+
+    def __init__(self, message: str, *, code: str = "worker_error") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class ClientWorkerProcess:
@@ -224,7 +228,7 @@ class ClientWorkerProcess:
                 self.startup_traces.append(event['performance'])
         except asyncio.TimeoutError as error:
             await self.terminate()
-            raise ClientWorkerError('Client worker 预热超时') from error
+            raise ClientWorkerError('Client worker 预热超时', code='worker_start_timeout') from error
         except BaseException:
             await self.terminate()
             raise
@@ -284,17 +288,21 @@ class ClientWorkerProcess:
                         self._on_observation(self._observation_run_id or str(payload.get('run_id', '')), event)
                     except Exception:
                         pass
-                if event.get("type") == "client_error":
-                    raise ClientWorkerError("Client worker 连接失败")
+                if event.get("type") in {"client_error", "worker_error"}:
+                    code = event.get("code") or "sdk_connection_error"
+                    # SDK 的超时码不含阶段；握手期间失败尚未开始模型执行。
+                    if code == "sdk_timeout":
+                        code = "sdk_connection_timeout"
+                    raise ClientWorkerError("Client worker 连接失败", code=code)
         except asyncio.TimeoutError as error:
             self._emit_start_diagnostic(phase)
             await self.terminate()
-            raise ClientWorkerError("Client worker 连接超时") from error
+            raise ClientWorkerError("Client worker 连接超时", code="sdk_connection_timeout") from error
         except asyncio.CancelledError:
             await self.terminate()
             raise
         except ClientWorkerError as error:
-            if phase == 'worker_prewarm' and '预热超时' in str(error):
+            if phase == 'worker_prewarm' and error.code == 'worker_start_timeout':
                 self._emit_start_diagnostic(phase)
             await self.terminate()
             raise
@@ -333,7 +341,7 @@ class ClientWorkerProcess:
         """将命令字典以 UTF-8 JSONL 写入 Worker，串行保护写入；无返回值，通道故障时抛出异常。"""
         process = self._process
         if process is None or process.stdin is None or process.returncode is not None or self._closed:
-            raise ClientWorkerError("Client worker 不可用")
+            raise ClientWorkerError("Client worker 不可用", code="worker_unavailable")
         if not isinstance(message, dict):
             raise ValueError("Client worker message must be an object")
         encoded = (json.dumps(message, ensure_ascii=False) + "\n").encode("utf-8")
@@ -344,16 +352,16 @@ class ClientWorkerProcess:
             except asyncio.CancelledError:
                 raise
             except asyncio.TimeoutError as error:
-                raise ClientWorkerError("Client worker 写入超时") from error
+                raise ClientWorkerError("Client worker 写入超时", code="worker_send_timeout") from error
             except (BrokenPipeError, ConnectionError) as error:
-                raise ClientWorkerError("Client worker 通道已关闭") from error
+                raise ClientWorkerError("Client worker 通道已关闭", code="worker_exited") from error
 
     async def next_event(self) -> dict[str, Any]:
         """等待并返回队列中的下一条 Worker 事件，无额外输入；遇到进程退出标记时抛出异常。"""
         event = await self._events.get()
         if event.get("type") == "worker_exit":
             code = event.get("code")
-            raise ClientWorkerError(f"Client worker 退出（code={code}）")
+            raise ClientWorkerError(f"Client worker 退出（code={code}）", code="worker_exited")
         return event
 
     async def terminate(self) -> None:

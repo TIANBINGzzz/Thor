@@ -11,6 +11,27 @@ from runtime.event_display import ToolCallDisplays, with_display_name, TOOL_DISP
 
 
 class EventDisplayTests(unittest.TestCase):
+    def test_known_failures_explain_the_stage_without_echoing_private_details(self):
+        cases = {
+            'worker_memory_pressure': '内存不足', 'worker_capacity_exceeded': '并发处理上限',
+            'run_queue_timeout': '排队等待超时', 'worker_start_timeout': '处理进程启动超时',
+            'sdk_connection_timeout': '模型服务连接超时', 'sdk_connection_error': '模型服务连接失败',
+            'worker_exited': '处理进程意外退出', 'worker_send_timeout': '处理进程通信超时',
+            'sdk_configuration_error': '模型服务配置', 'sdk_execution_error': '模型执行失败',
+            'file_download_timeout': '附件下载超时', 'file_download_failed': '附件下载失败',
+            'file_access_denied': '附件访问被拒绝', 'file_validation_failed': '附件校验失败',
+            'file_download_configuration_error': '附件服务配置', 'file_download_unavailable': '附件服务不可用',
+            'worker_cleanup_error': '处理进程释放失败', 'sdk_cleanup_error': '模型会话收尾失败',
+            'configuration_error': '执行配置', 'session_actor_closed': '处理会话已关闭',
+        }
+        for code, detail in cases.items():
+            with self.subTest(code=code):
+                event = with_display_name({'type': 'run.failed', 'payload': {
+                    'code': code, 'message': 'private-token https://private-host/path'}})
+                self.assertEqual(event['payload']['code'], code)
+                self.assertIn(detail, event['payload']['message'])
+                self.assertNotIn('private-', json.dumps(event))
+
     def test_missing_mcp_credentials_have_safe_actionable_message(self):
         event = with_display_name({'type': 'run.failed', 'payload': {
             'code': 'mcp_authentication_error', 'message': 'private-credential-details'}})

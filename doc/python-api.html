@@ -607,7 +607,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td><code>artifact.failed</code><br>文件最终上传失败</td><td><code>status: "failed"</code>；<code>error</code> 是原因代码。已完成内部重试，或遇到不能重试的问题。</td><td>Java 接收最终失败记录，不需要再请求 Python 重传。其他文件和 Run 分别报告自己的结果。</td></tr>
 <tr><td><code>artifact.unknown</code><br>无法确认文件是否上传成功</td><td><code>status: "unknown"</code>；<code>error</code> 是原因代码。例如请求超时，但文件服务可能已经收到了文件。</td><td>显示“上传结果待确认”。不启用远端下载，也不要自动重传，以免重复保存文件。</td></tr>
 <tr><td><code>run.completed</code><br>本次模型执行成功结束</td><td>displayName 默认“已完成”；可能有 <code>inputTokens</code>（输入用量）、<code>outputTokens</code>（输出用量）、<code>turns</code>（模型执行轮数）。</td><td>停止回答加载状态。已提交文件的上传也已收尾，但可能失败，文件卡片仍以各自状态为准。</td></tr>
-<tr><td><code>run.failed</code><br>本次执行失败并结束</td><td><code>code</code> 是失败原因代码，例如 timeout；也可能带用量统计。</td><td>停止回答加载状态并显示失败提示。可以保留已收到的文字和文件，不能当作一次完整成功的回答。</td></tr>
+<tr><td><code>run.failed</code><br>本次执行失败并结束</td><td><code>code</code> 是稳定失败原因代码；<code>message</code> 是 Runtime 按原因生成的安全中文提示，也可能带用量统计。</td><td>停止回答加载状态，直接展示 message，不拼接内部 code。可以保留已收到的文字和文件，不能当作一次完整成功的回答。</td></tr>
 <tr><td><code>run.cancelled</code><br>本次执行已取消并结束</td><td><code>displayName</code> 默认“已停止”，没有其他业务字段。</td><td>停止加载，非空时显示名称，保留之前收到的文字和文件。该事件不表示删除文件。</td></tr>
 </tbody></table>
 <h3>一段段回答如何显示</h3>
@@ -892,7 +892,7 @@ Accept: application/octet-stream</pre></div>
 <p>文件准备超时通过 run.failed 返回 file_download_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 option: cancel，在准备期间同样有效。平台下载还受 fileService.maxFileBytes 和 timeoutSeconds 约束，分别与 Runtime 对应上限取较小值。下载不向文件服务器转发 Run JWT、业务 Token 或 Cookie。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
-<p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用既有 sdk_execution_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>
+<p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用 upstream_service_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>
 <p>业务错误使用 <code>text/plain; charset=utf-8</code>；查询参数校验失败返回 <code>422 application/json</code>，包含 detail 数组。Java 应先按 HTTP 状态及 Content-Type 分支处理，不能假设所有错误都是 JSON 或纯文本。不存在的 Run 可先返回 404，不应把该响应当成鉴权成功。</p>
 <table class="error-table"><thead><tr><th>HTTP</th><th>含义</th><th>常见场景</th></tr></thead><tbody>
 <tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability、附件或 control 操作不合法。</td></tr>

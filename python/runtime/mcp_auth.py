@@ -31,6 +31,8 @@ _ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 class MCPAuthError(ValueError):
     """Raised when an MCP is unknown or cannot receive the requested token."""
 
+    code = 'mcp_authentication_error'
+
 
 def _credentials_token(credentials: Any) -> str:
     """读取并校验不透明业务 Token 的格式，不验证业务权限。"""

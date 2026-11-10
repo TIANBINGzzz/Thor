@@ -84,8 +84,9 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_prewarm_timeout_and_cancel_reclaim_process(self):
         self.worker.start_timeout_ms = 50
-        with self.assertRaises(ClientWorkerError):
+        with self.assertRaises(ClientWorkerError) as caught:
             await self.worker.prewarm()
+        self.assertEqual(getattr(caught.exception, 'code', None), 'worker_start_timeout')
         self.assertFalse(self.worker.awaiting_connection)
         self.assertIsNotNone(self.process.returncode)
 
@@ -96,13 +97,51 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.worker.start_timeout_ms = 30
         observations = []
         self.worker.set_observation_callback(lambda _run_id, event: observations.append(event), run_id='run-1')
-        with self.assertRaises(ClientWorkerError):
+        with self.assertRaises(ClientWorkerError) as caught:
             await self.worker.start({'run_id': 'run-1'})
+        self.assertEqual(getattr(caught.exception, 'code', None), 'sdk_connection_timeout')
         timeout = next(event for event in observations
                         if event.get('type') == 'diagnostic')
         self.assertEqual(timeout['scope'], 'worker_start_timeout')
         self.assertEqual(timeout['phase'], 'client_connect')
         self.assertEqual(timeout['timeoutMs'], 30)
+
+    async def test_connection_preserves_worker_failure_code_without_response_body(self):
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        self.process.client_event = {'type': 'client_error', 'code': 'mcp_authentication_error',
+                                     'message': 'private-provider-response'}
+        with self.assertRaises(ClientWorkerError) as caught:
+            await self.worker.start({})
+        self.assertEqual(getattr(caught.exception, 'code', None), 'mcp_authentication_error')
+        self.assertNotIn('private-provider-response', str(caught.exception))
+
+    async def test_sdk_timeout_during_connection_keeps_connection_stage(self):
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        self.process.client_event = {'type': 'client_error', 'code': 'sdk_timeout'}
+        with self.assertRaises(ClientWorkerError) as caught:
+            await self.worker.start({})
+        self.assertEqual(caught.exception.code, 'sdk_connection_timeout')
+
+    async def test_startup_worker_error_is_preserved_before_process_exit(self):
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        self.process.client_event = {'type': 'worker_error', 'code': 'sdk_configuration_error',
+                                     'message': 'private-startup-details'}
+        original_write = self.process.write
+        def write_and_exit(line):
+            original_write(line)
+            self.process.stop()
+        self.process.write = write_and_exit
+        with self.assertRaises(ClientWorkerError) as caught:
+            await self.worker.start({})
+        self.assertEqual(caught.exception.code, 'sdk_configuration_error')
+        self.assertNotIn('private-startup-details', str(caught.exception))
+
+    async def test_worker_exit_is_distinct_from_startup_and_execution_errors(self):
+        await self.worker._events.put({'type': 'worker_exit', 'code': -9})
+        with self.assertRaises(ClientWorkerError) as caught:
+            await self.worker.next_event()
+        self.assertEqual(getattr(caught.exception, 'code', None), 'worker_exited')
+
 
     async def test_cancel_while_waiting_for_import_reclaims_process(self):
         task = asyncio.create_task(self.worker.prewarm())

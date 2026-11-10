@@ -607,13 +607,11 @@ async def run_client(initial: dict[str, Any]) -> None:
                 cleanup_deadline = response.stop_deadline or (time.monotonic() + RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
                 try:
                     await _drain_run_tools(tool_scope, data_services, cleanup_deadline)
-                except (asyncio.TimeoutError, SDKTimeoutError) as error:
-                    emit_diagnostic(error, timing, command, scope='worker_client_cleanup')
-                    outcome = {"type": "client_error", "run_id": run_id, "code": "sdk_timeout"}
-                    failed = True
                 except Exception as error:
                     emit_diagnostic(error, timing, command, scope='worker_client_cleanup')
-                    outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
+                    # 收尾仍记录诊断，但不能遮盖最先导致本轮失败的原因。
+                    if not failed:
+                        outcome = {"type": "client_error", "run_id": run_id, "code": _client_error_code(error)}
                     failed = True
                 finally:
                     if tool_services is not None:
@@ -747,7 +745,7 @@ async def main() -> None:
     except Exception as error:
         emit_diagnostic(error, boot, payload, scope='worker_query')
         # 公开错误只含稳定文案；异常细节由父进程分流到私有观测出口。
-        emit({"type": "worker_error", "message": "Python Agent worker 执行失败"})
+        emit({"type": "worker_error", "code": _client_error_code(error), "message": "Python Agent worker 执行失败"})
 
 
 if __name__ == "__main__":

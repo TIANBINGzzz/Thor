@@ -60,6 +60,24 @@ class FakeProcess:
 
 
 class AgentProcessTests(unittest.TestCase):
+    def test_query_worker_error_preserves_code_without_forwarding_message(self):
+        from runtime.process import ClientWorkerError
+        async def exercise():
+            process = FakeProcess()
+            process.stdout = asyncio.StreamReader()
+            process.stderr = asyncio.StreamReader()
+            process.stdout.feed_data(json.dumps({'type': 'worker_error', 'code': 'sdk_timeout',
+                                                'message': 'private-provider-response'}).encode() + b'\n')
+            process.stdout.feed_eof()
+            process.stderr.feed_eof()
+            with patch('runtime.process._spawn_worker_process', return_value=process):
+                with self.assertRaises(RuntimeError) as caught:
+                    _ = [event async for event in stream_agent({})]
+            self.assertIsInstance(caught.exception, ClientWorkerError)
+            self.assertEqual(caught.exception.code, 'sdk_timeout')
+            self.assertNotIn('private-provider-response', str(caught.exception))
+        asyncio.run(exercise())
+
     def test_query_forwards_boot_timing_without_control_handshake(self):
         async def exercise():
             process = FakeProcess()

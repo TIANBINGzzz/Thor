@@ -606,7 +606,8 @@ class SessionActor:
             await self._discard_worker('connection_failed')
             self._state = ActorState.FAILED
             await self._notify_state()
-            raise self._as_actor_error(error, code="sdk_connection_error") from error
+            raise self._as_actor_error(error, code="sdk_connection_timeout" if isinstance(error, asyncio.TimeoutError)
+                                       else "sdk_connection_error") from error
         finally:
             release = getattr(self._worker, '_ccsdk_release_start_slot', None)
             if callable(release):
@@ -725,7 +726,7 @@ class SessionActor:
                             return _RunOutcome("cancelled", self._last_session_id)
                         raise SessionActorError("Claude Client 执行失败", code=str(event.get("code") or "sdk_execution_error"))
                     if event_type == "worker_exit":
-                        raise ClientWorkerError("Client worker 已退出")
+                        raise ClientWorkerError("Client worker 已退出", code="worker_exited")
                     if event_type in {"init", "text", "thinking", "tool_use", "tool_result", "activity", "tool_progress", "result", "error", "artifact.published", 'performance', 'diagnostic', 'assistant_turn'}:
                         if event_type in {'result', 'error'}:
                             self._accepts_steering = False
@@ -1026,7 +1027,9 @@ class SessionActor:
         """保留已有 Actor 异常，其余异常转换为统一的 Actor 错误。"""
         if isinstance(error, SessionActorError):
             return error
-        failure = SessionActorError(str(error) or "SessionActor 执行失败", code=code or "session_actor_error")
+        # 包装只补充缺失的分类，不能覆盖资源准入、连接及工具鉴权的具体原因。
+        failure = SessionActorError(str(error) or "SessionActor 执行失败",
+                                    code=getattr(error, 'code', None) or code or "session_actor_error")
         failure.__cause__ = error
         return failure
 

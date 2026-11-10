@@ -397,6 +397,17 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(events[0]["text"], "直接输出")
 
 class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
+    async def test_query_exception_emits_stable_sdk_code(self):
+        from runtime.claude_sdk import SDKTimeoutError
+        from unittest.mock import AsyncMock
+        events = []
+        with patch.object(agent_worker.sys, 'stdin', io.StringIO('{"prompt":"test"}\n')), \
+             patch.object(agent_worker, 'run', AsyncMock(side_effect=SDKTimeoutError('private-details'))), \
+             patch.object(agent_worker, 'emit', events.append):
+            await agent_worker.main()
+        self.assertEqual(events[-1].get('code'), 'sdk_timeout')
+        self.assertNotIn('private-details', json.dumps(events[-1]))
+
     def assert_private_exception(self, events, expected_type):
         diagnostics = [event for event in events if event['type'] == 'diagnostic']
         self.assertTrue(diagnostics, events)
@@ -420,7 +431,7 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                             prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=events.append):
             await agent_worker.main()
         self.assert_private_exception(events, 'ValueError')
-        self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
+        self.assertEqual(events[-1], {'type': 'worker_error', 'code': 'sdk_execution_error', 'message': 'Python Agent worker 执行失败'})
 
     async def test_query_cleanup_failure_clears_credentials_and_preserves_primary_error(self):
         from runtime.claude_sdk import SDKTimeoutError
@@ -469,12 +480,13 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                                     missing_environment=lambda: [], create_run_services=lambda _: None,
                                     prepare_capability_assets=lambda _: {}, ToolServices=fail_tools, emit=emit):
                     await agent_worker.main()
-                self.assertEqual(events[-1], {'type': 'worker_error', 'message': 'Python Agent worker 执行失败'})
+                self.assertEqual(events[-1], {'type': 'worker_error', 'code': 'sdk_execution_error', 'message': 'Python Agent worker 执行失败'})
                 self.assertFalse(any(event['type'] == 'diagnostic' for event in events))
                 self.assertNotIn('business-private-value', json.dumps(events))
 
     async def test_client_failures_keep_sanitized_evidence_at_each_catch_boundary(self):
-        for boundary in ('connect', 'run', 'cleanup', 'timeout'):
+        from runtime.claude_sdk import SDKConfigurationError
+        for boundary in ('connect', 'run', 'cleanup', 'timeout', 'run_and_cleanup_timeout', 'run_and_cleanup_error'):
             with self.subTest(boundary=boundary):
                 events = []
                 command = {'type': 'client_query', 'run_id': 'failed-run', 'prompt': 'test',
@@ -490,6 +502,8 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                             fail()
                         self.state = ClientState.READY
                     async def configure_turn(self, options):
+                        if boundary.startswith('run_and_cleanup'):
+                            raise SDKConfigurationError('provider rejected business-private-value')
                         if boundary in {'run', 'timeout'}:
                             fail()
                     async def query(self, prompt, session_id):
@@ -504,6 +518,9 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                     def prepare_prompt(self, prompt):
                         return prompt
                     async def close(self):
+                        if boundary.startswith('run_and_cleanup'):
+                            error = TimeoutError if boundary.endswith('timeout') else ValueError
+                            raise error('cleanup rejected business-private-value')
                         if boundary == 'cleanup':
                             fail()
                 done = asyncio.Event()
@@ -525,11 +542,19 @@ class WorkerDiagnosticTests(unittest.IsolatedAsyncioTestCase):
                                     ClaudeSDKClient=lambda *args, **kw: Client(), isolated_sdk_environment=nullcontext,
                                     _read_client_commands=commands, emit=emit):
                     await asyncio.wait_for(agent_worker.run_client({'credentials': command['credentials']}), 3)
-                self.assert_private_exception(events, 'TimeoutError' if boundary == 'timeout' else 'ValueError')
+                expected_type = ('SDKConfigurationError' if boundary.startswith('run_and_cleanup') else
+                                 'TimeoutError' if boundary == 'timeout' else 'ValueError')
+                self.assert_private_exception(events, expected_type)
                 scopes = [event['scope'] for event in events if event['type'] == 'diagnostic']
                 self.assertIn({'connect': 'worker_client', 'run': 'worker_client_run',
                                'cleanup': 'worker_client_cleanup',
-                               'timeout': 'worker_client_run'}[boundary], scopes)
+                               'timeout': 'worker_client_run',
+                               'run_and_cleanup_timeout': 'worker_client_run',
+                               'run_and_cleanup_error': 'worker_client_run'}[boundary], scopes)
+                if boundary.startswith('run_and_cleanup'):
+                    self.assertIn('worker_client_cleanup', scopes)
+                    self.assertEqual([e['code'] for e in events if e['type'] == 'client_error'],
+                                     ['sdk_configuration_error'])
                 if boundary == 'cleanup':
                     self.assertTrue(any(event['type'] == 'result' and event['ok'] for event in events))
                 self.assertTrue(any(event['type'] == 'client_error' for event in events))

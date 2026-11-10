@@ -272,9 +272,9 @@ class WorkerPool:
                     self._retry_at = time.monotonic() + self._backoff
                     self._backoff = min(30.0, self._backoff * 2)
             if self.max_live and self._live_count() >= self.max_live:
-                raise ClientWorkerError('Client 容量已满，请稍后重试')
+                raise ClientWorkerError('Client 容量已满，请稍后重试', code='worker_capacity_exceeded')
             if not await self._admit_memory_pressure():
-                raise ClientWorkerError('宿主机可用内存不足，暂不能启动 Client')
+                raise ClientWorkerError('宿主机可用内存不足，暂不能启动 Client', code='worker_memory_pressure')
             self._misses += 1
             await self._reserve_business_start_slot()
             try:
