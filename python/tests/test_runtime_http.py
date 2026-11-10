@@ -197,7 +197,6 @@ class RuntimeHTTPTests(unittest.TestCase):
             "sub": "user-test", "tenant": "tenant-test", "runId": "run-test",
             "capabilityRef": "conversation", "businessSessionId": "session-test",
             "messageId": "msg-test", "scope": scope,
-            "domainName": "school.example.test",
         }
         claims.update(overrides)
         return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-runtime-secret")}
@@ -237,6 +236,13 @@ class RuntimeHTTPTests(unittest.TestCase):
         request = AgentRunRequest.from_dict(changed)
         with self.assertRaisesRegex(PermissionError, 'Run request mismatch'):
             self.store.create_run('run-test', request=request, tenant_id='tenant-test', user_id='user-test')
+
+    def test_create_run_uses_body_domain_without_jwt_domain_claim(self):
+        with patch.object(server, '_execute_internal_run', new_callable=AsyncMock):
+            response = self.client.post('/internal/v1/runs', json=self.body,
+                headers=self.headers('run.execute'))
+        self.assertEqual(response.status_code, 202, response.text)
+        self.assertEqual(self.store.get_run('run-test')['metadata']['domainName'], 'school.example.test')
 
     def test_observation_requires_observation_jwt_and_business_reports_stay_identity_bound(self):
         self.seed()

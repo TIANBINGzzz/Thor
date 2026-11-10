@@ -45,7 +45,6 @@ class RuntimeAuthorizationTests(unittest.TestCase):
             'iss': 'test-java', 'aud': 'ccsdk-runtime', 'iat': now, 'exp': now + 60,
             'jti': uuid.uuid4().hex, 'sub': 'user', 'tenant': 'tenant', 'scope': scope,
             'runId': 'auth-run', 'capabilityRef': 'conversation',
-            'domainName': 'school.example.test',
             'businessSessionId': 'auth-session', 'messageId': 'auth-message',
         }
         claims.update(identity)

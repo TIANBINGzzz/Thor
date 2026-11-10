@@ -260,26 +260,21 @@ def verify_run_jwt(
     body_capability: str | None = capability_ref
     body_business_session_id: str | None = business_session_id
     body_message_id: str | None = message_id
-    body_domain_name: str | None = None
     if body is not None:
         if hasattr(body, "run_id"):
             body_run_id = getattr(body, "run_id")
             body_capability = getattr(body, "capability_ref", body_capability)
             body_business_session_id = getattr(body, "business_session_id", body_business_session_id)
             body_message_id = getattr(body, "message_id", body_message_id)
-            body_domain_name = getattr(body, "domain_name", None)
         elif isinstance(body, Mapping):
             body_run_id = body.get("runId", body.get("run_id", body_run_id))
             body_capability = body.get("capabilityRef", body.get("capability_ref", body_capability))
             body_business_session_id = body.get("businessSessionId", body.get("business_session_id", body_business_session_id))
             body_message_id = body.get("messageId", body.get("message_id", body_message_id))
-            body_domain_name = body.get("domainName", body.get("domain_name"))
     if body_run_id is not None and body_run_id != claims["runId"]:
         raise JWTError("runId mismatch")
     if body_capability != claims.get("capabilityRef"):
         raise JWTError("capabilityRef mismatch")
-    if body is not None and body_domain_name != claims.get("domainName"):
-        raise JWTError("domainName mismatch")
     for claim_name, body_value, label in (
         ("businessSessionId", body_business_session_id, "businessSessionId"),
         ("messageId", body_message_id, "messageId"),

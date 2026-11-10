@@ -30,6 +30,7 @@ class DeploymentSmokeTests(unittest.TestCase):
         claims = verify_run_jwt(headers['Authorization'][7:], 'private-loadtest-key', body=body,
             tenant_id='customer-a', issuer='configured-issuer', audience='configured-audience')
         self.assertEqual(claims['tenant'], 'customer-a')
+        self.assertNotIn('domainName', claims)
 
     def test_probe_accepts_actual_runtime_routes_and_terminal_event(self):
         spec = importlib.util.spec_from_file_location(

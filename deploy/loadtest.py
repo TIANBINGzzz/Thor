@@ -27,7 +27,7 @@ def authorization_headers(config, body, scope, *, tenant_id):
               'aud': security.get('runtimeJwtAudience', 'ccsdk-runtime'),
               'iat': now, 'exp': now + 600, 'jti': uuid.uuid4().hex,
               'tenant': tenant_id, 'sub': 'loadtest', 'scope': scope,
-              **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef', 'domainName')}}
+              **{key: body[key] for key in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
 
     def encode(value):
         return base64.urlsafe_b64encode(value).rstrip(b'=')

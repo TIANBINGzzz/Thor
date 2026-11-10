@@ -30,7 +30,7 @@ async def main(*, tenant, domain_name):
               "aud": security.get("runtimeJwtAudience", "ccsdk-runtime"),
               "iat": now, "exp": now + 600, "jti": suffix,
               "sub": "deployment-check", "tenant": tenant,
-              **{key: body[key] for key in ("runId", "messageId", "businessSessionId", "capabilityRef", "domainName")}}
+              **{key: body[key] for key in ("runId", "messageId", "businessSessionId", "capabilityRef")}}
 
     def headers(scope):
         token = encode_hs256_jwt({**claims, "scope": scope}, security["runtimeJwtSecret"])

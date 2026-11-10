@@ -35,7 +35,7 @@ databases.<source>.connection 只保存 driver、host、port、database、userna
 
 每来源 access.tenantIds 声明数据租户范围：production 和 example 模板仅 [self]；额外测试数据须按[工程要求 REQ-001](../doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)明确授权，具体环境例外保存在私有部署交接记录。额外 ID 不改变 Run 身份，不影响其他来源或校园大脑。数据库不重复维护 Capability、模板、项目授权或表/查询清单；Catalog 决定域、表列、函数及指标，每个学校 scope 单独绑定 SQL 租户过滤，项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
 
-fileService 是附件下载和成果上传的唯一文件通道，downloadPath 保留 {fileId}；baseUrl/remoteUrl 与限额属于部署配置，domain-name 由 Java 在每个 Run 中传入并绑定 JWT，不再从全局配置取值。不转发 Run JWT、业务 Token 或 Cookie，Java 须先授权 fileId。旧 Java File Broker 通道及配置已删除。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
+fileService 是附件下载和成果上传的唯一文件通道，downloadPath 保留 {fileId}；baseUrl/remoteUrl 与限额属于部署配置，domain-name 由 Java 在每个 Run 正文中传入，不放入 JWT，不再从全局配置取值。不转发 Run JWT、业务 Token 或 Cookie，Java 须先授权 fileId。旧 Java File Broker 通道及配置已删除。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
 
 runtime 的预算、模型、池及观测字段必须完整；default 和 SDK 别名须在 available 中。观测 storage 相对仓库根目录；启动 YAML diagnostics.disable-observability=true 用于紧急停采，false 仍以 Nacos 开关为准。
 

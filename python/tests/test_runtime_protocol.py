@@ -67,7 +67,6 @@ class RuntimeJWTTests(unittest.TestCase):
             'aud': 'ccsdk-runtime', 'iat': 99, 'exp': expires, 'jti': jti,
             'sub': 'user', 'tenant': 'tenant', 'scope': 'run.execute',
             'runId': 'run-1', 'capabilityRef': 'document-writing',
-            'domainName': 'sc1.ai.stringedu.com',
         }, 'test-secret')
 
     def test_full_replay_cache_preserves_unexpired_grants_until_expiry(self):
@@ -99,18 +98,14 @@ class RuntimeJWTTests(unittest.TestCase):
                                               'domainName': 'sc1.ai.stringedu.com'})
                 self.assertEqual(claims['capabilityRef'], 'document-writing')
 
-    def test_jwt_binds_file_domain_to_run_body(self):
+    def test_jwt_authorizes_run_without_file_domain_claim(self):
         token = self.token('domain')
-        with self.assertRaisesRegex(JWTError, 'domainName mismatch'):
-            verify_run_jwt(token, 'test-secret', now=100, body={
-                'runId': 'run-1', 'capabilityRef': 'document-writing',
-                'domainName': 'other-school.example',
-            })
         claims = verify_run_jwt(token, 'test-secret', now=100, body={
             'runId': 'run-1', 'capabilityRef': 'document-writing',
             'domainName': 'sc1.ai.stringedu.com',
         })
-        self.assertEqual(claims['domainName'], 'sc1.ai.stringedu.com')
+        self.assertEqual(claims['runId'], 'run-1')
+        self.assertNotIn('domainName', claims)
 
 
 if __name__ == "__main__": unittest.main()

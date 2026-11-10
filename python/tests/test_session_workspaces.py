@@ -169,7 +169,6 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                         claims = {'iss': server.RUNTIME_JWT_ISSUER, 'aud': server.RUNTIME_JWT_AUDIENCE,
                             'iat': int(time.time()), 'exp': int(time.time()) + 120, 'jti': uuid.uuid4().hex,
                             'tenant': tenant, 'sub': user, 'scope': 'run.execute',
-                            'domainName': body['domainName'],
                             **{k: body[k] for k in ('runId', 'messageId', 'businessSessionId', 'capabilityRef')}}
                         headers = {'Authorization': 'Bearer ' + encode_hs256_jwt(claims, 'workspace-test')}
                         response = await client.post('/internal/v1/runs', json=body, headers=headers)

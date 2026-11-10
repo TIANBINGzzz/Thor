@@ -256,7 +256,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     claims = {"iss": server.RUNTIME_JWT_ISSUER, "aud": server.RUNTIME_JWT_AUDIENCE,
                               "iat": int(time.time()), "exp": int(time.time()) + 60, "jti": uuid.uuid4().hex,
                               "sub": "u", "tenant": "t", "runId": "run-1", "messageId": "msg-1",
-                              "capabilityRef": "conversation", "domainName": "school.example.test",
+                              "capabilityRef": "conversation",
                               "scope": scope}
                     return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-secret")}
                 body = {"protocol": "agent-run/v1", "runId": "run-1", "messageId": "msg-1",
