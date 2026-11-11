@@ -1,6 +1,8 @@
 import importlib.util
 import base64
 import dataclasses
+import io
+import json
 import sys
 import tempfile
 import unittest
@@ -30,7 +32,14 @@ class BusinessTokenLoginTests(unittest.TestCase):
             '| 登录域名 | `school.example` |\n'
             '| 登录账号 | `admin` |\n'
             '| 登录密码 | `secret-appai` |\n'
-            '| 业务网页 | https://appai.example/ai_center_web/#/ai |\n',
+            '| 业务网页 | https://appai.example/ai_center_web/#/ai |\n'
+            '\n'
+            '## ai 连接（正式环境，多租户）\n'
+            '| 登录学校 | `生产学校` |\n'
+            '| 登录域名 | `production-school.example` |\n'
+            '| 登录账号 | `admin` |\n'
+            '| 登录密码 | `secret-ai` |\n'
+            '| 业务网页 | https://ai.example/ |\n',
             encoding='utf-8',
         )
 
@@ -127,6 +136,42 @@ class BusinessTokenLoginTests(unittest.TestCase):
     def test_empty_token_is_rejected(self):
         with self.assertRaisesRegex(ValueError, '有效 Token'):
             MODULE.save_token('  ', Path(self.temp.name) / 'empty.token')
+
+    def test_ai_cli_saves_token_using_the_selected_school_and_captcha(self):
+        output = Path(self.temp.name) / 'ai.token'
+        responses = [
+            {'state': 200, 'data': {'id': 'ai-challenge', 'img': base64.b64encode(b'image').decode()}},
+            {'state': 200, 'data': {'token': 'private-ai-token', 'expireTime': 'later'}},
+        ]
+        with patch.object(MODULE, '_json_request', side_effect=responses) as request, patch.object(
+            MODULE.tempfile, 'gettempdir', return_value=self.temp.name
+        ), patch.object(MODULE, 'prompt_for_captcha', return_value='A1B2'), patch('sys.stdout', new_callable=io.StringIO) as stdout:
+            result = MODULE.main(['ai', '--config', str(self.config), '--output', str(output)])
+        self.assertEqual(result, 0)
+        self.assertEqual(output.read_text(encoding='utf-8').strip(), 'private-ai-token')
+        self.assertNotIn('private-ai-token', stdout.getvalue())
+        captcha_call, login_call = request.call_args_list
+        self.assertEqual(captcha_call.args[0], 'https://ai.example/fwk_auth_service/login/captcha/')
+        self.assertEqual(login_call.args[0], 'https://ai.example/fwk_auth_service/login/')
+        for call in (captcha_call, login_call):
+            self.assertEqual(call.kwargs['headers']['domain-name'], 'production-school.example')
+        payload = json.loads(login_call.kwargs['data'])
+        self.assertEqual(payload['imgId'], 'ai-challenge')
+        self.assertEqual(payload['captcha'], 'A1B2')
+        self.assertNotIn('type', payload)
+
+    def test_ai_missing_school_domain_cannot_send_login_requests(self):
+        text = self.config.read_text(encoding='utf-8')
+        self.config.write_text(text.replace('| 登录域名 | `production-school.example` |\n', ''), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, '登录域名'):
+            MODULE.load_environment(self.config, 'ai')
+        settings = MODULE.EnvironmentSettings('ai', 'https://ai.example', 'admin', 'secret-ai')
+        with patch.object(MODULE, '_json_request') as request:
+            with self.assertRaisesRegex(ValueError, '登录域名'):
+                MODULE.fetch_captcha(settings)
+            with self.assertRaisesRegex(ValueError, '登录域名'):
+                MODULE.login(settings, captcha_id='challenge', captcha_code='A1B2')
+        request.assert_not_called()
 
 
 if __name__ == '__main__':

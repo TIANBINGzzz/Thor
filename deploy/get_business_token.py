@@ -1,7 +1,7 @@
-"""获取内部测试环境的业务 Token。
+"""获取私有环境交接文件中指定学校的业务 Token。
 
-59 使用认证服务现有的免验证码测试分支；appai 保持验证码校验，脚本只自动
-获取图片和提交请求，验证码由操作者或 Agent 在本地识别后输入。appai 的
+59 使用认证服务现有的免验证码测试分支；appai/ai 保持验证码校验，脚本只自动
+获取图片和提交请求，验证码由操作者或 Agent 在本地识别后输入。多租户环境的
 登录域名须取所选学校的 domainName，不使用平台主域名代替。Token 只写入忽略目录。
 """
 
@@ -51,9 +51,9 @@ def _field(section: str, label: str, *, required: bool = True) -> str | None:
 def load_environment(config_path: Path, environment: str) -> EnvironmentSettings:
     """读取指定环境的登录信息，不打印任何凭据。"""
     text = config_path.read_text(encoding="utf-8")
-    heading = "## 59 连接" if environment == "59" else "## appai 连接" if environment == "appai" else None
-    if heading is None:
-        raise ValueError("environment must be 59 or appai")
+    if environment not in ("59", "appai", "ai"):
+        raise ValueError("environment must be 59, appai or ai")
+    heading = f"## {environment} 连接"
     try:
         section = text.split(heading, 1)[1].split("\n## ", 1)[0]
     except IndexError as error:
@@ -68,7 +68,7 @@ def load_environment(config_path: Path, environment: str) -> EnvironmentSettings
         account=_field(section, "登录账号") or "",
         password=_field(section, "登录密码") or "",
         school=_field(section, "登录学校", required=False),
-        domain_name=_field(section, "登录域名", required=environment == "appai"),
+        domain_name=_field(section, "登录域名", required=environment in ("appai", "ai")),
     )
 
 
@@ -92,7 +92,7 @@ def build_login_payload(
         payload["type"] = "1"
         return payload
     if not captcha_id or not captcha_code:
-        raise ValueError("appai 登录需要 captcha_id 和 captcha_code")
+        raise ValueError(f"{settings.environment} 登录需要 captcha_id 和 captcha_code")
     payload.update({"imgId": captcha_id, "captcha": captcha_code.strip()})
     return payload
 
@@ -141,10 +141,10 @@ def login(settings: EnvironmentSettings, *, captcha_id: str | None = None, captc
 def _login_headers(settings: EnvironmentSettings) -> dict[str, str]:
     """验证码和登录绑定同一学校；主域名上的同名账号可能属于不同租户。"""
     headers = {"Accept": "application/json"}
-    if settings.environment == "appai":
+    if settings.environment in ("appai", "ai"):
         domain = (settings.domain_name or "").strip()
         if not domain:
-            raise ValueError("appai 缺少登录域名，请填写所选学校的 domainName")
+            raise ValueError(f"{settings.environment} 缺少登录域名，请填写所选学校的 domainName")
         headers["domain-name"] = domain
     return headers
 
@@ -182,15 +182,15 @@ def load_saved_token(environment: str, output: Path | None = None) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="获取 59/appai 内部测试业务 Token")
-    parser.add_argument("environment", choices=("59", "appai"))
+    parser = argparse.ArgumentParser(description="获取 59/appai/ai 指定学校的业务 Token")
+    parser.add_argument("environment", choices=("59", "appai", "ai"))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--captcha", help="appai 验证码；省略时自动打开图片并交互询问")
+    parser.add_argument("--captcha", help="appai/ai 验证码；省略时自动打开图片并交互询问")
     args = parser.parse_args(argv)
     settings = load_environment(args.config, args.environment)
     captcha_id = captcha_code = None
-    if settings.environment == "appai":
+    if settings.environment in ("appai", "ai"):
         captcha_id, image_path = fetch_captcha(settings)
         if not args.captcha:
             args.captcha = prompt_for_captcha(image_path)
