@@ -238,6 +238,14 @@ def _merge_mcp_servers(registered_servers, client_servers):
     return {**registered_servers, **client_servers}
 
 
+def resolve_model(runtime: dict, default: str | None = None) -> str:
+    """能力只选择部署已开放的模型；空字符串沿用部署默认或可信内部默认。"""
+    selected = runtime.get('model')
+    if selected and selected not in MODEL_SETTINGS.available:
+        raise ValueError('能力模型未在部署可用列表中')
+    return selected or default or MODEL_SETTINGS.default
+
+
 def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
@@ -250,7 +258,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     capability_ref = str(
         payload.get("capability_ref") or "conversation"
     ).strip()
-    model = payload.get('model') or MODEL_SETTINGS.default
+    model = resolve_model(assets['runtime'], payload.get('model'))
     data_services = data_services or create_run_services(payload)
     registered_template = assets['template_revision'] is not None
     entry = assets['capability']

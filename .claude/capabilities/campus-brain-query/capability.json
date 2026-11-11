@@ -22,11 +22,12 @@
     "mode": "direct"
   },
   "runtime": {
+    "model": "",
     "thinking": {
-      "type": "disabled"
+      "type": "adaptive"
     },
     "prompt_mode": "custom",
-    "effort": "low"
+    "effort": "medium"
   },
   "promptVariables": {
     "minimum_schools": {

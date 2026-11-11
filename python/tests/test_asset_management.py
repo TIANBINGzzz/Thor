@@ -47,6 +47,17 @@ class AssetManagementTests(unittest.TestCase):
         self.assertGreater(audit['createdAt'], 0)
         self.assertNotIn(headers['Authorization'], path.read_text(encoding='utf-8'))
 
+    def test_managed_capability_preserves_model_and_reasoning_configuration(self):
+        from runtime.capabilities import capability_entry, SKILLS_ROOT
+        from runtime.config import MODEL_SETTINGS
+        body = self.body()
+        expected = {'model': MODEL_SETTINGS.default, 'thinking': {'type': 'adaptive'}, 'effort': 'medium'}
+        body['manifest']['runtime'] = expected
+        result = self.client.post('/internal/v1/assets/capabilities', json=body, headers=self.headers())
+        self.assertEqual(result.status_code, 201, result.text)
+        entry = capability_entry(self.root / body['manifest']['ref'], skills_root=SKILLS_ROOT)
+        self.assertEqual(entry['runtime'], expected)
+
     def test_audit_write_failure_does_not_publish_capability(self):
         original = Path.write_text
         def write(path, *args, **kwargs):

@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import copy
 from pathlib import Path
 from unittest.mock import patch
 import yaml
@@ -8,6 +9,82 @@ from runtime import runtime_settings
 
 
 class ModelSettingsTests(unittest.TestCase):
+    def test_each_source_capability_clears_previous_reasoning_configuration(self):
+        from runtime import config, capabilities
+        previous = {'model': 'old-model', 'thinking': {'type': 'disabled'}, 'effort': 'high'}
+        for capability in capabilities.CAPABILITIES.values():
+            entry = capabilities.capability_entry(capability.directory)
+            if not Path(capability.directory).is_relative_to(capabilities.CAPABILITIES_ROOT):
+                continue
+            declared = entry['runtime']
+            with self.subTest(capability=capability.ref):
+                self.assertTrue({'model', 'thinking', 'effort'} <= declared.keys())
+                with patch.object(config, 'prepare_capability_assets', return_value={'runtime': declared}):
+                    effective = config.inherit_client_runtime({'capability_ref': capability.ref}, previous)
+                self.assertEqual(effective['thinking'], declared['thinking'])
+                self.assertEqual(effective['effort'], declared['effort'])
+                self.assertNotIn('model', effective)
+
+    def test_disabled_reasoning_is_explicit_in_provider_request_environment(self):
+        from runtime import config
+        entry = copy.deepcopy(config.load_execution_entry('conversation')['capability'])
+        entry['runtime'] = {'model': '', 'thinking': {'type': 'disabled'}, 'effort': 'low'}
+        with patch.object(config, 'load_execution_entry', return_value={'capability': entry}):
+            options = config.build_options({})
+        import json
+        self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
+        self.assertEqual(options.model, config.MODEL_SETTINGS.default)
+
+    def test_capability_model_is_selected_for_agent_and_web(self):
+        from runtime import config
+        entry = copy.deepcopy(config.load_execution_entry('conversation')['capability'])
+        entry['runtime'] = {'model': 'other', 'thinking': {'type': 'adaptive'}, 'effort': 'medium'}
+        with tempfile.TemporaryDirectory() as folder:
+            settings = runtime_settings.load_model_settings(self.config(folder))
+            with patch.object(config, 'MODEL_SETTINGS', settings), \
+                    patch.object(config, 'load_execution_entry', return_value={'capability': entry}), \
+                    patch('tools.web_search.deployment_section', return_value={
+                        'baseUrl': 'https://example.maas.aliyuncs.com/apps/anthropic', 'apiKey': 'model-secret'}), \
+                    patch('tools.web_search.create_web_server', return_value={}) as web:
+                options = config.build_options({'model': settings.default})
+            self.assertEqual(options.model, 'other')
+            self.assertEqual(web.call_args.kwargs['model'], 'other')
+            self.assertEqual(options.thinking, {'type': 'adaptive'})
+            self.assertEqual(options.effort, 'medium')
+
+    def test_capability_model_must_be_available_before_tool_assembly(self):
+        from runtime import config
+        assets = config.prepare_capability_assets({})
+        assets['runtime']['model'] = 'not-deployed'
+        with patch.object(config, 'build_registered_tools') as assemble:
+            with self.assertRaisesRegex(ValueError, '模型未在部署可用列表'):
+                config.build_options({'_capability_assets': assets})
+        assemble.assert_not_called()
+
+    def test_runtime_model_accepts_default_or_name_but_not_connections(self):
+        from runtime.capabilities import _validate_runtime
+        for value in ('', 'deepseek-v4.1-flash'):
+            self.assertEqual(_validate_runtime({'model': value})['model'], value)
+        for value in (None, 123, True, [], {}, ' ', ' padded', 'https://model.example.test'):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                _validate_runtime({'model': value})
+
+    def test_capability_model_reaches_http_payload_and_blank_client(self):
+        import server
+        from runtime import config
+        from runtime.claude_sdk import ClientTurnPolicy
+        from runtime.protocol import AgentRunRequest
+        request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'cap-model',
+            'messageId': 'm1', 'domainName': 'school.example.test', 'input': {'text': 'hello'}})
+        entry = copy.deepcopy(config.load_execution_entry('conversation')['capability'])
+        entry['runtime'] = {'model': 'other'}
+        with tempfile.TemporaryDirectory() as folder:
+            settings = runtime_settings.load_model_settings(self.config(folder))
+            with patch.object(config, 'MODEL_SETTINGS', settings), patch.object(server, 'DEFAULT_MODEL', settings.default):
+                payload = server._internal_worker_payload(request, Path(folder), execution_entry={'capability': entry})
+                self.assertEqual(payload['model'], 'other')
+                self.assertEqual(config.build_client_options(payload, ClientTurnPolicy()).model, 'other')
+
     def config(self, folder):
         path = Path(folder) / 'application.yml'
         path.write_text(yaml.safe_dump({'runtime': {'models': {

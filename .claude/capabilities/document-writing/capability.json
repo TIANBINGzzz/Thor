@@ -18,6 +18,9 @@
     "mode": "agent"
   },
   "runtime": {
+    "model": "",
+    "thinking": null,
+    "effort": null,
     "mode": "client",
     "timeout_ms": 7200000
   },

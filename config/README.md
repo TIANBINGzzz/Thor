@@ -39,4 +39,6 @@ fileService 是附件下载和成果上传的唯一文件通道，downloadPath �
 
 runtime 的预算、模型、池及观测字段必须完整；default 和 SDK 别名须在 available 中。观测 storage 相对仓库根目录；启动 YAML diagnostics.disable-observability=true 用于紧急停采，false 仍以 Nacos 开关为准。
 
+各能力在 `.claude/capabilities/<ref>/capability.json` 的 `runtime` 独立配置 `model`、`thinking` 和 `effort`，管理端创建能力也使用相同字段。`model` 为空字符串时采用 Nacos `runtime.models.default`，填写时必须属于 `runtime.models.available`；只选模型名，不配置连接或密钥。`thinking` 可为 `null`（SDK 默认）、`{"type":"disabled"}`、`{"type":"adaptive"}`，或 `{"type":"enabled","budget_tokens":4096}`；`effort` 可为 `null`（SDK 默认）、`low`、`medium`、`high`、`xhigh`、`max`，实际支持范围由供应商决定。显式 `null` 清除同会话上一能力的对应设置；模型选择始终按当前能力解析。普通 Run 正文不能覆盖这些内部配置；这里的模型指执行 Agent 的语言模型，图像生成工具的模型仍由 Nacos `images` 配置。
+
 父进程及 Worker 共享启动快照；Worker 只接收模型、数据库、运行预算和本轮选定连接，不接收 Nacos、执行/管理/观测 JWT 密钥；SDK 不接收数据库凭据。真实 Token、原始结果及私密验证材料只放忽略目录。可信 Worker 不构成生产 OS 沙箱。

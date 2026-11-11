@@ -25,7 +25,7 @@ import uvicorn
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 
-from runtime.config import load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint
+from runtime.config import load_execution_entry, runtime_mode_for, prepare_capability_assets, client_connection_fingerprint, resolve_model
 from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verify_session_read_jwt
 from runtime.file_download import FileDownloader, FetchedFile
 from runtime.capabilities import CAPABILITIES
@@ -679,7 +679,6 @@ def _internal_worker_payload(
     execution_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
-    model = DEFAULT_MODEL
     if runtime_mode == "client":
         # 跨能力热更新 MCP 时保持会话目录稳定；Run 元数据仍按轮单独保存。
         session_directory = session_directory or run_directory
@@ -714,6 +713,7 @@ def _internal_worker_payload(
             f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
         )
     local = capability_assets or execution_entry or load_execution_entry(run_request.capability_ref)
+    model = resolve_model(local['capability'].get('runtime', {}), DEFAULT_MODEL)
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
         "_template_key": template_key,

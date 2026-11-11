@@ -212,6 +212,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     ('HOT_GATEWAY', 'probe-new-gateway-model', {'type': 'adaptive'}, 'low', changed_env),
                     ('HOT_ON', 'claude-sonnet-4-5', {'type': 'enabled', 'budget_tokens': 2048}, 'low', changed_env),
                     ('HOT_LOW', 'claude-sonnet-4-6', {'type': 'adaptive'}, 'low', {}),
+                    ('HOT_MEDIUM', 'deepseek-v4.1-flash', {'type': 'adaptive'}, 'medium', {}),
                     ('HOT_OFF', 'claude-sonnet-4-6', {'type': 'disabled'}, 'high', {}),
                     ('HOT_RESET', 'claude-sonnet-4-6', None, None, {}),
                 ]:
@@ -232,7 +233,7 @@ class DynamicClientCLITests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(request['path'], 'changed/v1/messages' if env else 'v1/messages')
                     self.assertEqual(request['marker'], 'hot' if env else None)
                     self.assertEqual(request['thinking']['type'],
-                                     {'HOT_GATEWAY': 'adaptive', 'HOT_ON': 'enabled', 'HOT_LOW': 'adaptive',
+                                     {'HOT_GATEWAY': 'adaptive', 'HOT_ON': 'enabled', 'HOT_LOW': 'adaptive', 'HOT_MEDIUM': 'adaptive',
                                       'HOT_OFF': 'disabled', 'HOT_RESET': 'adaptive'}[name])
                     if name == 'HOT_GATEWAY':
                         self.assertTrue(validations)

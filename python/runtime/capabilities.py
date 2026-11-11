@@ -42,9 +42,13 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
     """校验模型运行策略，避免能力声明绕过 SDK 边界。"""
     if not isinstance(value, dict):
         raise RuntimeError(f'{label}配置无效')
-    allowed = {'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms', 'system_prompt_snapshot'}
+    allowed = {'model', 'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms', 'system_prompt_snapshot'}
     if set(value) - allowed:
         raise RuntimeError(f'{label}存在未知字段')
+    if 'model' in value:
+        model = value['model']
+        if (not isinstance(model, str) or any(char.isspace() for char in model) or '://' in model):
+            raise RuntimeError(f'{label}.model配置无效')
     if value.get('mode') is not None and value['mode'] not in ('query', 'client'):
         raise RuntimeError(f'{label}.mode配置无效')
     thinking = value.get('thinking')

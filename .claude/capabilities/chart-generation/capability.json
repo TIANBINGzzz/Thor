@@ -14,5 +14,10 @@
   ],
   "execution": {
     "mode": "agent"
+  },
+  "runtime": {
+    "model": "",
+    "thinking": null,
+    "effort": null
   }
 }

@@ -10,6 +10,11 @@
   "execution": {
     "mode": "direct"
   },
+  "runtime": {
+    "model": "",
+    "thinking": null,
+    "effort": null
+  },
   "data": {
     "access": "required",
     "sourceRefs": [

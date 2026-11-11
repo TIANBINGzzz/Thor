@@ -137,9 +137,9 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         with patch('runtime.config.capability_entry', return_value=entry):
             options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                                      'credentials': {'platformBearer': 'test-secret'}})
-        self.assertEqual(options.thinking, {'type': 'disabled'})
-        self.assertEqual(json.loads(options.env['CLAUDE_CODE_EXTRA_BODY']), {'thinking': {'type': 'disabled'}})
-        self.assertEqual(options.effort, 'low')
+        self.assertEqual(options.thinking, {'type': 'adaptive'})
+        self.assertNotIn('CLAUDE_CODE_EXTRA_BODY', options.env)
+        self.assertEqual(options.effort, 'medium')
         self.assertEqual(options.max_turns, 8)
         self.assertEqual(options.system_prompt['type'], 'custom')
 
