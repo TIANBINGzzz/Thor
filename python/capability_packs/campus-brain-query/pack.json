@@ -7,7 +7,7 @@
     {
       "ref": "execute_query_plan",
       "displayKey": "data.query",
-      "description": "执行整题校园问数计划，优先一次提交全部指标、年份和统计项。本校/预置群体必须显式填写scopes；漏项可在本轮预算内补查新scopes，已查项复用结果。常模使用完整schools且不得传scopes。",
+      "description": "执行整题校园问数计划，优先一次提交全部指标、年份和统计项。本校/预置群体必须显式填写scopes；漏项可在本轮预算内补查新scopes，已查项复用结果。常模先核验本轮本校身份，schools须去重、剔除本校，仅包含用户指定或已确认的学校；不得传scopes。随机推荐尚未确认时禁止提交。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -16,7 +16,7 @@
             "enum": ["current_school", "norm_group"]
           },
           "schools": {
-            "description": "仅常模计划传完整学校编码列表；current_school 必须省略此字段。",
+            "description": "仅常模计划传完整有效外校编码列表：已去重、已剔除本轮本校，不含未确认候选。current_school 必须省略此字段。",
             "type": "array",
             "items": {"type": "string", "minLength": 1},
             "uniqueItems": true
@@ -71,7 +71,7 @@
     {
       "ref": "search_knowledge",
       "displayKey": "data.prepare",
-      "description": "批量检索指标或常模学校；常模指标用 norm_analysis。多个候选直接选最贴近名称的一项，同样合理时取首项，不停下来澄清；回答展示所选全称。",
+      "description": "批量检索指标或常模学校；常模指标用 norm_analysis。用户已指定名称的匹配候选可选最贴近的一项并展示全称；用户要求随机补校时可检索目录候选，但新增学校须先展示并等待用户确认。",
       "inputSchema": {
         "type": "object",
         "properties": {

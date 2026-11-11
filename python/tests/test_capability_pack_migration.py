@@ -19,7 +19,7 @@ class CapabilityPackMigrationTests(unittest.TestCase):
     def test_campus_business_operations_are_the_agent_tools(self):
         entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)
 
-        self.assertEqual(entry['tools'], [])
+        self.assertEqual(entry['tools'], ['web'])
         self.assertEqual(entry['service_refs'], ['campus'])
         self.assertEqual(set(entry['operation_refs']), {
             'execute_query_plan', 'search_knowledge', 'get_school_info'})

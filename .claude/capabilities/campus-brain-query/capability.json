@@ -4,7 +4,9 @@
   "description": "查询本校指标、预置群体对比与自选学校组常模分析",
   "supportsAttachments": true,
   "skillRefs": [],
-  "toolRefs": [],
+  "toolRefs": [
+    "web"
+  ],
   "serviceRefs": [
     "campus"
   ],

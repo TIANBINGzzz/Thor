@@ -99,9 +99,7 @@ def _valid_search_config(model: str | None) -> tuple[str, str] | None:
 
 
 def provide_tool(definition, context):
-    """按本轮模型配置决定是否挂载公开搜索。"""
-    if context['restricted']:
-        return None
+    """已由能力声明选择的搜索按模型配置挂载，direct 模式不额外屏蔽。"""
     search = _valid_search_config(context['model'])
     if not search:
         return None

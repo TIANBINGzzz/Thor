@@ -164,6 +164,20 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(MCPAuthError):
             build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run'})
 
+    def test_declared_web_search_mounts_in_direct_mode_without_business_credentials(self):
+        with patch('tools.web_search.deployment_section', return_value={
+                'baseUrl': 'https://example.maas.aliyuncs.com/apps/anthropic',
+                'apiKey': 'search-secret'}):
+            options = build_options({'capability_ref': 'campus-brain-query',
+                'run_id': 'campus-web-test', 'credentials': {'platformBearer': 'business-secret'}})
+        self.assertIn('web', options.mcp_servers)
+        self.assertIn('mcp__web__search', options.allowed_tools)
+        self.assertIn('tools/web/TOOL.md', [item['source'] for item in
+            prepare_capability_assets({'capability_ref': 'campus-brain-query'})['prompt_assets']['sections']])
+        self.assertNotIn('没有可用的联网搜索能力', options.system_prompt['prompt'])
+        self.assertNotIn('business-secret', str(options.mcp_servers['web']))
+        self.assertTrue(options.strict_mcp_config)
+
     def test_catalogs_preserve_types_years_and_leading_zeroes(self):
         service = self.service()
         for kind in ('indicator_compare', 'norm_analysis'):

@@ -122,7 +122,7 @@ class AgentWorkerTests(unittest.TestCase):
         from runtime.capabilities import CAPABILITIES
         with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)):
             for capability in CAPABILITIES.values():
-                if capability.ref in {'conversation', 'chart-generation', 'document-writing'}:
+                if capability.ref in {'conversation', 'chart-generation', 'document-writing', 'campus-brain-query'}:
                     continue
                 with self.subTest(capability=capability.ref):
                     options = build_options({'capability_ref': capability.ref,
