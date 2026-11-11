@@ -7,7 +7,7 @@
     {
       "ref": "execute_query_plan",
       "displayKey": "data.query",
-      "description": "执行整题校园问数计划，优先一次提交全部指标、年份和统计项。本校/预置群体必须显式填写scopes；漏项可在本轮预算内补查新scopes，已查项复用结果。常模先核验本轮本校身份，schools须去重、剔除本校，仅包含用户指定或已确认的学校；不得传scopes。随机推荐尚未确认时禁止提交。",
+      "description": "执行整题校园问数计划，优先一次提交全部指标、年份和统计项。本校/预置群体必须显式填写scopes；漏项可在本轮预算内补查新scopes，已查项复用结果。常模先核验本轮本校身份，school_names提交用户指定或已确认的学校全称，工具按目录严格匹配编码后查询；未匹配或对应多个编码时报错，不接受简称或编码。名单须去重、剔除本校；不得传scopes。随机推荐尚未确认时禁止提交。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -15,8 +15,8 @@
             "type": "string",
             "enum": ["current_school", "norm_group"]
           },
-          "schools": {
-            "description": "仅常模计划传完整有效外校编码列表：已去重、已剔除本轮本校，不含未确认候选。current_school 必须省略此字段。",
+          "school_names": {
+            "description": "仅常模计划传完整有效外校全称列表，原样使用目录 name，不传 code 或简称；工具严格匹配编码。已去重、已剔除本轮本校，不含未确认候选。current_school 必须省略此字段。",
             "type": "array",
             "items": {"type": "string", "minLength": 1},
             "uniqueItems": true
@@ -43,7 +43,7 @@
                   "minItems": 1,
                   "uniqueItems": true
                 },
-                "schools": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+                "school_names": {"description": "本项学校组；与顶层相同规则，须为目录中的学校全称，不能传编码。", "type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
               },
               "required": ["item_id", "indicator_code"],
               "additionalProperties": false

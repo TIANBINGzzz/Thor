@@ -27,7 +27,7 @@
       "type": "adaptive"
     },
     "prompt_mode": "custom",
-    "effort": "medium"
+    "effort": "low"
   },
   "promptVariables": {
     "minimum_schools": {

@@ -203,7 +203,7 @@ class CampusScopeTests(unittest.IsolatedAsyncioTestCase):
         code = next(r['code'] for r in service.assets['catalogs']['norm_analysis']
                     if not r['definition_conflict'])
         with self.assertRaisesRegex(ValueError, '不符合已开通范围'):
-            await service.execute_plan({'subject': 'norm_group', 'schools': ['00001'],
+            await service.execute_plan({'subject': 'norm_group', 'school_names': ['武汉交通职业学院'],
                 'items': [{'item_id': 'invalid', 'indicator_code': code,
                            'scopes': ['indicator_value']}]})
         service._request.assert_not_awaited()

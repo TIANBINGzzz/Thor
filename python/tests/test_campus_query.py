@@ -139,7 +139,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                                      'credentials': {'platformBearer': 'test-secret'}})
         self.assertEqual(options.thinking, {'type': 'adaptive'})
         self.assertNotIn('CLAUDE_CODE_EXTRA_BODY', options.env)
-        self.assertEqual(options.effort, 'medium')
+        self.assertEqual(options.effort, 'low')
         self.assertEqual(options.max_turns, 8)
         self.assertEqual(options.system_prompt['type'], 'custom')
 
@@ -282,6 +282,83 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('test-secret', str(result))
         self.assertNotIn('private body', str(result))
 
+    async def test_norm_tool_binds_exact_names_to_codes_without_copying_adjacent_records(self):
+        service = self.service()
+        names = ['上饶幼儿师范高等专科学校', '重庆工商职业学院', '广西职业技术大学',
+                 '深圳职业技术大学', '商洛职业技术学院', '黄河水利职业技术大学',
+                 '四川卫生康复职业学院', '青岛港湾职业技术学院', '东营职业学院',
+                 '潍坊职业学院', '德阳科贸职业学院', '武汉交通职业学院']
+        expected = ['00312', '13967', '11773', '11113', '13948', '12058',
+                    '14409', '13014', '12440', '12391', '14643', '13264']
+
+        async def request(name, arguments):
+            if name == 'get_school_info':
+                return {'success': True, 'data': {'school_id': 'other-school', 'school_name': '本校'}}
+            self.assertEqual(name, 'get_norm_metrics')
+            self.assertEqual(arguments['payload'], {'indicator_code': 'hydss', 'year': 2024, 'schools': expected})
+            return {'success': True, 'data': {'indicator_value': 100, 'school_count': 12, 'year': 2024}}
+
+        service._request = AsyncMock(side_effect=request)
+        tool = self.operation_tools(service)['execute_query_plan']
+        for per_item in (False, True):
+            with self.subTest(per_item=per_item):
+                service.bind({'platformBearer': 'test-secret'})
+                args = {'subject': 'norm_group', 'items': [
+                    {'item_id': 'one', 'indicator_code': 'hydss', 'year': 2024}]}
+                (args['items'][0] if per_item else args)['school_names'] = names
+                original = copy.deepcopy(args)
+                result = await tool.handler(args)
+                self.assertNotIn('isError', result, result)
+                self.assertTrue(json.loads(result['content'][0]['text'])['complete'])
+                self.assertEqual(args, original)
+        self.assertEqual(service._request.await_count, 4)
+
+    async def test_norm_tool_rejects_nonexact_or_ambiguous_names_before_remote_calls(self):
+        for invalid in ('深职大', '14643', '不存在的学校', '武汉交通职业学院（测试）', ' 武汉交通职业学院'):
+            with self.subTest(invalid=invalid):
+                service = self.service()
+                service._request = AsyncMock()
+                names = [r['name'] for r in service.assets['catalogs']['schools'][:11]] + [invalid]
+                tool = self.operation_tools(service)['execute_query_plan']
+                result = await tool.handler({'subject': 'norm_group', 'school_names': names, 'items': [
+                    {'item_id': 'one', 'indicator_code': 'hydss'}]})
+                self.assertTrue(result.get('isError'), result)
+                self.assertIn('全称', result['content'][0]['text'])
+                service._request.assert_not_awaited()
+
+        service = self.service()
+        service.assets['catalogs']['schools'].append({'name': '武汉交通职业学院', 'code': 'different'})
+        service._request = AsyncMock()
+        names = [r['name'] for r in service.assets['catalogs']['schools'][:11]] + ['武汉交通职业学院']
+        result = await self.operation_tools(service)['execute_query_plan'].handler({
+            'subject': 'norm_group', 'school_names': names,
+            'items': [{'item_id': 'one', 'indicator_code': 'hydss'}]})
+        self.assertTrue(result.get('isError'), result)
+        self.assertIn('多个编码', result['content'][0]['text'])
+        service._request.assert_not_awaited()
+
+    async def test_norm_tool_preserves_identity_count_and_unique_code_checks(self):
+        for invalid in ('short', 'self', 'duplicate_code'):
+            with self.subTest(invalid=invalid):
+                service = self.service()
+                records = [r for r in service.assets['catalogs']['schools'] if r['code'] != '00312'][:12]
+                names = [r['name'] for r in records]
+                if invalid == 'short':
+                    names = names[:11]
+                elif invalid == 'self':
+                    names[-1] = '上饶幼儿师范高等专科学校'
+                else:
+                    service.assets['catalogs']['schools'].append({'name': '同码学校测试别名', 'code': records[0]['code']})
+                    names[-1] = '同码学校测试别名'
+                service._request = AsyncMock(return_value={
+                    'success': True, 'data': {'school_id': '00312', 'school_name': '本校'}})
+                result = await self.operation_tools(service)['execute_query_plan'].handler({
+                    'subject': 'norm_group', 'school_names': names,
+                    'items': [{'item_id': 'one', 'indicator_code': 'hydss'}]})
+                self.assertTrue(result.get('isError'), result)
+                self.assertEqual([call.args[0] for call in service._request.call_args_list],
+                                 ['get_school_info'] if invalid == 'self' else [])
+
     async def test_concurrent_instances_do_not_share_tokens(self):
         services = [self.service('first'), self.service('second')]
         for service in services:
@@ -329,15 +406,15 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
     async def test_query_plan_rejects_changed_norm_group_before_identity_call(self):
         service = self.service()
         service._request = AsyncMock()
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
-        changed = [*schools[:-1], service.assets['catalogs']['schools'][12]['code']]
+        schools = [r['name'] for r in service.assets['catalogs']['schools'][:12]]
+        changed = [*schools[:-1], service.assets['catalogs']['schools'][12]['name']]
         items = [
             {'item_id': 'one', 'indicator_code': 'badzwhzxmsl', 'year': 2024},
             {'item_id': 'two', 'indicator_code': 'badzwhzxmsl', 'year': 2025},
         ]
         with self.assertRaisesRegex(ValueError, '学校组在同一计划中不一致'):
-            await service.execute_plan({'subject': 'norm_group', 'schools': schools,
-                                        'items': [{**item, 'schools': group}
+            await service.execute_plan({'subject': 'norm_group', 'school_names': schools,
+                                        'items': [{**item, 'school_names': group}
                                                   for item, group in zip(items, (schools, changed))]})
         self.assertEqual(service._request.await_count, 0)
 
@@ -380,8 +457,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             raise AssertionError('metric call must not follow identity failure')
 
         service._request = AsyncMock(side_effect=request)
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
-        result = await service.execute_plan({'subject': 'norm_group', 'schools': schools, 'items': [
+        schools = [r['name'] for r in service.assets['catalogs']['schools'][:12]]
+        result = await service.execute_plan({'subject': 'norm_group', 'school_names': schools, 'items': [
             {'item_id': 'one', 'indicator_code': 'hydss'}]})
         self.assertEqual(result, {'items': [], 'planned': 1, 'executed': 0,
                                   'complete': False, 'status': 'blocked',
@@ -393,8 +470,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         service._request = AsyncMock(side_effect=RuntimeError('private identity error'))
         failures = []
         tool = self.operation_tools(service, on_error=failures.append)['execute_query_plan']
-        schools = [r['code'] for r in service.assets['catalogs']['schools'][:12]]
-        result = await tool.handler({'subject': 'norm_group', 'schools': schools, 'items': [
+        schools = [r['name'] for r in service.assets['catalogs']['schools'][:12]]
+        result = await tool.handler({'subject': 'norm_group', 'school_names': schools, 'items': [
             {'item_id': 'one', 'indicator_code': 'hydss'}]})
         self.assertNotIn('isError', result)
         decoded = json.loads(result['content'][0]['text'])

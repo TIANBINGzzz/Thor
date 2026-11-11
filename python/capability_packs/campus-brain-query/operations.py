@@ -330,25 +330,39 @@ class CampusQuery:
             raise RuntimeError('上游结果结构尚不支持')
         return safe
 
+    def _school_codes(self, names):
+        """只绑定目录全称，不将检索的模糊命中用于执行，避免相邻记录错配。"""
+        if not _unique_strings(names):
+            raise CampusInputError('学校组须为不重复的学校全称列表')
+        codes = []
+        for index, name in enumerate(names, 1):
+            matches = {row['code'] for row in self.assets['catalogs']['schools'] if row['name'] == name}
+            if not matches:
+                raise CampusInputError(f'第{index}所学校全称未精确匹配目录，请检索并原样使用完整名称')
+            if len(matches) != 1:
+                raise CampusInputError(f'第{index}所学校全称对应多个编码，需核实目录后再查询')
+            codes.append(next(iter(matches)))
+        if len(codes) != len(set(codes)):
+            raise CampusInputError('学校全称列表包含同一学校，请按目录去重后提交')
+        return codes
+
     async def execute_plan(self, arguments):
         """先校验计划与真实调用预算；允许预置统计补项，保持常模学校组约束。"""
         async with self._lock:
             self._binding.inject({})
-            if not isinstance(arguments, dict) or set(arguments) - {'subject', 'schools', 'items'}:
+            if not isinstance(arguments, dict) or set(arguments) - {'subject', 'school_names', 'items'}:
                 raise CampusInputError('查询计划格式无效')
             subject = arguments.get('subject')
             items = arguments.get('items')
             if subject not in {'current_school', 'norm_group'} or not isinstance(items, list) or not items:
                 raise CampusInputError('查询计划必须包含对象和查询项')
-            top_schools = arguments.get('schools')
-            if top_schools is not None and not _unique_strings(top_schools):
-                raise CampusInputError('学校组格式无效')
+            top_schools = self._school_codes(arguments['school_names']) if 'school_names' in arguments else None
             normalized = []
             group = None
             seen_plan = set()
             seen_items = set()
             for item in items:
-                if not isinstance(item, dict) or set(item) - {'item_id', 'indicator_code', 'year', 'scopes', 'schools'}:
+                if not isinstance(item, dict) or set(item) - {'item_id', 'indicator_code', 'year', 'scopes', 'school_names'}:
                     raise CampusInputError('查询计划项格式无效')
                 item_id = item.get('item_id')
                 code = item.get('indicator_code')
@@ -357,7 +371,7 @@ class CampusQuery:
                 if item_id in seen_items:
                     raise CampusInputError('查询计划项标识重复')
                 seen_items.add(item_id)
-                schools = item.get('schools', top_schools)
+                schools = self._school_codes(item['school_names']) if 'school_names' in item else top_schools
                 is_norm = schools is not None
                 if subject == 'norm_group' and not is_norm:
                     raise CampusInputError('常模计划必须包含学校组')
