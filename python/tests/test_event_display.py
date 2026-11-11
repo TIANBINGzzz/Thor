@@ -7,46 +7,37 @@ from unittest.mock import patch
 
 import server
 from runtime.run_store import RunStore
-from runtime.event_display import RunStatusDisplays, ToolCallDisplays, with_display_name, TOOL_DISPLAY_NAMES
+from runtime.event_display import ToolCallDisplays, with_display_name, TOOL_DISPLAY_NAMES
 
 
 class EventDisplayTests(unittest.TestCase):
-    def test_public_status_stays_on_tool_until_different_work_or_run_end(self):
+    def test_tool_lifecycle_is_published_without_coalescing_same_labels(self):
         async def exercise():
             run_id = 'display-run-1'
-            await server._publish_internal_event(run_id, {
-                'runId': run_id, 'type': 'run.started', 'payload': {'status': 'running'}})
-            await server._run_phase(run_id, {'name': 'model_starting'})
             await server._run_phase(run_id, {'name': 'model_starting'})
             for call_id in ('query-1', 'query-2'):
                 for raw in (
                     {'type': 'tool_use', 'id': call_id, 'name': 'mcp__data__execute_query_spec'},
                     {'type': 'thinking', 'text': 'private-reasoning'},
                     {'type': 'tool_progress', 'id': call_id},
-                    {'type': 'tool_result', 'id': call_id, 'text': 'private-data'},
+                    {'type': 'tool_progress', 'id': call_id},
+                    {'type': 'tool_result', 'id': call_id, 'isError': True, 'text': 'private-data'},
                     {'type': 'text', 'text': '结果'},
                 ):
                     await server._handle_agent_event(run_id, raw)
-            await server._handle_agent_event(run_id, {
-                'type': 'tool_use', 'id': 'chart', 'name': 'mcp__charts__build_mermaid'})
-            await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'chart'})
-            await server._run_phase(run_id, {'name': 'model_starting'})
-            await server._publish_internal_event(run_id, {
-                'runId': run_id, 'type': 'run.completed', 'payload': {}})
         asyncio.run(exercise())
         events = self.store.events_after('display-run-1')
-        self.assertEqual([e['payload']['displayName'] for e in events if e['payload']['displayName']],
-                         ['正在思考', '查询业务数据', '生成图表', '已完成'])
-        working = [e for e in events if e['type'] == 'phase' and e['payload'].get('name') == 'working']
-        self.assertEqual([e['payload']['toolKey'] for e in working], ['data.query', 'chart.generate'])
-        self.assertTrue(all('toolCallId' not in e['payload'] for e in working))
-        self.assertFalse(any(e['type'].startswith('tool.') for e in events))
+        self.assertEqual([e['type'] for e in events], ['phase'] + [
+            'tool.started', 'tool.progress', 'tool.progress', 'tool.finished', 'message.delta'] * 2)
+        tools = [e for e in events if e['type'].startswith('tool.')]
+        self.assertEqual([e['payload']['toolCallId'] for e in tools], ['query-1'] * 4 + ['query-2'] * 4)
+        self.assertTrue(all(e['payload']['displayName'] == '查询业务数据' for e in tools))
+        self.assertEqual([e['payload']['status'] for e in tools], ['started', 'running', 'running', 'finished'] * 2)
+        self.assertTrue(all(e['payload']['isError'] for e in tools if e['type'] == 'tool.finished'))
         self.assertEqual(''.join(e['payload'].get('textDelta', '') for e in events), '结果结果')
         self.assertNotIn('private-', json.dumps(events))
-        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.runs)
-        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.thinking_started)
 
-    def test_scoped_parallel_tools_keep_latest_stage_on_out_of_order_finishes(self):
+    def test_parallel_tool_finishes_preserve_call_scope_and_error(self):
         async def exercise():
             for scope, name in [('main', 'mcp__data__execute_query_spec'), ('sub:task', 'mcp__images__generate')]:
                 await server._handle_agent_event('display-run-1', {
@@ -57,26 +48,27 @@ class EventDisplayTests(unittest.TestCase):
             await server._publish_internal_event('display-run-1', {
                 'runId': 'display-run-1', 'type': 'run.cancelled', 'payload': {}})
         asyncio.run(exercise())
-        self.assertEqual([e['payload']['displayName'] for e in self.store.events_after('display-run-1')],
-                         ['查询业务数据', '生成或编辑图片', '已停止'])
-        self.assertNotIn('display-run-1', server.STATUS_DISPLAYS.runs)
+        events = self.store.events_after('display-run-1')
+        self.assertEqual([e['type'] for e in events], [
+            'tool.started', 'tool.started', 'tool.finished', 'tool.finished', 'run.cancelled'])
+        self.assertEqual([(e['payload']['scope'], e['payload']['toolKey'], e['payload']['isError'])
+                          for e in events if e['type'] == 'tool.finished'],
+                         [('main', 'data.query', True), ('sub:task', 'image.generate', True)])
 
-    def test_hidden_tools_do_not_change_status_and_run_status_is_isolated(self):
+    def test_hidden_tool_events_are_still_published_with_empty_display_name(self):
         async def exercise():
             for run_id in ('display-run-1', 'display-run-2'):
-                await server._run_phase(run_id, {'name': 'model_starting'})
-                await server._handle_agent_event(run_id, {
-                    'type': 'tool_use', 'id': 'query', 'name': 'mcp__data__execute_query_spec'})
                 await server._handle_agent_event(run_id, {
                     'type': 'tool_use', 'id': 'hidden', 'name': 'private-unknown-tool'})
                 await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'hidden'})
-                await server._handle_agent_event(run_id, {'type': 'tool_result', 'id': 'query'})
         asyncio.run(exercise())
         for run_id in ('display-run-1', 'display-run-2'):
             events = self.store.events_after(run_id)
-            self.assertEqual([e['payload']['displayName'] for e in events], ['正在思考', '查询业务数据'])
+            self.assertEqual([e['type'] for e in events], ['tool.started', 'tool.finished'])
+            self.assertEqual([e['payload']['displayName'] for e in events], ['', ''])
+            self.assertNotIn('private-', json.dumps(events))
 
-    def test_status_coalescing_keeps_file_progress_and_failure_data(self):
+    def test_file_progress_and_failure_data_are_preserved(self):
         async def exercise():
             run_id = 'display-run-1'
             for received in (10, 20):
@@ -126,7 +118,6 @@ class EventDisplayTests(unittest.TestCase):
             self.assertNotEqual(event['payload']['message'], code)
 
     def setUp(self):
-        self.enterContext(patch.object(server, 'STATUS_DISPLAYS', RunStatusDisplays()))
         self.store = RunStore(':memory:')
         self.addCleanup(self.store.close)
         for run in ('display-run-1', 'display-run-2'):

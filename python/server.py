@@ -35,7 +35,7 @@ from runtime.protocol import AgentRunRequest, ProtocolError, SteeringRequest
 from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
-from runtime.event_display import RunStatusDisplays, ToolCallDisplays, with_display_name
+from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
 from runtime.worker_pool import WorkerPool, configure_worker_logging
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
@@ -72,7 +72,6 @@ internal_steering_tasks: dict[tuple[str, str], asyncio.Task[Any]] = {}
 pending_terminals: dict[str, dict[str, Any]] = {}
 ARTIFACT_DELIVERY: ArtifactDelivery | None = None
 TOOL_DISPLAYS = ToolCallDisplays()
-STATUS_DISPLAYS = RunStatusDisplays()
 internal_subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
 internal_runs_lock = asyncio.Lock()
 SESSION_MANAGER: SessionManager | None = None
@@ -358,11 +357,9 @@ def _public_run(run: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any] | None:
+async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[str, Any]:
     """接收 Run 标识和公共事件，持久化后推送给订阅队列，返回带存储序号的事件。"""
-    clean = STATUS_DISPLAYS.project(with_display_name({"protocolVersion": "agent-events/v1", **event}))
-    if clean is None:
-        return None
+    clean = with_display_name({"protocolVersion": "agent-events/v1", **event})
     stored = RUN_STORE.append_event(run_id, clean)
     if event.get('type') == 'message.delta' and event.get('payload', {}).get('textDelta'):
         timing = RUN_TIMINGS.get(run_id)
@@ -375,7 +372,6 @@ async def _publish_internal_event(run_id: str, event: dict[str, Any]) -> dict[st
 async def _notify_stored_event(stored: dict[str, Any]) -> None:
     """产物状态与事件已在同一事务提交，这里只通知订阅者，不重复写事件。"""
     run_id = stored['runId']
-    STATUS_DISPLAYS.remember(stored)
     try:
         if OBSERVATION.enabled:
             event_type=stored.get('type','')
@@ -947,7 +943,6 @@ async def _execute_internal_run(
         pending_terminals.pop(run_id, None)
         OBSERVATION_SECRETS.pop(run_id, None)
         TOOL_DISPLAYS.clear(run_id)
-        STATUS_DISPLAYS.clear(run_id)
         # Query owns a private directory and can clean it here. Client's
         # current-input directory is shared by the Session and is cleaned by
         # the accepted Actor command; an outer task must never clear it while

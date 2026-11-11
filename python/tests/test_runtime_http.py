@@ -20,7 +20,6 @@ from runtime.artifact_delivery import ArtifactDelivery
 from tools.artifacts import publish_artifact
 from runtime.observability import Observer
 from runtime.telemetry import Timing
-from runtime.event_display import RunStatusDisplays
 
 
 class RuntimeHTTPTests(unittest.TestCase):
@@ -70,6 +69,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                 await server._handle_agent_event('run-test', {
                     'type': 'thinking', 'scope': 'main', 'text': 'private-reasoning'})
             await server._handle_agent_event('run-test', {'type': 'tool_use', 'id': 'c1', 'name': 'Read'})
+            await server._handle_agent_event('run-test', {'type': 'tool_progress', 'id': 'c1'})
             await server._handle_agent_event('run-test', {'type': 'tool_result', 'id': 'c1', 'text': 'private-source'})
             await server._handle_agent_event('run-test', {'type': 'text', 'text': 'answer'})
             await server._handle_client_public_event('run-test', {
@@ -82,11 +82,13 @@ class RuntimeHTTPTests(unittest.TestCase):
         observer.flush()
         events = self.store.events_after('run-test')
         self.assertEqual([event['type'] for event in events], [
-            'run.started', 'phase', 'phase', 'phase', 'message.delta', 'run.completed'])
+            'run.started', 'phase', 'phase', 'tool.started', 'tool.progress', 'tool.finished', 'message.delta', 'run.completed'])
         self.assertEqual(events[0]['payload']['displayName'], '')
         self.assertEqual(events[2]['payload']['displayName'], '正在思考')
-        self.assertEqual(events[3]['payload'], {
-            'name': 'working', 'toolKey': 'file.read', 'displayName': '读取资料'})
+        for event in events[3:6]:
+            self.assertEqual(event['payload']['toolCallId'], 'c1')
+            self.assertEqual(event['payload']['toolKey'], 'file.read')
+            self.assertEqual(event['payload']['displayName'], '读取资料')
         self.assertEqual(events[-1]['payload']['displayName'], '已完成')
         self.assertEqual(events[-2]['payload']['textDelta'], 'answer')
         self.assertNotIn('private-', json.dumps(events))
@@ -167,7 +169,6 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.assertEqual(self.store.events_after('run-test'), [])
 
     def setUp(self):
-        self.enterContext(patch.object(server, 'STATUS_DISPLAYS', RunStatusDisplays()))
         self.store = RunStore(":memory:")
         self.addCleanup(self.store.close)
         self.temp = tempfile.TemporaryDirectory()

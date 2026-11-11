@@ -1,4 +1,4 @@
-"""公共事件显示字典与按 Run 合并的业务阶段；正文、文件和终态独立传递。"""
+"""公共事件显示字典：空名称只隐藏状态提示，不丢弃事件和业务数据。"""
 
 from runtime.tool_catalog import display_key
 
@@ -111,58 +111,11 @@ def with_display_name(event):
         payload['toolKey'] = key
         name = TOOL_DISPLAY_NAMES[key]
     elif kind == 'phase':
-        if payload.get('name') == 'working':
-            key = payload.get('toolKey')
-            if key not in TOOL_DISPLAY_NAMES:
-                key = 'other'
-            payload['toolKey'] = key
-            name = TOOL_DISPLAY_NAMES[key]
-        else:
-            name = PHASE_DISPLAY_NAMES.get(payload.get('name'), '')
+        name = PHASE_DISPLAY_NAMES.get(payload.get('name'), '')
     else:
         name = EVENT_DISPLAY_NAMES.get(kind, '')
     payload['displayName'] = name
     return {**event, 'payload': payload}
-
-
-class RunStatusDisplays:
-    """工具生命周期只进观测；公共提示保持到下一业务阶段，不回退到思考。"""
-
-    def __init__(self):
-        self.runs = {}
-        self.thinking_started = set()
-
-    def project(self, event):
-        """合并纯状态提示；带文件进度的数据事件不得因同名而丢失。"""
-        kind = event['type']
-        if kind in TOOL_EVENTS:
-            if kind != 'tool.started':
-                return None
-            event = with_display_name({**event, 'type': 'phase', 'payload': {
-                'name': 'working', 'toolKey': event['payload']['toolKey']}})
-        if event['type'] == 'phase':
-            payload = event['payload']
-            if payload.get('name') == 'model_starting' and event['runId'] in self.thinking_started:
-                return None
-            if set(payload) <= {'name', 'toolKey', 'displayName'}:
-                name = payload['displayName']
-                if not name or name == self.runs.get(event['runId']):
-                    return None
-        return event
-
-    def remember(self, event):
-        """只跟踪已落盘事件；终态清理，不影响其他 Run。"""
-        run_id = event['runId']
-        if event['type'] in {'run.started', 'run.completed', 'run.failed', 'run.cancelled'}:
-            self.clear(run_id)
-        elif event.get('payload', {}).get('displayName'):
-            self.runs[run_id] = event['payload']['displayName']
-            if event['type'] == 'phase' and event['payload'].get('name') in {'model_starting', 'working'}:
-                self.thinking_started.add(run_id)
-
-    def clear(self, run_id):
-        self.runs.pop(run_id, None)
-        self.thinking_started.discard(run_id)
 
 
 class ToolCallDisplays:
