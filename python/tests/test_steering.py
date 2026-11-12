@@ -284,12 +284,6 @@ class SteeringHTTPTests(unittest.TestCase):
                         self.assertEqual(duplicate.json()['steering']['status'], 'applied')
                         conflict = await client.post(path, json={**body, 'input': {'text': '另一个要求'}}, headers=headers)
                         self.assertEqual(conflict.status_code, 409)
-                        receipt = await client.get('/internal/v1/runs/run-test/steering/m-steer',
-                                                   headers=self.headers('run.read'))
-                        self.assertEqual(receipt.json()['steering']['status'], 'applied')
-                        legacy_receipt = await client.get('/internal/v1/runs/run-test/steering/m-steer',
-                                                          headers=self.headers('run.steer', messageId='m-steer'))
-                        self.assertEqual(legacy_receipt.status_code, 401)
                         await worker.events.put({'type': 'client_run_completed', 'run_id': 'run-test'})
                         await execution
                         await server._finish_run('run-test', {'type': 'run.completed', 'runId': 'run-test', 'payload': {}})
@@ -298,12 +292,33 @@ class SteeringHTTPTests(unittest.TestCase):
                                                  headers=self.headers('run.execute', messageId='m-late'))
                         self.assertEqual(late.status_code, 409)
                         self.assertEqual(sum(e['type'] == 'client_steer' for e in worker.sent), 1)
-                        serialized = json.dumps(self.store.events_after('run-test'), ensure_ascii=False)
-                        self.assertNotIn('按学院统计', serialized)
-                        events = [e for e in self.store.events_after('run-test') if e['type'].startswith('steering.')]
+                        event_path = '/internal/v1/runs/run-test/events'
+                        response = await client.get(event_path, headers=self.headers('run.read'))
+                        self.assertEqual(response.status_code, 200)
+                        self.assertNotIn('按学院统计', response.text)
+                        streamed = [json.loads(line[6:]) for line in response.text.splitlines()
+                                    if line.startswith('data: ')]
+                        events = [e for e in streamed if e['type'].startswith('steering.')]
                         self.assertEqual([e['type'] for e in events], ['steering.accepted', 'steering.delivered', 'steering.applied'])
+                        self.assertTrue(all(e['runId'] == 'run-test' and e['payload']['messageId'] == 'm-steer'
+                                            for e in events))
                         self.assertTrue(all(e['protocolVersion'] == 'agent-events/v1' for e in events))
                         self.assertTrue(all(e['payload']['displayName'] for e in events))
+                        self.assertEqual(streamed[-1]['type'], 'run.completed')
+                        # 重连沿用原 Run 游标，只补未处理的回执和终态，不再次提交引导。
+                        accepted_sequence = events[0]['sequence']
+                        for params, extra_headers in (
+                            ({'afterSequence': accepted_sequence}, {}),
+                            ({}, {'Last-Event-ID': str(accepted_sequence)}),
+                        ):
+                            replay = await client.get(event_path, params=params,
+                                                      headers={**headers, **extra_headers})
+                            self.assertEqual(replay.status_code, 200)
+                            replayed = [json.loads(line[6:]) for line in replay.text.splitlines()
+                                        if line.startswith('data: ')]
+                            self.assertEqual(replayed, streamed[1:])
+                        forbidden = await client.get(event_path, headers=self.headers('run.read', tenant='other'))
+                        self.assertEqual(forbidden.status_code, 401)
             finally:
                 await actor.close()
                 await asyncio.gather(execution, return_exceptions=True)
@@ -336,13 +351,21 @@ class SteeringHTTPTests(unittest.TestCase):
                     first = await client.post(path, json=body, headers=token)
                     self.assertEqual(first.status_code, 202)
                     await _until(lambda: self.store.get_steering('run-test', 'm-timeout')['status'] == 'unknown')
-                    receipt = await client.get('/internal/v1/runs/run-test/steering/m-timeout', headers=token)
-                    self.assertEqual(receipt.json()['steering']['code'], 'control_timeout')
                     duplicate = await client.post(path, json=body, headers=token)
                     self.assertEqual(duplicate.status_code, 200)
                     self.assertEqual(duplicate.json()['steering']['status'], 'unknown')
+                    self.assertEqual(duplicate.json()['steering']['code'], 'control_timeout')
                     await asyncio.sleep(.01)
                     self.assertEqual(actor.calls, 1)
+            await server._finish_run('run-test', {'type': 'run.completed', 'runId': 'run-test', 'payload': {}})
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://test') as client:
+                response = await client.get('/internal/v1/runs/run-test/events?afterSequence=1',
+                                            headers=self.headers('run.read'))
+                self.assertEqual(response.status_code, 200)
+                replayed = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+                self.assertEqual([event['type'] for event in replayed], ['steering.unknown', 'run.completed'])
+                self.assertEqual(replayed[0]['payload']['messageId'], 'm-timeout')
+                self.assertEqual(replayed[0]['payload']['code'], 'control_timeout')
 
         asyncio.run(asyncio.wait_for(exercise(), 5))
 

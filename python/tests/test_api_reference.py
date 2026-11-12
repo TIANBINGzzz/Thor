@@ -53,7 +53,6 @@ class APIReferenceTests(unittest.TestCase):
         control = re.search(r'<section id="control">.*?</section>', self.source, re.S).group()
         auth = re.search(r'<section id="auth">.*?</section>', self.source, re.S).group()
         self.assertIn('<code>run.execute</code>', steering)
-        self.assertIn('<code>run.read</code>', steering)
         for obsolete_scope in ('run.steer', 'run.control', 'run.cancel'):
             with self.subTest(scope=obsolete_scope):
                 self.assertNotIn(f'<code>{obsolete_scope}</code>', self.source)

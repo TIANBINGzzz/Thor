@@ -48,7 +48,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 <section id="scope"><h2>接口范围</h2><table><thead><tr><th>模块</th><th>接口</th><th>方向和用途</th></tr></thead><tbody>
 <tr><td>存活检查</td><td><code>GET /health</code></td><td>无需鉴权，返回 <code>{"ok": true}</code>；只证明 HTTP 服务存活，不保证模型、数据库及 文件服务器可用。</td></tr>
 <tr><td>Run</td><td><code>/internal/v1/runs</code></td><td>Java 创建、查询、订阅、控制一次执行。</td></tr>
-<tr><td>消息引导</td><td><code>/internal/v1/runs/{runId}/steer</code>、<code>/internal/v1/runs/{runId}/steering/{messageId}</code></td><td>将文本补充要求追加到活动 Run；不创建下一 Run。</td></tr>
+<tr><td>消息引导</td><td><code>POST /internal/v1/runs/{runId}/steer</code></td><td>将文本补充要求追加到活动 Run；回执沿用原 Run SSE。</td></tr>
 <tr><td>Capability</td><td><code>GET /internal/v1/capabilities</code>、Run 字段 <code>capabilityRef</code></td><td>查询 SDK 目录，再选择业务能力执行。</td></tr>
 <tr><td>资产管理</td><td><code>/internal/v1/assets</code></td><td>独立管理 JWT 授权；查询可组合资产，校验或新建能力。</td></tr>
 <tr><td>Artifact</td><td><code>/internal/v1/runs/{runId}/artifacts</code></td><td>Python 自动上传已发布成果；Java 按 artifactId 获取状态，按 fileId 关联业务消息。</td></tr>
@@ -438,7 +438,8 @@ xychart-beta
 </tbody></table></section>
 
 <section id="steering"><h2>运行中消息引导</h2>
-<p>引导与排队创建下一条消息是不同操作。Java 持久化并调度的下一条消息继续使用 <code>POST /internal/v1/runs</code> 创建新 Run；需要补充当前任务要求时调用本接口，沿用原 <code>runId</code> 并使用新的 <code>messageId</code>。默认不打断当前工具调用，待工具结束后由 SDK 在会话消息边界处理补充。要停止当前执行，调用<a href="#control">cancel</a>；之后的业务消息再创建新 Run。</p>
+<p>引导仅使用下面的 POST 接口提交，沿用原 <code>runId</code> 和已连接的 SSE，以新的 <code>messageId</code> 标识补充要求。默认不打断当前工具调用，待工具结束后由 SDK 在会话消息边界处理补充。要停止当前执行，调用<a href="#control">cancel</a>。</p>
+<p>待发送列表约定由业务前端本地管理，排序、编辑、移除和暂停不请求 Python；真正发送时才经 Java 授权并调用 <code>POST /internal/v1/runs</code> 创建新 Run。关闭页面后不派发下一条，重开先核对已提交 Run；SSE 断开不代表完成。前端接入另行实现，详细边界见<a href="specs/ccsdk-runtime-interface.md#4-run-查询与控制模块">Runtime 契约</a>；本 API 不提供业务队列管理接口。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/steer</code></div>
 <p>使用原 Run 的 <code>run.execute</code> JWT，不需要单独签发引导权限。JWT 仍绑定 Run、身份、租户、业务会话和 capabilityRef；正文里的新 <code>messageId</code> 标识这条补充消息，不要求改写原 Run JWT 的 messageId。引导不消费 <code>jti</code>，相同请求可复用原 JWT 重试。</p>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;原 Run 的 run.execute JWT&gt;
@@ -458,17 +459,16 @@ Content-Type: application/json</pre></div>
     "code": null
   }
 }</pre></div>
-<p>相同 <code>runId</code>/<code>messageId</code>/文本重试返回当前回执和 <code>200</code>，不会再次发送；同一标识对应不同文本返回 <code>409</code>。控制超时或 Runtime 重启后的未确认输入为 <code>unknown</code>，不可自动重发；Java 应查询回执并依业务决定是否另建 Run。</p>
-<div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/steering/{messageId}</code></div>
-<p>使用 <code>run.read</code> 或 <code>run.execute</code> 查询本 Run 任一回执。查询不消费 <code>jti</code>。</p>
+<p>相同 <code>runId</code>/<code>messageId</code>/文本重试返回当前回执和 <code>200</code>，不会再次发送；同一标识对应不同文本返回 <code>409</code>。控制超时或 Runtime 重启后的未确认输入为 <code>unknown</code>，不可换新 messageId 自动重发。提交请求超时可用同一标识和文本幂等重试；正常回执通过原 SSE 接收。</p>
 <table><thead><tr><th>状态</th><th>含义</th></tr></thead><tbody>
 <tr><td>accepted</td><td>Python 已持久接收请求。</td></tr>
 <tr><td>delivered</td><td>补充文本已写入当前 SDK Client。</td></tr>
 <tr><td>applied</td><td>SDK 以消息 UUID 回显，确认已纳入会话；不保证模型会遵从内容。</td></tr>
 <tr><td>rejected</td><td>补充文本未发送，例如 Run 已离开活动状态。</td></tr>
-<tr><td>unknown</td><td>无法确认 SDK 是否纳入；查询回执，不换新 messageId 自动重发。同 ID 的幂等重试只返回回执。活动 Run 中迟到的 UUID 确认可更新为 applied。</td></tr>
+<tr><td>unknown</td><td>无法确认 SDK 是否纳入，不换新 messageId 自动重发。同 ID 的幂等重试只返回回执。活动 Run 中迟到的 UUID 确认可通过原 SSE 更新为 applied；重连补放不保证消除不确定性。</td></tr>
 </tbody></table>
-<p>状态变化以 <code>agent-events/v1</code> 的 <code>steering.accepted</code>、<code>steering.delivered</code>、<code>steering.applied</code>、<code>steering.rejected</code>、<code>steering.unknown</code> 事件通知。事件仅含 messageId、状态、稳定错误码及显示名称，不含引导正文。</p></section>
+<p>状态变化通过原 <code>/internal/v1/runs/{runId}/events</code> SSE 推送，事件类型为 <code>steering.accepted</code>、<code>steering.delivered</code>、<code>steering.applied</code>、<code>steering.rejected</code>、<code>steering.unknown</code>，协议仍为 <code>agent-events/v1</code>。Java 按原流转发，前端按 payload.messageId 关联补充消息；payload 仅含 messageId、状态、稳定错误码及显示名称，不含正文。回答和最终结果继续走同一流，无需另建订阅或轮询回执。</p>
+<p>断线后按最后已处理的序号，使用 <code>afterSequence</code> 或 <code>Last-Event-ID</code> <a href="#events">重连原 SSE</a>，同时补取回答及引导回执；Run 结束后也可补放已保存事件。不提供独立引导回执 GET 接口。</p></section>
 
 <section id="session-runs"><h2>按业务会话查询执行记录</h2>
 <p>用于查询<strong>某个业务会话在 Python Runtime 中发起过哪些执行，以及每次执行的当前状态</strong>。例如用户重新打开会话时，Java 可通过此接口取得 Run 列表，再按 <code>messageId</code> 关联自己保存的业务消息，显示“执行中”“已完成”或“失败”等状态。</p>

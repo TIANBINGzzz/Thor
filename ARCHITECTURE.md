@@ -48,7 +48,7 @@
 - 前端只触发 Capability；省略能力归一为 conversation，本轮授权与上轮界面选择分开。Workflow、Skill、模型、MCP 及连接均为内部组成。
 - 业务 Token、Run JWT、模型密钥用途分离，凭据不进入模型输入、公共事件或持久化日志；按 MCP 注入规则见工程要求。
 - 业务会话、Run、SDK session、Client 和 SSE 连接生命周期分开；断开订阅不取消 Run，resume 不撤销工具副作用。
-- Java 负责持久化消息与下一 Run 排队；文本引导只追加到活动 Run 的 SDK 会话，不新建 Run、不改变当前授权，默认不打断在途工具。停止仍走 cancel。
+- 集成约定：待发送列表及排序、暂停由前端本地管理，Java 授权并保存实际提交的消息；Python 保留已提交 Run 的串行执行调度。文本引导仅通过 steer 追加到活动 Run，默认不打断在途工具，回执随原 Run SSE 推送及补放；停止仍走 cancel。前端队列接入另行实现，边界见 [Runtime 契约](doc/specs/ccsdk-runtime-interface.md#4-run-查询与控制模块)。
 - 公共事件脱敏，状态显示由 `event_display.py` 统一维护；显示名称不授予工具权限。配置快照、结果引用及文件状态不得跨身份或 Run 串用。
 - 能力代码是可信部署代码，不是沙箱插件；持久化能力不得引用代码包。代码随 Worker 生命周期加载，部署变更须重启 Worker，不提供在线换码或源码快照。Operation 绑定本轮上下文，取消和收尾完成前不得复用，详见 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
 

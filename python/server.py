@@ -1106,22 +1106,6 @@ async def internal_steer_run(run_id: str, request: Request):
                         headers={'cache-control': 'no-store'})
 
 
-@app.get('/internal/v1/runs/{run_id}/steering/{message_id}')
-async def internal_get_steering(run_id: str, message_id: str, request: Request):
-    """终态后仍可用 Run 读权限查询引导回执。"""
-    try:
-        run = RUN_STORE.get_run(run_id)
-        if run is None:
-            return _plain('Run 不存在', 404)
-        _authorize_internal(request, run, allowed_scopes={'run.read', 'run.execute'}, consume_jti=False)
-        record = RUN_STORE.get_steering(run_id, message_id)
-    except _InternalAuthError as error:
-        return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
-    except ValueError:
-        return _plain('引导标识无效', 400)
-    return JSONResponse({'steering': record}, headers={'cache-control': 'no-store'}) if record else _plain('引导不存在', 404)
-
-
 @app.get("/internal/v1/sessions/{business_session_id}/runs")
 def internal_session_runs(
     business_session_id: str, request: Request,
