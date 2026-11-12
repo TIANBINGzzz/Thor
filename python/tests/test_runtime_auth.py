@@ -39,7 +39,7 @@ class RuntimeAuthorizationTests(unittest.TestCase):
         self.client = TestClient(server.app)
         self.addCleanup(self.client.close)
 
-    def headers(self, scope, **identity):
+    def headers(self, scope=None, **identity):
         now = time.time()
         claims = {
             'iss': 'test-java', 'aud': 'ccsdk-runtime', 'iat': now, 'exp': now + 60,
@@ -47,47 +47,66 @@ class RuntimeAuthorizationTests(unittest.TestCase):
             'runId': 'auth-run', 'capabilityRef': 'conversation',
             'businessSessionId': 'auth-session', 'messageId': 'auth-message',
         }
+        if scope is None:
+            claims.pop('scope')
         claims.update(identity)
         token = auth.encode_hs256_jwt(claims, 'test-auth-secret')
         return {'authorization': 'Bearer ' + token}
 
-    def test_scope_denial_preserves_jti_for_authorized_creation(self):
-        request = SimpleNamespace(headers=self.headers('run.execute'))
-        with self.assertRaises(server._InternalAuthError):
-            server._authorize_internal(request, self.run, allowed_scopes={'run.read'}, consume_jti=True)
-        claims = server._authorize_new_request(request, self.request)
-        self.assertEqual(claims['runId'], 'auth-run')
-        with self.assertRaisesRegex(server._InternalAuthError, 'already been used'):
-            server._authorize_new_request(request, self.request)
+    def test_run_creation_ignores_scope_and_still_consumes_jti(self):
+        for scope in (None, 'run.read', 'run.execute', 'run.cancel', ['run.read', 'run.execute'], '', [], {}):
+            with self.subTest(scope=scope):
+                request = SimpleNamespace(headers=self.headers(scope))
+                claims = server._authorize_new_request(request, self.request)
+                self.assertEqual(claims['runId'], 'auth-run')
+                with self.assertRaisesRegex(server._InternalAuthError, 'already been used'):
+                    server._authorize_new_request(request, self.request)
 
     def test_new_run_identity_comes_from_signed_grant_without_deployment_pin(self):
         request = SimpleNamespace(headers=self.headers('run.execute', tenant='runtime-other', sub='other-user'))
         claims = server._authorize_new_request(request, self.request)
         self.assertEqual((claims['tenant'], claims['sub']), ('runtime-other', 'other-user'))
 
+    def test_run_without_scope_still_rejects_invalid_signed_claims(self):
+        now = time.time()
+        for invalid in ({'iss': 'other'}, {'aud': 'other'}, {'jti': ''},
+                        {'iat': now - 120, 'exp': now - 60}, {'iat': now + 30},
+                        {'runId': 'other'}, {'capabilityRef': 'document-writing'},
+                        {'businessSessionId': 'other'}, {'sub': 'other'}, {'tenant': 'other'}):
+            with self.subTest(claims=invalid):
+                response = self.client.get('/internal/v1/runs/auth-run', headers=self.headers(**invalid))
+                self.assertEqual(response.status_code, 401, response.text)
+        token = self.headers()['authorization'].split(' ')[1]
+        header, payload, signature = token.split('.')
+        signature = ('A' if signature[0] != 'A' else 'B') + signature[1:]
+        response = self.client.get('/internal/v1/runs/auth-run', headers={
+            'authorization': f'Bearer {header}.{payload}.{signature}',
+        })
+        self.assertEqual(response.status_code, 401, response.text)
+
     def test_identity_denial_preserves_jti_for_the_authorized_run(self):
         for identity in ({'tenantId': 'other-tenant'}, {'userId': 'other-user'}):
             with self.subTest(identity=identity):
-                request = SimpleNamespace(headers=self.headers('run.execute'))
+                request = SimpleNamespace(headers=self.headers())
                 with self.assertRaises(server._InternalAuthError):
                     server._authorize_internal(request, {**self.run, **identity},
-                                               allowed_scopes={'run.execute'}, consume_jti=True)
+                                               consume_jti=True)
                 claims = server._authorize_internal(request, self.run,
-                                                     allowed_scopes={'run.execute'}, consume_jti=True)
+                                                     consume_jti=True)
                 self.assertEqual((claims['tenant'], claims['sub']), ('tenant', 'user'))
                 with self.assertRaisesRegex(server._InternalAuthError, 'already been used'):
                     server._authorize_internal(request, self.run,
-                                               allowed_scopes={'run.execute'}, consume_jti=True)
+                                               consume_jti=True)
 
     def test_invalid_control_option_preserves_jti_for_interrupt(self):
-        headers = self.headers('run.execute')
+        headers = self.headers()
         route = '/internal/v1/runs/auth-run/control'
         self.assertEqual(self.client.post(route, headers=headers, json={'option': 'invalid'}).status_code, 400)
         self.assertEqual(self.client.post(route, headers=headers, json={'option': 'interrupt'}).status_code, 200)
         self.assertEqual(self.client.post(route, headers=headers, json={'option': 'interrupt'}).status_code, 401)
 
     def test_reads_and_cancellation_can_reuse_a_consumed_creation_grant(self):
-        headers = self.headers('run.execute')
+        headers = self.headers()
         server._authorize_new_request(SimpleNamespace(headers=headers), self.request)
         for _ in range(2):
             self.assertEqual(self.client.get('/internal/v1/runs/auth-run', headers=headers).status_code, 200)

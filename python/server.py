@@ -248,11 +248,10 @@ def _authorize_internal(
     request: Request,
     run: dict[str, Any],
     *,
-    allowed_scopes: set[str],
     consume_jti: bool,
     message_id: str | None = None,
 ) -> dict[str, Any]:
-    """校验请求 JWT、允许权限及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
+    """校验请求 JWT 及已有 Run 的身份归属，返回验证后的 claims；失败时抛出鉴权异常。"""
     if not RUNTIME_JWT_SECRET:
         raise _InternalAuthError("Runtime JWT 未配置")
     run_id = str(run.get("runId") or "")
@@ -270,7 +269,6 @@ def _authorize_internal(
             message_id=message_id,
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
-            expected_scope=allowed_scopes,
             consume_jti=consume_jti,
         )
     except JWTError as error:
@@ -295,7 +293,6 @@ def _authorize_new_request(request: Request, run_request: AgentRunRequest) -> di
             body=wire,
             audience=RUNTIME_JWT_AUDIENCE,
             issuer=RUNTIME_JWT_ISSUER,
-            expected_scope="run.execute",
         )
     except JWTError as error:
         raise _InternalAuthError(str(error)) from error
@@ -1081,7 +1078,7 @@ async def internal_steer_run(run_id: str, request: Request):
         run = RUN_STORE.get_run(run_id)
         if run is None:
             return _plain('Run 不存在', 404)
-        _authorize_internal(request, run, allowed_scopes={'run.execute'}, consume_jti=False)
+        _authorize_internal(request, run, consume_jti=False)
         if steering.message_id == run['metadata'].get('messageId'):
             return _plain('steering_message_conflict', 409)
         existing = RUN_STORE.get_steering(run_id, steering.message_id)
@@ -1142,7 +1139,7 @@ async def internal_get_run(run_id: str, request: Request):
     if run is None:
         return _plain("Run 不存在", 404)
     try:
-        _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
+        _authorize_internal(request, run, consume_jti=False)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
     return {"run": _public_run(run)}
@@ -1159,7 +1156,7 @@ async def internal_run_events(
     if run is None:
         return _plain("Run 不存在", 404)
     try:
-        _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
+        _authorize_internal(request, run, consume_jti=False)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
     last_header = request.headers.get("last-event-id")
@@ -1250,7 +1247,7 @@ def _authorize_artifacts(run_id: str, request: Request):
     if run is None:
         return _plain("Run 不存在", 404)
     try:
-        _authorize_internal(request, run, allowed_scopes={"run.read", "run.execute"}, consume_jti=False)
+        _authorize_internal(request, run, consume_jti=False)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == 'Runtime JWT 未配置' else 401)
     return None
@@ -1292,7 +1289,6 @@ async def _apply_internal_control(run_id: str, request: Request, option: str):
         _authorize_internal(
             request,
             run,
-            allowed_scopes={"run.execute"},
             consume_jti=option != "cancel",
         )
     except _InternalAuthError as error:

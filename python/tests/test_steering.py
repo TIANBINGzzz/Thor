@@ -32,32 +32,26 @@ class SteeringProtocolTests(unittest.TestCase):
             with self.subTest(body=body), self.assertRaises(ProtocolError):
                 SteeringRequest.from_dict(body)
 
-    def test_run_steer_keeps_original_message_claim_and_uses_execute_scope(self):
+    def test_run_steer_keeps_original_message_claim_without_scope(self):
         now = int(time.time())
         claims = {
             "iss": "issuer", "aud": "audience", "iat": now, "exp": now + 60,
             "jti": uuid.uuid4().hex, "sub": "user-1", "tenant": "tenant-1",
             "runId": "run-1", "capabilityRef": "conversation",
             "businessSessionId": "session-1", "messageId": "message-original-1",
-            "scope": "run.execute",
         }
         token = encode_hs256_jwt(claims, "secret")
         verified = verify_run_jwt(token, "secret", run_id="run-1", capability_ref="conversation",
                                   business_session_id="session-1",
                                   tenant_id="tenant-1", user_id="user-1", audience="audience",
-                                  issuer="issuer", expected_scope={"run.execute"}, consume_jti=False)
+                                  issuer="issuer", consume_jti=False)
         self.assertEqual(verified["messageId"], "message-original-1")
         with self.assertRaises(JWTError):
             verify_run_jwt(token, "secret", run_id="other-run", capability_ref="conversation",
                            business_session_id="session-1",
                            tenant_id="tenant-1", user_id="user-1", audience="audience",
-                           issuer="issuer", expected_scope={"run.execute"}, consume_jti=False)
+                           issuer="issuer", consume_jti=False)
         self.assertNotEqual(verified["messageId"], "message-steer-1")
-        with self.assertRaises(JWTError):
-            verify_run_jwt(token, "secret", run_id="run-1", capability_ref="conversation",
-                           business_session_id="session-1",
-                           tenant_id="tenant-1", user_id="user-1", audience="audience",
-                           issuer="issuer", expected_scope={"run.read"}, consume_jti=False)
 
 
 class SteeringStoreTests(unittest.TestCase):
@@ -265,9 +259,9 @@ class SteeringHTTPTests(unittest.TestCase):
                     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app), base_url='http://test') as client:
                         path = '/internal/v1/runs/run-test/steer'
                         body = {'messageId': 'm-steer', 'input': {'text': '补充要求：按学院统计'}}
-                        headers = self.headers('run.execute')
-                        for invalid in (self.headers('run.read'),
-                                        self.headers('run.steer', messageId='m-steer'),
+                        headers = self.headers()
+                        for invalid in (self.headers(sub='other'),
+                                        self.headers(capabilityRef='document-writing'),
                                         self.headers('run.execute', messageId='m-steer', tenant='other')):
                             self.assertEqual((await client.post(path, json=body, headers=invalid)).status_code, 401)
                         first = await client.post(path, json=body, headers=headers)

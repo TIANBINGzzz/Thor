@@ -59,7 +59,7 @@ aside{position:sticky;top:82px;align-self:start;max-height:calc(100vh - 104px);o
 
 <section id="create"><h2>创建 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs</code></div>
-<p>Java 为每次执行生成唯一 <code>runId</code> 和 <code>messageId</code>，签发带 <code>run.execute</code> scope 的 Run JWT，然后提交请求。相同请求重试保持原 <code>runId</code>，并用新 <code>jti</code> 签发 Run JWT。SDK 的 <code>session_id</code> 由 Python 内部关联，不替代此执行标识。</p>
+<p>Java 为每次执行生成唯一 <code>runId</code> 和 <code>messageId</code>，签发绑定本次执行的 Run JWT，然后提交请求。相同请求重试保持原 <code>runId</code>，并用新 <code>jti</code> 签发 Run JWT。SDK 的 <code>session_id</code> 由 Python 内部关联，不替代此执行标识。</p>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Run JWT&gt;
 Content-Type: application/json</pre></div>
 <div class="code-wrap"><div class="code-label">Request body · agent-run/v1</div><button class="copy" type="button">复制</button><pre>{
@@ -325,7 +325,7 @@ model, tools, mcp, mcpServers, mcps, cwd, workspace, permissions</pre></div>
 <tr><td>雷达图</td><td>3–12个同量纲、同尺度的非负指标，不混合数量和金额，不自动归一化。</td><td>画雷达图：同尺度评分，教学80分、实践70分、科研60分、协作90分、服务75分。</td></tr>
 <tr><td>矩形树图</td><td>用面积展示正数构成，当前为一层分类，不自动汇总。</td><td>画矩形树图：教学资源120万元、实践基地85万元、师资建设60万元、科研服务30万元。</td></tr>
 </tbody></table>
-<p>沿用 <code>POST /internal/v1/runs</code>，不新增图表 HTTP 接口或业务 payload 字段。Java 为图表能力签发现有 Run JWT，<code>capabilityRef</code> 必须绑定 <code>chart-generation</code>，创建使用 <code>run.execute</code>。</p>
+<p>沿用 <code>POST /internal/v1/runs</code>，不新增图表 HTTP 接口或业务 payload 字段。Java 为图表能力签发现有 Run JWT，<code>capabilityRef</code> 必须绑定 <code>chart-generation</code>。</p>
 <div class="code-wrap"><div class="code-label">Request · 根据明确数据生成图表</div><button class="copy" type="button">复制</button><pre>{
   "protocol": "agent-run/v1",
   "runId": "run_chart_01",
@@ -422,7 +422,7 @@ xychart-beta
 
 <section id="query"><h2>查询 Run</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}</code></div>
-<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。查询请求不消耗 JWT 的 <code>jti</code>。</p>
+<p>使用绑定该 Run 的 JWT。查询请求不消耗 JWT 的 <code>jti</code>。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -441,8 +441,8 @@ xychart-beta
 <p>引导仅使用下面的 POST 接口提交，沿用原 <code>runId</code> 和已连接的 SSE，以新的 <code>messageId</code> 标识补充要求。默认不打断当前工具调用，待工具结束后由 SDK 在会话消息边界处理补充。要停止当前执行，调用<a href="#control">cancel</a>。</p>
 <p>待发送列表约定由业务前端本地管理，排序、编辑、移除和暂停不请求 Python；真正发送时才经 Java 授权并调用 <code>POST /internal/v1/runs</code> 创建新 Run。关闭页面后不派发下一条，重开先核对已提交 Run；SSE 断开不代表完成。前端接入另行实现，详细边界见<a href="specs/ccsdk-runtime-interface.md#4-run-查询与控制模块">Runtime 契约</a>；本 API 不提供业务队列管理接口。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/steer</code></div>
-<p>使用原 Run 的 <code>run.execute</code> JWT，不需要单独签发引导权限。JWT 仍绑定 Run、身份、租户、业务会话和 capabilityRef；正文里的新 <code>messageId</code> 标识这条补充消息，不要求改写原 Run JWT 的 messageId。引导不消费 <code>jti</code>，相同请求可复用原 JWT 重试。</p>
-<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;原 Run 的 run.execute JWT&gt;
+<p>使用原 Run JWT，不需要单独签发引导权限。JWT 仍绑定 Run、身份、租户、业务会话和 capabilityRef；正文里的新 <code>messageId</code> 标识这条补充消息，不要求改写原 Run JWT 的 messageId。引导不消费 <code>jti</code>，相同请求可复用原 JWT 重试。</p>
+<div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;原 Run JWT&gt;
 Content-Type: application/json</pre></div>
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
   "messageId": "message_02",
@@ -498,7 +498,7 @@ Accept: application/json</pre></div>
   "scope": "session.read"
 }</pre></div>
 <p>以上字段均必填。<code>iss</code>、<code>aud</code> 必须匹配部署配置；<code>tenant</code>、<code>sub</code> 来自 Java 已认证的租户和用户。示例时间仅说明格式，实际签发时将 <code>iat</code> 设为当前 Unix 秒、<code>exp</code> 设为短期过期时间。这里不要求 <code>runId</code> 或 <code>capabilityRef</code>。</p>
-<p>只读分页不消耗 <code>jti</code>，同一 Token 可在有效期内查询多页。<code>run.read</code> / <code>run.execute</code> 不能代替 <code>session.read</code>；反过来，会话读取 Token 也不能直接查询或控制单个 Run，调用那些接口需要另行签发对应 Run JWT。</p>
+<p>只读分页不消耗 <code>jti</code>，同一 Token 可在有效期内查询多页。会话执行索引仍要求 <code>session.read</code>。会话读取 Token 不含 Run/能力绑定，调用单个 Run 接口须使用绑定该 Run 的 JWT。</p>
 <h3>输出：执行摘要列表</h3>
 <div class="code-wrap"><div class="code-label">响应示例：200 · application/json</div><button class="copy" type="button">复制</button><pre>{
   "runs": [
@@ -535,7 +535,7 @@ Accept: application/json</pre></div>
 
 <section id="events"><h2>SSE 事件</h2>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/events?afterSequence=0</code></div>
-<p>使用 <code>run.read</code> 或 <code>run.execute</code> scope。首次订阅从 <code>afterSequence=0</code> 开始；若已成功处理到事件 7，重连时传 <code>afterSequence=7</code> 或请求头 <code>Last-Event-ID: 7</code>，只补取序号大于 7 的事件。查询参数优先于请求头；续传不重启模型执行，也不恢复 SDK 会话。</p>
+<p>使用绑定该 Run 的 JWT。首次订阅从 <code>afterSequence=0</code> 开始；若已成功处理到事件 7，重连时传 <code>afterSequence=7</code> 或请求头 <code>Last-Event-ID: 7</code>，只补取序号大于 7 的事件。查询参数优先于请求头；续传不重启模型执行，也不恢复 SDK 会话。</p>
 <div class="code-wrap"><div class="code-label">Request headers</div><button class="copy" type="button">复制</button><pre>Authorization: Bearer &lt;Run JWT&gt;
 Accept: text/event-stream
 Last-Event-ID: 3</pre></div>
@@ -719,7 +719,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 <section id="artifacts"><h2>Artifact 交付物</h2>
 <p><strong>一个 artifactId 只标记一个文件版本，不是一整次请求的全部文件。</strong>一次 Run 可生成多个文件，每个文件各有 artifactId。Python 在上传前分配 artifactId，上传成功后才拿到文件服务生成的 fileId；重传原文件保留 artifactId，修改内容后再次发布会产生新 artifactId，即使文件名相同。</p>
 <div class="endpoint"><span class="method">GET</span><code class="path">/internal/v1/runs/{runId}/artifacts</code></div>
-<p>查询本次 Run 经发布工具登记的文件及上传状态，用于历史消息展示、SSE 断线补查和结果核对。只返回该 Run 的成果，不扫描共享会话目录；普通聊天未发布文件时返回 <code>{"files": []}</code>。使用绑定该 Run、身份、会话和能力的 <code>run.read</code> 或 <code>run.execute</code> JWT，不消耗 jti。没有请求正文和查询参数。</p>
+<p>查询本次 Run 经发布工具登记的文件及上传状态，用于历史消息展示、SSE 断线补查和结果核对。只返回该 Run 的成果，不扫描共享会话目录；普通聊天未发布文件时返回 <code>{"files": []}</code>。使用绑定该 Run、身份、会话和能力的 Run JWT，不消耗 jti。没有请求正文和查询参数。</p>
 <div class="code-wrap"><div class="code-label">Response 200 · list</div><button class="copy" type="button">复制</button><pre>{
   "files": [
     {
@@ -809,7 +809,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 
 <section id="control"><h2>控制 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
-<p>控制与取消使用绑定该 Run 的 <code>run.execute</code> scope。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，创建 Run 时已使用过的执行 JWT 仍可用于停止；每次均校验签名、有效期、权限及身份/Run 绑定。</p>
+<p>控制与取消使用绑定该 Run 的 JWT。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，创建 Run 时已使用过的执行 JWT 仍可用于停止；每次均校验签名、有效期及身份/Run 绑定。</p>
 <div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
   "option": "interrupt"
 }</pre></div>
@@ -820,7 +820,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 </tbody></table>
 <p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
-<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，使用 <code>run.execute</code>。两种入口按 runId 合并在途取消；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
+<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，使用绑定该 Run 的 JWT。两种入口按 runId 合并在途取消；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -830,7 +830,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 }</pre></div></section>
 
 <section id="auth"><h2>鉴权</h2>
-<p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。能力目录无需鉴权，Run 接口使用本节 Run JWT。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
+<p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。能力目录无需鉴权，Run 接口统一使用本节 Run JWT，不区分读写 scope；scope 可省略，传入时忽略。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
 <h3>密钥和部署配置</h3>
 <p>启动只读取完整的 <code>config/application.yml</code>，再从 Nacos 读取客户配置；不加载 env 或 .local 覆盖。执行 JWT 密钥位于 Nacos 的 <code>security.runtimeJwtSecret</code>，修改后须排空任务并重启。完整字段及三版本约定见 <code>config/README.md</code>。</p>
 <p>Java 对应 Spring 配置项为 <code>ai-center.runtime-jwt-secret</code>（环境变量 <code>AI_CENTER_RUNTIME_JWT_SECRET</code>），必须与 Python 使用相同的密钥值；可通过服务端配置或 Secret/Nacos 注入。下方仅为占位示例，真实密钥不写入本公开文档。建议生成至少 32 字节的随机值，双方使用相同字符串。</p>
@@ -854,8 +854,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
   "runId": "run_01",
   "capabilityRef": "document-writing",
   "businessSessionId": "session_01",
-  "messageId": "message_01",
-  "scope": "run.execute"
+  "messageId": "message_01"
 }</pre></div>
 <table><thead><tr><th>Claim</th><th>用途</th><th>校验规则</th></tr></thead><tbody>
 <tr><td>iss / aud</td><td>签发方和目标 Runtime</td><td>必须匹配部署配置。</td></tr>
@@ -864,14 +863,14 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
 <tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话；引导正文使用新的 <code>messageId</code>，且不能复用触发消息 ID，普通 Run 查询与控制不绑定触发消息 ID。</td></tr>
-<tr><td>scope</td><td>读写权限</td><td>Run 写操作使用 <code>run.execute</code>，读取使用 <code>run.read</code> 或 <code>run.execute</code>；会话执行索引使用 <code>session.read</code>。值为单个字符串或字符串数组，不能将多个权限拼成空格字符串。</td></tr>
+<tr><td>scope</td><td>独立接口权限</td><td>Run JWT 不要求、不校验此字段。会话执行索引仍要求 <code>session.read</code>，管理和观测 JWT 的 scope 校验保持独立；这些 scope 使用单个字符串或字符串数组。</td></tr>
 </tbody></table>
-<table><thead><tr><th>接口</th><th>允许 scope</th><th>jti</th></tr></thead><tbody>
-<tr><td>创建 Run</td><td><code>run.execute</code></td><td>消费</td></tr>
-<tr><td>查询、SSE、Artifact GET</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
-<tr><td>创建消息引导</td><td><code>run.execute</code></td><td>不消费</td></tr>
-<tr><td>查询消息引导回执</td><td><code>run.read</code> 或 <code>run.execute</code></td><td>不消费</td></tr>
-<tr><td>控制、取消</td><td><code>run.execute</code></td><td>interrupt 消费；cancel 不消费</td></tr>
+<table><thead><tr><th>接口</th><th>授权凭据</th><th>jti</th></tr></thead><tbody>
+<tr><td>创建 Run</td><td>绑定该 Run 的 JWT</td><td>消费</td></tr>
+<tr><td>查询、SSE、Artifact GET</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
+<tr><td>创建消息引导</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
+<tr><td>查询消息引导回执</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
+<tr><td>控制、取消</td><td>绑定该 Run 的 JWT</td><td>interrupt 消费；cancel 不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
 <div class="note"><code>credentials.platformBearer</code>是Java认证后透传的业务Token；数据库self每轮从业务JWT提取tenantId，来源access.tenantIds限定允许的数据范围，不自行验业务签名或替代Java业务授权。Runtime执行身份仍由Run JWT验证；业务Token不进入Prompt、事件、日志或持久化数据。</div></section>

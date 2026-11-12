@@ -7,6 +7,7 @@ import re
 import unittest
 
 import server
+from runtime.auth import encode_hs256_jwt, verify_run_jwt
 from runtime.protocol import AgentRunRequest
 from runtime.event_display import with_display_name
 
@@ -48,16 +49,19 @@ class APIReferenceTests(unittest.TestCase):
                 self.assertTrue(re.sub(r'\{[^}]+\}', '{}', route.path) in text,
                                 f'Undocumented route: {route.path}')
 
-    def test_run_authorization_docs_follow_read_write_scopes(self):
-        steering = re.search(r'<section id="steering">.*?</section>', self.source, re.S).group()
-        control = re.search(r'<section id="control">.*?</section>', self.source, re.S).group()
-        auth = re.search(r'<section id="auth">.*?</section>', self.source, re.S).group()
-        self.assertIn('<code>run.execute</code>', steering)
-        for obsolete_scope in ('run.steer', 'run.control', 'run.cancel'):
-            with self.subTest(scope=obsolete_scope):
-                self.assertNotIn(f'<code>{obsolete_scope}</code>', self.source)
-        self.assertIn('<code>run.execute</code>', control)
-        self.assertIn('<code>run.read</code>', auth)
+    def test_documented_run_grant_passes_runtime_verification(self):
+        examples = [json.loads(example) for example in self.page.examples
+                    if example.lstrip().startswith('{')]
+        grants = [item for item in examples if item.get('aud') == 'ccsdk-runtime' and 'runId' in item]
+        self.assertTrue(grants)
+        for claims in grants:
+            token = encode_hs256_jwt(claims, 'example-secret')
+            verified = verify_run_jwt(token, 'example-secret', now=claims['iat'],
+                                      issuer='string-ai-center-service', run_id='run_01',
+                                      capability_ref='document-writing', business_session_id='session_01',
+                                      message_id='message_01', tenant_id='tenant_01', user_id='user_01',
+                                      consume_jti=False)
+            self.assertEqual(verified['runId'], 'run_01')
 
     def test_full_run_request_examples_follow_current_protocol(self):
         count = 0

@@ -120,7 +120,7 @@ def _audience_matches(value: Any, expected: str) -> bool:
 
 def _verify_signed_claims(
     token: str, secret: str | bytes, *, audience: str, issuer: str | None,
-    expected_scope: str | set[str], required_claims: tuple[str, ...], now: float | None = None,
+    expected_scope: str | set[str] | None, required_claims: tuple[str, ...], now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
     """校验签名、时效、受众、签发方和权限声明，不消费重放标识。"""
@@ -163,16 +163,17 @@ def _verify_signed_claims(
         if not isinstance(value, str) or not value.strip():
             raise JWTError(f"JWT {name} is required")
 
-    scope = claims.get("scope")
-    if isinstance(scope, str):
-        scopes = {scope}
-    elif isinstance(scope, list) and all(isinstance(item, str) for item in scope):
-        scopes = set(scope)
-    else:
-        raise JWTError("JWT scope is required")
-    allowed_scopes = {expected_scope} if isinstance(expected_scope, str) else expected_scope
-    if not scopes & allowed_scopes:
-        raise JWTError("JWT scope is not allowed")
+    if expected_scope is not None:
+        scope = claims.get("scope")
+        if isinstance(scope, str):
+            scopes = {scope}
+        elif isinstance(scope, list) and all(isinstance(item, str) for item in scope):
+            scopes = set(scope)
+        else:
+            raise JWTError("JWT scope is required")
+        allowed_scopes = {expected_scope} if isinstance(expected_scope, str) else expected_scope
+        if not scopes & allowed_scopes:
+            raise JWTError("JWT scope is not allowed")
 
     return claims
 
@@ -236,19 +237,18 @@ def verify_run_jwt(
     user_id: str | None = None,
     body: Mapping[str, Any] | Any | None = None,
     audience: str = "ccsdk-runtime",
-    expected_scope: str | set[str] = "run.execute",
     issuer: str | None = None,
     replay_cache: ReplayCache | None = None,
     consume_jti: bool = True,
     now: float | None = None,
     leeway_seconds: float = 5.0,
 ) -> dict[str, Any]:
-    """接收 JWT、共享密钥及请求绑定条件，校验签名、时效、权限和业务绑定后返回 claims。
+    """校验 Run JWT 的签名、时效和业务绑定；Run 接口统一授权，不校验 scope。
 
     body 可为字典或 AgentRunRequest；启用重放检查时，仅在全部验证通过后登记 jti。
     """
     claims = _verify_signed_claims(
-        token, secret, audience=audience, issuer=issuer, expected_scope=expected_scope,
+        token, secret, audience=audience, issuer=issuer, expected_scope=None,
         required_claims=("sub", "tenant", "jti", "runId", "capabilityRef"),
         now=now, leeway_seconds=leeway_seconds,
     )

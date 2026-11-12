@@ -39,7 +39,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - 会话检索按 JWT 的 tenant、sub、businessSessionId 过滤，独立使用 session.read。按 createdAt/runId 倒序分页，cursor 原样传回，不能作为权限依据；分页不是数据库快照。无记录不证明 Java 会话不存在。
 - **待发送列表由前端本地管理**：按身份和业务会话隔离保存内容、能力、文件引用、顺序及暂停状态，不保存凭据；排序、编辑、移除和暂停不调用 Runtime。当前 Run 成功结束后才经 Java 授权、保存消息并创建下一 Run；失败、取消或状态不明时暂停发送，SSE 断开不表示完成。关闭页面后不继续派发，重开先核对已提交 Run；防重复提交及多标签页协调由业务前端/Java 接入。本仓库不实现浏览器队列，不提供业务队列管理接口；Actor 邮箱仅串行处理已提交执行和控制命令。
 - 运行中补充要求使用 `POST /internal/v1/runs/{runId}/steer`，沿用当前 Run；仅在 SDK 已接收本轮输入且仍处于执行中时接受，默认不打断在途工具，SDK 在合适的消息边界处理。需要立即停止使用 cancel，之后的新消息另建 Run。
-- 引导复用绑定原 Run、tenant、sub、businessSessionId 和 capabilityRef 的 `run.execute` JWT；正文中的新 messageId 只标识补充消息，不改写原 Run JWT。仅允许文本，不接受附件、凭据或执行配置。`accepted` 表示已持久接收，`delivered` 表示已写入 SDK，`applied` 表示 SDK 以 UUID 回显确认已纳入会话，不保证模型遵从；`rejected` 表示未发送，`unknown` 表示不能确认，不自动重发。回执随原 Run SSE 推送，断线按事件游标补放，不提供独立回执查询接口。相同 runId/messageId/文本重试仅返回当前回执，不同文本冲突。Run 结束、等待执行、准备文件、保存文件和取消期间不接受新引导。
+- 引导复用绑定原 Run、tenant、sub、businessSessionId 和 capabilityRef 的 Run JWT；正文中的新 messageId 只标识补充消息，不改写原 Run JWT。仅允许文本，不接受附件、凭据或执行配置。`accepted` 表示已持久接收，`delivered` 表示已写入 SDK，`applied` 表示 SDK 以 UUID 回显确认已纳入会话，不保证模型遵从；`rejected` 表示未发送，`unknown` 表示不能确认，不自动重发。回执随原 Run SSE 推送，断线按事件游标补放，不提供独立回执查询接口。相同 runId/messageId/文本重试仅返回当前回执，不同文本冲突。Run 结束、等待执行、准备文件、保存文件和取消期间不接受新引导。
 - cancel 按 runId 幂等取消排队或活动 Run，两种取消入口合并在途请求；重复取消不重复发送 SDK 命令，已结束 Run 不变。HTTP 断开或控制超时不撤销已接受的取消，504 后查询状态或重试；取消不抢先宣告活动执行终态。interrupt 不是暂停/恢复，文件准备期取消准备，持久 Client 模型期请求 SDK 中断、独立执行期停止任务。
 - 持久 Client 正常取消后读至 SDK Result，等待进程内工具收尾并清理本轮凭据，再复用于同业务会话的下一 Run；带引导的中断、尚有未确认输入、收尾超时或异常时销毁 Worker，后续 Run 重建并恢复历史，不重投引导。取消确认不表示新 Run 已可执行，同会话仍串行。
 - 控制不删除业务会话、已有文件或已完成工具副作用；断开 SSE 不取消执行，继续对话创建新 Run。
@@ -64,11 +64,11 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 ## 7. 鉴权模块
 
-- Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、scope、身份及请求绑定。domainName 仅由 Java 在 Run 正文中提交，JWT 不携带或绑定该字段；文件路由使用 Run 正文值。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
+- Java 用部署共享密钥签发短期 HS256 Run JWT，Python 校验签名、issuer/audience、时间、jti、身份及请求绑定。domainName 仅由 Java 在 Run 正文中提交，JWT 不携带或绑定该字段；文件路由使用 Run 正文值。配置见 [鉴权字段](../python-api.html#auth)，密钥不进入浏览器、正文或日志。
 - 身份仅来自已验 JWT 的 tenant/sub。创建绑定 runId、capabilityRef、messageId 和可选 businessSessionId；后续单 Run 操作对已保存归属校验。引导正文携带新 messageId，Python 校验其格式及不与触发消息冲突；普通查询与控制不绑定触发消息的 messageId。
-- 创建、引导、控制和取消统一使用 run.execute；读取使用 run.read/run.execute。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验有效期、权限与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
+- 创建、引导、查询、SSE、成果、控制和取消统一使用绑定该 Run 的 JWT，不要求、不校验 scope。创建和 interrupt 消耗 jti，引导、读取和 cancel 不消耗。每次仍校验签名、有效期、身份与请求绑定；过期须重新签发。session.read 是独立授权；私有观测使用独立的 observation.read 采集 JWT，不能从普通 Run 权限推导。
 - credentials.platformBearer 是 Java 认证后透传的业务 Token，只向登记目标注入；数据库 self 每轮解析其中的 tenantId，按所选来源的 access.tenantIds 生成学校范围，见[数据库边界](data-source-connections.md#查询边界)。Run JWT 的 tenant/sub 绑定执行归属，不来自部署固定值；业务 Token 不写入 JWT、Prompt、事件或 Run 存储，不授予额外工具权限。
-- scope、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
+- 签名、有效期、身份及请求绑定校验通过后才消费 jti；进程内重放缓存满时拒绝新授权，不淘汰未过期记录。缓存重启丢失且不能跨实例共享，当前单进程部署边界仍适用。
 
 ## 8. 文件下载模块
 

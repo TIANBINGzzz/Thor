@@ -198,7 +198,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         self.client = TestClient(server.app, base_url=f"http://localhost:{server.PORT}")
         self.addCleanup(self.client.close)
 
-    def headers(self, scope="run.read", **overrides):
+    def headers(self, scope=None, **overrides):
         claims = {
             "iss": server.RUNTIME_JWT_ISSUER, "aud": server.RUNTIME_JWT_AUDIENCE,
             "iat": int(time.time()), "exp": int(time.time()) + 60, "jti": uuid.uuid4().hex,
@@ -206,6 +206,8 @@ class RuntimeHTTPTests(unittest.TestCase):
             "capabilityRef": "conversation", "businessSessionId": "session-test",
             "messageId": "msg-test", "scope": scope,
         }
+        if scope is None:
+            claims.pop('scope')
         claims.update(overrides)
         return {"Authorization": "Bearer " + encode_hs256_jwt(claims, "test-runtime-secret")}
 
@@ -644,19 +646,19 @@ class RuntimeHTTPTests(unittest.TestCase):
                                                    headers=self.headers(scope, **identity), json={"option": "cancel"})
                     self.assertEqual(response.status_code, 401, response.text)
 
-    def test_run_scope_uses_read_for_queries_and_execute_for_mutations(self):
+    def test_run_routes_accept_grants_without_scope_or_with_existing_scopes(self):
         self.seed("succeeded")
         run_path = "/internal/v1/runs/run-test"
-        self.assertEqual(self.client.get(run_path, headers=self.headers("run.read")).status_code, 200)
-        self.assertEqual(self.client.get(run_path, headers=self.headers("run.execute")).status_code, 200)
-        for suffix, scope, body in (
-            ("/steer", "run.steer", {"messageId": "steer-1", "input": {"text": "补充"}}),
-            ("/control", "run.control", {"option": "cancel"}),
-            ("/cancel", "run.cancel", None),
-        ):
-            with self.subTest(suffix=suffix, scope=scope):
-                response = self.client.post(run_path + suffix, headers=self.headers(scope), json=body)
-                self.assertEqual(response.status_code, 401, response.text)
+        for scope in (None, 'run.read', 'run.execute', 'run.control', 'run.cancel', ['run.read', 'run.execute']):
+            for method, suffix, body in (
+                ('GET', '', None), ('GET', '/events', None), ('GET', '/artifacts', None),
+                ('POST', '/control', {'option': 'interrupt'}),
+                ('POST', '/control', {'option': 'cancel'}), ('POST', '/cancel', None),
+            ):
+                with self.subTest(scope=scope, suffix=suffix, body=body):
+                    response = self.client.request(method, run_path + suffix,
+                                                   headers=self.headers(scope), json=body)
+                    self.assertEqual(response.status_code, 200, response.text)
 
     def test_business_token_cannot_replace_runtime_header(self):
         response = self.client.post("/internal/v1/runs", json=self.body)
@@ -781,7 +783,7 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_repeated_cancel_still_requires_valid_resource_bound_authorization(self):
         self.seed('succeeded')
-        for overrides in ({'scope': 'run.read'}, {'sub': 'other'}, {'tenant': 'other'},
+        for overrides in ({'sub': 'other'}, {'tenant': 'other'},
                           {'runId': 'other'}, {'businessSessionId': 'other'},
                           {'iat': int(time.time()) - 120, 'exp': int(time.time()) - 60}):
             with self.subTest(overrides=overrides):

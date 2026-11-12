@@ -84,7 +84,7 @@ class SessionRunTests(unittest.TestCase):
         self.seed('run-own')
         self.assertEqual(self.client.get(self.path).status_code, 401)
         invalid = [{'scope': 'run.read', 'runId': 'run-own', 'capabilityRef': 'conversation'},
-                   {'scope': 'run.execute'}, {'businessSessionId': 'session-b'},
+                   {'scope': 'run.execute'}, {'scope': None}, {'scope': []}, {'businessSessionId': 'session-b'},
                    {'businessSessionId': None}, {'tenant': ''}, {'sub': None}, {'jti': None},
                    {'iss': 'wrong'}, {'aud': 'wrong'}, {'iat': 1, 'exp': 2}]
         for claims in invalid:
