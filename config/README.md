@@ -1,5 +1,7 @@
 # 部署配置
 
+本文描述当前 Nacos 加载契约；平台统一管理、MySQL 配置与加密凭据属于[待实施方案](../doc/specs/runtime-config-center.md)，本次文档整理不改变部署方式。
+
 一个 tenantId 对应一个客户，一套 Runtime 只服务一个客户；不同 usercode 可查询客户全量业务数据，会话、文件、Run 和结果仍按用户隔离。
 
 | 配置组 | 本机真实文件 | 字段范例 | 生产模板 |

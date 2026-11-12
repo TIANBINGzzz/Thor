@@ -57,7 +57,7 @@
 
 ### 能力资产与代码归属
 
-- 业务规则写在 `.claude/capabilities/<ref>/CAPABILITY.md`；公共规则放 `.claude/prompts/`，可复用方法放 `.claude/skills/`，工具指引放 `.claude/tools/<ref>/TOOL.md`，模板要求放能力的模板资产，数据库语义放 `.claude/databases/<sourceRef>/`。通过显式引用装配，唯一入口是 `python/runtime/prompt_assembly.py`；`not_for_model` 不进入提示词。
+- 当前源码资产中，业务规则写在 `.claude/capabilities/<ref>/CAPABILITY.md`；公共规则放 `.claude/prompts/`，可复用方法放 `.claude/skills/`，工具指引放 `.claude/tools/<ref>/TOOL.md`，模板要求放能力的模板资产，数据库语义放 `.claude/databases/<sourceRef>/`。通过显式引用装配，唯一入口是 `python/runtime/prompt_assembly.py`；`not_for_model` 不进入提示词。平台纳管目标见 REQ-003，改变存储不改变上述职责。
 - 能力专属代码放 `python/capability_packs/<ref>/`，由 `pack.json` 登记 Operation 与 Schema，并通过 `operationRefs` 选择；`serviceRefs` 仅供 Operation 内部选择 Service。共享实现放 `python/runtime/`、`python/tools/` 或 `python/data_access/`，不把业务规则搬进通用 Provider。
 - Agent 可见的动作是 Tool；MCP operation 也按 Tool 使用，MCP Server 承载操作，Provider 负责通用装配。Service 仅在需复用实现、状态或上游调用时建立，不要求每个 Tool 配一个 Service。
 - Operation 使用本轮 `CapabilityContext`。能力代码是随 Runtime 部署、在 Worker 权限内执行的可信代码，不是上传式沙箱插件；资产不得指定任意 Python 入口。`direct` 和提示词不保证调用顺序或必定触发；固定执行顺序必须由服务端编排保证。
@@ -80,3 +80,20 @@
 - 校双高数据按来源范围及本轮业务Token解析，所有usercode共享本客户全量业务数据；固定/动态SQL均强制客户过滤，用户结果和会话仍隔离，用户权限由Java负责，具体边界见[数据库管理](data-source-connections.md#字段与配置)。来源由可信能力/模板选择，项目属于业务筛选条件，生产Java身份与撤销仍须验收。
 - 文件引用须由 Java 提交前授权，Python 只下载本轮引用并按 Run 隔离结果；下载成功不代表文件 ACL 已验证，见[ADR-032](../ADR/032-platform-file-download.md)。
 - 普通 Agent 的 bypassPermissions 不构成文件、进程或网络沙箱。Java 真实授权、运行中撤销和生产多租户隔离继续保留为验收差距。
+
+## REQ-003：平台统一配置管理
+
+**目标要求，尚未完整实现**：平台统一管理能力、公共提示词、Skill、Tool、数据源及连接、固定凭据和运行预算。当前实现、存储方案及实施顺序统一见[配置管理方案](runtime-config-center.md)。
+
+### 必须满足
+
+1. Java 管存储、客户归属、授权和发布，Python 管格式、引用、工具兼容性校验与统一装配；管理配置和普通 Run 输入分开，不接受任意代码入口。
+2. 平台配置以 MySQL 为权威来源，正文、结构化配置和文件引用分别保存；纳管后同一对象不再由源码、Nacos 或本地文件双写。文件服务存附件，部署代码仍由 Git 管理。
+3. 连接和固定凭据在同一管理流程维护；凭据加密保存、主密钥由部署侧提供，业务 Token 不持久化；明文不进入提示词、预览、导出或日志，配置回退不自动回退凭据。
+4. 草稿、发布和 Runtime 已生效状态分开；发布确切内容及依赖版本，Run 绑定采用版本；配置更新不混入在途执行，撤销不得被旧版本绕过。明确字段生效时机，不承诺所有配置热更新。
+5. 数据源可选择不等于已授权，连接成功不等于语义已验证；保留数据范围、SQL 约束和未决口径。Tool 配置须匹配已部署实现，不能用改 Schema 代替新增代码。
+
+### 验收与现状
+
+- 验收：实际验证编辑→校验/预览→发布→执行→回退，覆盖共享依赖变更、并发覆盖、加载失败、跨客户引用、凭据轮换与日志泄漏；创建记录或内容哈希不等于完整发布追溯。
+- **2026-11-12 静态核对：部分满足**。已有能力新建与预览；MySQL 配置管理、凭据加密存储、通用资产编辑和发布生效链路未实现，Java 外部实现及真实业务未验收。当前部署仍按 ADR-038，不因本条目标要求立即改动线上配置。
