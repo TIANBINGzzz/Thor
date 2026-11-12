@@ -1,6 +1,6 @@
 # 架构
 
-本文件只维护以下九部分，描述当前代码实现；开发规则见 [AGENTS.md](AGENTS.md)，接口字段不在此重复。统一配置管理的需求与待实施方案见[配置管理方案](doc/specs/runtime-config-center.md)，不代表已经迁入 MySQL 或通过生产验收。
+本文件只维护以下九部分；开发规则见 [AGENTS.md](AGENTS.md)，接口字段不在此重复。生产目标不代表已经验收。
 
 ## 1. System purpose
 
@@ -78,7 +78,6 @@
 | HTTP 字段及示例 | [API 参考](doc/python-api.html)；校验：`python/runtime/protocol.py`、`auth.py` |
 | 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
-| 统一配置管理的需求、方案与差距 | [配置管理方案](doc/specs/runtime-config-center.md)、[REQ-003](doc/specs/engineering-requirements.md#req-003平台统一配置管理) |
 | 执行规则 | [问数](.claude/capabilities/national-excellence-data-qa/CAPABILITY.md)、[撰写](.claude/capabilities/document-writing/CAPABILITY.md) |
 | Agent 编码与能力资产归属 | [工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化) |
 | 本机环境连接与部署交接 | `deploy/environments.local.md`（私有文件，不提交、不进镜像、不进日志） |
