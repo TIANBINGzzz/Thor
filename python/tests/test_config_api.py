@@ -11,9 +11,9 @@ class ConfigurationAPITests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch('runtime.config_store._STORE'))
         self.store=install_configuration_store()
-        item=self.store.get('settings','security')
-        item['value']['configurationJwtSecret']='management-only-secret'
-        self.store.save('settings','security',item)
+        item=self.store.get('settings','system')
+        item['auth_configuration_jwt_secret']='management-only-secret'
+        self.store.save('settings','system',item)
         app=FastAPI();app.include_router(router)
         self.client=TestClient(app)
         now=int(time.time())

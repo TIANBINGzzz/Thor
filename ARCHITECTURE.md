@@ -66,7 +66,7 @@
 
 - 安全：bypassPermissions 和单容器不构成租户沙箱；生产授权、撤销及文件/进程/网络隔离仍需独立验收。
 - 持久化：`.scribe-runs/` 保存 RunStore、SDK 历史、数据结果及成果；能力配置由 MySQL 提供。终态只清理临时输入，整个目录不是可随意删除的缓存。磁盘保留、归档及总配额仍需管理。
-- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 MySQL setting 的 `runtime.observability.enabled`，重启生效；关闭时不建观测库或写入线程，故障不阻断业务。采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；不采集浏览器接收/渲染或 Java 阶段。拉取接口用独立观测 JWT。
+- 观测：`runtime/observability.py` 保留本地 Timing、里程碑和预热关联的有界待采日志，通过通用接口供各观测平台主动拉取；长期事件、Trace 和指标库由平台维护，Runtime 不依赖 Hawkeye、Phoenix 或 Prometheus。总开关在 MySQL ccsdk_setting 的 `runtime_observation_enabled`，重启生效；关闭时不建观测库或写入线程，故障不阻断业务。采集范围为 Python Runtime、Actor、Worker 及其可观察的工具和成果阶段；不采集浏览器接收/渲染或 Java 阶段。拉取接口用独立观测 JWT。
 - 可靠性：Run 与文件上传分别表达终态；上传结果不确定不自动重传。排队、文件准备、模型执行分别计时；重启不恢复在途进程。
 - 部署：单副本、单 HTTP worker；一客户一套 Runtime。MySQL 是可编辑配置与秘密的唯一来源，application.yml 只管配置库引导及宿主机参数，不加载 env 或 .local 覆盖。能力及连接在下一 Run 更新，启动对象和入口常量排空后重启；保留数据卷。边界见配置说明。
 
@@ -78,7 +78,7 @@
 | HTTP 字段及示例 | [API 参考](doc/python-api.html)；校验：`python/runtime/protocol.py`、`auth.py` |
 | 执行契约与业务映射 | [Runtime](doc/specs/ccsdk-runtime-interface.md) |
 | 配置与数据库 | [配置字段](config/README.md)、[数据契约](doc/specs/data-source-connections.md) |
-| 执行规则 | MySQL `scribe_capability.prompt/config`、`scribe_skill`；[装配入口](python/runtime/prompt_assembly.py) |
+| 执行规则 | MySQL `ccsdk_capability.prompt/指令列`、`ccsdk_skill`；[装配入口](python/runtime/prompt_assembly.py) |
 | Agent 编码与能力资产归属 | [工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化) |
 | 本机环境连接与部署交接 | `deploy/environments.local.md`（私有文件，不提交、不进镜像、不进日志） |
 | 取舍与核验 | [ADR](doc/ADR/README.md)、[业务来源](doc/verification/report-source-audit.md)、[验收记录](doc/verification/acceptance.md) |

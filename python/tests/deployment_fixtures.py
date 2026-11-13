@@ -32,11 +32,31 @@ def configuration_rows():
     import copy, json
     rows = json.loads((Path(__file__).parent/'fixtures/configuration.json').read_text(encoding='utf-8'))
     document = deployment_document()
-    rows['settings'] = {key:{'ref':key,'value':value} for key,value in document.items()
-                        if key not in ('model','databases','campusMcp','businessMcp')}
+    rows['settings'] = {'system': settings_row(document)}
     # 数据目录验证仍需要来源声明；无真实业务查询会连接此地址。
     rows['database_connections']['schoolDoubleHigh']['enabled'] = True
     return rows
+
+
+def settings_row(document):
+    from runtime.config_fields import SETTING_PATHS
+    result = {'ref':'system'}
+    for field, path in SETTING_PATHS.items():
+        value = document
+        for key in path: value = value.get(key) if isinstance(value,dict) else None
+        result[field] = value
+    return result
+
+
+def database_row(ref, value):
+    connection = value['connection']
+    tls = connection.get('tls',{})
+    query = value.get('query',{})
+    return {'ref':ref,'name':ref,'enabled':True,
+        **{k:connection.get(k, '' if k != 'port' else 3306) for k in ('driver','host','port','database','username','password')},
+        'tls_mode':tls.get('mode','verify_identity'),'tls_ca_file':tls.get('ca_file'),
+        'tenant_ids':value['access']['tenantIds'],'query_timeout_seconds':query.get('timeout_seconds',30),
+        'query_max_rows':query.get('max_rows',10000),'dynamic_sql_enabled':query.get('dynamic_sql_enabled',False)}
 
 
 @contextmanager
@@ -46,11 +66,7 @@ def patch_configuration(document):
     def read():
         values = document() if callable(document) else document
         rows = configuration_rows()
-        for key in ('security', 'images', 'fileService', 'runtime'):
-            if key in values:
-                rows['settings'][key] = {'ref': key, 'value': copy.deepcopy(values[key])}
-            elif key != 'runtime':
-                rows['settings'].pop(key, None)
+        rows['settings'] = {'system':settings_row({'runtime':deployment_document()['runtime'], **values})}
         model = values.get('model')
         if model is not None:
             for row in rows['model_connections'].values():
@@ -62,8 +78,7 @@ def patch_configuration(document):
                 row.update(url=value.get('url',''), parameters={k:v for k,v in value.items() if k!='url'})
         if 'databases' in values:
             for ref, value in values['databases'].items():
-                rows['database_connections'][ref] = {'ref':ref,'name':ref,'enabled':True,
-                    **value['connection'], 'access':value['access'], 'query':value['query']}
+                rows['database_connections'][ref] = database_row(ref, value)
         return rows
     startup = document() if callable(document) else document
     startup = {**deployment_document(), **startup}
@@ -83,8 +98,9 @@ def install_configuration_store():
     engine = create_engine('sqlite://', connect_args={'check_same_thread':False}, poolclass=StaticPool)
     module.metadata.create_all(engine)
     store = module.ConfigStore(engine, Fernet.generate_key().decode())
-    for resource,items in configuration_rows().items():
-        if resource == 'capabilities': continue
+    rows = configuration_rows()
+    for resource in ('model_connections', 'models', 'skills', 'database_connections', 'mcp_servers', 'settings'):
+        items = rows[resource]
         for ref,item in items.items(): store.save(resource,ref,item)
     for ref,item in configuration_rows()['capabilities'].items(): store.save('capabilities',ref,item)
     module._STORE = store

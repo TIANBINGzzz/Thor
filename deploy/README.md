@@ -28,7 +28,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 - 启动文件从 config/application.production.yml 填写，客户配置及静态秘密只在 MySQL 维护。模板凭据不可直接启动，不将真实配置打入镜像。
 - 主机预先准备 CCSDK_CONFIG_DIRECTORY/application.production.yml；也可用 CCSDK_APPLICATION_FILE 选择已填好的完整 YAML。deploy.sh 的相对路径基准为脚本所在 deploy 目录；直接使用 Compose 时为 Compose 项目目录。部署脚本只选挂载源、镜像及资源参数，不覆盖应用配置字段。
-- YAML 只读挂载到 /app/config/application.yml，配置文件及父目录须允许 UID 10001 读取/进入，不用 chmod 777。缺失挂载源直接失败，不自动生成空文件或目录。数据库 CA 按 数据库连接 tls.ca_file 指定路径另行只读挂载，相对路径基准为 /app/config。
+- YAML 只读挂载到 /app/config/application.yml，配置文件及父目录须允许 UID 10001 读取/进入，不用 chmod 777。缺失挂载源直接失败，不自动生成空文件或目录。数据库 CA 按 数据库连接 tls_ca_file 指定路径另行只读挂载，相对路径基准为 /app/config。
 - Flow 只构建和部署，不生成 env 或传输密钥包；主机须在部署前准备完整生产 YAML。镜像内生产模板只用于声明结构，不能代替实际配置。
 - Compose 路线需要 Docker、Compose >=2.30、flock、tar、sha256sum 及相应主机权限。标准容器端口为 4310，application.server 使用 0.0.0.0:4310，外部访问通过端口映射；代理和业务地址须从容器实际可达。
 - 配置库地址和端口按 MySQL 实际监听填写；host 网络可直连宿主机，bridge 另配置可达地址。配置库凭据、根密钥与连接超时只在启动 YAML，其余客户配置只在 MySQL。
@@ -39,7 +39,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 ## 独立观测接入
 
-MySQL setting runtime.observability.enabled（重启生效） 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
+MySQL ccsdk_setting.runtime_observation_enabled（重启生效） 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
 
 带专用 observation.read JWT 核对 /internal/observability/v1/info、records、snapshot、metrics；关闭返回404，缺密钥返回503，无效授权返回401。紧急停采在 application.diagnostics.disable-observability 设置 true 并重启；正常采集以 MySQL 为准。
 

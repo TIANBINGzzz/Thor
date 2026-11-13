@@ -88,7 +88,8 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
         try:
             for label in ('first', 'second'):
                 rows['model_connections']['default'].update(base_url=self.url+'/'+label, api_key=label+'-key')
-                rows['capabilities']['conversation'].update(model_name=label+'-model', prompt=label+' rules')
+                rows['models'][rows['capabilities']['conversation']['model_ref']]['model_name']=label+'-model'
+                rows['capabilities']['conversation']['prompt']=label+' rules'
                 payload = {'capability_ref':'conversation', 'cwd':str(self.directory),
                            '_execution_entry':execution_entry(rows=rows)}
                 options = build_options(payload)

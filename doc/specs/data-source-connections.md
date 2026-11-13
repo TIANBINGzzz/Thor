@@ -10,10 +10,10 @@
 | `schema/<domain>.json` | 已核验表列、类型、说明、函数、内部字段及强制隔离用tenant_column |
 | `metrics/<domain>/*.yaml` | 主题指标定义、共享参数、输出、SQL、语义及校验；pending 只记录未定义原因，不造占位 SQL |
 | `semantics/business.md`、`relationships.md` | 默认口径、单位、期间、实体关系和去重 |
-| MySQL `scribe_database_connection` | 客户连接、数据租户范围与查询预算，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或能力环境文件 |
+| MySQL `ccsdk_database_connection` | 客户连接、数据租户范围与查询预算，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或能力环境文件 |
 | `python/data_access/`、`runtime/data_services.py` | 通用执行与每 Run 装配；资产测试在 `python/tests/databases/` |
 
-Capability 通过 scribe_capability_database 关联声明数据来源及必需性，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
+Capability 通过 ccsdk_capability_database 关联声明数据来源及必需性，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
 
 普通会话不加载业务数据库执行器；普通撰写允许未配置数据库，但配置损坏须失败；问数和预制模板要求所需来源连接可用。每 Run 在线读取并冻结已登记资产及私有配置副本，记录资产/查询摘要及客户范围指纹；来源按可信能力装配，SDK 环境不接收连接秘密。
 

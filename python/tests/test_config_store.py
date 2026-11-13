@@ -12,14 +12,14 @@ class ConfigStoreTests(unittest.TestCase):
         self.store.save('model_connections', 'primary', {
             'name': '模型服务', 'base_url': 'https://model.test', 'adapter': 'anthropic',
             'api_key': 'private-model-key', 'parameters': {}, 'enabled': True})
-        self.store.save('capabilities', 'conversation', {
-            'name': '对话', 'description': '说明', 'enabled': True, 'prompt': '旧规则',
-            'supports_attachments': True, 'attachment_policy': {}, 'model_connection_ref': 'primary',
-            'model_name': 'model-a', 'thinking': None, 'effort': None,
-            'max_output_tokens': None, 'run_timeout_ms': 60000, 'tool_timeout_ms': 10000,
-            'max_turns': 10, 'max_model_calls': None, 'max_tool_calls': None,
-            'max_total_tokens': None, 'tool_refs': [], 'config': {},
-            'skills': [], 'databases': [], 'mcps': []})
+        from tests.deployment_fixtures import configuration_rows
+        rows = configuration_rows()
+        model = next(iter(rows['models'].values()))
+        model['connection_ref'] = 'primary'
+        self.store.save('models', model['ref'], model)
+        capability = rows['capabilities']['conversation']
+        capability.update(prompt='旧规则', tool_refs=[])
+        self.store.save('capabilities', 'conversation', capability)
 
     def test_new_read_sees_saved_prompt_and_previous_read_is_unchanged(self):
         before = self.store.load()
@@ -55,9 +55,9 @@ class ConfigStoreTests(unittest.TestCase):
 
     def test_internal_service_reference_prevents_mcp_deletion(self):
         self.store.save('mcp_servers','campus',{'name':'Campus','url':'https://campus.test',
-            'headers':{},'auth':{'required':False},'parameters':{},'enabled':True})
+            'headers':{},'auth_required':False,'auth_injection':'none','auth_target':None,'auth_prefix':None,'parameters':{},'enabled':True})
         item=self.store.get('capabilities','conversation')
-        item['config']={'serviceRefs':['campus']}
+        item['service_refs']=['campus']
         self.store.save('capabilities','conversation',item)
         with self.assertRaisesRegex(ValueError,'config_in_use'):
             self.store.delete('mcp_servers','campus')
@@ -86,7 +86,7 @@ class ConfigurationBindingTests(unittest.TestCase):
         from runtime.configuration import execution_entry
         from tests.deployment_fixtures import configuration_rows
         rows=configuration_rows()
-        rows['settings']['security']['value']['configurationJwtSecret']='management-secret-not-for-worker'
+        rows['settings']['system']['auth_configuration_jwt_secret']='management-secret-not-for-worker'
         entry=execution_entry(rows=rows)
         request=AgentRunRequest.from_dict({'protocol':'agent-run/v1','runId':'secret-boundary',
             'messageId':'m','domainName':'school.test','input':{'text':'hello'}})
@@ -119,7 +119,8 @@ class ConfigurationBindingTests(unittest.TestCase):
         rows=configuration_rows()
         rows['model_connections']['default']['api_key']='new-secret'
         rows['model_connections']['default']['base_url']='https://other.test'
-        rows['capabilities']['conversation'].update(model_name='new-model',effort='high',thinking={'type':'disabled'})
+        rows['models'][rows['capabilities']['conversation']['model_ref']]['model_name']='new-model'
+        rows['capabilities']['conversation'].update(effort='high',thinking_mode='disabled')
         entry=execution_entry(rows=rows)
         options=build_options({'capability_ref':'conversation','_execution_entry':entry})
         self.assertEqual(options.env['ANTHROPIC_AUTH_TOKEN'],'new-secret')
