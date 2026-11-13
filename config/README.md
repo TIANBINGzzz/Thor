@@ -29,7 +29,7 @@ Nacos namespace 填 Namespace ID，空值为 public；读取超时只在 applica
 
 Run、用户及会话身份来自已验证的 Java Run JWT，不在部署配置固定 tenantId。数据库访问的 self 每轮解析 credentials.platformBearer 中的业务 tenantId；缺少业务 Token 或解析失败即拒绝，不回退测试 ID。本地解码不替代 Java 验签、有效期或撤销。
 
-security.runtimeJwtSecret 用于执行授权；observationJwtSecret、assetJwtSecret 留空关闭对应接口，配置时三种密钥必须独立。model 与 images 的连接和密钥显式配置；供应商允许共用模型密钥时，可用 YAML 锚点 &model_api_key 和 *model_api_key 表达，不隐式复用。images.enabled=false 不装配图片工具，仍保留其全部字段。
+security.runtimeJwtSecret 用于执行授权；observationJwtSecret 留空关闭观测读取，配置时须与执行密钥独立。model 与 images 的连接和密钥显式配置；供应商允许共用模型密钥时，可用 YAML 锚点 &model_api_key 和 *model_api_key 表达，不隐式复用。images.enabled=false 不装配图片工具，仍保留其全部字段。
 
 databases.<source>.connection 只保存 driver、host、port、database、username、password、tls；query 只保存超时、行数与动态只读 SQL 开关。校双高来源名称为大小写敏感的 schoolDoubleHigh。TLS 验证 CA 和主机名，不支持时须显式 disabled，不自动降级；CA 和 SQLite 相对路径基准为仓库 config 目录。
 
@@ -39,6 +39,6 @@ fileService 是附件下载和成果上传的唯一文件通道，downloadPath �
 
 runtime 的预算、模型、池及观测字段必须完整；default 和 SDK 别名须在 available 中。观测 storage 相对仓库根目录；启动 YAML diagnostics.disable-observability=true 用于紧急停采，false 仍以 Nacos 开关为准。
 
-各能力在 `.claude/capabilities/<ref>/capability.json` 的 `runtime` 独立配置 `model`、`thinking` 和 `effort`，管理端创建能力也使用相同字段。`model` 为空字符串时采用 Nacos `runtime.models.default`，填写时必须属于 `runtime.models.available`；只选模型名，不配置连接或密钥。`thinking` 可为 `null`（SDK 默认）、`{"type":"disabled"}`、`{"type":"adaptive"}`，或 `{"type":"enabled","budget_tokens":4096}`；`effort` 可为 `null`（SDK 默认）、`low`、`medium`、`high`、`xhigh`、`max`，实际支持范围由供应商决定。显式 `null` 清除同会话上一能力的对应设置；模型选择始终按当前能力解析。普通 Run 正文不能覆盖这些内部配置；这里的模型指执行 Agent 的语言模型，图像生成工具的模型仍由 Nacos `images` 配置。
+各能力在 `.claude/capabilities/<ref>/capability.json` 的 `runtime` 独立配置 `model`、`thinking` 和 `effort`。`model` 为空字符串时采用 Nacos `runtime.models.default`，填写时必须属于 `runtime.models.available`；只选模型名，不配置连接或密钥。`thinking` 可为 `null`（SDK 默认）、`{"type":"disabled"}`、`{"type":"adaptive"}`，或 `{"type":"enabled","budget_tokens":4096}`；`effort` 可为 `null`（SDK 默认）、`low`、`medium`、`high`、`xhigh`、`max`，实际支持范围由供应商决定。显式 `null` 清除同会话上一能力的对应设置；模型选择始终按当前能力解析。普通 Run 正文不能覆盖这些内部配置；这里的模型指执行 Agent 的语言模型，图像生成工具的模型仍由 Nacos `images` 配置。
 
-父进程及 Worker 共享启动快照；Worker 只接收模型、数据库、运行预算和本轮选定连接，不接收 Nacos、执行/管理/观测 JWT 密钥；SDK 不接收数据库凭据。真实 Token、原始结果及私密验证材料只放忽略目录。可信 Worker 不构成生产 OS 沙箱。
+父进程及 Worker 共享启动快照；Worker 只接收模型、数据库、运行预算和本轮选定连接，不接收 Nacos、执行/观测 JWT 密钥；SDK 不接收数据库凭据。真实 Token、原始结果及私密验证材料只放忽略目录。可信 Worker 不构成生产 OS 沙箱。

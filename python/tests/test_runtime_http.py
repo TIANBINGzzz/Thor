@@ -407,6 +407,16 @@ class RuntimeHTTPTests(unittest.TestCase):
         response = self.client.post("/internal/v1/runs", headers={"Origin": "http://browser.example"})
         self.assertEqual(response.status_code, 403)
 
+    def test_asset_management_routes_are_removed(self):
+        for method, path in (
+            ('GET', '/internal/v1/assets/catalog'),
+            ('POST', '/internal/v1/assets/capabilities/validate'),
+            ('POST', '/internal/v1/assets/capabilities/preview'),
+            ('POST', '/internal/v1/assets/capabilities'),
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.request(method, path).status_code, 404)
+
     def test_catalog_is_public_and_does_not_grant_run_access(self):
         for secret in ("test-runtime-secret", ""):
             with self.subTest(secret_configured=bool(secret)), patch.object(server, "RUNTIME_JWT_SECRET", secret):

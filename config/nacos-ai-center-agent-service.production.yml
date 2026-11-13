@@ -7,7 +7,6 @@ security: # 控制面授权；未配置的可选接口保持关闭。
   runtimeJwtIssuer: "string-ai-center-service" # 允许签发执行 JWT 的服务标识。
   runtimeJwtAudience: "ccsdk-runtime" # 执行 JWT 的接收方标识。
   observationJwtSecret: "replace-observation-jwt-secret" # 可选的观测读取密钥，必须独立。
-  assetJwtSecret: "replace-asset-jwt-secret" # 可选的资产管理密钥，必须独立。
 databases: # 客户部署启用的数据库来源，名称须与资产 source_key 一致。
   schoolDoubleHigh: # 校双高来源，保留大小写。
     connection: # 仅连接信息；表、列、函数和指标从登记资产读取。

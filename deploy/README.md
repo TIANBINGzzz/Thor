@@ -33,7 +33,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 - Compose 路线需要 Docker、Compose >=2.30、flock、tar、sha256sum 及相应主机权限。标准容器端口为 4310，application.server 使用 0.0.0.0:4310，外部访问通过端口映射；代理和业务地址须从容器实际可达。
 - Nacos host 网络可用 127.0.0.1:8848；bridge 连接宿主机时用 host.docker.internal:8848 和 host-gateway 映射。连接引导与读取超时只在启动 YAML，客户和完整 runtime 参数只在 Nacos，无本地回退。
 - CCSDK_BIND_IP 默认主机回环；跨机访问绑定内网并限制来源。SSE 反向代理关闭缓冲并配置长连接超时；JWT 时钟、issuer/audience 和密钥与 Java 一致。
-- 单副本、单 HTTP worker；命名卷保存 .scribe-runs/ 的记录、SDK 历史、文件和管理端新建能力。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 docker compose down -v，改卷名不会迁移数据。
+- 单副本、单 HTTP worker；命名卷保存 .scribe-runs/ 的记录、SDK 历史、文件。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 docker compose down -v，改卷名不会迁移数据。
 
 配置变更排空任务后重启，无需重建镜像。构建只校验源码资产，不连接客户 Nacos 或数据库；部署 --check 连接 Nacos，probe 另查数据库，均不代表真实业务验收。
 

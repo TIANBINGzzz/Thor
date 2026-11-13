@@ -8,7 +8,7 @@
 
 Java 授权业务身份、Capability、会话和文件；Python 解析可信执行资产、准备输入、管理 SDK 历史并交付结果。Workflow、Skill、模型、MCP 地址、工具权限及工作目录不能由浏览器覆盖；持续约束见 [工程要求](engineering-requirements.md)。
 
-提示词管理采用[显式归属与统一装配](../ADR/036-explicit-prompt-assembly.md)。独立管理 JWT 可预览已登记能力或未发布草稿的项目指令，接口与字段见 [API 参考](../python-api.html#asset-management)；预览的假定工具组合不授予 Run 权限，不包含本轮私有数据，也不代表工具连接已通过验证。
+提示词采用[显式归属与统一装配](../ADR/036-explicit-prompt-assembly.md)。能力配置由源码维护，不提供在线目录组合、配置校验、新建或提示词预览接口；普通 Run 输入不能修改执行资产。
 
 ## 2. 通用约定
 

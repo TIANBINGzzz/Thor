@@ -156,7 +156,7 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
 
 
 def assemble_prompt(assets, *, active_tools, runtime_values=None, preview=False, extra=''):
-    """真实执行与管理预览使用同一过滤、渲染和来源说明；预览不推断工具可用性。"""
+    """资产预编译与真实执行共用过滤和渲染；预编译保留尚未提供的运行时槽位。"""
     active = set(validate_refs(active_tools, 'activeToolRefs'))
     if active - set(assets['tools']):
         raise RuntimeError('提示词工具组合超出能力声明')

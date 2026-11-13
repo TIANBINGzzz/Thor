@@ -12,7 +12,6 @@ from runtime.asset_registry import ENTRY_NAME, read_asset_body, read_manifest, v
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
 
 CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities'
-MANAGED_CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.scribe-runs/capabilities'
 SKILLS_ROOT = Path(__file__).resolve().parents[2] / '.claude/skills'
 
 
@@ -120,10 +119,10 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     except RuntimeError as error:
         raise RuntimeError('能力 Service 声明无效') from error
     if operation_refs:
-        # 持久化能力只允许声明式资产；业务 Python 必须随可信 Runtime 部署。
+        # 业务 Python 必须随可信 Runtime 部署，不接受其他目录中的代码引用。
         source_root = CAPABILITIES_ROOT.resolve()
         if not directory.resolve().is_relative_to(source_root):
-            raise RuntimeError('持久化能力不能引用代码包')
+            raise RuntimeError('只有源码能力可以引用代码包')
         from capability_packs.registry import read_pack_manifest
         pack = read_pack_manifest(manifest['ref'])
         if not set(operation_refs) <= {operation.ref for operation in pack.operations}:
@@ -183,30 +182,26 @@ def capability_entry(directory, *, skills_root=None):
     """读取 JSON Capability manifest 与同目录 Markdown 正文。"""
     directory = Path(directory).resolve()
     if skills_root is None:
-        skills_root = (SKILLS_ROOT if directory.parent == MANAGED_CAPABILITIES_ROOT.resolve()
-                       else directory.parent.parent / 'skills')
+        skills_root = directory.parent.parent / 'skills'
     return _validate_manifest(directory, read_manifest(directory, 'capability.json'),
                               Path(skills_root).resolve())
 
 
 def load_capabilities(root=None):
-    """合并源码能力与持久化新建能力；名称冲突拒绝装配，不允许覆盖。"""
-    roots = ([(Path(root), Path(root).parent / 'skills')] if root is not None else
-             [(CAPABILITIES_ROOT, SKILLS_ROOT), (MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT)])
+    """仅发现可信源码目录中的能力；数据卷不提供执行配置。"""
+    root, skills_root = ((Path(root), Path(root).parent / 'skills') if root is not None
+                         else (CAPABILITIES_ROOT, SKILLS_ROOT))
+    root = root.resolve()
     catalog = {}
-    for root, skills_root in roots:
-        root = root.resolve()
-        for path in sorted(root.glob('*/capability.json')):
-            if not path.resolve().is_relative_to(root):
-                raise RuntimeError('能力 manifest 路径越界')
-            entry = capability_entry(path.parent, skills_root=skills_root)
-            ref = entry['ref']
-            if ref in catalog:
-                raise RuntimeError(f'能力重复登记：{ref}')
-            catalog[ref] = Capability(ref=ref, supports_attachments=entry['supports_attachments'],
-                                      name=entry['title'], description=entry['description'],
-                                      tools=tuple(entry['tools']), directory=str(path.parent),
-                                      skill_refs=tuple(entry['skill_refs']))
+    for path in sorted(root.glob('*/capability.json')):
+        if not path.resolve().is_relative_to(root):
+            raise RuntimeError('能力 manifest 路径越界')
+        entry = capability_entry(path.parent, skills_root=skills_root)
+        ref = entry['ref']
+        catalog[ref] = Capability(ref=ref, supports_attachments=entry['supports_attachments'],
+                                  name=entry['title'], description=entry['description'],
+                                  tools=tuple(entry['tools']), directory=str(path.parent),
+                                  skill_refs=tuple(entry['skill_refs']))
     return catalog
 
 
@@ -218,18 +213,12 @@ class CapabilityCatalog(Mapping):
         self._signature = None
         self._entries = {}
 
-    def invalidate(self):
-        """管理 API 原子发布后主动失效；其他进程通过文件签名发现变更。"""
-        with self._lock:
-            self._signature = None
-            self._entries = {}
-
     @staticmethod
     def _asset_signature():
         from runtime.prompt_assembly import PROMPTS_ROOT
         from data_access.catalog import DATABASES_ROOT
         from capability_packs.registry import PACK_ROOT
-        roots = (CAPABILITIES_ROOT, MANAGED_CAPABILITIES_ROOT, SKILLS_ROOT,
+        roots = (CAPABILITIES_ROOT, SKILLS_ROOT,
                  TOOL_CATALOG.root, PROMPTS_ROOT, DATABASES_ROOT, PACK_ROOT)
         result = []
         pack_root = PACK_ROOT.resolve()

@@ -86,9 +86,8 @@ def _validated(document, *, worker=False):
                 if field in security:
                     _text(security, field)
             selected = [secret]
-            for field in ('observationJwtSecret', 'assetJwtSecret'):
-                if security.get(field):
-                    selected.append(_text(security, field, secret=True))
+            if security.get('observationJwtSecret'):
+                selected.append(_text(security, 'observationJwtSecret', secret=True))
             if len(selected) != len(set(selected)):
                 raise ValueError()
         if 'images' in document:

@@ -1,7 +1,7 @@
 """Capability Operation 的受控执行和 MCP 适配。
 
 Operation 是能力代码包中的业务动作；MCP Tool 只是把显式登记的动作暴露给
-Agent。代码包不属于公共 Tool Provider，也不能由持久化能力资产动态指定。
+Agent。代码包不属于公共 Tool Provider，只能由源码能力声明选择。
 """
 
 from __future__ import annotations

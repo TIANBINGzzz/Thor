@@ -30,7 +30,6 @@ from runtime.auth import JWTError, verify_observation_jwt, verify_run_jwt, verif
 from runtime.file_download import FileDownloader, FetchedFile
 from runtime.capabilities import CAPABILITIES
 from runtime.mcp_auth import validate_capability_credentials
-from runtime.asset_management import create_asset_router
 from runtime.protocol import AgentRunRequest, ProtocolError, SteeringRequest
 from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
@@ -146,7 +145,6 @@ async def _shutdown_runtime():
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
-app.include_router(create_asset_router())
 
 
 @app.middleware("http")

@@ -143,16 +143,15 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(first, second)
             self.assertEqual(read_manifest.call_count, 1)
 
-    def test_managed_capability_cannot_reference_code_pack(self):
+    def test_non_source_capability_cannot_reference_code_pack(self):
         from runtime.capabilities import capability_entry
 
         with tempfile.TemporaryDirectory() as temp:
             temp = Path(temp)
             managed = temp / 'managed'
             entry_dir = self._capability(managed, operations=['calculate'])
-            with patch('runtime.capabilities.MANAGED_CAPABILITIES_ROOT', managed):
-                with self.assertRaises(RuntimeError):
-                    capability_entry(entry_dir, skills_root=temp / 'skills')
+            with self.assertRaisesRegex(RuntimeError, '只有源码能力'):
+                capability_entry(entry_dir, skills_root=temp / 'skills')
 
     async def test_capability_context_reuses_document_and_artifact_services(self):
         from runtime.capability_operations import CapabilityContext
@@ -315,24 +314,6 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                 result = await server['tools'][0].handler({'value': 'ok'})
                 self.assertTrue(result['isError'])
                 retrieve.assert_not_called()
-
-    def test_operation_preview_is_static_and_contains_only_selected_schemas(self):
-        from runtime.asset_management import _preview
-        from runtime.capabilities import capability_entry
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            directory = self._capability(root / 'capabilities', operations=['calculate'])
-            create_pack(root / 'packs', [operation(), operation(ref='hidden')],
-                        "raise RuntimeError('preview must not execute code')")
-            with patch('runtime.capabilities.CAPABILITIES_ROOT', directory.parent), \
-                 patch('capability_packs.registry.PACK_ROOT', root / 'packs'):
-                entry = capability_entry(directory, skills_root=root / 'skills')
-                view = _preview(entry)
-            self.assertEqual([item['ref'] for item in view['operations']], ['calculate'])
-            self.assertEqual(view['operations'][0]['toolName'], 'mcp__capability_ops__calculate')
-            self.assertEqual(view['operations'][0]['inputSchema'], operation()['inputSchema'])
-            self.assertEqual(view['operations'][0]['outputSchema'], operation()['outputSchema'])
 
     async def test_sync_operations_enforce_json_and_schema_boundaries(self):
         from runtime.capability_operations import build_operation_server

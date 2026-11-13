@@ -35,7 +35,7 @@
 ### 当前状态与待明确项
 
 - **Python 实现核对，2026-10-27**：凭据规则集中在可信 `.claude/tools/*/tool.json.auth`，公共 MCP 由能力 `toolRefs` 选择；校园 Operation 通过 `serviceRefs` 选择内部 Service。`mcp_auth.py` 逐轮注入副本、缺凭据失败，不修改全局环境；HTTP/stdio 使用通用 Provider，校园代码包复用可信参数绑定，Agent 不接触业务 Token。
-- **提示词管理核对，2026-10-26**：独立管理 JWT 保护的预览复用纯资产编译器，不调用连接解析/Provider，不接受凭据或运行时上下文覆盖；test_prompt_assembly、test_asset_management 已验证拒绝秘密变量来源、越界引用、执行 JWT 及未授权工具组合。此结论限 Python 边界，不能替代 Java Token 来源、撤销或真实业务验收。
+- **提示词边界核对，2026-11-13**：在线能力管理接口及独立管理 JWT 已移除；资产预编译仍复用执行编译器，不解析连接或凭据，边界由 test_prompt_assembly 覆盖。此范围不能替代 Java Token 来源、撤销或真实业务验收。
 - **能力代码边界核对，2026-10-26**：Operation 的 Context 不提供业务 Token，独立 MCP namespace 不接收公共 MCP 凭据；旧处理器下一轮拒绝执行，取消后工具/数据清理完成才放行。test_capability_operations、test_sdk_tool_scope、test_agent_worker 和真实 SDK CLI 本地协议桩覆盖上述边界；代码仍属可信部署范围，不据此宣称沙箱或生产撤销验收。
 - **本地实现核对，2026-10-20**：`tool_services.py` 按轮绑定和清理凭据，只有 Schema 变化才重挂 MCP；`claude_sdk.py` 热更新模型、思考、effort、模型环境和目录，Hook 校验本轮工具授权。业务 Token 不参与固定指纹，回收仅释放进程，新请求重新授权后恢复历史。缓存适配器的换 Token、清理、缺 Token 拒绝及真实 CLI 同名替换/工具撤销已通过本地测试；并发预热和历史恢复采用本地模型协议桩，不据此声称 Java、真实业务工具或生产撤销链路已验收。
 - 2026-10-22 已静态核对外部 Java 主链路；校园入口仍有正文 Token 特例，尚不满足第1项。运行中 Token 到期/撤销策略及全链路日志、持久化泄漏仍须独立验收，本轮未改 Java。
@@ -71,10 +71,10 @@
 ### 当前状态与待明确项
 
 - **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
-- **Runtime 边界核对，2026-10-29**：direct/agent 共用基础工具白名单，不因模式切换分组或重连；业务 MCP、规则及凭据逐轮装配，目录缓存保留。独立 assets.manage 是可信执行配置管理权，可选择 agent/direct、组合已登记资产，不能上传代码或指定连接；创建内容与操作者、授权编号、时间及内容摘要原子落盘。创建记录不是完整运行配置快照，第6项的逐 Run 配置追溯、Java 授权及生产隔离差距仍保留；协议与范围见 [Runtime 契约](ccsdk-runtime-interface.md#3-run-请求模块)和[管理 API](../python-api.html#asset-management)。
-- 2026-10-22 撰写与双高规则、模板和来源声明已直接归入 Capability，删除旧 Workflow 装配。独立管理 JWT 可组合已登记资产新建能力；普通 Run 输入不能修改资产。未新增版本快照系统，第6项完整配置追溯、Java 管理界面及授权仍有差距。
-- 2026-10-26 提示词归属、显式必载/按需 Skill、统一编译和有效内容预览已接入，见[ADR-036](../ADR/036-explicit-prompt-assembly.md)。公开目录仍只返回能力摘要；预览标明假定工具与未包含的私有上下文，内容摘要不是发布版本，第6项差距保留。
-- 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现/预览不执行代码，管理 API 拒绝代码引用；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码，第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。
+- **Runtime 边界核对，2026-11-13**：direct/agent 共用基础工具白名单，不因模式切换分组或重连；业务 MCP、规则及凭据逐轮装配。能力仅从源码目录发现，在线管理接口、管理密钥及数据卷能力加载已移除，普通 Run 输入不能修改资产。第6项的完整配置追溯、Java 授权及生产隔离差距仍保留；协议见 [Runtime 契约](ccsdk-runtime-interface.md#3-run-请求模块)。
+- 撰写与双高规则、模板和来源声明直接归入 Capability，无旧 Workflow 装配。未新增版本快照系统，第6项完整配置追溯及 Java 授权仍有差距。
+- 提示词归属、显式必载/按需 Skill 和统一编译已接入，见[ADR-036](../ADR/036-explicit-prompt-assembly.md)。公开目录只返回能力摘要；内容摘要不是发布版本，第6项差距保留。
+- 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现不执行代码，普通请求不能指定代码入口；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码，第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。
 - 本地测试前端及模拟 Java 服务已移除；Runtime 不提供本地会话/上传接口或测试身份文件直读。会话检索使用独立 session.read，仅返回公开 Run 摘要。
 - 模板参数与装配边界见[模板契约](ccsdk-runtime-interface.md#34-业务-payload)，查询口径维护在[数据库包](../../.claude/databases/schoolDoubleHigh/)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
 - 校双高数据按来源范围及本轮业务Token解析，所有usercode共享本客户全量业务数据；固定/动态SQL均强制客户过滤，用户结果和会话仍隔离，用户权限由Java负责，具体边界见[数据库管理](data-source-connections.md#字段与配置)。来源由可信能力/模板选择，项目属于业务筛选条件，生产Java身份与撤销仍须验收。
