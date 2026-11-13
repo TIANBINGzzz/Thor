@@ -2,6 +2,8 @@
 
 MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导与宿主机参数；不再读取 Nacos、env、.local 或本地客户配置副本。
 
+`config-database` 是 `application.yml` 中的 MySQL 连接配置节，不是独立服务或表名。程序启动时用它连接配置库，再从 `ccsdk_*` 表读取能力、模型、连接和预算。配置库自身的连接参数必须先从 YAML 取得。
+
 | 位置 | 内容 | 更新生效时点 |
 | --- | --- | --- |
 | `application.yml` | `config-database` 地址、账号、密码、Fernet 根密钥、TLS CA、超时；server/tools/network/diagnostics | 重启 |
