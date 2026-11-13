@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration, deployment_document
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -10,7 +11,7 @@ from runtime.config import build_options, build_client_options, client_connectio
 class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # 提示词/SDK 装配单测使用离线可信配置，不依赖校园配置中心的可用性。
-        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+        self.enterContext(patch_configuration({**deployment_document(),
             'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}))
 
     async def test_custom_prompt_is_injected_as_current_turn_rules(self):
@@ -33,7 +34,7 @@ class SystemPromptPolicyTests(unittest.IsolatedAsyncioTestCase):
                     entry.setdefault('runtime', {})['system_prompt_snapshot'] = snapshot
                     payload = {'capability_ref': ref, 'run_id': 'prompt-test-run',
                                'credentials': {'platformBearer': 'test-secret'}}
-                    with patch('runtime.config.capability_entry', return_value=entry):
+                    with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
                         inherit_client_runtime(payload)
                         options = build_options(payload)
                         blank = build_client_options(payload, ClientTurnPolicy())
@@ -60,8 +61,8 @@ class SnapshotConfigTests(unittest.TestCase):
             first = {}
             self.assertIs(inherit_client_runtime(first)['system_prompt_snapshot'], True)
             restored = {}
-            self.assertIs(inherit_client_runtime(restored, {'system_prompt_snapshot': False})['system_prompt_snapshot'], False)
-            self.assertNotEqual(client_connection_fingerprint(first), client_connection_fingerprint(restored))
+            self.assertIs(inherit_client_runtime(restored, {'system_prompt_snapshot': False})['system_prompt_snapshot'], True)
+            self.assertEqual(client_connection_fingerprint(first), client_connection_fingerprint(restored))
             assets['runtime'] = {'system_prompt_snapshot': True}
             self.assertIs(inherit_client_runtime(restored, {'system_prompt_snapshot': False})['system_prompt_snapshot'], True)
             self.assertEqual(client_connection_fingerprint(first), client_connection_fingerprint(restored))
@@ -69,9 +70,9 @@ class SnapshotConfigTests(unittest.TestCase):
     def test_startup_profiles_and_run_store_preserve_snapshot(self):
         import server
         from runtime.run_store import RunStore
-        profile = server._startup_profile({'capability': {'ref': 'conversation', 'runtime': {}}},
+        profile = server._startup_profile(server.load_execution_entry('conversation'),
                                           {'system_prompt_snapshot': False})
-        self.assertIs(profile['_client_runtime']['system_prompt_snapshot'], False)
+        self.assertIs(profile['_client_runtime'].get('system_prompt_snapshot', True), True)
         with TemporaryDirectory() as directory:
             path = Path(directory) / 'runs.sqlite3'
             with RunStore(path) as store:

@@ -5,3 +5,6 @@ from runtime.application_config import install_application
 
 install_application(application_document())
 initialize_deployment(document=deployment_document())
+
+from tests.deployment_fixtures import install_configuration_store
+install_configuration_store()

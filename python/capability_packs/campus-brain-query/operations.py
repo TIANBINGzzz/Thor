@@ -13,7 +13,6 @@ from jsonschema import Draft202012Validator
 
 from runtime.mcp_auth import MCPArgumentBinding
 from runtime.mcp_transport import call_mcp_tool, validate_http_connection
-from runtime.asset_registry import read_manifest
 from runtime.deployment_config import ConfigSnapshot
 from runtime.capability_operations import OperationInputError, _notify_mcp_error
 from runtime.tool_services import service_asset_revision
@@ -29,8 +28,7 @@ ASSET_ROOT = Path(__file__).resolve().parents[3] / '.claude/capabilities/campus-
 def load_campus_assets(settings=None, directory=ASSET_ROOT, config_path=None, *, operations=None):
     """只读取登记文件；知识保留在服务端内存，不整表注入提示词。"""
     directory = Path(directory).resolve()
-    entry = read_manifest(directory, 'capability.json')
-    config_path = (directory / (config_path or entry['toolConfig']['campus'])).resolve()
+    config_path = (directory / (config_path or 'assets/campus.json')).resolve()
     if not config_path.is_relative_to(directory):
         raise RuntimeError('校园工具资产路径无效')
     raw = config_path.read_bytes()

@@ -139,7 +139,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                     lambda _: file_response(b"x" * 262144, 2, gate=gate,
                                             started=started if outcome != "truncated" else None,
                                             complete=outcome != "truncated")))
-                settings = replace(RUNTIME_SETTINGS, timeouts=replace(RUNTIME_SETTINGS.timeouts,
+                settings = replace(__import__('runtime.runtime_settings', fromlist=['_SETTINGS'])._SETTINGS, timeouts=replace(RUNTIME_SETTINGS.timeouts,
                     file_prepare_ms=30 if outcome == "timeout" else 1000))
                 self.enterContext(patch('runtime.file_download.RUNTIME_SETTINGS', settings))
                 task = asyncio.create_task(downloader.fetch_all([AttachmentRef("file-1")], workspace=folder))
@@ -164,6 +164,8 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 store.create_run("run-1", request=request, tenant_id="t", user_id="u")
                 gate, started = asyncio.Event(), asyncio.Event()
                 sdk_calls = []
+                entry = server.load_execution_entry('conversation')
+                entry['capability']['runtime']['timeout_ms'] = 500
 
                 def assert_ready(payload):
                     self.assertIn("template.docx", payload["prompt"])
@@ -191,7 +193,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                                     FILE_PREPARE_TIMEOUT_MS=3000, internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileDownloader", side_effect=downloader), patch.object(server, "stream_agent", query):
-                    task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}))
+                    task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}, execution_entry=entry))
                     await asyncio.wait_for(started.wait(), 1)
                     # 文件准备超过 SDK 预算仍须继续，直到准备完毕才启动 SDK 计时。
                     await asyncio.sleep(0.7)

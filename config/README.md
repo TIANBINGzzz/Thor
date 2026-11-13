@@ -1,44 +1,26 @@
 # 部署配置
 
-一个 tenantId 对应一个客户，一套 Runtime 只服务一个客户；不同 usercode 可查询客户全量业务数据，会话、文件、Run 和结果仍按用户隔离。
+MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导与宿主机参数；不再读取 Nacos、env、.local 或本地客户配置副本。
 
-| 配置组 | 本机真实文件 | 字段范例 | 生产模板 |
-| --- | --- | --- | --- |
-| 启动及宿主机 | `application.yml` | [application.example.yml](application.example.yml) | [application.production.yml](application.production.yml) |
-| Nacos 客户配置 | `nacos-ai-center-agent-service.yml` | [nacos-ai-center-agent-service.example.yml](nacos-ai-center-agent-service.example.yml) | [nacos-ai-center-agent-service.production.yml](nacos-ai-center-agent-service.production.yml) |
+| 位置 | 内容 | 更新生效时点 |
+| --- | --- | --- |
+| `application.yml` | `config-database` 地址、账号、密码、Fernet 根密钥、TLS CA、超时；server/tools/network/diagnostics | 重启 |
+| `scribe_capability` | 名称、说明、启停、提示词、附件策略、模型连接/模型名、thinking/effort、全部单 Run 预算、Tool 选择、能力配置 | 下一 Run，包括已有会话续聊 |
+| `scribe_skill` | 可复用说明、正文、文本资源及依赖 Tool | 下一 Run |
+| `scribe_model_connection` | 服务地址、Anthropic 协议、API Key、协议扩展参数 | 下一 Run |
+| `scribe_database_connection` | 类型、地址、端口、库名、账号、密码、TLS、访问范围、查询限额 | 下一 Run |
+| `scribe_mcp_server` | HTTP 地址、静态 Header、业务 Token 注入规则、连接参数 | 下一 Run |
+| 三张 `scribe_capability_*` 关联表 | Skill 顺序/必载、数据源必需性、MCP 及工具白名单 | 下一 Run |
+| `scribe_setting` | images、fileService、security、runtime 全局设置 | 图像/文件与逐轮读取项下一 Run；执行/观测鉴权密钥、Worker 池、观测存储及 HTTP 入口常量重启 |
 
-每组的三个版本字段路径和类型保持一致，每项带简短注释；本机文件保存真实值，不提交 Git、不进入 Docker 上下文。example 和 production 只有模板值，生产须逐项填写；未替换的 replace-*、customer-example 和 example.com 地址会拒绝启动。可选字段保留，按注释用空字符串或 enabled 关闭，不删除节点。
+启动从 config/application.yml 连接配置库，校验后加载进程设置。每个新 Run 在线读取一次一致配置，执行中保持不变；不轮询、不广播、不维护配置版本或发布表。数据库不可达时新请求失败，已经取得配置的 Run 继续执行。普通业务请求不能覆盖配置。
 
-| 放置位置 | 职责与选择依据 |
-| --- | --- |
-| application.yml | 连接 Nacos 前必需，或绑定宿主机：Nacos 引导、监听地址/端口、Run 库、OfficeCLI/渲染器、代理、诊断 |
-| Nacos ai-center-agent-service | 模型及图像服务、JWT 密钥、数据库和业务服务地址、完整 runtime 预算/模型/池/观测 |
-| .claude/ 与代码 | 需验证发布的 Capability、Tool Schema、权限映射、数据库表列/口径及模板，不开放为任意配置 |
+从 [application.example.yml](application.example.yml) 或 [application.production.yml](application.production.yml) 准备完整私有启动文件；三个启动文件字段及类型一致。真实文件与加密根密钥不提交、不进镜像。配置库自身的连接凭据不能存入待连接的库，根密钥也不与密文同库。API Key、数据库密码、静态 MCP Header 和 setting 秘密字段加密存入 MySQL，管理读取不返回原值，PUT 中 null 表示保留。
 
-## 加载与更新
+配置管理 API、表关系和预算语义见 [配置中心契约](../doc/specs/runtime-config-center.md)。表定义以 [config_store.py](../python/runtime/config_store.py) 为准；运行进程不自动建表。新环境由运维通过该 metadata 建表并写入完整配置，不存在默认业务配置回退。schema、模板、工具实现和数据库知识仍随可信代码交付；测试夹具仅用于离线测试，不参与部署配置读取。
 
-从仓库根目录执行 npm start 或 python python/server.py；自定义 ASGI 启动使用 PYTHONPATH=python uvicorn --factory runtime.bootstrap:create_app。启动只读 config/application.yml，再从 Nacos 读取一次客户配置，校验并冻结快照；初始化必须先于 server、SDK 和预算模块导入。
+数据库 `access.tenantIds` 默认只允许 `self`，每轮从 Java 已认证后透传的业务 Token 解析；额外测试范围遵循 [REQ-001](../doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)。发现连接不授予能力或数据权限，TLS 显式配置，不自动降级。业务数据库 CA/SQLite 相对路径以 config 目录为基准，配置库 CA 同样按 config 目录解析。
 
-不加载 .env、capability.env 或 .local 覆盖，不用应用环境变量覆盖 YAML，不合并本机与生产文件，不回退本地客户 YAML。Nacos 本地三版本只供填写及导入，不是运行时配置来源。缺字段、错类型、重复 YAML 键、读取或认证失败均拒绝启动。配置变更须排空任务并重启，不需要重建镜像。
+模型连接当前只支持 SDK 所需的 Anthropic 协议；兼容该协议的服务可切换地址与密钥。每能力明确指定模型名，不另维护 model_profile 或模型 available 列表。thinking/effort 是否被供应商接受由其协议决定。图像模型属于 images 设置。
 
-Nacos namespace 填 Namespace ID，空值为 public；读取超时只在 application.nacos 配置，Nacos 始终直连。network 的空代理会清除继承代理。工具和 Run 库路径仅支持操作系统目录变量 ${LOCALAPPDATA}、${USERPROFILE}、${PROGRAMFILES}；密钥不展开变量。SDK/工具仍通过进程环境接收启动器装配的值，这不是 env 配置文件。
-
-生产将填写后的完整 application.production.yml 只读挂载为 /app/config/application.yml；客户 production 内容另行导入 Nacos。挂载、权限及容器路径见[部署说明](../deploy/README.md)。
-
-## 客户字段与隔离
-
-Run、用户及会话身份来自已验证的 Java Run JWT，不在部署配置固定 tenantId。数据库访问的 self 每轮解析 credentials.platformBearer 中的业务 tenantId；缺少业务 Token 或解析失败即拒绝，不回退测试 ID。本地解码不替代 Java 验签、有效期或撤销。
-
-security.runtimeJwtSecret 用于执行授权；observationJwtSecret 留空关闭观测读取，配置时须与执行密钥独立。model 与 images 的连接和密钥显式配置；供应商允许共用模型密钥时，可用 YAML 锚点 &model_api_key 和 *model_api_key 表达，不隐式复用。images.enabled=false 不装配图片工具，仍保留其全部字段。
-
-databases.<source>.connection 只保存 driver、host、port、database、username、password、tls；query 只保存超时、行数与动态只读 SQL 开关。校双高来源名称为大小写敏感的 schoolDoubleHigh。TLS 验证 CA 和主机名，不支持时须显式 disabled，不自动降级；CA 和 SQLite 相对路径基准为仓库 config 目录。
-
-每来源 access.tenantIds 声明数据租户范围：production 和 example 模板仅 [self]；额外测试数据须按[工程要求 REQ-001](../doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)明确授权，具体环境例外保存在私有部署交接记录。额外 ID 不改变 Run 身份，不影响其他来源或校园大脑。数据库不重复维护 Capability、模板、项目授权或表/查询清单；Catalog 决定域、表列、函数及指标，每个学校 scope 单独绑定 SQL 租户过滤，项目只是业务筛选条件。详见[数据契约](../doc/specs/data-source-connections.md)。
-
-fileService 是附件下载和成果上传的唯一文件通道，downloadPath 保留 {fileId}；baseUrl/remoteUrl 与限额属于部署配置，domain-name 由 Java 在每个 Run 正文中传入，不放入 JWT，不再从全局配置取值。不转发 Run JWT、业务 Token 或 Cookie，Java 须先授权 fileId。旧 Java File Broker 通道及配置已删除。campusMcp、businessMcp 只保存可信连接，业务 Token 按 Run 注入；businessMcp.url 留空不挂载。
-
-runtime 的预算、模型、池及观测字段必须完整；default 和 SDK 别名须在 available 中。观测 storage 相对仓库根目录；启动 YAML diagnostics.disable-observability=true 用于紧急停采，false 仍以 Nacos 开关为准。
-
-各能力在 `.claude/capabilities/<ref>/capability.json` 的 `runtime` 独立配置 `model`、`thinking` 和 `effort`。`model` 为空字符串时采用 Nacos `runtime.models.default`，填写时必须属于 `runtime.models.available`；只选模型名，不配置连接或密钥。`thinking` 可为 `null`（SDK 默认）、`{"type":"disabled"}`、`{"type":"adaptive"}`，或 `{"type":"enabled","budget_tokens":4096}`；`effort` 可为 `null`（SDK 默认）、`low`、`medium`、`high`、`xhigh`、`max`，实际支持范围由供应商决定。显式 `null` 清除同会话上一能力的对应设置；模型选择始终按当前能力解析。普通 Run 正文不能覆盖这些内部配置；这里的模型指执行 Agent 的语言模型，图像生成工具的模型仍由 Nacos `images` 配置。
-
-父进程及 Worker 共享启动快照；Worker 只接收模型、数据库、运行预算和本轮选定连接，不接收 Nacos、执行/观测 JWT 密钥；SDK 不接收数据库凭据。真实 Token、原始结果及私密验证材料只放忽略目录。可信 Worker 不构成生产 OS 沙箱。
+Worker 仅接收当轮模型、预算、所需数据库和 MCP 配置，不接收配置库密码、根密钥及控制面 JWT 密钥；SDK 环境不接收数据库秘密。Run JWT、管理 JWT、观测 JWT 和业务 Token 各自独立。可信 Worker 不构成生产 OS 沙箱。

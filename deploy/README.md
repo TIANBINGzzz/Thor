@@ -1,12 +1,12 @@
 # 运行与部署
 
-所有命令从仓库根目录执行，另有说明除外。完整启动与 Nacos 配置的本机、example、production 三版本见[配置字段](../config/README.md)。
+所有命令从仓库根目录执行，另有说明除外。启动 YAML 和 MySQL 配置边界见[配置字段](../config/README.md)。
 
 跨会话查找 newtest（57，单租户测试）、cloud（59，单租户正式）、appai（多租户测试）、ai（多租户正式）的连接、凭据、部署位置及云效信息，先读本机私有 [环境交接](environments.local.md)；该文件不提交、不进入镜像，新克隆需单独提供。
 
 ## 本地开发
 
-安装 requirements.txt，从 config/application.example.yml 准备完整 config/application.yml；按带注释的 Nacos 客户模板填入配置中心。本机文件已保留真实值，不提交、不进镜像。只加载 YAML，不加载 env 或 .local 覆盖。python python/server.py 或 npm start 启动，监听地址/端口取 application.server。
+安装 requirements.txt，从 config/application.example.yml 准备完整 config/application.yml；在 MySQL 中维护客户配置、能力和 Skill。本机文件已保留真实值，不提交、不进镜像。只加载 YAML，不加载 env 或 .local 覆盖。python python/server.py 或 npm start 启动，监听地址/端口取 application.server。
 
 回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，必须传本次获准的 `--tenant` 和 `--domain-name`；单元测试不能代替真实模型、Java 授权和成稿验收。
 
@@ -26,22 +26,22 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 ## 配置与边界
 
-- 启动文件从 config/application.production.yml 填写，客户配置从 config/nacos-ai-center-agent-service.production.yml 填写并导入 Nacos。模板凭据不可直接启动，不将真实配置打入镜像。
+- 启动文件从 config/application.production.yml 填写，客户配置及静态秘密只在 MySQL 维护。模板凭据不可直接启动，不将真实配置打入镜像。
 - 主机预先准备 CCSDK_CONFIG_DIRECTORY/application.production.yml；也可用 CCSDK_APPLICATION_FILE 选择已填好的完整 YAML。deploy.sh 的相对路径基准为脚本所在 deploy 目录；直接使用 Compose 时为 Compose 项目目录。部署脚本只选挂载源、镜像及资源参数，不覆盖应用配置字段。
-- YAML 只读挂载到 /app/config/application.yml，配置文件及父目录须允许 UID 10001 读取/进入，不用 chmod 777。缺失挂载源直接失败，不自动生成空文件或目录。数据库 CA 按 Nacos connection.tls.ca_file 指定路径另行只读挂载，相对路径基准为 /app/config。
+- YAML 只读挂载到 /app/config/application.yml，配置文件及父目录须允许 UID 10001 读取/进入，不用 chmod 777。缺失挂载源直接失败，不自动生成空文件或目录。数据库 CA 按 数据库连接 tls.ca_file 指定路径另行只读挂载，相对路径基准为 /app/config。
 - Flow 只构建和部署，不生成 env 或传输密钥包；主机须在部署前准备完整生产 YAML。镜像内生产模板只用于声明结构，不能代替实际配置。
 - Compose 路线需要 Docker、Compose >=2.30、flock、tar、sha256sum 及相应主机权限。标准容器端口为 4310，application.server 使用 0.0.0.0:4310，外部访问通过端口映射；代理和业务地址须从容器实际可达。
-- Nacos host 网络可用 127.0.0.1:8848；bridge 连接宿主机时用 host.docker.internal:8848 和 host-gateway 映射。连接引导与读取超时只在启动 YAML，客户和完整 runtime 参数只在 Nacos，无本地回退。
+- 配置库地址和端口按 MySQL 实际监听填写；host 网络可直连宿主机，bridge 另配置可达地址。配置库凭据、根密钥与连接超时只在启动 YAML，其余客户配置只在 MySQL。
 - CCSDK_BIND_IP 默认主机回环；跨机访问绑定内网并限制来源。SSE 反向代理关闭缓冲并配置长连接超时；JWT 时钟、issuer/audience 和密钥与 Java 一致。
 - 单副本、单 HTTP worker；命名卷保存 .scribe-runs/ 的记录、SDK 历史、文件。已有部署用 CCSDK_DATA_VOLUME 保持原卷，禁止 docker compose down -v，改卷名不会迁移数据。
 
-配置变更排空任务后重启，无需重建镜像。构建只校验源码资产，不连接客户 Nacos 或数据库；部署 --check 连接 Nacos，probe 另查数据库，均不代表真实业务验收。
+能力、Skill、连接与预算保存后下一 Run 生效；进程设置变更排空后重启。构建只校验源码资产，不连接客户数据库；部署 --check 连接配置库，probe 另查数据库，均不代表真实业务验收。
 
 ## 独立观测接入
 
-Nacos runtime.observability.enabled 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
+MySQL setting runtime.observability.enabled（重启生效） 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
 
-带专用 observation.read JWT 核对 /internal/observability/v1/info、records、snapshot、metrics；关闭返回404，缺密钥返回503，无效授权返回401。紧急停采在 application.diagnostics.disable-observability 设置 true 并重启；正常采集以 Nacos 为准。
+带专用 observation.read JWT 核对 /internal/observability/v1/info、records、snapshot、metrics；关闭返回404，缺密钥返回503，无效授权返回401。紧急停采在 application.diagnostics.disable-observability 设置 true 并重启；正常采集以 MySQL 为准。
 
 ## 验证与回滚
 

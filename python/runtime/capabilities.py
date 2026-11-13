@@ -41,7 +41,7 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
     """校验模型运行策略，避免能力声明绕过 SDK 边界。"""
     if not isinstance(value, dict):
         raise RuntimeError(f'{label}配置无效')
-    allowed = {'model', 'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms', 'system_prompt_snapshot'}
+    allowed = {'model', 'mode', 'thinking', 'max_turns', 'effort', 'prompt_mode', 'timeout_ms', 'system_prompt_snapshot', 'tool_timeout_ms', 'max_output_tokens', 'max_model_calls', 'max_tool_calls', 'max_total_tokens'}
     if set(value) - allowed:
         raise RuntimeError(f'{label}存在未知字段')
     if 'model' in value:
@@ -59,7 +59,7 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
         if (set(thinking) != expected or (enabled and
                 (type(thinking['budget_tokens']) is not int or thinking['budget_tokens'] <= 0))):
             raise RuntimeError(f'{label}.thinking配置无效')
-    for field in ('max_turns', 'timeout_ms'):
+    for field in ('max_turns', 'timeout_ms', 'tool_timeout_ms', 'max_output_tokens', 'max_model_calls', 'max_tool_calls', 'max_total_tokens'):
         item = value.get(field)
         if field == 'max_turns' and item is None:
             continue
@@ -74,11 +74,11 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
     return value
 
 
-def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> dict:
+def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, body=None, skills=None) -> dict:
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
                'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
-               'instructionRefs', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs', 'auth'}
+               'instructionRefs', 'instructions', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs', 'auth'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -89,7 +89,7 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
     auth = manifest.get('auth', {'required': False})
     if not isinstance(auth, dict) or set(auth) != {'required'} or type(auth.get('required')) is not bool:
         raise RuntimeError('能力业务凭据规则无效')
-    skills = validate_refs(manifest.get('skillRefs', []), 'skillRefs')
+    skill_refs = validate_refs(manifest.get('skillRefs', []), 'skillRefs')
     tools = validate_refs(manifest.get('toolRefs', []), 'toolRefs')
     required = validate_refs(manifest.get('requiredToolRefs', []), 'requiredToolRefs')
     try:
@@ -167,115 +167,42 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path) -> di
                 or target.name != 'template.json'):
             raise RuntimeError('能力模板路径无效')
     from runtime.prompt_assembly import validate_prompt_manifest
-    variables = validate_prompt_manifest(directory, manifest, skills_root)
+    variables = validate_prompt_manifest(directory, manifest, skills_root, body=body, skills=skills)
     return {**manifest, '_prompt_variables': variables,
             'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
-            'skill_refs': list(skills), 'tools': list(tools),
+            'skill_refs': list(skill_refs), 'tools': list(tools),
             'required_tools': list(required), 'tool_config': configs,
             'operation_refs': list(operation_refs),
             'service_refs': list(service_refs),
-            '_body': read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
+            '_body': body if body is not None else read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
             '_skill_root': str(skills_root.resolve())}
 
 
 def capability_entry(directory, *, skills_root=None):
-    """读取 JSON Capability manifest 与同目录 Markdown 正文。"""
-    directory = Path(directory).resolve()
-    if skills_root is None:
-        skills_root = directory.parent.parent / 'skills'
-    return _validate_manifest(directory, read_manifest(directory, 'capability.json'),
-                              Path(skills_root).resolve())
+    """按稳定能力标识读取数据库；directory 只标识随代码交付的模板/业务资产。"""
+    from runtime.configuration import execution_entry
+    return execution_entry(Path(directory).name)['capability']
 
 
 def load_capabilities(root=None):
-    """仅发现可信源码目录中的能力；数据卷不提供执行配置。"""
-    root, skills_root = ((Path(root), Path(root).parent / 'skills') if root is not None
-                         else (CAPABILITIES_ROOT, SKILLS_ROOT))
-    root = root.resolve()
-    catalog = {}
-    for path in sorted(root.glob('*/capability.json')):
-        if not path.resolve().is_relative_to(root):
-            raise RuntimeError('能力 manifest 路径越界')
-        entry = capability_entry(path.parent, skills_root=skills_root)
-        ref = entry['ref']
-        catalog[ref] = Capability(ref=ref, supports_attachments=entry['supports_attachments'],
-                                  name=entry['title'], description=entry['description'],
-                                  tools=tuple(entry['tools']), directory=str(path.parent),
-                                  skill_refs=tuple(entry['skill_refs']))
-    return catalog
-
+    from runtime.configuration import read_configuration
+    rows = read_configuration()['capabilities']
+    return {ref:Capability(ref=ref, name=row['name'], description=row['description'],
+        supports_attachments=row['supports_attachments'], tools=tuple(row['tool_refs']),
+        directory=str(CAPABILITIES_ROOT/ref), skill_refs=tuple(item['ref'] for item in row['skills']))
+        for ref,row in rows.items() if row['enabled']}
 
 class CapabilityCatalog(Mapping):
-    """按资产文件签名缓存校验后的目录；变更或失效后重新校验，不沿用旧授权。"""
-
-    def __init__(self):
-        self._lock = threading.RLock()
-        self._signature = None
-        self._entries = {}
-
-    @staticmethod
-    def _asset_signature():
-        from runtime.prompt_assembly import PROMPTS_ROOT
-        from data_access.catalog import DATABASES_ROOT
-        from capability_packs.registry import PACK_ROOT
-        roots = (CAPABILITIES_ROOT, SKILLS_ROOT,
-                 TOOL_CATALOG.root, PROMPTS_ROOT, DATABASES_ROOT, PACK_ROOT)
-        result = []
-        pack_root = PACK_ROOT.resolve()
-        for root in roots:
-            root = Path(root).resolve()
-            result.append(str(root))
-            is_pack = root == pack_root
-            # 根目录 mtime 不反映文件原地修改；扫描 stat，不重复解析 JSON/YAML/Schema。
-            for directory, children, files in os.walk(root):
-                children[:] = sorted(name for name in children if name != '__pycache__')
-                for name in children:
-                    path = Path(directory) / name
-                    stat = path.lstat()
-                    result.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns))
-                for name in sorted(files):
-                    path = Path(directory) / name
-                    if is_pack and name != 'pack.json':
-                        continue  # 目录校验只读代码包声明；Python 仍随 Worker 部署。
-                    stat = path.stat()
-                    result.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size))
-        return tuple(result)
-
-    def _load(self):
-        with self._lock:
-            signature = self._asset_signature()
-            if signature != self._signature:
-                entries = load_capabilities()
-                if signature != self._asset_signature():
-                    raise RuntimeError('能力资产在校验期间发生变更，请重试')
-                self._entries, self._signature = entries, signature
-            return self._entries
-
-    def __getitem__(self, ref):
-        return self._load()[ref]
-
-    def __iter__(self):
-        return iter(self._load())
-
-    def __len__(self):
-        return len(self._load())
-
-    def values(self):
-        return self._load().values()
-
-    def items(self):
-        return self._load().items()
-
+    def __getitem__(self, ref): return load_capabilities()[ref]
+    def __iter__(self): return iter(load_capabilities())
+    def __len__(self): return len(load_capabilities())
+    def values(self): return load_capabilities().values()
+    def items(self): return load_capabilities().items()
 
 CAPABILITIES = CapabilityCatalog()
 
-
 def resolve_capability(ref: str | None) -> Capability:
-    """根据业务能力标识返回登记的 Capability。"""
     try:
-        return CAPABILITIES["conversation" if ref is None else ref]
-    except KeyError as error:
-        raise CapabilityError("capability_not_found") from error
-
-
-__all__ = ["CAPABILITIES", "Capability", "CapabilityError", "capability_entry", "load_capabilities", "resolve_capability"]
+        return CAPABILITIES[ref or 'conversation']
+    except KeyError:
+        raise CapabilityError('capability_not_found') from None

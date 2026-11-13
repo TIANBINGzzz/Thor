@@ -38,11 +38,13 @@ class DataAccessTests(unittest.TestCase):
         from runtime.capabilities import capability_entry
         entry = capability_entry(CAPABILITIES['document-writing'].directory)
         entry['data'] = {'access':'optional','sourceRefs':['first','second']}
-        original = capability_entry
-        self.enterContext(patch('runtime.config.capability_entry', side_effect=lambda directory:
-            deepcopy(entry) if str(directory) == str(catalog['qa'].directory) else original(directory)))
+        from runtime.config import load_execution_entry
+        original = load_execution_entry
+        self.enterContext(patch('runtime.config.load_execution_entry', side_effect=lambda ref:
+            {'capability': deepcopy(entry)} if ref == 'qa' else original(ref)))
         self.env = {}
-        self.deployment = {'databases': {}}
+        from tests.deployment_fixtures import deployment_document
+        self.deployment = {**deployment_document(), 'databases': {}}
         self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', self.deployment))
         self.config = {'version': 1, 'connections': {}, 'policies': {}}
         for source, amount in [('first', 10), ('second', 20)]:
@@ -263,11 +265,14 @@ class DataAccessTests(unittest.TestCase):
         with patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
             del self.deployment['databases']['second']
+            self.assertEqual(data_source_keys(payload),['first','second'])
+            payload={'capability_ref':'qa'}
             self.assertEqual(data_source_keys(payload),['first'])
-            locked={**payload,'capability_ref':'document-writing','_template_key':'szpt-midterm'}
-            with self.assertRaisesRegex(DataError,'SOURCE_FORBIDDEN'):
+            locked={'capability_ref':'document-writing','_template_key':'szpt-midterm'}
+            with patch('runtime.config.load_execution_entry', return_value={'capability': {**entry_for_template(), 'data': {'access':'optional','sourceRefs':['first']}}}), self.assertRaisesRegex(DataError,'SOURCE_FORBIDDEN'):
                 data_source_keys(locked)
-            with patch('runtime.config.capability_entry', return_value={**entry_for_template(), 'data': {'access':'optional','sourceRefs':['schoolDoubleHigh','second']}}):
+            with patch('runtime.config.load_execution_entry', return_value={'capability': {**entry_for_template(), 'data': {'access':'optional','sourceRefs':['schoolDoubleHigh','second']}}}):
+                locked={'capability_ref':'document-writing','_template_key':'szpt-midterm'}
                 self.assertEqual(data_source_keys(locked),['schoolDoubleHigh'])
                 with self.assertRaises(DataError):
                     Executor(self.context,self.env,self.catalog,data_source_keys(locked))

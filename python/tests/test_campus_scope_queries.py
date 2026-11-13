@@ -10,8 +10,8 @@ campus = _load_module(_directory('campus-brain-query'))
 
 class CampusScopeTests(unittest.IsolatedAsyncioTestCase):
     def service(self, maximum=10):
-        with patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
-                'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}):
+        with patch('runtime.deployment_config._DEPLOYMENT', {'campusMcp': {
+                'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test', 'headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'}}}):
             assets = campus.load_campus_assets()
         assets['config']['max_calls'] = maximum
         return campus.CampusQuery(assets, {'platformBearer': 'first-secret'})

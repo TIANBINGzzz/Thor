@@ -71,7 +71,7 @@ class AssetContractTests(unittest.TestCase):
         self.assertNotIn('province_high_flag_', self.tables['t_hpm_project'])
         self.assertNotIn('UNKNOWN',{kind for table in self.tables.values() for kind in table.values()})
         for capability in ('national-excellence-data-qa','document-writing'):
-            config=read_manifest(ROOT/f'.claude/capabilities/{capability}', 'capability.json')
+            config=__import__('runtime.config',fromlist=['load_execution_entry']).load_execution_entry(capability)['capability']
             self.assertEqual(config['data']['sourceRefs'], ['schoolDoubleHigh'])
         self.assertNotIn('capabilities', self.source)
 

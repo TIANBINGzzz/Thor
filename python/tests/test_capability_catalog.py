@@ -1,81 +1,37 @@
-"""目录缓存命中省去校验，资产增删改和依赖变更必须即时失效。"""
-
-import json
-import os
-import tempfile
+"""能力目录从数据库读取；修改在新 Run 生效。"""
 import unittest
-from pathlib import Path
 from unittest.mock import patch
-
 from runtime import capabilities
-
+from runtime.configuration import execution_entry
+from tests.deployment_fixtures import install_configuration_store
 
 class CapabilityCatalogTests(unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.source = self.root / 'capabilities'
-        self.skills = self.root / 'skills'
-        for name, path in (('CAPABILITIES_ROOT', self.source), ('SKILLS_ROOT', self.skills)):
-            path.mkdir()
-            self.enterContext(patch.object(capabilities, name, path))
-        self.catalog = capabilities.CapabilityCatalog()
-        self.write('first')
+        self.enterContext(patch('runtime.config_store._STORE'))
+        self.store=install_configuration_store()
 
-    def write(self, ref, **extra):
-        directory = self.source / ref
-        directory.mkdir(exist_ok=True)
-        (directory / 'CAPABILITY.md').write_text('业务规则', encoding='utf-8')
-        path = directory / 'capability.json'
-        path.write_text(json.dumps({'ref': ref, 'title': ref, 'description': '说明', **extra}), encoding='utf-8')
-        return path
+    def test_saved_name_is_visible_without_restart(self):
+        item=self.store.get('capabilities','conversation');item['name']='新名称'
+        self.store.save('capabilities','conversation',item)
+        self.assertEqual(capabilities.CAPABILITIES['conversation'].name,'新名称')
 
-    def test_hits_skip_full_validation(self):
-        with patch.object(capabilities, 'load_capabilities', wraps=capabilities.load_capabilities) as load:
-            self.assertEqual(self.catalog['first'].name, 'first')
-            self.assertEqual(list(self.catalog), ['first'])
-            self.assertEqual(len(self.catalog), 1)
-            self.assertEqual(len(self.catalog.values()), 1)
-            self.assertEqual(load.call_count, 1)
+    def test_disabled_capability_is_not_listed_or_executable(self):
+        item=self.store.get('capabilities','chart-generation');item['enabled']=False
+        self.store.save('capabilities','chart-generation',item)
+        self.assertNotIn('chart-generation',capabilities.CAPABILITIES)
+        with self.assertRaisesRegex(ValueError,'capability_not_found'):
+            execution_entry('chart-generation')
 
-    def test_existing_file_edit_with_unchanged_count_and_root_mtime_is_detected(self):
-        self.assertEqual(self.catalog['first'].name, 'first')
-        root_stat = self.source.stat()
-        path = self.source / 'first/capability.json'
-        old_stat = path.stat()
-        path.write_text(path.read_text().replace('"title": "first"', '"title": "other"'), encoding='utf-8')
-        os.utime(path, ns=(old_stat.st_atime_ns, old_stat.st_mtime_ns + 1_000_000_000))
-        os.utime(self.source, ns=(root_stat.st_atime_ns, root_stat.st_mtime_ns))
-        self.assertEqual(self.catalog['first'].name, 'other')
-        path.write_text('{}', encoding='utf-8')
-        with self.assertRaises(RuntimeError):
-            self.catalog['first']
+    def test_skill_edit_is_seen_on_next_run_only(self):
+        first=execution_entry('document-writing')
+        item=self.store.get('skills','document-review');item['content']='新核验方法'
+        self.store.save('skills','document-review',item)
+        second=execution_entry('document-writing')
+        self.assertNotEqual(first['capability']['_skills']['document-review']['_body'],'新核验方法')
+        self.assertEqual(second['capability']['_skills']['document-review']['_body'],'新核验方法')
 
-    def test_add_remove_do_not_serve_stale_catalog(self):
-        self.assertEqual(len(self.catalog), 1)
-        self.write('second')
-        self.assertEqual(set(self.catalog), {'first', 'second'})
-        (self.source / 'second/capability.json').unlink()
-        self.assertEqual(set(self.catalog), {'first'})
-
-    def test_skill_dependency_is_revalidated(self):
-        skill = self.skills / 'review'
-        skill.mkdir()
-        (skill / 'skill.json').write_text(json.dumps({'ref': 'review', 'description': '核验'}), encoding='utf-8')
-        (skill / 'SKILL.md').write_text('检查依据', encoding='utf-8')
-        self.write('first', skillRefs=['review'])
-        self.assertEqual(self.catalog['first'].skill_refs, ('review',))
-        (skill / 'skill.json').write_text('{}', encoding='utf-8')
-        with self.assertRaises(RuntimeError):
-            self.catalog['first']
-
-    def test_data_volume_capability_is_not_discovered(self):
-        directory = self.root / '.scribe-runs/capabilities/managed-report'
-        directory.mkdir(parents=True)
-        (directory / 'CAPABILITY.md').write_text('业务规则', encoding='utf-8')
-        (directory / 'capability.json').write_text(json.dumps({'ref': 'managed-report', 'title': '报告',
-            'description': '说明', 'execution': {'mode': 'agent'}}), encoding='utf-8')
-        # 即使旧数据目录仍存在，也不能进入当前能力目录。
-        with patch.object(capabilities, 'MANAGED_CAPABILITIES_ROOT', directory.parent, create=True):
-            self.assertEqual(set(self.catalog), {'first'})
+    def test_new_capability_reuses_existing_registered_tools(self):
+        item=self.store.get('capabilities','conversation')
+        item.pop('ref');item.update(name='新增图表',tool_refs=['charts'])
+        self.store.save('capabilities','new-chart',item)
+        self.assertEqual(execution_entry('new-chart')['capability']['tools'],['charts'])

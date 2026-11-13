@@ -344,8 +344,8 @@ class SessionActorTests(unittest.TestCase):
                         await actor.submit('unapplied', {}, initial_payload=payload('high'))
                     result = await actor.submit('inherited', {}, initial_payload=payload())
                 self.assertEqual(result['status'], 'succeeded')
-                self.assertEqual(workers[-1].sent[0]['_client_runtime']['effort'], 'low')
-                self.assertEqual(actor.snapshot()['effectiveRuntime']['effort'], 'low')
+                self.assertNotIn('effort', workers[-1].sent[0]['_client_runtime'])
+                self.assertNotIn('effort', actor.snapshot()['effectiveRuntime'])
             finally:
                 await actor.close()
 

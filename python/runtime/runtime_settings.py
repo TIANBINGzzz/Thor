@@ -1,4 +1,4 @@
-"""部署侧 Runtime 启动参数；不读取 Nacos 或装配业务能力。"""
+"""部署侧 Runtime 启动参数；不读取 MySQL 配置库 或装配业务能力。"""
 from dataclasses import dataclass, fields
 from pathlib import Path
 from types import MappingProxyType
@@ -54,7 +54,7 @@ def _documents(path=None, document=None):
 
 
 def load_runtime_settings(path=None, *, document=None):
-    """校验 Nacos 快照或显式离线文件的完整预算；缺失和非法值直接失败。"""
+    """校验 MySQL 配置库 快照或显式离线文件的完整预算；缺失和非法值直接失败。"""
     sections = {'timeouts': TimeoutSettings, 'limits': LimitSettings}
     values = {name: {} for name in sections}
     heartbeat = None
@@ -83,7 +83,16 @@ def load_runtime_settings(path=None, *, document=None):
 
 
 # 正式入口和 Worker 在导入使用方前安装；离线资产检查无需运行预算。
-RUNTIME_SETTINGS = None
+_SETTINGS = None
+
+class _RuntimeSettings:
+    def __getattr__(self, name):
+        from runtime.deployment_config import _CURRENT
+        document = _CURRENT.get()
+        settings = load_runtime_settings(document=document) if document is not None else _SETTINGS
+        return getattr(settings, name)
+
+RUNTIME_SETTINGS = _RuntimeSettings()
 
 
 @dataclass(frozen=True)
@@ -102,7 +111,7 @@ class ModelSettings:
 
 
 def load_model_settings(path=None, *, document=None):
-    """模型只从 Nacos 快照或显式离线文件取值，缺失或非法即失败。"""
+    """模型只从 MySQL 配置库 快照或显式离线文件取值，缺失或非法即失败。"""
     values = {}
     sdk = {}
     try:
@@ -143,7 +152,7 @@ class WorkerPoolSettings:
 
 
 def load_worker_pool_settings(path=None, *, document=None):
-    """校验 Nacos 声明的完整池配置；不使用本地覆盖或隐藏默认值。"""
+    """校验 MySQL 配置库 声明的完整池配置；不使用本地覆盖或隐藏默认值。"""
     values = {}
     fields = {'max-idle': 'max_idle', 'max-starting': 'max_starting',
               'min-available-memory-mib': 'min_available_memory_mib', 'max-live': 'max_live'}

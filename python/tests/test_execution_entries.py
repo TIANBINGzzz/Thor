@@ -1,3 +1,5 @@
+from tests.deployment_fixtures import patch_configuration
+from tests.deployment_fixtures import fixture_capabilities, fixture_capability_entry
 """执行资产 manifest、声明式装配和工具生命周期回归。"""
 
 import json
@@ -14,7 +16,7 @@ from tests.deployment_fixtures import deployment_document
 
 class ExecutionEntryTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+        self.enterContext(patch_configuration(deployment_document()))
 
     def test_builtin_tool_catalog_loads_declared_operations(self):
         from runtime.tool_registry import TOOL_CATALOG
@@ -105,7 +107,7 @@ class ExecutionEntryTests(unittest.TestCase):
         entry['supports_attachments'] = False
         request = AgentRunRequest.from_dict({'protocol': 'agent-run/v1', 'runId': 'fresh-entry',
             'messageId': 'm1', 'domainName': 'school.example.test', 'input': {'text': 'hello'}})
-        with patch('runtime.config.capability_entry', return_value=entry), patch.object(server, 'DEFAULT_MODEL', 'test'):
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), patch('server.load_execution_entry', return_value={'capability': entry}), patch.object(server, 'DEFAULT_MODEL', 'test'):
             self.assertEqual(server._runtime_mode_for_request(request), 'client')
             with tempfile.TemporaryDirectory() as temporary:
                 payload = server._internal_worker_payload(request, Path(temporary))
@@ -116,10 +118,10 @@ class ExecutionEntryTests(unittest.TestCase):
         from runtime.tool_services import ToolServices
         from runtime.mcp_auth import MCPAuthError
         from runtime.config import prepare_capability_assets
-        with patch('runtime.nacos_config.fetch_config', return_value={
+        with patch_configuration({
                 'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}):
             assets = prepare_capability_assets({'capability_ref': 'campus-brain-query'})
-        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('offline worker')):
+        with patch('runtime.config_store.ConfigStore.load', side_effect=AssertionError('offline worker')):
             services = ToolServices(assets, {'platformBearer': 'first'})
         campus = services.services['campus']
         services.bind({'platformBearer': 'second'})
@@ -149,12 +151,12 @@ class ExecutionEntryTests(unittest.TestCase):
             manifest = {'ref': 'example', 'title': '示例', 'description': '示例任务',
                         'toolRefs': ['charts'], 'skillRefs': []}
             capability_root = self._write_capability_tree(root, capability=manifest)
-            item = capabilities.load_capabilities(capability_root)['example']
+            item = fixture_capabilities(capability_root)['example']
             self.assertEqual(item.tools, ('charts',))
             self.assertEqual(set(item.to_public_dict()), {'capabilityRef', 'name', 'description', 'supportsAttachments'})
             from runtime.config import build_options
             with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
-                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch.dict(os.environ, {}, clear=True):
+                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}), patch.dict(os.environ, {}, clear=True):
                 options = build_options({'capability_ref': 'example'})
             self.assertEqual(set(options.mcp_servers), {'charts'})
 
@@ -165,10 +167,10 @@ class ExecutionEntryTests(unittest.TestCase):
                 manifest = {'ref': 'example', 'title': '示例', 'description': '示例任务', 'auth': auth}
                 root = self._write_capability_tree(Path(temporary), capability=manifest)
                 if auth in ({'required': True}, {'required': False}):
-                    self.assertIn('example', capabilities.load_capabilities(root))
+                    self.assertIn('example', fixture_capabilities(root))
                 else:
                     with self.assertRaises(RuntimeError):
-                        capabilities.load_capabilities(root)
+                        fixture_capabilities(root)
 
     def test_manifest_rejects_invalid_runtime_missing_asset_and_ref_mismatch(self):
         cases = [{'runtime': {'max_turns': True}}, {'runtime': {'mode': 'typo'}},
@@ -180,14 +182,14 @@ class ExecutionEntryTests(unittest.TestCase):
                             'skillRefs': [], **extra}
                 capability_root = self._write_capability_tree(root, capability=manifest)
                 with self.assertRaises(RuntimeError):
-                    capabilities.load_capabilities(capability_root)
+                    fixture_capabilities(capability_root)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
                         'workflowRefs': ['missing'], 'skillRefs': []}
             capability_root = self._write_capability_tree(root, capability=manifest)
             with self.assertRaises(RuntimeError):
-                capabilities.load_capabilities(capability_root)
+                fixture_capabilities(capability_root)
 
     def test_declared_skill_is_loaded_from_capability(self):
         from runtime.config import prepare_capability_assets
@@ -197,9 +199,9 @@ class ExecutionEntryTests(unittest.TestCase):
             manifest = {'ref': 'example', 'title': '示例', 'description': '示例',
                         'skillRefs': ['review'], 'toolRefs': [], 'requiredToolRefs': []}
             capability_root = self._write_capability_tree(root, capability=manifest, skill=skill)
-            item = capabilities.load_capabilities(capability_root)['example']
+            item = fixture_capabilities(capability_root)['example']
             with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
-                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'):
+                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}):
                 config = prepare_capability_assets({'capability_ref': 'example'})
             self.assertIn('review：按需核验', config['prompt'])
             self.assertIn('任务规则。', config['prompt'])
@@ -211,7 +213,7 @@ class ExecutionEntryTests(unittest.TestCase):
                         'workflowRefs': ['first', 'second']}
             capability_root = self._write_capability_tree(root, capability=manifest)
             with self.assertRaisesRegex(RuntimeError, '字段'):
-                capabilities.load_capabilities(capability_root)
+                fixture_capabilities(capability_root)
 
     def test_only_selected_skill_metadata_is_injected_and_content_changes_revision(self):
         from runtime.config import prepare_capability_assets
@@ -225,8 +227,9 @@ class ExecutionEntryTests(unittest.TestCase):
             entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
             entry['skill_refs'] = ['review']
             entry['_skill_root'] = str(skill_dir.parent)
+            entry.pop('_skills', None)
             entry['tools'] = []
-            with patch('runtime.config.capability_entry', return_value=entry):
+            with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), patch('server.load_execution_entry', return_value={'capability': entry}):
                 payload = {'capability_ref': 'conversation'}
                 before = prepare_capability_assets(payload)
                 self.assertIn('按需核验', before['prompt'])
@@ -239,6 +242,6 @@ class ExecutionEntryTests(unittest.TestCase):
         from runtime.config import prepare_capability_assets
         entry = capabilities.capability_entry(capabilities.CAPABILITIES['document-writing'].directory)
         entry['skill_refs'] = ['document-review']
-        with patch('runtime.config.capability_entry', return_value=entry):
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), patch('server.load_execution_entry', return_value={'capability': entry}):
             assets = prepare_capability_assets({'capability_ref': 'document-writing'})
         self.assertEqual(assets['prompt'].count('- document-review：'), 1)

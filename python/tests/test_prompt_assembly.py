@@ -7,7 +7,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from runtime.config import build_options, prepare_capability_assets
-from runtime.capabilities import capability_entry, CAPABILITIES
+from runtime.capabilities import CAPABILITIES
+from tests.deployment_fixtures import fixture_capability_entry as capability_entry
 from runtime.prompt_assembly import _render, load_prompt_assets, assemble_prompt
 
 
@@ -41,8 +42,8 @@ class PromptAssemblyTests(unittest.TestCase):
     def test_campus_loader_does_not_render_capability_prompt(self):
         from capability_packs.registry import _directory, _load_module
         loader = _load_module(_directory('campus-brain-query')).load_campus_assets
-        with patch('runtime.nacos_config.fetch_config', return_value={
-                'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}):
+        with patch('runtime.deployment_config._DEPLOYMENT', {
+                'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test', 'headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'}}}):
             loaded = loader()
         self.assertNotIn('prompt', loaded)
 

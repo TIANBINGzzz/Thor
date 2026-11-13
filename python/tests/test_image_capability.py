@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 """图像能力入口、SDK工具装配及多图片交稿回归。"""
 import asyncio
 from io import BytesIO
@@ -25,7 +26,7 @@ from tests.deployment_fixtures import deployment_document
 
 class ImageCapabilityTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+        self.enterContext(patch_configuration(deployment_document()))
 
     def test_image_configuration_is_explicit_and_independent_of_model_key(self):
         with patch('tools.images.create_image_server', return_value={}) as create:
@@ -37,7 +38,7 @@ class ImageCapabilityTests(unittest.TestCase):
     def test_image_endpoint_is_not_guessed_from_text_model_configuration(self):
         document = deployment_document()
         document.pop('images')
-        with patch('runtime.deployment_config._DEPLOYMENT', document):
+        with patch_configuration(document):
             with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
@@ -69,7 +70,7 @@ class ImageCapabilityTests(unittest.TestCase):
         self.assertNotIn('private-image-key', options.system_prompt['append'])
 
     def test_missing_image_credentials_fails_explicitly(self):
-        with patch('runtime.deployment_config._DEPLOYMENT', {}), patch.dict('os.environ', {}, clear=True):
+        with patch_configuration({}), patch.dict('os.environ', {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, '能力必需工具未配置'):
                 build_options({'capability_ref': 'image-generation'})
 
@@ -100,7 +101,7 @@ class ImageCapabilityTests(unittest.TestCase):
                 with Image.open(root / 'output' / receipt['artifactId'] / 'content') as image:
                     self.assertEqual(image.format, 'PNG')
                     self.assertEqual(image.size, (32, 24))
-            self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', {
+            self.enterContext(patch_configuration({
                 'fileService': {'baseUrl': 'https://files.test',
                     'remoteUrl': 'https://public.test'}}))
             store = RunStore(':memory:')

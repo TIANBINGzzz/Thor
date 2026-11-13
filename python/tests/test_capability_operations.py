@@ -102,7 +102,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                                              'failureKind': 'operation_exception'}])
 
     def test_capability_entry_requires_existing_declared_pack_operations(self):
-        from runtime.capabilities import capability_entry
+        from tests.deployment_fixtures import fixture_capability_entry as capability_entry
 
         with tempfile.TemporaryDirectory() as temp:
             temp = Path(temp)
@@ -116,7 +116,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                     capability_entry(entry_dir, skills_root=temp / 'skills')
 
     def test_capability_discovery_reads_schema_without_executing_pack_code(self):
-        from runtime.capabilities import capability_entry
+        from tests.deployment_fixtures import fixture_capability_entry as capability_entry
 
         with tempfile.TemporaryDirectory() as temp:
             temp = Path(temp)
@@ -144,7 +144,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(read_manifest.call_count, 1)
 
     def test_non_source_capability_cannot_reference_code_pack(self):
-        from runtime.capabilities import capability_entry
+        from tests.deployment_fixtures import fixture_capability_entry as capability_entry
 
         with tempfile.TemporaryDirectory() as temp:
             temp = Path(temp)
@@ -341,7 +341,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(json.loads(result['content'][0]['text'])['error']['code'], code)
 
     async def test_build_options_authorizes_only_declared_operation_for_agent_and_direct(self):
-        from runtime.capabilities import capability_entry
+        from tests.deployment_fixtures import fixture_capability_entry as capability_entry
         from runtime.claude_sdk import ClientTurnPolicy
         from runtime.config import build_options
 
@@ -381,7 +381,7 @@ class CapabilityOperationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_operation_can_use_authorized_data_service_without_exposing_data_tools(self):
         from unittest.mock import AsyncMock, MagicMock
-        from runtime.capabilities import capability_entry
+        from tests.deployment_fixtures import fixture_capability_entry as capability_entry
         from runtime.config import build_options
 
         with tempfile.TemporaryDirectory() as temporary:

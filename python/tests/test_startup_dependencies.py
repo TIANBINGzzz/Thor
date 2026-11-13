@@ -2,18 +2,21 @@
 from pathlib import Path
 import subprocess
 import sys
+import json
 import unittest
 
 
 class StartupDependenciesTests(unittest.TestCase):
     def test_conversation_options_do_not_load_database_engine_or_sql_parser(self):
-        from runtime.config import worker_environment
+        from runtime.config import worker_environment, prepare_capability_assets
+        payload = {'capability_ref': 'conversation'}
+        prepare_capability_assets(payload)
         # 独立解释器避免测试收集已经导入数据库模块而掩盖启动回归。
         program = '''
 import sys
 import agent_worker
 from runtime.config import build_options, create_run_services
-payload = {'capability_ref': 'conversation'}
+payload = __import__('json').loads(sys.stdin.read())
 assert create_run_services(payload) is None
 options = build_options(payload)
 assert 'data' not in options.mcp_servers
@@ -23,6 +26,6 @@ assert not loaded, 'Unneeded database startup imports: ' + ', '.join(loaded)
         result = subprocess.run(
             [sys.executable, '-c', program],
             env=worker_environment(),
-            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, timeout=30,
+            cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True, input=json.dumps(payload), timeout=30,
         )
         self.assertEqual(result.returncode, 0, result.stderr)

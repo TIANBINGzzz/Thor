@@ -43,8 +43,8 @@ class TemplateDocumentTests(unittest.TestCase):
             (directory/'writing-guide.md').write_text('REPORT_ADAPTER\n'+name.upper()+'_GUIDE',encoding='utf-8')
             self.capability['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
-                            ('runtime.config.capability_entry', None)]:
-            patcher = patch(name, return_value=self.capability) if value is None else patch(name,value)
+                            ('runtime.config.load_execution_entry', None)]:
+            patcher = patch(name, return_value={'capability': self.capability}) if value is None else patch(name,value)
             patcher.start(); self.addCleanup(patcher.stop)
         patcher = patch('runtime.template_assets.load_template', side_effect=self.load)
         patcher.start(); self.addCleanup(patcher.stop)

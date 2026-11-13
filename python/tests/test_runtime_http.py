@@ -399,7 +399,7 @@ class RuntimeHTTPTests(unittest.TestCase):
     def test_only_runtime_and_health_routes_are_exposed(self):
         """内部服务不暴露浏览器 API，也不接受浏览器直接发起 Run。"""
         paths = {route.path for route in server.app.routes}
-        self.assertTrue(all(path == "/health" or path.startswith(("/internal/v1/", "/internal/observability/v1/")) for path in paths), paths)
+        self.assertTrue(all(path == "/health" or path.startswith(("/internal/v1/", "/internal/observability/v1/", "/internal/config/v1/")) for path in paths), paths)
         self.assertNotIn('/internal/v1/runs/{run_id}/observations', paths)
         self.assertEqual(self.client.get("/health").status_code, 200)
         for path in ("/api/sessions", "/api/capabilities", "/api/models", "/api/files/test"):
@@ -446,7 +446,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         entry = capability_entry(CAPABILITIES['conversation'].directory)
         entry['supports_attachments'] = False
         body = {**self.body, 'input': {'text': '', 'attachmentRefs': [{'fileId': 'authorized-file'}]}}
-        with patch('runtime.config.capability_entry', return_value=entry), patch.object(
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), patch('server.load_execution_entry', return_value={'capability': entry}), patch.object(
                 server, '_execute_internal_run', new_callable=AsyncMock) as execute:
             response = self.client.post('/internal/v1/runs', json=body, headers=self.headers('run.execute'))
         self.assertEqual(response.status_code, 400)
@@ -528,7 +528,7 @@ class RuntimeHTTPTests(unittest.TestCase):
         # 构建镜像不携带 .env；测试显式提供模型，避免依赖开发机配置。
         with patch.object(server, 'DEFAULT_MODEL', 'test-model'):
             payload = server._internal_worker_payload(AgentRunRequest.from_dict(body), Path(self.temp.name))
-        self.assertEqual(payload['model'], 'test-model')
+        self.assertEqual(payload['model'], server.load_execution_entry('chart-generation')['capability']['runtime']['model'])
         self.assertNotIn('workflow_name', payload)
         from runtime.config import build_options, create_run_services
         self.assertIsNone(create_run_services(payload))
@@ -595,7 +595,7 @@ class RuntimeHTTPTests(unittest.TestCase):
             for mode in ("query", "client"):
                 result = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
                 self.assertIn(json.dumps(body["payload"], ensure_ascii=False), result["prompt"])
-                self.assertEqual(result["model"], "test-model")
+                self.assertEqual(result['model'], server.load_execution_entry('conversation')['capability']['runtime']['model'])
                 self.assertNotIn("workflow_name", result)
         with patch.object(server, "_execute_internal_run", new_callable=AsyncMock):
             self.assert_public_run(self.client.post("/internal/v1/runs", json=body,
@@ -607,7 +607,7 @@ class RuntimeHTTPTests(unittest.TestCase):
     def test_writing_budget_comes_from_trusted_capability_for_both_modes(self):
         # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
         capability_path = Path(__file__).resolve().parents[2] / '.claude/capabilities/document-writing'
-        expected_timeout = read_manifest(capability_path, 'capability.json')['runtime']['timeout_ms']
+        expected_timeout = server.load_execution_entry('document-writing')['capability']['runtime']['timeout_ms']
         self.assertIs(type(expected_timeout), int)
         self.assertGreater(expected_timeout, 0)
         self.assertNotEqual(expected_timeout, 500)
@@ -618,7 +618,7 @@ class RuntimeHTTPTests(unittest.TestCase):
                 payload = server._internal_worker_payload(request, Path(self.temp.name) / mode, runtime_mode=mode)
                 self.assertEqual(payload['timeout_ms'], expected_timeout)
             conversation = server._internal_worker_payload(AgentRunRequest.from_dict(self.body), Path(self.temp.name))
-            self.assertEqual(conversation['timeout_ms'], 500)
+            self.assertEqual(conversation['timeout_ms'], server.load_execution_entry('conversation')['capability']['runtime']['timeout_ms'])
 
     def assert_public_run(self, response, status_code=200):
         self.assertEqual(response.status_code, status_code, response.text)

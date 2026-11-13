@@ -16,7 +16,7 @@ from runtime.mcp_auth import inject_mcp_authentication, validate_capability_cred
 from runtime.claude_sdk import build_agent_options, CLIENT_HOT_ENV_KEYS, AGENT_BUILTIN_TOOLS
 from runtime.capabilities import capability_entry, resolve_capability
 from runtime.deployment_config import (ConfigSnapshot, deployment_section, worker_configuration,
-                                       WORKER_CONFIGURATION_ENV)
+                                       WORKER_CONFIGURATION_ENV, configuration_scope)
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_model_settings
 from runtime.prompt_assembly import assemble_prompt, load_prompt_assets, shared_system_prompt
 from runtime.tool_services import ToolServices, load_tool_assets
@@ -24,7 +24,11 @@ from runtime.tool_registry import build_registered_tools
 from runtime.mcp_providers import load_mcp_connections
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_SETTINGS = load_model_settings()
+class _ModelSettings:
+    def __getattr__(self, name):
+        return getattr(load_model_settings(), name)
+
+MODEL_SETTINGS = _ModelSettings()
 REQUIRED_ENV = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")
 BASE_PROCESS_ENV_KEYS = {
     "PATH",
@@ -158,11 +162,29 @@ def runtime_mode_for(capability_ref: str | None, *, capability_config=None) -> s
 
 
 def load_execution_entry(capability_ref):
-    """HTTP 校验和执行共用本轮可信能力入口。"""
-    capability = resolve_capability(capability_ref)
-    return {'capability': capability_entry(capability.directory)}
+    from runtime.configuration import execution_entry
+    return execution_entry(capability_ref)
 
 def prepare_capability_assets(payload):
+    assets = payload.get('_capability_assets')
+    if assets is not None and ('selection' not in assets or assets['selection'] == [payload.get('capability_ref'), payload.get('_template_key')]):
+        return assets
+    local = payload.get('_execution_entry') or load_execution_entry(payload.get('capability_ref'))
+    payload['_execution_entry'] = local
+    with configuration_scope(local.get('_configuration')):
+        return _prepare_capability_assets(payload)
+
+
+def with_payload_configuration(function):
+    from functools import wraps
+    @wraps(function)
+    def call(payload, *args, **kwargs):
+        assets = prepare_capability_assets(payload)
+        with configuration_scope(assets.get('_configuration')):
+            return function(payload, *args, **kwargs)
+    return call
+
+def _prepare_capability_assets(payload):
     """保留本轮已解析配置与资产摘要，不新增持久化快照或版本仓库。"""
     selection = [payload.get('capability_ref'), payload.get('_template_key')]
     if (payload.get('_capability_assets') or {}).get('selection') != selection:
@@ -186,9 +208,11 @@ def prepare_capability_assets(payload):
             'tool_revisions': revisions, 'runtime': runtime, 'config_values': config_values,
             'mcp_connections': mcp_connections,
             'template_revision': revision, 'template_sources': sources,
-            'revision': fingerprint([entry, content, revision, revisions, runtime, config_values, mcp_connections, prompt_assets['revision']])}
+            'revision': fingerprint([entry, content, revision, revisions, runtime, config_values, mcp_connections, prompt_assets['revision']]),
+            '_configuration': worker_configuration()}
     return payload['_capability_assets']
 
+@with_payload_configuration
 def data_source_keys(payload):
     """按能力和模板缩小已授权来源，不由连接存在与否扩大权限。"""
     assets = prepare_capability_assets(payload)
@@ -211,6 +235,7 @@ def data_source_keys(payload):
     return sources
 
 
+@with_payload_configuration
 def create_run_services(payload):
     """仅为声明数据需求且具有绑定来源的执行创建数据服务。"""
     entry = prepare_capability_assets(payload)['capability']
@@ -241,11 +266,10 @@ def _merge_mcp_servers(registered_servers, client_servers):
 def resolve_model(runtime: dict, default: str | None = None) -> str:
     """能力只选择部署已开放的模型；空字符串沿用部署默认或可信内部默认。"""
     selected = runtime.get('model')
-    if selected and selected not in MODEL_SETTINGS.available:
-        raise ValueError('能力模型未在部署可用列表中')
     return selected or default or MODEL_SETTINGS.default
 
 
+@with_payload_configuration
 def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
@@ -306,20 +330,26 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
         runtime_values.update(work_directory=str(work_directory), deliverables_directory=str(deliverables_directory))
     prompt_tool_refs = set(assets['prompt_assets']['tools'])
     active_prompt_tools = [name for name in mcp_servers if name in prompt_tool_refs]
+    stage_skill_files(assets['prompt_assets'], work_directory)
     effective_prompt = assemble_prompt(assets['prompt_assets'], active_tools=active_prompt_tools,
         runtime_values=runtime_values, extra=payload.get('system_prompt_append') or '')
     exact_tools = registered.exact_tools
     exact_tools.update({name: tool_services.services[name].tool_names()
                         for name in tool_services.tool_refs & tool_services.services.keys()})
     allowed_tools = ['mcp__' + name + '__' + tool
-                     for name in mcp_servers for tool in exact_tools.get(name, ['*'])]
+                     for name in mcp_servers for tool in entry.get('_mcp_allowlists', {}).get(name, exact_tools.get(name, ['*']))]
     # Skill以受控引用按需读取，禁用SDK未登记的自动发现。
     skills = []
     runtime = {**assets["runtime"], **payload.get('_client_runtime', {})}
     sdk_env = agent_environment(dict(os.environ))
+    extra_body = dict(deployment_section('model', {}).get('parameters', {}))
+    if runtime.get('max_output_tokens'):
+        extra_body['max_tokens'] = runtime['max_output_tokens']
+    if extra_body:
+        sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps(extra_body)
     if (runtime.get('thinking') or {}).get('type') == 'disabled':
         # SDK 的 disabled 会省略请求字段；兼容端可能默认开启思考，须显式关闭。
-        sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({'thinking': {'type': 'disabled'}})
+        sdk_env['CLAUDE_CODE_EXTRA_BODY'] = json.dumps({**extra_body, 'thinking': {'type': 'disabled'}})
     options = build_agent_options(
         model=model,
         thinking=runtime.get("thinking"),
@@ -372,19 +402,19 @@ def _client_connection_values(payload):
                 extra_args={'replay-user-messages': None})
 
 
+@with_payload_configuration
 def client_connection_fingerprint(payload):
     values = _client_connection_values(payload)
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
+@with_payload_configuration
 def inherit_client_runtime(payload, previous=None):
-    """只继承会话执行参数；权限、工具、凭据和业务规则始终使用本轮可信资产。"""
+    """逐轮使用当前配置，不让上一能力的推理参数和预算覆盖数据库。"""
     assets = prepare_capability_assets(payload)
     declared = assets['runtime']
-    inherited = previous if previous is not None else payload.get('_client_runtime', {})
     fields = ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot')
-    runtime = {name: inherited[name] for name in fields if name in inherited}
-    runtime.update({name: declared[name] for name in fields if name in declared})
+    runtime = {name: declared[name] for name in fields if name in declared}
     if runtime.get('max_turns') is None:
         runtime['max_turns'] = RUNTIME_SETTINGS.limits.max_turns
     runtime.setdefault('system_prompt_snapshot', True)
@@ -393,6 +423,7 @@ def inherit_client_runtime(payload, previous=None):
     return runtime
 
 
+@with_payload_configuration
 def build_client_options(payload, policy):
     """空白 Client 不加载业务 MCP、数据连接或凭据，领取后的首轮才装配。"""
     values = _client_connection_values(payload)
@@ -403,3 +434,27 @@ def build_client_options(payload, policy):
         skills=[], setting_sources=[],
         strict_mcp_config=True, mcp_servers={}, disallowed_tools=['WebSearch'],
         permission_mode='bypassPermissions', hooks=policy.hooks(), max_buffer_size=RUNTIME_SETTINGS.limits.sdk_buffer_bytes)
+
+
+def stage_skill_files(prompt_assets, work_directory):
+    """按需方法只写入本轮工作目录；执行中读取的正文不随管理端编辑改变。"""
+    if work_directory:
+        import shutil
+        directory = Path(work_directory) / '.skills'
+        if directory.exists(): shutil.rmtree(directory)
+    for section in prompt_assets['sections']:
+        if section['load'] != 'on_demand' or 'body' not in section:
+            continue
+        if not work_directory:
+            raise ValueError('skill_workspace_required')
+        ref = section['source'].split('/')[1]
+        directory = Path(work_directory) / '.skills' / ref
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory/'SKILL.md').write_text(section['body'], encoding='utf-8')
+        for name, content in section.get('resources', {}).items():
+            path = (directory/name).resolve()
+            if not path.is_relative_to(directory.resolve()) or path.suffix.lower() not in {'.md','.txt','.json','.csv'}:
+                raise ValueError('skill_resource_invalid')
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_text(content,encoding='utf-8')
+        section['path'] = str((directory/'SKILL.md').resolve())

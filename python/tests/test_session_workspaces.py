@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 """身份绑定、并发领取及跨能力的 Runtime/Actor 集成回归。"""
 
 import asyncio
@@ -119,7 +120,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     transport=httpx.MockTransport(upload))
                 with patch.multiple(server, RUN_STORE=store, CLIENT_SESSION_ROOT=root / 'sessions',
                                     ARTIFACT_DELIVERY=delivery, RUN_TIMINGS={}), \
-                     patch('runtime.nacos_config.fetch_config', return_value={'fileService': {
+                     patch_configuration({'fileService': {
                          'baseUrl': 'https://files.example.test',
                          'remoteUrl': 'https://public.example.test'}}):
                     try:
@@ -155,7 +156,7 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 internal_tasks={}, internal_subscribers={}, pending_terminals={}, RUN_TIMINGS={}, OBSERVATION_SECRETS={})
             # 此处验证会话生命周期；部署配置使用固定数据，禁止依赖真实外部服务。
             with patch.multiple(server, **settings), \
-                 patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
+                 patch_configuration({'campusMcp': {
                      'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                      'domainName': 'campus.example.test'}}), \
                  patch.object(httpx.Client, 'send', side_effect=AssertionError('unexpected external HTTP request')):

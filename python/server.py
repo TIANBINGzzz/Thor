@@ -41,7 +41,7 @@ from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
 from runtime import telemetry
 from runtime.observability import create_observer, trace_id
-from runtime.deployment_config import deployment_section
+from runtime.deployment_config import deployment_section, configuration_scope
 from runtime.application_config import application_settings
 
 
@@ -49,6 +49,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOGGER = logging.getLogger("ccsdk.runtime")
 OBSERVATION_SECRETS: dict[str, tuple[str, ...]] = {}
 RUN_TIMINGS: dict[str, telemetry.Timing] = {}
+RUN_CONFIGURATIONS: dict[str, dict[str, Any]] = {}
 
 
 OBSERVATION = create_observer(PROJECT_ROOT)
@@ -90,10 +91,11 @@ async def lifespan(_: FastAPI):
     global SESSION_MANAGER, WORKER_POOL
     settings = load_worker_pool_settings()
     configure_worker_logging()
-    WORKER_POOL = WorkerPool(max_idle=settings.max_idle, max_starting=settings.max_starting,
+    profiles = _warm_client_profiles()
+    WORKER_POOL = WorkerPool(max_idle=settings.max_idle if profiles else 0, max_starting=settings.max_starting,
                             min_available_memory_mib=settings.min_available_memory_mib,
                             max_live=settings.max_live, payload_factory=_blank_client_payload,
-                            profile_payloads=_warm_client_profiles(),
+                            profile_payloads=profiles,
                             cleanup_workspace=_remove_unbound_workspace, observer=OBSERVATION,
                             worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
@@ -145,6 +147,9 @@ async def _shutdown_runtime():
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+from runtime.configuration import configuration_summary
+from runtime.config_api import router as config_router
+app.include_router(config_router)
 
 
 @app.middleware("http")
@@ -163,6 +168,8 @@ async def secure_runtime_api(request: Request, call_next):
             _authorize_observation(request)
         except _InternalAuthError:
             return _plain("观测鉴权失败", 401)
+        return await call_next(request)
+    if request.url.path.startswith("/internal/config/v1/"):
         return await call_next(request)
     if not request.url.path.startswith("/internal/v1/"):
         return _plain("接口不存在", 404)
@@ -196,7 +203,8 @@ async def health() -> dict[str, bool]:
 @app.get("/internal/v1/capabilities")
 async def internal_capabilities():
     """返回登记能力的公开目录 JSON，无输入，不包含 Workflow 执行配置。"""
-    return JSONResponse({"capabilities": [item.to_public_dict() for item in CAPABILITIES.values()]},
+    items = await asyncio.to_thread(lambda: [item.to_public_dict() for item in CAPABILITIES.values()])
+    return JSONResponse({"capabilities": items},
                         headers={"cache-control": "no-store"})
 
 
@@ -521,7 +529,9 @@ async def _handle_client_public_event(run_id: str, raw: dict[str, Any]) -> None:
             RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
         except (KeyError, ValueError):
             LOGGER.warning("无法保存 Client session 引用：run=%s", run_id)
-    await _handle_agent_event(run_id, raw)
+    # Actor 任务可能创建于上一轮；回调必须显式绑定当前 Run 的服务连接。
+    with configuration_scope(RUN_CONFIGURATIONS.get(run_id)):
+        await _handle_agent_event(run_id, raw)
 
 
 def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) -> str:
@@ -558,11 +568,12 @@ def _client_session_directory(session_key: str, profile=None, *, resume=None) ->
 
 def _startup_profile(execution_entry, previous=None):
     entry = execution_entry['capability']
-    runtime = {**(previous or {}), **entry.get('runtime', {})}
+    runtime = entry.get('runtime', {})
     runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot') if name in runtime}
     profile = {'cwd': str(PROJECT_ROOT), 'capability_ref': entry['ref'],
-               '_client_runtime': runtime}
+               '_client_runtime': runtime, '_execution_entry': execution_entry}
     profile['_client_connection_fingerprint'] = client_connection_fingerprint(profile)
+    profile.pop('_execution_entry', None)
     return profile
 
 
@@ -708,11 +719,17 @@ def _internal_worker_payload(
             f"{prompt}\n\n本次请求已授权并准备以下附件，请按需要读取：\n{manifest}"
         )
     local = capability_assets or execution_entry or load_execution_entry(run_request.capability_ref)
+    attachment_policy = local['capability'].get('_attachment_policy', {})
+    for file in attachment_files:
+        if attachment_policy.get('max_bytes') is not None and file.size > attachment_policy['max_bytes']:
+            raise ValueError('attachment_size_exceeded')
+        if attachment_policy.get('allowed_extensions') and Path(file.safe_name).suffix.lower() not in attachment_policy['allowed_extensions']:
+            raise ValueError('attachment_type_forbidden')
     model = resolve_model(local['capability'].get('runtime', {}), DEFAULT_MODEL)
     template_key = (run_request.payload or {}).get("templateKey")
     payload: dict[str, Any] = {
         "_template_key": template_key,
-        "_execution_entry": {key: local[key] for key in ("capability",)},
+        "_execution_entry": {key: local[key] for key in ("capability", "_configuration") if key in local},
         "_data_identity": {"tenant_id": (claims or {}).get("tenant"), "user_id": (claims or {}).get("sub")},
         "_data_run_directory": str(run_directory),
         "prompt": prompt,
@@ -738,6 +755,8 @@ def _internal_worker_payload(
     if capability_assets is not None:
         payload['_capability_assets'] = capability_assets
     assets = prepare_capability_assets(payload)
+    # 完整管理配置只留父进程；Worker 使用 assets 内的最小逐轮配置。
+    payload.pop('_execution_entry', None)
     # 执行预算使用本轮冻结的合并配置，业务输入不能覆盖且附件准备后不重读。
     payload["timeout_ms"] = assets['runtime'].get("timeout_ms", RUN_EXECUTION_TIMEOUT_MS)
     credentials = run_request.credentials.to_dict(include_secret=True)
@@ -749,7 +768,18 @@ def _internal_worker_payload(
     return payload
 
 
-async def _execute_internal_run(
+async def _execute_internal_run(run_request, claims, *, execution_entry=None):
+    execution_entry = execution_entry or await asyncio.to_thread(load_execution_entry, run_request.capability_ref)
+    document = execution_entry.get('_configuration')
+    RUN_CONFIGURATIONS[run_request.run_id] = document
+    try:
+        with configuration_scope(document):
+            return await _execute_internal_run_bound(run_request, claims, execution_entry=execution_entry)
+    finally:
+        RUN_CONFIGURATIONS.pop(run_request.run_id, None)
+
+
+async def _execute_internal_run_bound(
     run_request: AgentRunRequest,
     claims: dict[str, Any],
     *,
@@ -807,26 +837,27 @@ async def _execute_internal_run(
 
             async def prepare_client_run() -> dict[str, Any]:
                 """在 Actor 串行区准备本轮附件，并沿用入队时冻结的执行资产。"""
-                if timing:
-                    timing.mark('prepare_begin')
-                _clear_runtime_input(input_workspace)
-                if not run_request.input.attachment_refs:
-                    prepared_files: tuple[FetchedFile, ...] = ()
-                else:
-                    prepared_files = await _fetch_run_files(run_request, input_workspace)
-                prepared_payload = await asyncio.to_thread(_internal_worker_payload,
-                    run_request,
-                    run_directory,
-                    claims=claims,
-                    runtime_mode=runtime_mode,
-                    session_directory=session_directory,
-                    attachment_files=prepared_files,
-                    capability_assets=worker_payload['_capability_assets'],
-                )
-                if timing:
-                    timing.mark('prepared')
-                await _run_phase(run_id, {"name": "model_starting"})
-                return prepared_payload
+                with configuration_scope(execution_entry.get('_configuration')):
+                    if timing:
+                        timing.mark('prepare_begin')
+                    _clear_runtime_input(input_workspace)
+                    if not run_request.input.attachment_refs:
+                        prepared_files: tuple[FetchedFile, ...] = ()
+                    else:
+                        prepared_files = await _fetch_run_files(run_request, input_workspace)
+                    prepared_payload = await asyncio.to_thread(_internal_worker_payload,
+                        run_request,
+                        run_directory,
+                        claims=claims,
+                        runtime_mode=runtime_mode,
+                        session_directory=session_directory,
+                        attachment_files=prepared_files,
+                        capability_assets=worker_payload['_capability_assets'],
+                    )
+                    if timing:
+                        timing.mark('prepared')
+                    await _run_phase(run_id, {"name": "model_starting"})
+                    return prepared_payload
 
             async def cleanup_client_run() -> None:
                 """在 Actor 串行区清理本轮输入，避免删除下一轮已准备的文件。"""
@@ -964,11 +995,14 @@ async def internal_create_run(request: Request):
 
     capability = run_request.capability_ref or "conversation"
     try:
-        execution_entry = load_execution_entry(capability)
+        execution_entry = await asyncio.to_thread(load_execution_entry, capability)
         validate_capability_credentials(execution_entry['capability'], run_request.credentials)
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         if run_request.input.attachment_refs and not execution_entry['capability'].get('supports_attachments', False):
             return _plain("capability_does_not_support_attachments", 400)
+        attachment_policy = execution_entry['capability'].get('_attachment_policy', {})
+        if attachment_policy.get('max_files') is not None and len(run_request.input.attachment_refs) > attachment_policy['max_files']:
+            return _plain('attachment_count_exceeded', 400)
         async with internal_runs_lock:
             existing = RUN_STORE.get_run(run_request.run_id)
             run = RUN_STORE.create_run(
@@ -980,6 +1014,7 @@ async def internal_create_run(request: Request):
 
                 capability_ref=capability,
                 metadata={
+                    "effectiveConfiguration": configuration_summary(execution_entry),
                     "messageId": run_request.message_id,
                     "runtimeMode": runtime_mode,
                     "domainName": run_request.domain_name,

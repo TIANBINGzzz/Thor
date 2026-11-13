@@ -22,7 +22,6 @@ config/*
 !config/*.example.yml
 !config/*.production.yml
 config/application.yml
-config/nacos-ai-center-agent-service.yml
 **/__pycache__/
 **/*.pyc
 **/node_modules/

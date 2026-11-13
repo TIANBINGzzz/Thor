@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration, deployment_document
 import asyncio
 import copy
 import json
@@ -20,11 +21,9 @@ ASSET_ROOT = _CAMPUS.ASSET_ROOT
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         self.connection = {'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                            'domainName': 'campus.example.test'}
-        self.enterContext(patch('runtime.nacos_config.fetch_config',
-                                side_effect=lambda **kw: {'campusMcp': dict(self.connection)}))
+        self.enterContext(patch_configuration(lambda: {**deployment_document(), 'campusMcp': dict(self.connection)}))
 
     def operation_tools(self, service, on_error=None):
         from runtime.capabilities import CAPABILITIES, capability_entry
@@ -50,8 +49,8 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('campus.example.test', first['prompt'])
         self.assertEqual(first['config_values'], {
             'campusMcp.url': 'https://campus.example.test/string_campus_brain_service/mcp',
-            'campusMcp.domainName': 'campus.example.test'})
-        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('worker must use snapshot')):
+            'campusMcp.headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'}})
+        with patch('runtime.config_store.ConfigStore.load', side_effect=AssertionError('worker must use snapshot')):
             options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                                      '_capability_assets': first,
                                      'credentials': {'platformBearer': 'test-secret'}})
@@ -65,16 +64,17 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(connection=connection), self.assertRaisesRegex(
                     ValueError, '^mcp_connection_invalid$'):
                 load_campus_assets(ConfigSnapshot(values={
-                    'campusMcp.url': connection['url'], 'campusMcp.domainName': connection['domainName']}))
+                    'campusMcp.url': connection['url'], 'campusMcp.headers': {'domain-name':connection['domainName']}}))
 
     def test_unreferenced_remote_fields_do_not_change_tools_or_credentials(self):
-        with patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
+        with patch_configuration({'campusMcp': {
                 **self.connection, 'headers': {'Authorization': 'unwanted'}, 'tools': ['unwanted']},
                 'fileService': {'private': 'unwanted'}}):
             payload = {'capability_ref': 'campus-brain-query'}
             assets = prepare_capability_assets(payload)
             campus = load_campus_assets(ConfigSnapshot(values=assets['config_values']))
-        self.assertNotIn('unwanted', str(assets))
+        self.assertNotIn('unwanted', str(campus))
+        self.assertNotIn('unwanted', assets['prompt'])
         self.assertNotIn('Authorization', campus['config']['headers'])
         self.assertIn('get_school_info', campus['config']['tools'])
 
@@ -134,7 +134,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
         from runtime.capabilities import capability_entry, CAPABILITIES
         entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)
         entry['runtime']['max_turns'] = 8
-        with patch('runtime.config.capability_entry', return_value=entry):
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
             options = build_options({'capability_ref': 'campus-brain-query', 'run_id': 'campus-test-run',
                                      'credentials': {'platformBearer': 'test-secret'}})
         self.assertEqual(options.thinking, {'type': 'adaptive'})
@@ -488,7 +488,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
                 body = json.loads(request.content);requests.append(body)
                 self.assertEqual(str(request.url), load_campus_assets()['config']['url'])
                 self.assertEqual(request.headers['domain-name'], 'campus.example.test')
-                self.assertEqual(request.headers['app-key'], 'inter-page-key')
+                self.assertEqual(request.headers['app-key'], 'test-app-key')
                 self.assertNotIn('authorization', request.headers)
                 if body['method'] == 'notifications/initialized':
                     return httpx.Response(202)

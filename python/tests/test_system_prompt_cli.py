@@ -23,6 +23,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.directory = Path(tempfile.mkdtemp())
         self.requests = []
+        self.request_connections = []
         self.read_tools = True
         self.force_read_count = 0
         app = FastAPI()
@@ -31,6 +32,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
         async def respond(request: Request, path: str):
             data = await request.json()
             self.requests.append(data)
+            self.request_connections.append((path, request.headers.get('authorization')))
             read = self.read_tools and any(tool['name'] == 'Read' for tool in data.get('tools', [])) and not any(
                 block.get('type') == 'tool_result' for message in data['messages']
                 if isinstance(message['content'], list) for block in message['content'])
@@ -73,6 +75,41 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 if self.serving.done():
                     await self.serving
                 await asyncio.sleep(.01)
+
+    async def test_database_connection_switch_reuses_real_cli_and_changes_model_key_and_address(self):
+        from tests.deployment_fixtures import configuration_rows
+        from runtime.configuration import execution_entry
+        self.read_tools = False
+        rows = configuration_rows()
+        rows['capabilities']['conversation']['tool_refs'] = []
+        policy = ClientTurnPolicy()
+        client = None
+        sessions = []
+        try:
+            for label in ('first', 'second'):
+                rows['model_connections']['default'].update(base_url=self.url+'/'+label, api_key=label+'-key')
+                rows['capabilities']['conversation'].update(model_name=label+'-model', prompt=label+' rules')
+                payload = {'capability_ref':'conversation', 'cwd':str(self.directory),
+                           '_execution_entry':execution_entry(rows=rows)}
+                options = build_options(payload)
+                options.env.update(CLAUDE_CONFIG_DIR=str(self.directory/'config'), CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC='1')
+                if client is None:
+                    startup = build_client_options(payload, policy)
+                    startup.env.update(options.env)
+                    client = ClaudeSDKClient(startup, connect_timeout_ms=30000, receive_timeout_ms=30000)
+                    with isolated_sdk_environment():
+                        await client.connect()
+                policy.bind(options)
+                await client.configure_turn(options)
+                await client.query(label+' prompt')
+                async for event in client.receive_response():
+                    if event.kind == 'result': sessions.append(event.session_id)
+                self.assertEqual(self.requests[-1]['model'],label+'-model')
+                self.assertTrue(self.request_connections[-1][0].startswith(label+'/'))
+                self.assertEqual(self.request_connections[-1][1],'Bearer '+label+'-key')
+            self.assertEqual(sessions[0], sessions[1])
+        finally:
+            if client is not None: await client.disconnect()
 
     async def asyncTearDown(self):
         self.service.should_exit = True
@@ -168,7 +205,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
                 events = []
                 with patch.object(agent_worker, 'missing_environment', return_value=[]), \
                         patch.object(agent_worker, 'emit', events.append), \
-                        patch('runtime.config.capability_entry', return_value=entry), \
+                        patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
                         patch('runtime.config.agent_environment', return_value=environment):
                     await agent_worker.run(payload)
                     result = next(item for item in events if item['type'] == 'result')
@@ -202,8 +239,6 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
 
     async def test_capability_switch_reuses_client_and_replaces_visible_mcp(self):
         """统一基础工具；跨 direct/agent 更新 MCP 与规则，不重建 Client。"""
-        self.enterContext(patch('runtime.nacos_config.fetch_config',
-                                side_effect=AssertionError('本地 CLI 测试不得访问 Nacos')))
         self.read_tools = False
         environment = self.options().env
         session = None

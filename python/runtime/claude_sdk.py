@@ -26,7 +26,7 @@ from claude_agent_sdk._internal.query import SdkMcpBridge
 from runtime.runtime_settings import RUNTIME_SETTINGS
 
 # 只开放已用真实 CLI 请求验证的模型环境；进程路径、代理和配置目录仍属启动配置。
-CLIENT_HOT_ENV_KEYS = frozenset({'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_EXTRA_BODY'})
+CLIENT_HOT_ENV_KEYS = frozenset({'ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_EXTRA_BODY', 'ANTHROPIC_MODEL', 'ANTHROPIC_DEFAULT_HAIKU_MODEL', 'ANTHROPIC_DEFAULT_SONNET_MODEL', 'ANTHROPIC_DEFAULT_OPUS_MODEL', 'CLAUDE_CODE_SUBAGENT_MODEL'})
 # 所有能力共用启动白名单，CLI 新增工具不会自动开放。两个 Shell 名称兼容不同平台。
 AGENT_BUILTIN_TOOLS = ('Read', 'Write', 'Edit', 'Glob', 'Grep', 'Bash', 'PowerShell', 'WebFetch')
 
@@ -51,6 +51,8 @@ class ClientTurnPolicy:
         self._allowed = self._denied = ()
         self._builtins = ()
         self._active = False
+        if getattr(self, 'budget', None): self.budget.close()
+        self.budget = None
 
     async def context(self, input, tool_use_id, context):
         return {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
@@ -65,13 +67,22 @@ class ClientTurnPolicy:
             allowed = allowed and name in self._builtins
         if name in ('Bash', 'PowerShell') and input.get('tool_input', {}).get('run_in_background'):
             allowed = False
+        if allowed and getattr(self, 'budget', None):
+            allowed = self.budget.start_tool(tool_use_id or input.get('tool_use_id'))
         if allowed:
             return {}
         return {'hookSpecificOutput': {'hookEventName': 'PreToolUse',
             'permissionDecision': 'deny', 'permissionDecisionReason': '本轮能力未授权此工具'}}
 
+    async def tool_finished(self, input, tool_use_id, context):
+        if getattr(self, 'budget', None):
+            self.budget.finish_tool(tool_use_id or input.get('tool_use_id'))
+        return {}
+
     def hooks(self):
-        return {'UserPromptSubmit': [_sdk.HookMatcher(hooks=[self.context])],
+        return {'PostToolUse': [_sdk.HookMatcher(hooks=[self.tool_finished])],
+                'PostToolUseFailure': [_sdk.HookMatcher(hooks=[self.tool_finished])],
+                'UserPromptSubmit': [_sdk.HookMatcher(hooks=[self.context])],
                 'PreToolUse': [_sdk.HookMatcher(hooks=[self.authorize])]}
 
 

@@ -1,12 +1,13 @@
 """单元测试显式安装客户快照，不读取本机凭据或配置中心。"""
 from pathlib import Path
 import yaml
+from contextlib import contextmanager
+from unittest.mock import patch
 
 
 def deployment_document(values=None):
     values = values or {}
-    return {'runtime': yaml.safe_load((Path(__file__).resolve().parents[2] / 'config/nacos-ai-center-agent-service.example.yml')
-                                 .read_text(encoding='utf-8'))['runtime'],
+    return {'runtime': __import__('json').loads((Path(__file__).parent / 'fixtures/runtime.json').read_text(encoding='utf-8')),
         'security': {'runtimeJwtSecret': 'test-runtime-secret'},
         'model': {'baseUrl': values.get('ANTHROPIC_BASE_URL', 'https://model.example.test/anthropic'),
                   'apiKey': values.get('ANTHROPIC_AUTH_TOKEN', 'model-secret')},
@@ -18,11 +19,93 @@ def deployment_document(values=None):
 
 
 def application_document():
-    return {'nacos': {'server-addr': 'http://nacos.test:8848', 'namespace': '', 'group': 'DEFAULT_GROUP',
-                     'data-id': 'ai-center-agent-service', 'username': '', 'password': '',
-                     'timeout-ms': 10000, 'request-timeout-ms': 5000},
+    return {'config-database': {'host':'db.test','port':3306,'database':'test','username':'test',
+            'password':'private-db','encryption-key':'dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHQ=','tls-ca':'','timeout-seconds':10},
             'server': {'host': '127.0.0.1', 'port': 4310, 'run-db': '.scribe-runs/runs.sqlite3'},
             'tools': {'officecli': 'officecli', 'libreoffice': '', 'uno-python': '',
                       'render-image': 'ccsdkscribe-renderer:local'},
             'network': {'http-proxy': '', 'https-proxy': '', 'all-proxy': '', 'no-proxy': 'localhost,127.0.0.1'},
             'diagnostics': {'timing-enabled': False, 'disable-observability': False}}
+
+
+def configuration_rows():
+    import copy, json
+    rows = json.loads((Path(__file__).parent/'fixtures/configuration.json').read_text(encoding='utf-8'))
+    document = deployment_document()
+    rows['settings'] = {key:{'ref':key,'value':value} for key,value in document.items()
+                        if key not in ('model','databases','campusMcp','businessMcp')}
+    # 数据目录验证仍需要来源声明；无真实业务查询会连接此地址。
+    rows['database_connections']['schoolDoubleHigh']['enabled'] = True
+    return rows
+
+
+@contextmanager
+def patch_configuration(document):
+    """同一假配置同时供启动读取与逐 Run 数据库读取；生产没有此转换层。"""
+    import copy
+    def read():
+        values = document() if callable(document) else document
+        rows = configuration_rows()
+        for key in ('security', 'images', 'fileService', 'runtime'):
+            if key in values:
+                rows['settings'][key] = {'ref': key, 'value': copy.deepcopy(values[key])}
+            elif key != 'runtime':
+                rows['settings'].pop(key, None)
+        model = values.get('model')
+        if model is not None:
+            for row in rows['model_connections'].values():
+                row.update(base_url=model.get('baseUrl',''), api_key=model.get('apiKey',''),
+                           parameters=model.get('parameters', {}))
+        for ref, row in rows['mcp_servers'].items():
+            value = values.get(ref+'Mcp')
+            if value is not None:
+                row.update(url=value.get('url',''), parameters={k:v for k,v in value.items() if k!='url'})
+        if 'databases' in values:
+            for ref, value in values['databases'].items():
+                rows['database_connections'][ref] = {'ref':ref,'name':ref,'enabled':True,
+                    **value['connection'], 'access':value['access'], 'query':value['query']}
+        return rows
+    startup = document() if callable(document) else document
+    startup = {**deployment_document(), **startup}
+    if 'campusMcp' in startup:
+        campus = startup['campusMcp']
+        campus.setdefault('headers', {'app-key':'test-app-key', 'domain-name':campus['domainName']})
+    with patch('runtime.deployment_config._DEPLOYMENT', startup), \
+            patch('runtime.configuration.read_configuration', side_effect=read):
+        yield
+
+
+def install_configuration_store():
+    from sqlalchemy import create_engine
+    from sqlalchemy.pool import StaticPool
+    from cryptography.fernet import Fernet
+    from runtime import config_store as module
+    engine = create_engine('sqlite://', connect_args={'check_same_thread':False}, poolclass=StaticPool)
+    module.metadata.create_all(engine)
+    store = module.ConfigStore(engine, Fernet.generate_key().decode())
+    for resource,items in configuration_rows().items():
+        if resource == 'capabilities': continue
+        for ref,item in items.items(): store.save(resource,ref,item)
+    for ref,item in configuration_rows()['capabilities'].items(): store.save('capabilities',ref,item)
+    module._STORE = store
+    return store
+
+
+def fixture_capability_entry(directory, *, skills_root=None):
+    import json
+    from runtime.capabilities import _validate_manifest, capability_entry
+    directory=Path(directory)
+    if not (directory/'capability.json').exists():
+        return capability_entry(directory)
+    return _validate_manifest(directory,json.loads((directory/'capability.json').read_text(encoding='utf-8')),
+                              Path(skills_root) if skills_root else directory.parent.parent/'skills')
+
+
+def fixture_capabilities(root):
+    from runtime.capabilities import Capability
+    result={}
+    for path in Path(root).glob('*/capability.json'):
+        entry=fixture_capability_entry(path.parent)
+        result[entry['ref']]=Capability(ref=entry['ref'],name=entry['title'],description=entry['description'],
+            tools=tuple(entry['tools']),directory=str(path.parent),skill_refs=tuple(entry['skill_refs']))
+    return result

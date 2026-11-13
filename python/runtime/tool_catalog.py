@@ -1,6 +1,6 @@
 """可信工具元数据；不导入执行实现，供装配、鉴权和公共事件共用。"""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 import re
 from jsonschema import Draft202012Validator, SchemaError
@@ -151,10 +151,17 @@ class ToolCatalog:
         """按 Tool 引用返回声明。"""
         if not isinstance(ref, str) or not ENTRY_NAME.fullmatch(ref):
             raise RuntimeError('工具引用无效')
+        from runtime.deployment_config import deployment_section
+        configured = deployment_section('_mcp_catalog', {}).get(ref) if self.root == TOOLS_ROOT.resolve() else None
+        if configured is not None and ref != 'campus':
+            return ToolDefinition(ref, 'http-mcp', 'per_run', 'namespace', (), 'http',
+                'integration', configured['name'], configured['auth'],
+                {'url':configured['url'], 'headers':configured['headers']}, False, {}, None, ())
         directory = (self.root / ref).resolve()
         if not directory.is_relative_to(self.root) or not (directory / 'tool.json').is_file():
             raise RuntimeError(f'工具未登记：{ref}')
-        return self._load(directory)
+        definition = self._load(directory)
+        return replace(definition, auth=configured['auth']) if configured is not None else definition
 
     def resolve_many(self, refs) -> tuple[ToolDefinition, ...]:
         """批量解析 Tool 引用并保持声明顺序。"""

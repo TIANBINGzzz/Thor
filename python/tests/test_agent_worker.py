@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 import unittest
 import os
 import asyncio
@@ -34,7 +35,7 @@ from tests.deployment_fixtures import deployment_document
 
 class AgentWorkerTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+        self.enterContext(patch_configuration(deployment_document()))
 
     def test_worker_reads_utf8_json_under_local_encoding(self):
         import json
@@ -97,7 +98,7 @@ class AgentWorkerTests(unittest.TestCase):
     def test_enabled_capabilities_and_fixed_template_mount_web_search(self):
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
-        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), tempfile.TemporaryDirectory() as folder:
+        with patch.dict('os.environ', values, clear=True), patch_configuration(deployment_document(values)), tempfile.TemporaryDirectory() as folder:
             for payload in ({}, {'capability_ref': 'conversation'}, {'capability_ref': 'chart-generation'},
                             {'capability_ref': 'document-writing'},
                             {'capability_ref': 'document-writing',
@@ -115,12 +116,12 @@ class AgentWorkerTests(unittest.TestCase):
                     self.assertNotIn('当前通用问答', options.system_prompt['append'])
 
     def test_unconfigured_capabilities_do_not_enable_provider_web_search(self):
-        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={'campusMcp': {
+        self.enterContext(patch_configuration({'campusMcp': {
             'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'}}))
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         from runtime.capabilities import CAPABILITIES
-        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)):
+        with patch.dict('os.environ', values, clear=True), patch_configuration(deployment_document(values)):
             for capability in CAPABILITIES.values():
                 if capability.ref in {'conversation', 'chart-generation', 'document-writing', 'campus-brain-query'}:
                     continue
@@ -139,7 +140,7 @@ class AgentWorkerTests(unittest.TestCase):
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'deepseek-v4.1-flash'}
         configured = capability_entry(CAPABILITIES['chart-generation'].directory)
         configured['tools'].remove('web')
-        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), patch('runtime.config.capability_entry', return_value=configured):
+        with patch.dict('os.environ', values, clear=True), patch_configuration(deployment_document(values)), patch('runtime.config.load_execution_entry', return_value={'capability': configured}):
             options = build_options({'capability_ref': 'chart-generation', 'web_search': True,
                                      'tools': ['mcp__web__search']})
         self.assertNotIn('web', options.mcp_servers)
@@ -148,7 +149,7 @@ class AgentWorkerTests(unittest.TestCase):
 
     def test_missing_or_non_bailian_provider_does_not_advertise_web_search(self):
         for base in ('', 'https://other.test/apps/anthropic'):
-            with self.subTest(base=base), patch('runtime.deployment_config._DEPLOYMENT', deployment_document({'ANTHROPIC_BASE_URL': base})), patch.dict('os.environ', {
+            with self.subTest(base=base), patch_configuration(deployment_document({'ANTHROPIC_BASE_URL': base})), patch.dict('os.environ', {
                 'ANTHROPIC_BASE_URL': base, 'ANTHROPIC_AUTH_TOKEN': 'secret', 'ANTHROPIC_MODEL': 'qwen'}, clear=True):
                 options = build_options({'capability_ref': 'conversation'})
                 self.assertNotIn('web', options.mcp_servers)
@@ -158,12 +159,12 @@ class AgentWorkerTests(unittest.TestCase):
         from tools.web_search import create_web_server
         values = {'ANTHROPIC_BASE_URL': 'https://workspace.cn-beijing.maas.aliyuncs.com/apps/anthropic',
                   'ANTHROPIC_AUTH_TOKEN': 'model-secret', 'ANTHROPIC_MODEL': 'default-model'}
-        with patch.dict('os.environ', values, clear=True), patch('runtime.deployment_config._DEPLOYMENT', deployment_document(values)), patch(
+        with patch.dict('os.environ', values, clear=True), patch_configuration(deployment_document(values)), patch(
                 'tools.web_search.create_web_server', wraps=create_web_server) as create:
             options = build_options({'capability_ref': 'conversation', 'model': 'selected-model',
                                      'credentials': {'platformBearer': 'business-secret'}})
         self.assertEqual(create.call_args.kwargs, {
-            'base_url': values['ANTHROPIC_BASE_URL'], 'api_key': 'model-secret', 'model': 'selected-model'})
+            'base_url': values['ANTHROPIC_BASE_URL'], 'api_key': 'model-secret', 'model': load_execution_entry('conversation')['capability']['runtime']['model']})
         self.assertNotIn('headers', options.mcp_servers['web'])
         self.assertNotIn('business-secret', str(options.mcp_servers['web']))
 
@@ -240,7 +241,7 @@ class AgentWorkerTests(unittest.TestCase):
             "DB_USER": "qa_user",
             "DB_PASSWORD": "do-not-leak",
         }
-        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
+        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)):
             config = load_execution_entry("national-excellence-data-qa")["capability"]
             prompt = compiled_prompt(config)
         self.assertNotIn("do-not-leak", prompt)
@@ -252,7 +253,7 @@ class AgentWorkerTests(unittest.TestCase):
             "DB_PASSWORD": "do-not-leak",
             "ANTHROPIC_MODEL": "qwen",
         }
-        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
+        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)):
             environment = agent_environment()
         self.assertNotIn("DB_PASSWORD", environment)
         self.assertNotIn("DB_HOST", environment)
@@ -272,7 +273,7 @@ class AgentWorkerTests(unittest.TestCase):
             "CCSDK_UNO_PYTHON": "configured-python",
             "CCSDK_RENDER_IMAGE": "renderer:test",
         }
-        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
+        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)):
             provider = agent_environment()
             worker = worker_environment()
         self.assertEqual(provider["ANTHROPIC_AUTH_TOKEN"], "model-secret")
@@ -292,7 +293,7 @@ class AgentWorkerTests(unittest.TestCase):
             "BUSINESS_MCP_URL": "https://mcp.internal",
             "credentials": "unused",
         }
-        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)):
+        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)):
             options = build_options({
                 "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},
@@ -302,7 +303,7 @@ class AgentWorkerTests(unittest.TestCase):
         from runtime.capabilities import capability_entry, resolve_capability
         configured = capability_entry(resolve_capability('conversation').directory)
         configured['tools'].append('business')
-        with patch.dict("os.environ", values, clear=True), patch("runtime.deployment_config._DEPLOYMENT", deployment_document(values)), patch('runtime.config.capability_entry', return_value=configured):
+        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)), patch('runtime.config.load_execution_entry', return_value={'capability': configured}):
             options = build_options({
                 "capability_ref": "conversation",
                 "credentials": {"platformBearer": "token"},

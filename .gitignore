@@ -32,8 +32,5 @@ __pycache__/
 !/config/observability.yml
 
 /config/application.yml
-/config/nacos-ai-center-agent-service.yml
 !/config/application.example.yml
 !/config/application.production.yml
-!/config/nacos-ai-center-agent-service.example.yml
-!/config/nacos-ai-center-agent-service.production.yml

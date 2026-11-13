@@ -4,7 +4,10 @@ import copy
 import re
 from urllib.parse import urlsplit
 
-from runtime import nacos_config
+from contextvars import ContextVar
+from contextlib import contextmanager
+
+_CURRENT = ContextVar("run_configuration", default=None)
 from runtime.application_config import is_placeholder
 
 _PATH = re.compile(r'[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*')
@@ -14,15 +17,25 @@ WORKER_CONFIGURATION_ENV = 'CCSDK_WORKER_CONFIG_SECRET'
 
 
 def application_document():
-    """运行配置只来自已校验的 Nacos 快照，初始化前不读取本地补值。"""
+    """运行配置只来自已校验的 数据库配置，初始化前不读取本地补值。"""
     if _DEPLOYMENT is None:
         raise ValueError('deployment_config_not_initialized')
-    return copy.deepcopy(_DEPLOYMENT)
+    return copy.deepcopy(_CURRENT.get() or _DEPLOYMENT)
 
 
 def deployment_section(name, default=None):
     """仅返回所需客户节点的副本；未初始化不读取旧环境或数据库文件。"""
-    return copy.deepcopy((_DEPLOYMENT or {}).get(name, default))
+    return copy.deepcopy((_CURRENT.get() or _DEPLOYMENT or {}).get(name, default))
+
+
+@contextmanager
+def configuration_scope(document):
+    """同一 Run 的异步任务和线程使用独立配置，退出后不污染其他请求。"""
+    token = _CURRENT.set(document if document is not None else _CURRENT.get())
+    try:
+        yield
+    finally:
+        _CURRENT.reset(token)
 
 
 def _text(section, field, *, secret=False):
@@ -154,16 +167,17 @@ def _validated(document, *, worker=False):
         raise ValueError('deployment_config_invalid') from None
 
 
-def initialize_deployment(*, nacos=None, transport=None, document=None):
-    """启动时读取一次 Nacos，校验完成后才原子发布；故障不回退旧秘密或地址。"""
+def initialize_deployment(*, document=None):
+    """启动时读取 MySQL，校验完成后才原子发布；故障不回退旧秘密或地址。"""
     global _DEPLOYMENT, _WORKER
     if document is None:
-        document = nacos_config.fetch_config(nacos, transport=transport)
+        from runtime.configuration import read_configuration, deployment_document
+        document = deployment_document(read_configuration(), allow_disabled=True)
     document = _validated(document)
     settings = _runtime_configuration(document)
     _DEPLOYMENT, _WORKER = document, False
     from runtime import runtime_settings
-    runtime_settings.RUNTIME_SETTINGS = settings
+    runtime_settings._SETTINGS = settings
     return copy.deepcopy(document)
 
 
@@ -188,24 +202,25 @@ def _runtime_configuration(document):
 
 
 def worker_configuration():
-    """只向可信 Worker 提供模型、数据和运行预算；不传控制面或 Nacos 凭据。"""
-    if _DEPLOYMENT is None:
+    """本轮最小私有配置；不传配置库连接、根密钥或控制面密钥。"""
+    document = _CURRENT.get() or _DEPLOYMENT
+    if document is None:
         return None
-    return {key: copy.deepcopy(_DEPLOYMENT[key]) for key in
-            ('runtime', 'model', 'images', 'databases') if key in _DEPLOYMENT}
+    return {key:copy.deepcopy(document[key]) for key in
+            ('runtime','model','images','databases','_mcp_catalog') if key in document}
 
 
 def install_worker_configuration(document):
-    """Worker 导入 SDK 前安装父进程快照，后续不得连接 Nacos 补值。"""
+    """Worker 导入 SDK 前安装父进程快照，后续由每轮命令刷新，不连接配置库。"""
     global _DEPLOYMENT, _WORKER
-    if not isinstance(document, dict) or set(document) - {'runtime', 'model', 'images', 'databases'}:
+    if not isinstance(document, dict) or set(document) - {'runtime', 'model', 'images', 'databases', '_mcp_catalog'}:
         raise ValueError('worker_config_invalid')
     document = _validated(document, worker=True)
     settings = _runtime_configuration(document)
     _DEPLOYMENT = document
     _WORKER = True
     from runtime import runtime_settings
-    runtime_settings.RUNTIME_SETTINGS = settings
+    runtime_settings._SETTINGS = settings
 
 
 class ConfigReferenceError(ValueError):
@@ -216,14 +231,14 @@ class ConfigReferenceError(ValueError):
 
 
 class ConfigSnapshot:
-    """按需读取一次 YAML；values 模式只使用服务端传入的引用快照，禁止联网补值。"""
+    """按需解析本轮配置；values 模式只使用服务端传入的引用快照，禁止联网补值。"""
 
     def __init__(self, *, transport=None, values=None):
         """隔离调用方环境与配置副本；传入引用快照时禁用远端补值。"""
         self._transport = transport
         self._offline = values is not None
         self._values = copy.deepcopy(values) if values is not None else {}
-        self._document = copy.deepcopy(_DEPLOYMENT)
+        self._document = copy.deepcopy(_CURRENT.get() or _DEPLOYMENT)
 
     def get(self, path):
         """按点分路径取值并返回副本；只记录实际使用项，不导出整份远端配置。"""
@@ -233,9 +248,7 @@ class ConfigSnapshot:
             if self._offline:
                 raise ConfigReferenceError('config_reference_missing')
             if self._document is None:
-                if _WORKER:
-                    raise ConfigReferenceError('config_reference_missing')
-                self._document = copy.deepcopy(nacos_config.fetch_config(transport=self._transport))
+                raise ConfigReferenceError('config_reference_missing')
             value = self._document
             for key in path.split('.'):
                 if not isinstance(value, dict) or key not in value:

@@ -10,20 +10,20 @@
 | `schema/<domain>.json` | 已核验表列、类型、说明、函数、内部字段及强制隔离用tenant_column |
 | `metrics/<domain>/*.yaml` | 主题指标定义、共享参数、输出、SQL、语义及校验；pending 只记录未定义原因，不造占位 SQL |
 | `semantics/business.md`、`relationships.md` | 默认口径、单位、期间、实体关系和去重 |
-| Nacos `databases` | 客户连接、数据租户范围与查询预算，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或能力环境文件 |
+| MySQL `scribe_database_connection` | 客户连接、数据租户范围与查询预算，字段及路径基准见 [配置说明](../../config/README.md)；不放入知识包或能力环境文件 |
 | `python/data_access/`、`runtime/data_services.py` | 通用执行与每 Run 装配；资产测试在 `python/tests/databases/` |
 
-Capability 在 capability.json 中以 data.access=required/optional 和 data.sourceRefs 声明数据需求及来源，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
+Capability 通过 scribe_capability_database 关联声明数据来源及必需性，模板按 source_key/domain/query_id 引用业务知识，不复制 SQL。新增来源复用同一套工具，发现来源不授予权限。
 
-普通会话不加载数据库；普通撰写允许未配置数据库，但配置损坏须失败；问数和预制模板要求所需来源连接可用。部署启动冻结客户配置；每 Run 冻结已登记资产及私有配置副本，记录资产/查询摘要及客户范围指纹；来源按可信能力装配，SDK 环境不接收连接秘密。
+普通会话不加载业务数据库执行器；普通撰写允许未配置数据库，但配置损坏须失败；问数和预制模板要求所需来源连接可用。每 Run 在线读取并冻结已登记资产及私有配置副本，记录资产/查询摘要及客户范围指纹；来源按可信能力装配，SDK 环境不接收连接秘密。
 
 ## 字段与配置
 
 资产格式以 source.json、主题 YAML 和 catalog.py 校验为准，不另抄一份全部字段。QuerySpec 的 id 即 query_id，metric_key 使用 query_id.field 定位公开输出；参数只描述业务输入，租户和内部对象键由可信上下文注入。
 
-一个 tenantId 对应一个客户，一客户一套 Runtime、数据库和服务地址。同客户所有 usercode 查询同一业务数据。Run JWT 只绑定本次执行、用户、会话和文件归属，不在 Nacos 固定 Runtime tenantId；数据库 self 每轮从 Java 认证后透传的业务 Token 解析，缺失或非法时拒绝访问。用户授权、业务验签和撤销仍由 Java 负责。
+一个 tenantId 对应一个客户，一客户一套 Runtime、数据库和服务地址。同客户所有 usercode 查询同一业务数据。Run JWT 只绑定本次执行、用户、会话和文件归属，不在 配置库 固定 Runtime tenantId；数据库 self 每轮从 Java 认证后透传的业务 Token 解析，缺失或非法时拒绝访问。用户授权、业务验签和撤销仍由 Java 负责。
 
-Nacos 每来源分 connection/access/query；access.tenantIds 默认仅 self。额外测试租户的环境授权和退出要求见[REQ-001](engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)，生产模板仍仅 self；该范围只作用于选中数据源，不扩大 Runtime 或其他业务系统身份。表列、函数和指标范围由 Catalog 派生，不重复配置 Capability/模板清单或 selected 项目授权。项目/任务仍可作为业务筛选条件，引用仅本轮有效。TLS 默认校验 CA 与主机身份，显式 disabled 不自动降级；字段和路径基准见[配置说明](../../config/README.md)。
+配置库 每来源分 connection/access/query；access.tenantIds 默认仅 self。额外测试租户的环境授权和退出要求见[REQ-001](engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)，生产模板仍仅 self；该范围只作用于选中数据源，不扩大 Runtime 或其他业务系统身份。表列、函数和指标范围由 Catalog 派生，不重复配置 Capability/模板清单或 selected 项目授权。项目/任务仍可作为业务筛选条件，引用仅本轮有效。TLS 默认校验 CA 与主机身份，显式 disabled 不自动降级；字段和路径基准见[配置说明](../../config/README.md)。
 
 ## 查询边界
 
@@ -38,7 +38,7 @@ Nacos 每来源分 connection/access/query；access.tenantIds 默认仅 self。�
 
 ## 维护与验收
 
-在 python 目录用 `python -m data_access list/validate/probe`，参数见 --help；知识校验不等于真实连接成功。配置变更后排空任务并重启，配置从 Nacos 读取，无需重建镜像；当前没有数据库管理网页或连接热更新，后续管理方案不能作为已实现能力。
+在 python 目录用 `python -m data_access list/validate/probe`，参数见 --help；知识校验不等于真实连接成功。配置变更后排空任务并重启，配置从 配置库 读取，无需重建镜像；当前没有数据库管理网页或连接热更新，后续管理方案不能作为已实现能力。
 
 指标登记前用只读实库及独立基准核对 SQL、输出、对象、期间和异常语义；已定义项不因空结果失去来源依据，未定义项不因工具成功而升级。原始数据留忽略目录，必要来源确认见 [来源核验](../verification/report-source-audit.md)。
 

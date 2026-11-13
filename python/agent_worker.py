@@ -48,6 +48,7 @@ from runtime.mcp_auth import MCPAuthError
 from runtime.telemetry import Timing, exception_event
 from runtime.runtime_settings import RUNTIME_SETTINGS
 from runtime.protocol import SteeringRequest
+from runtime.run_budget import RunBudget, BudgetExceeded
 DEFAULT_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
 
 # 父进程以UTF-8收发JSONL；Windows默认GBK会使中文提示词乱码或解析失败。
@@ -329,6 +330,8 @@ def _client_error_code(error: BaseException) -> str:
     """接收执行异常，返回稳定的 Client 错误码，不包含异常详情。"""
     if isinstance(error, MCPAuthError):
         return 'mcp_authentication_error'
+    if isinstance(error, BudgetExceeded):
+        return error.code
     if isinstance(error, SDKError):
         return error.code
     if isinstance(error, asyncio.TimeoutError):
@@ -346,6 +349,7 @@ async def _receive_client_response(
     mcp_errors: list | None = None,
     timing: Timing | None = None,
     tool_scope: SDKToolScope | None = None,
+    budget: RunBudget | None = None,
 ) -> ClientResponse:
     """接收 Client、当前命令、流状态和控制队列，输出回复事件并返回最后的 SDK 会话标识。
 
@@ -353,6 +357,7 @@ async def _receive_client_response(
     """
 
     iterator = client.receive_response(timeout_ms=None if deadline is None else max(1, int((deadline - time.monotonic()) * 1000)))
+    budget_task = asyncio.create_task(budget.exceeded.wait()) if budget is not None else None
     next_task: asyncio.Task[Any] | None = None
     command_task: asyncio.Task[Any] | None = None
     completed = False
@@ -364,10 +369,13 @@ async def _receive_client_response(
             if command_task is None:
                 command_task = asyncio.create_task(command_queue.get(), name="ccsdk-client-control")
             wait_set = {next_task, command_task}
+            if budget_task is not None: wait_set.add(budget_task)
             remaining = None if response.stop_deadline is None else max(0, response.stop_deadline - time.monotonic())
             done, _ = await asyncio.wait(wait_set, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
             if not done:
                 raise SDKTimeoutError('Claude SDK 中断收尾超时')
+            if budget_task in done:
+                raise BudgetExceeded(budget.reason)
             # 响应和控制可能同时就绪；不能因读取正文而丢弃已出队的取消命令。
             if command_task in done:
                 command_value = command_task.result()
@@ -419,6 +427,9 @@ async def _receive_client_response(
                 except StopAsyncIteration as error:
                     raise SDKError("Claude SDK response stream 提前结束") from error
                 normalized = normalize_message(message)
+                if budget is not None:
+                    budget.observe(normalized)
+                    if budget.reason: raise BudgetExceeded(budget.reason)
                 if normalized.kind == 'steering':
                     emit({'type': 'client_steer_ack', 'run_id': _client_command_run_id(command),
                           'message_id': normalized.data['messageId'], 'status': 'applied'})
@@ -444,7 +455,8 @@ async def _receive_client_response(
             command_task.cancel()
         if next_task is not None and not next_task.done():
             next_task.cancel()
-        pending = [task for task in (command_task, next_task) if task is not None]
+        if budget_task is not None and not budget_task.done(): budget_task.cancel()
+        pending = [task for task in (command_task, next_task, budget_task) if task is not None]
         if pending:
             await asyncio.gather(*pending, return_exceptions=True)
         try:
@@ -539,6 +551,8 @@ async def run_client(initial: dict[str, Any]) -> None:
                 emit({"type": "client_error", "run_id": _client_command_run_id(command), "code": "invalid_command"})
                 continue
 
+            if configuration := command.get('_capability_assets', {}).get('_configuration'):
+                install_worker_configuration(configuration)
             run_id = _client_command_run_id(command)
             timing = Timing('worker_run', active=startup.active)
             timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
@@ -574,6 +588,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                             chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
                             mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services)
                     policy.bind(options)
+                    policy.budget = RunBudget(assets.get('runtime', {}))
                     timing.mark('bound')
                     with isolated_sdk_environment():
                         await client.configure_turn(options)
@@ -587,7 +602,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         emit({'type': 'client_input_ready', 'run_id': run_id})
                         response = await _receive_client_response(
                             client, command, streaming, command_queue, deadline,
-                            chart_delivery, mcp_errors, timing, tool_scope,
+                            chart_delivery, mcp_errors, timing, tool_scope, policy.budget,
                         )
                 outcome = {"type": "client_run_cancelled" if response.cancelled else "client_run_completed",
                            "run_id": run_id, "session_id": response.session_id}
@@ -658,11 +673,13 @@ def mcp_result_event(event, failures):
 
 async def run(payload: dict[str, Any]) -> None:
     """接收包含提示词和执行配置的 payload，执行一次 SDK query，并向标准输出写入事件；无返回值。"""
+    if configuration := payload.get('_capability_assets', {}).get('_configuration'):
+        install_worker_configuration(configuration)
     timing = Timing('worker_run')
     timing.on_mark = lambda _stage, _elapsed: emit_live_performance(timing)
     missing = missing_environment()
     if missing:
-        raise RuntimeError('Nacos 模型配置不完整')
+        raise RuntimeError('数据库模型配置不完整')
     data_services = create_run_services(payload)
     streaming: dict[str, str] = {}
     # The SDK merges ``options.env`` with the worker process environment.  Keep
@@ -687,10 +704,11 @@ async def run(payload: dict[str, Any]) -> None:
                                     chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
                                     mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services,
                                     turn_policy=policy)
+        policy.budget = RunBudget(prepare_capability_assets(payload).get('runtime', {}))
         timing.mark('bound')
         with isolated_sdk_environment():
             timing.mark('query_begin')
-            async for message in stream_query(prompt, options, timeout_ms=timeout_ms):
+            async for message in policy.budget.watch(stream_query(prompt, options, timeout_ms=timeout_ms)):
                 timing.mark('first_message')
                 for event in message_events(message, streaming):
                     if event.get('type') in {'text', 'thinking'} and isinstance(event.get('text'), str) and event['text'].strip():

@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration, deployment_document
 import base64
 import json
 import tempfile
@@ -16,11 +17,11 @@ from tests.deployment_fixtures import deployment_document
 
 class AttachmentTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+        self.enterContext(patch_configuration(deployment_document()))
 
     def test_every_capability_mounts_the_same_scoped_reader(self):
         with tempfile.TemporaryDirectory() as folder:
-            with patch('runtime.nacos_config.fetch_config', return_value={
+            with patch_configuration({**deployment_document(),
                     'campusMcp': {
                         'url': 'https://campus.example.test/string_campus_brain_service/mcp',
                         'domainName': 'campus.example.test'}}):

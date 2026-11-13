@@ -121,7 +121,7 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(list((self.root / 'input').iterdir()), [])
 
     async def test_http_client_uses_configured_download_timeout(self):
-        settings = replace(RUNTIME_SETTINGS, timeouts=replace(
+        settings = replace(__import__('runtime.runtime_settings', fromlist=['_SETTINGS'])._SETTINGS, timeouts=replace(
             RUNTIME_SETTINGS.timeouts, file_download_ms=1234))
         def handler(request):
             self.assertEqual(set(request.extensions['timeout'].values()), {1.234})

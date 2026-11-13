@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 """能力直接组合规则、模板和来源，业务请求不能选择内部执行资产。"""
 
 import json
@@ -28,7 +29,7 @@ class CapabilityCompositionTests(unittest.TestCase):
         entry['data'] = {'access': 'required', 'sourceRefs': ['schoolDoubleHigh']}
         entry['tools'] = ['data']
         with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
-                 patch('runtime.deployment_config._DEPLOYMENT', {**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
+                 patch_configuration({**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
             self.assertEqual(data_source_keys({'capability_ref': 'new-business'}), ['schoolDoubleHigh'])
 
     def test_old_workflow_field_is_rejected(self):
@@ -40,7 +41,7 @@ class CapabilityCompositionTests(unittest.TestCase):
                 'ref': 'example', 'title': '示例', 'description': '示例', 'workflowRefs': []
             }), encoding='utf-8')
             with self.assertRaises(RuntimeError):
-                capabilities.capability_entry(directory)
+                __import__('tests.deployment_fixtures',fromlist=['fixture_capability_entry']).fixture_capability_entry(directory)
 
     def test_mcp_preparation_uses_yaml_process_settings_and_nacos_without_global_changes(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -53,7 +54,7 @@ class CapabilityCompositionTests(unittest.TestCase):
             with patch('runtime.config.PROJECT_ROOT', root), \
                  patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH':binary.as_posix()}), \
                  patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
-                 patch('runtime.deployment_config._DEPLOYMENT', {**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
+                 patch_configuration({**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
                 before = dict(os.environ)
                 payload = {'capability_ref': 'conversation', 'credentials': {'platformBearer': 'run-token'}}
                 assets = prepare_capability_assets(payload)

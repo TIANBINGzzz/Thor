@@ -4,7 +4,6 @@ import re
 from urllib.parse import urlsplit
 
 from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
-from runtime.nacos_config import NacosConfigError
 
 
 class FileServiceError(ValueError):
@@ -20,10 +19,6 @@ def file_service_config(*, download=False, transport=None):
         config = ConfigSnapshot(transport=transport).get('fileService')
     except ConfigReferenceError:
         raise FileServiceError('file_service_not_configured') from None
-    except NacosConfigError as error:
-        code = {'nacos_not_configured': 'file_service_not_configured',
-                'nacos_content_invalid': 'file_service_config_invalid'}.get(error.code, 'file_service_' + error.code)
-        raise FileServiceError(code) from None
     if not config:
         raise FileServiceError('file_service_not_configured')
     return validate_file_service_config(config, download=download)

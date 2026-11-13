@@ -8,7 +8,7 @@
 
 Java 授权业务身份、Capability、会话和文件；Python 解析可信执行资产、准备输入、管理 SDK 历史并交付结果。Workflow、Skill、模型、MCP 地址、工具权限及工作目录不能由浏览器覆盖；持续约束见 [工程要求](engineering-requirements.md)。
 
-提示词采用[显式归属与统一装配](../ADR/036-explicit-prompt-assembly.md)。能力配置由源码维护，不提供在线目录组合、配置校验、新建或提示词预览接口；普通 Run 输入不能修改执行资产。
+提示词采用[显式归属与统一装配](../ADR/036-explicit-prompt-assembly.md)。能力与 Skill 配置由 MySQL 维护，可信第三方后端通过独立管理接口新增和修改，保存即供后续 Run 使用；普通 Run 输入不能修改执行资产，见[配置中心契约](runtime-config-center.md)。
 
 ## 2. 通用约定
 
@@ -30,7 +30,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - templateKey 不是路径、数据库名或权限参数。省略/null 不选模板，其他非空值须通过登记、启用、能力及路径校验；校验在异步准备阶段，202 不代表模板通过。其他能力传非 null 模板值同样触发校验。
 - 预制模板由 template.json 登记 DOCX、指南及来源绑定；本 Run 冻结实际资源版本。共同规则显式加载，指南仅按所选模板加载；缺失、越界或版本漂移失败，不静默省略。指标含义与 SQL 只维护在数据库包。
 - 上传模板使用 document-writing、不传 templateKey，通过附件引用及文字说明用途；purpose 仅 input/reference。Python 参考结构和样式生成新稿，不自动登记模板、生成位置地图或扩大数据权限。再次使用须重新提交授权引用。
-- 同时传 templateKey 和附件仍以预制模板为准，附件只补充材料。两类模板及无模板共用同一撰写流程，见 [共同规则](../../.claude/capabilities/document-writing/CAPABILITY.md)；工具成功或文件 ready 不代表业务及版式验收。
+- 同时传 templateKey 和附件仍以预制模板为准，附件只补充材料。两类模板及无模板共用同一撰写流程，见 MySQL document-writing 能力共同规则；工具成功或文件 ready 不代表业务及版式验收。
 - 图表数据、单位和要求放 input.text，Mermaid 作为 message.delta 正文交付，不产生图表 Artifact；图像生成使用正文要求及参考附件，PNG 按 Artifact 交付。
 
 ## 4. Run 查询与控制模块

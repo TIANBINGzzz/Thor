@@ -9,8 +9,8 @@ import yaml
 
 APPLICATION_CONFIG_FILE = Path(__file__).resolve().parents[2] / 'config/application.yml'
 FIELDS = {
-    'nacos': {'server-addr': str, 'namespace': str, 'group': str, 'data-id': str,
-              'username': str, 'password': str, 'timeout-ms': int, 'request-timeout-ms': int},
+    'config-database': {'host': str, 'port': int, 'database': str, 'username': str,
+                        'password': str, 'encryption-key': str, 'tls-ca': str, 'timeout-seconds': int},
     'server': {'host': str, 'port': int, 'run-db': str},
     'tools': {'officecli': str, 'libreoffice': str, 'uno-python': str, 'render-image': str},
     'network': {'http-proxy': str, 'https-proxy': str, 'all-proxy': str, 'no-proxy': str},
@@ -42,27 +42,6 @@ def is_placeholder(value):
         or re.search(r'(?:^|[./])example\.com(?:$|[:/])', value) is not None)
 
 
-def validate_nacos(config):
-    """完整 Nacos 引导可独立用于读取测试，错误不带秘密值。"""
-    if (not isinstance(config, dict) or set(config) != set(FIELDS['nacos'])
-            or any(type(config[key]) is not kind for key, kind in FIELDS['nacos'].items())):
-        raise ValueError('application_config_invalid')
-    address = config['server-addr']
-    try:
-        if any(is_placeholder(value) for value in config.values()):
-            raise ValueError()
-        url = urlsplit(address if '://' in address else 'http://' + address)
-        if (url.scheme not in {'http', 'https'} or not url.hostname or url.username or url.password
-                or url.query or url.fragment or url.path not in ('', '/nacos') or url.port == 0
-                or any(c.isspace() for c in address) or not config['group'].strip()
-                or not config['data-id'].strip() or bool(config['username']) != bool(config['password'])
-                or config['timeout-ms'] <= 0 or config['request-timeout-ms'] <= 0):
-            raise ValueError()
-    except ValueError:
-        raise ValueError('application_config_invalid') from None
-    return copy.deepcopy(config)
-
-
 def validate_application(document):
     """所有版本使用同一字段集合；空字符串明确表示可选项自动查找或关闭。"""
     if not isinstance(document, dict) or set(document) != set(FIELDS):
@@ -74,7 +53,16 @@ def validate_application(document):
             raise ValueError('application_config_invalid')
         if any(isinstance(value, str) and any(c in value for c in '\r\n\x00') for value in values.values()):
             raise ValueError('application_config_invalid')
-    validate_nacos(document['nacos'])
+    database = document['config-database']
+    if (not database['host'] or not database['database'] or not database['username']
+            or not database['password'] or not 1 <= database['port'] <= 65535
+            or database['timeout-seconds'] <= 0 or any(is_placeholder(v) for v in database.values())):
+        raise ValueError('application_config_invalid')
+    from cryptography.fernet import Fernet
+    try:
+        Fernet(database['encryption-key'].encode())
+    except (ValueError, TypeError):
+        raise ValueError('application_config_invalid') from None
     server = document['server']
     if (not server['host'].strip() or any(c.isspace() for c in server['host'])
             or not 1 <= server['port'] <= 65535 or not server['run-db'].strip()

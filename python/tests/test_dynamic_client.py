@@ -115,8 +115,6 @@ class DynamicClientTests(unittest.IsolatedAsyncioTestCase):
 class ConnectionFingerprintTests(unittest.TestCase):
     def test_direct_and_agent_share_builtin_tools_and_prewarm_group(self):
         from unittest.mock import patch
-        self.enterContext(patch('runtime.nacos_config.fetch_config',
-                                side_effect=AssertionError('连接配置测试不得访问 Nacos')))
         from runtime.config import build_client_options, client_connection_fingerprint, load_execution_entry
         from runtime.claude_sdk import ClientTurnPolicy
         direct = {'capability_ref': 'campus-brain-query'}
@@ -132,7 +130,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
         self.assertFalse({'Task', 'CronCreate', 'ScheduleWakeup', 'Workflow', 'SendMessage'} & set(tools))
         self.assertEqual(client_connection_fingerprint(direct), client_connection_fingerprint(agent))
 
-    def test_queued_turn_inherits_latest_settings_without_freezing_old_inheritance(self):
+    def test_queued_turn_uses_its_own_configuration_without_previous_settings(self):
         from unittest.mock import patch
         from runtime.config import inherit_client_runtime
         payload = {'_capability_assets': {'runtime': {'effort': 'low'}}}
@@ -140,7 +138,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
             inherit_client_runtime(payload, {'thinking': {'type': 'disabled'}, 'max_turns': 7})
             latest = {'thinking': {'type': 'enabled', 'budget_tokens': 2048}, 'effort': 'high', 'max_turns': 9}
             runtime = inherit_client_runtime(payload, latest)
-            self.assertEqual(runtime, {**latest, 'effort': 'low', 'system_prompt_snapshot': True})
+            self.assertEqual(runtime, {'effort': 'low', 'max_turns': 200, 'system_prompt_snapshot': True})
             self.assertEqual(payload['_capability_assets']['runtime'], {'effort': 'low'})
 
     def test_enabled_thinking_requires_and_preserves_sdk_budget(self):

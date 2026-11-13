@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 """平台文件下载的真实响应形态、凭据边界和失败清理。"""
 
 import asyncio
@@ -28,7 +29,7 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
             'remoteUrl': 'https://public.example.test',
             'downloadPath': '/fwk_manage_service/sys_attachment/{fileId}/ai/download/',
         }}
-        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value=self.settings))
+        self.enterContext(patch_configuration(self.settings))
         self.enterContext(patch.dict('os.environ', {}, clear=True))
 
     async def fetch(self, handler, refs=None, **kwargs):

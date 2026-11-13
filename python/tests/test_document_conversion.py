@@ -77,7 +77,7 @@ class DocumentConversionTests(unittest.TestCase):
     def test_container_timeout_removes_only_its_own_instance(self):
         from dataclasses import replace
         from runtime import runtime_settings
-        configured = replace(runtime_settings.RUNTIME_SETTINGS, timeouts=replace(
+        configured = replace(runtime_settings._SETTINGS, timeouts=replace(
             runtime_settings.RUNTIME_SETTINGS.timeouts, document_render_ms=3250, document_start_ms=1400))
         def run(command, **kwargs):
             if command[1] == "run":

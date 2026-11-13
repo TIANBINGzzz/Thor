@@ -1,10 +1,7 @@
 {
   "connection": {
     "url": "${campusMcp.url}",
-    "headers": {
-      "app-key": "inter-page-key",
-      "domain-name": "${campusMcp.domainName}"
-    }
+    "headers": "${campusMcp.headers}"
   },
   "max_calls": 10,
   "catalogs": {

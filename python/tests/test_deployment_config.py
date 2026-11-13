@@ -39,7 +39,7 @@ class CustomerDeploymentTests(unittest.TestCase):
         self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', None, create=True))
         self.enterContext(patch.object(deployment_config, '_WORKER', False))
         from runtime import runtime_settings
-        self.enterContext(patch.object(runtime_settings, 'RUNTIME_SETTINGS', runtime_settings.RUNTIME_SETTINGS))
+        self.enterContext(patch.object(runtime_settings, '_SETTINGS', runtime_settings._SETTINGS))
         self.document = customer_config()
 
     def initialize(self, document=None):
@@ -59,7 +59,7 @@ class CustomerDeploymentTests(unittest.TestCase):
     def test_startup_snapshot_is_fixed_and_worker_excludes_control_plane_secrets(self):
         self.initialize()
         self.document['fileService']['baseUrl'] = 'https://changed.test'
-        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('启动后禁止重新读取')):
+        with patch('runtime.config_store.ConfigStore.load', side_effect=AssertionError('启动后禁止重新读取')):
             self.assertEqual(ConfigSnapshot().get('fileService.baseUrl'), 'https://files.example.test')
         worker = deployment_config.worker_configuration()
         serialized = json.dumps(worker)
@@ -167,13 +167,10 @@ class CustomerDeploymentTests(unittest.TestCase):
         self.initialize(document)
         self.assertNotIn('domainName', deployment_config.application_document()['fileService'])
 
-    def test_nacos_unavailable_does_not_publish_old_environment_secrets(self):
-        environment = {'CCSDK_NACOS_URL': 'https://nacos.example.test',
-                       'ANTHROPIC_AUTH_TOKEN': 'old-secret', 'CCSDK_RUNTIME_JWT_SECRET': 'old-secret'}
-        with self.assertRaises(ValueError) as caught:
-            deployment_config.initialize_deployment(nacos=application_document()['nacos'],
-                transport=httpx.MockTransport(lambda request: httpx.Response(503, text='private-response')))
-        self.assertNotIn('private-response', str(caught.exception))
+    def test_database_unavailable_does_not_publish_old_environment_secrets(self):
+        with patch('runtime.configuration.read_configuration', side_effect=RuntimeError('config_database_unavailable')):
+            with self.assertRaisesRegex(RuntimeError, '^config_database_unavailable$'):
+                deployment_config.initialize_deployment()
         self.assertIsNone(deployment_config._DEPLOYMENT)
 
     def test_empty_issuer_and_optional_service_mistakes_are_rejected_before_publish(self):
@@ -223,44 +220,33 @@ assert not any('DATABASE' in key or 'WORKER_CONFIG' in key or 'JWT' in key for k
 class ConfigSnapshotTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch.object(deployment_config, '_DEPLOYMENT', None))
-        self.enterContext(patch('runtime.nacos_config.application_settings', return_value=application_document()))
 
-    def test_one_read_resolves_nested_references_without_mutating_assets(self):
-        requests = []
-
-        def respond(request):
-            requests.append(request)
-            return httpx.Response(200, text='service:\n  url: https://service.test/mcp\n'
-                                  '  timeout: 12\n  enabled: false\nprivate: secret\n')
-
-        template = {'url': '${service.url}', 'options': ['${service.timeout}', '${service.enabled}'],
-                    'static': 'fixed'}
-        original = copy.deepcopy(template)
-        config = ConfigSnapshot(transport=httpx.MockTransport(respond))
-        result = config.resolve(template)
-        self.assertEqual(result, {'url': 'https://service.test/mcp', 'options': [12, False], 'static': 'fixed'})
-        self.assertEqual(config.get('service.url'), 'https://service.test/mcp')
-        self.assertEqual(template, original)
-        self.assertEqual(len(requests), 1)
-        self.assertEqual(config.export(), {'service.url': 'https://service.test/mcp',
-                                         'service.timeout': 12, 'service.enabled': False})
+    def test_references_use_bound_configuration_without_mutating_assets(self):
+        document = {'service':{'url':'https://service.test/mcp','timeout':12,'enabled':False},'private':'secret'}
+        template = {'url':'${service.url}','options':['${service.timeout}','${service.enabled}'],'static':'fixed'}
+        with deployment_config.configuration_scope(document):
+            config = ConfigSnapshot()
+        self.assertEqual(config.resolve(template), {'url':'https://service.test/mcp','options':[12,False],'static':'fixed'})
+        document['service']['url']='changed'
+        self.assertEqual(config.get('service.url'),'https://service.test/mcp')
+        self.assertNotIn('private', config.export())
 
     def test_worker_uses_only_exported_values_without_network_or_credentials(self):
-        with patch('runtime.nacos_config.fetch_config', return_value={
+        with patch('runtime.deployment_config._DEPLOYMENT', {
                 'service': {'url': 'https://one.test', 'unused': 'private'}}):
             server = ConfigSnapshot()
             server.get('service.url')
         values = server.export()
         worker = ConfigSnapshot(values=values)
         values['service.url'] = 'https://changed.test'
-        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('offline snapshot')):
+        with patch('runtime.config_store.ConfigStore.load', side_effect=AssertionError('offline snapshot')):
             self.assertEqual(worker.resolve('${service.url}'), 'https://one.test')
             with self.assertRaisesRegex(ConfigReferenceError, '^config_reference_missing$'):
                 worker.get('service.unused')
         self.assertNotIn('private', str(worker.export()))
 
     def test_no_references_need_no_config_center(self):
-        with patch('runtime.nacos_config.fetch_config', side_effect=AssertionError('unneeded network')):
+        with patch('runtime.config_store.ConfigStore.load', side_effect=AssertionError('unneeded network')):
             config = ConfigSnapshot()
             self.assertEqual(config.resolve({'constant': ['text', 1, None]}), {'constant': ['text', 1, None]})
             self.assertEqual(config.export(), {})
@@ -278,7 +264,7 @@ class ConfigSnapshotTests(unittest.TestCase):
 
     def test_snapshots_and_returned_sections_do_not_share_mutable_values(self):
         document = {'service': {'hosts': ['first']}}
-        with patch('runtime.nacos_config.fetch_config', side_effect=lambda **kw: document):
+        with patch.object(deployment_config, '_DEPLOYMENT', document):
             first = ConfigSnapshot()
             section = first.get('service')
             section['hosts'].append('caller')

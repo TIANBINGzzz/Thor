@@ -1,13 +1,13 @@
-# 完整启动配置；复制为 application.yml 后填写，不与其他版本或 env 合并。
-nacos: # 只用于启动时读取客户配置，凭据不传入 Worker。
-  server-addr: http://localhost:8848 # Nacos HTTP 地址，可带 /nacos 前缀。
-  namespace: "" # Namespace ID，空值表示 public。
-  group: DEFAULT_GROUP # Nacos 配置分组。
-  data-id: ai-center-agent-service # 客户配置 Data ID。
-  username: "" # Nacos 账号；匿名访问时与密码同时留空。
-  password: "" # Nacos 密码，按原文使用，不展开变量。
-  timeout-ms: 10000 # 启动读取配置的总预算，单位为毫秒。
-  request-timeout-ms: 5000 # Nacos 单次网络超时，单位为毫秒。
+# 启动配置只维护配置库引导及宿主机参数。
+config-database: # MySQL 配置库；运行时不建表、不加载本地客户配置。
+  host: database.example.com # 配置库地址。
+  port: 3306 # MySQL 端口。
+  database: ai_center # 配置库名称。
+  username: replace-config-user # 配置库账号。
+  password: replace-config-password # 配置库密码；仅保存在私有启动文件。
+  encryption-key: replace-encryption-key # Fernet 根密钥，不存入配置库或镜像。
+  tls-ca: "" # 验证 MySQL 证书的 CA 路径；留空表示该部署未启用 TLS。
+  timeout-seconds: 10 # 配置查询与连接超时。
 server: # 监听与持久化，路径相对启动工作目录，从仓库根目录启动。
   host: 127.0.0.1 # 本机监听地址；容器使用 0.0.0.0。
   port: 4310 # HTTP 监听端口；标准容器契约固定为 4310。
@@ -17,11 +17,11 @@ tools: # 宿主机工具；仅 libreoffice/uno-python 可留空，其余必填�
   libreoffice: "" # LibreOffice 入口，空值时自动查找。
   uno-python: "" # 具备 UNO 模块的 Python 入口，空值时使用渲染器约定。
   render-image: ccsdkscribe-renderer:local # 必填；Windows 文档渲染使用的容器镜像名称。
-network: # 模型和工具的出站网络设置；空代理覆盖旧进程代理，Nacos 始终直连。
+network: # 模型和工具的出站网络设置；空代理覆盖旧进程代理，MySQL 配置库 始终直连。
   http-proxy: "" # HTTP 出站代理，留空表示不使用。
   https-proxy: "" # HTTPS 出站代理，留空表示不使用。
   all-proxy: "" # 全协议出站代理，留空避免继承系统 ALL_PROXY。
   no-proxy: localhost,127.0.0.1,.aliyuncs.com # 直连主机与域名后缀，用逗号分隔。
-diagnostics: # 宿主进程诊断开关，不重复保存 Nacos 观测预算。
+diagnostics: # 宿主进程诊断开关，不重复保存 MySQL 配置库 观测预算。
   timing-enabled: false # 是否输出阶段耗时诊断。
-  disable-observability: false # 紧急停采；true 覆盖 Nacos 开关，false 仍以 Nacos 为准。
+  disable-observability: false # 紧急停采；true 覆盖 MySQL 配置库 开关，false 仍以 MySQL 配置库 为准。

@@ -70,25 +70,25 @@ def shared_system_prompt():
     return read_documents(PROMPTS_ROOT, ['system.md'])[0]['text'].strip()
 
 
-def validate_prompt_manifest(directory, manifest, skills_root):
+def validate_prompt_manifest(directory, manifest, skills_root, *, body=None, skills=None):
     """发布和运行共用引用、变量及 Skill 依赖校验；声明不授予工具权限。"""
-    documents = read_documents(directory, manifest.get('instructionRefs', []))
+    documents = manifest.get('instructions', []) + read_documents(directory, manifest.get('instructionRefs', []))
     if any((Path(directory) / doc['name']).resolve() == (Path(directory) / 'CAPABILITY.md').resolve()
            for doc in documents):
         raise RuntimeError('能力正文不能重复登记')
-    skills = validate_refs(manifest.get('skillRefs', manifest.get('skill_refs', [])), 'skillRefs')
+    skill_refs = validate_refs(manifest.get('skillRefs', manifest.get('skill_refs', [])), 'skillRefs')
     required = validate_refs(manifest.get('requiredSkillRefs', []), 'requiredSkillRefs')
-    if not set(required) <= set(skills):
+    if not set(required) <= set(skill_refs):
         raise RuntimeError('必载 Skill 必须属于 skillRefs')
     tools = manifest.get('toolRefs', manifest.get('tools', []))
-    for ref in skills:
-        skill = _skill(skills_root, ref)
+    for ref in skill_refs:
+        skill = skills[ref] if skills is not None else _skill(skills_root, ref)
         needed = validate_refs(skill.get('toolRefs', []), 'Skill.toolRefs')
         if not set(needed) <= set(tools):
             raise RuntimeError('Skill 所需工具未在能力中声明')
     values = prompt_variables(directory, manifest)
     from runtime.asset_registry import read_asset_body
-    for text in [read_asset_body(Path(directory), 'CAPABILITY.md'), *(doc['text'] for doc in documents)]:
+    for text in [body if body is not None else read_asset_body(Path(directory), 'CAPABILITY.md'), *(doc['text'] for doc in documents)]:
         _render(text, values)
     return values
 
@@ -118,7 +118,7 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
     owner = 'capabilities/' + entry['name'] + '/'
     add('capability', entry['_directory'], owner,
         {'name': 'CAPABILITY.md', 'text': entry['_body']}, '本轮选择的业务能力')
-    for doc in read_documents(entry['_directory'], entry.get('instructionRefs', [])):
+    for doc in entry.get('instructions', []) + read_documents(entry['_directory'], entry.get('instructionRefs', [])):
         add('instruction', entry['_directory'], owner, doc, '能力显式声明的处理指引')
     if template:
         template_owner = owner + Path(template['_directory']).relative_to(entry['_directory']).as_posix() + '/'
@@ -128,7 +128,7 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
             add('runtime', PROMPTS_ROOT, 'prompts/', doc, '所选模板的运行时参考副本')
     for ref in entry.get('skill_refs', []):
         directory = Path(entry['_skill_root']) / ref
-        skill = _skill(entry['_skill_root'], ref)
+        skill = entry['_skills'][ref] if '_skills' in entry else _skill(entry['_skill_root'], ref)
         needed = validate_refs(skill.get('toolRefs', []), 'Skill.toolRefs')
         is_required = ref in required
         text = ('- ' + ref + '：' + skill['description'] + '\n' + skill['_body'] if is_required else
@@ -140,6 +140,8 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
         sections[-1]['bodyDigest'] = fingerprint(skill['_body'])
         if not is_required:
             sections[-1]['path'] = str((directory / 'SKILL.md').resolve())
+            sections[-1]['body'] = skill['_body']
+            sections[-1]['resources'] = skill.get('resources', {})
     refs = list(entry.get('tools', []))
     if entry.get('supports_attachments') and 'attachments' not in refs:
         refs.append('attachments')

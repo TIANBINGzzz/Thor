@@ -52,14 +52,12 @@ class ModelSettingsTests(unittest.TestCase):
             self.assertEqual(options.thinking, {'type': 'adaptive'})
             self.assertEqual(options.effort, 'medium')
 
-    def test_capability_model_must_be_available_before_tool_assembly(self):
+    def test_trusted_capability_selects_model_without_a_second_allowlist(self):
         from runtime import config
         assets = config.prepare_capability_assets({})
-        assets['runtime']['model'] = 'not-deployed'
-        with patch.object(config, 'build_registered_tools') as assemble:
-            with self.assertRaisesRegex(ValueError, '模型未在部署可用列表'):
-                config.build_options({'_capability_assets': assets})
-        assemble.assert_not_called()
+        assets['runtime']['model'] = 'new-provider-model'
+        options = config.build_options({'_capability_assets': assets})
+        self.assertEqual(options.model, 'new-provider-model')
 
     def test_runtime_model_accepts_default_or_name_but_not_connections(self):
         from runtime.capabilities import _validate_runtime
@@ -152,5 +150,5 @@ class ModelSettingsTests(unittest.TestCase):
             settings = runtime_settings.load_model_settings(self.config(folder))
             with patch.object(server, 'DEFAULT_MODEL', settings.default):
                 payload = server._internal_worker_payload(request, Path(folder))
-            self.assertEqual(payload['model'], 'preferred')
+            self.assertEqual(payload['model'], server.load_execution_entry('conversation')['capability']['runtime']['model'])
             self.assertNotEqual(payload['model'], settings.available[0])

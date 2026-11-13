@@ -25,10 +25,10 @@
 | [033](033-business-session-continuity.md) | 跨能力会话连续性 | 已采纳 | Python 历史续接和重启恢复已验证；前端选择持久化未改 |
 | [034](034-private-run-observation.md) | 私有开发观测 | 已采纳 | 本地观测已验证；部署状态以目标环境实测为准 |
 | [035](035-campus-query-adapter.md) | 校园问数的受控 MCP 适配 | 已采纳 | Python 已接入；真实验收及生产边界见正文 |
-| [036](036-explicit-prompt-assembly.md) | 提示词显式归属与统一装配 | 已采纳 | Python 统一装配已接入；在线管理接口已移除，业务质量未验收 |
+| [036](036-explicit-prompt-assembly.md) | 提示词显式归属与统一装配 | 已采纳 | Python 统一装配已接入；配置来源由039调整，业务质量未验收 |
 | [037](037-capability-owned-operations.md) | 能力拥有业务 Operation，Tool 仅适配 | 已采纳 | 可信代码加载、逐轮授权及收尾已接入；未迁移既有业务或开放代码上传 |
-
-| [038](038-customer-nacos-configuration.md) | 单客户配置归入 Nacos | 已采纳 | 启动快照、连接拆分和客户绑定已接入；生产发布与Java验收待完成 |
+| [038](038-customer-nacos-configuration.md) | 单客户配置归入 Nacos | 已替代 | 由039改为 MySQL 单源配置；身份与数据范围约束继续有效 |
+| [039](039-mysql-runtime-configuration.md) | MySQL 单源配置、逐 Run 更新 | 已采纳 | Python 管理与装配已接入；真实生产授权仍独立验收 |
 
 ## 已移除的正文
 

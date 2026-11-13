@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'python'))
 
 
 def validate_environment():
-    """使用正式引导链路校验 Nacos；仅输出稳定错误码。"""
+    """使用正式引导链路校验 MySQL 配置库；仅输出稳定错误码。"""
     from runtime.bootstrap import initialize_runtime
     try:
         initialize_runtime()

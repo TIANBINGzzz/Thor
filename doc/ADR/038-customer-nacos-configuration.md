@@ -3,10 +3,10 @@
 | 字段 | 内容 |
 | --- | --- |
 | 决策日期 | 2026-11-06 |
-| 决策状态 | 已采纳 |
+| 决策状态 | 已替代 |
 | 实现状态 | Python 与部署资产已接入；本地回归，生产 Java 与发布待验收 |
 | 替代的旧 ADR | [ADR-028](028-bundled-database-config.md)的数据库打包交付 |
-| 被哪份 ADR 替代 | 无 |
+| 被哪份 ADR 替代 | [ADR-039](039-mysql-runtime-configuration.md) |
 
 ## 背景
 

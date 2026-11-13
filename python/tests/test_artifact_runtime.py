@@ -1,3 +1,4 @@
+from tests.deployment_fixtures import patch_configuration
 """真实快照/存储/Runtime链路，仅替换SDK与外部HTTP服务。"""
 
 import asyncio
@@ -20,7 +21,7 @@ class ArtifactRuntimeTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', None))
         """只替换 Nacos 返回值，保留配置解析及文件交付链路。"""
-        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value={
+        self.enterContext(patch_configuration({
             'fileService': {'baseUrl': 'https://files.test',
                 'remoteUrl': 'https://files.test'}}))
 

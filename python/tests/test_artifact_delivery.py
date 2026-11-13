@@ -31,7 +31,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
             'baseUrl': 'https://files.example.test',
             'remoteUrl': 'https://public.example.test',
         }}
-        self.enterContext(patch('runtime.nacos_config.fetch_config', return_value=self.config))
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', self.config))
         self.requests = []
         self.reply = lambda request: httpx.Response(200, json={'state': 200, 'success': True, 'data': {
             'id': 'remote_01', 'fileName': '报告.txt', 'fileSize': 5, 'fileSuffix': 'txt',
@@ -118,15 +118,13 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.requests, [])
         self.assertEqual(self.delivery.list('run_01')[0]['error'], 'file_service_not_configured')
 
-    async def test_nacos_failure_does_not_upload_using_previous_settings(self):
-        from runtime.nacos_config import NacosConfigError
+    async def test_invalid_configuration_does_not_upload(self):
         item = self.publish()
-        with patch('runtime.nacos_config.fetch_config',
-                   side_effect=NacosConfigError('nacos_unavailable')):
+        with patch('runtime.deployment_config._DEPLOYMENT', {'fileService':{'baseUrl':'invalid'}}):
             await self.delivery.accept('run_01', self.spool, item['artifactId'])
             await self.delivery.wait('run_01')
         self.assertEqual(self.requests, [])
-        self.assertEqual(self.delivery.list('run_01')[0]['error'], 'file_service_nacos_unavailable')
+        self.assertEqual(self.delivery.list('run_01')[0]['error'], 'file_service_config_invalid')
 
     async def test_snapshot_corruption_rejected_before_upload(self):
         item = self.publish()
