@@ -29,7 +29,7 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
                     schema = tool.input_schema
                     self.assertEqual(schema['properties']['thinking']['type'], 'boolean')
                     self.assertNotIn('thinking', tool.input_schema['required'])
-                    self.assertEqual(schema['properties']['queries']['maxItems'], 6)
+                    self.assertEqual(schema['properties']['queries']['maxItems'], 10)
                     arguments = {'queries':['公开检索词']}
                     if switch is not None:
                         arguments['thinking'] = switch
@@ -87,7 +87,7 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_search_budget_is_shared_across_server_recreation_within_run(self):
         run_state = {}
-        queries = [f'q{index}' for index in range(8)]
+        queries = [f'q{index}' for index in range(14)]
 
         calls = []
 
@@ -101,16 +101,16 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
             create_web_server(base_url='https://provider.test', api_key='secret',
                               model='qwen', run_state=run_state)
             first_tool = create.call_args.kwargs['tools'][0]
-            first = await first_tool.handler({'queries': queries[:4]})
+            first = await first_tool.handler({'queries': queries[:8]})
             create_web_server(base_url='https://provider.test', api_key='secret',
                               model='qwen', run_state=run_state)
             second_tool = create.call_args.kwargs['tools'][0]
-            second = await second_tool.handler({'queries': queries[4:]})
+            second = await second_tool.handler({'queries': queries[8:]})
 
         first_payload = json.loads(first['content'][0]['text'])
         second_payload = json.loads(second['content'][0]['text'])
-        self.assertEqual(len(calls), 6)
-        self.assertEqual([item['query'] for item in second_payload['results'][:2]], ['q4', 'q5'])
+        self.assertEqual(len(calls), 10)
+        self.assertEqual([item['query'] for item in second_payload['results'][:2]], ['q8', 'q9'])
         self.assertTrue(all('error' in item for item in second_payload['results'][2:]))
         self.assertNotIn('error', first_payload['results'][0])
 
@@ -130,22 +130,22 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
 
         with patch('tools.web_search.search_web', side_effect=search):
             batches = await asyncio.gather(
-                tool.handler({'queries':[f'a{i}' for i in range(4)]}),
-                tool.handler({'queries':[f'b{i}' for i in range(4)]}),
+                tool.handler({'queries':[f'a{i}' for i in range(8)]}),
+                tool.handler({'queries':[f'b{i}' for i in range(8)]}),
             )
 
-        self.assertEqual(len(calls), 6)
+        self.assertEqual(len(calls), 10)
         capped = sum('error' in item for result in batches
                      for item in json.loads(result['content'][0]['text'])['results'])
-        self.assertEqual(capped, 2)
+        self.assertEqual(capped, 6)
 
-    async def test_mcp_batch_rejects_duplicate_or_more_than_six_queries(self):
+    async def test_mcp_batch_rejects_duplicate_or_more_than_ten_queries(self):
         with patch('tools.web_search.create_sdk_mcp_server') as create:
             create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
         tool = create.call_args.kwargs['tools'][0]
         invalid = [
             {'queries':[' same ', 'same']},
-            {'queries':['q'] * 7},
+            {'queries':['q'] * 11},
             {'queries':['']},
             {'queries':['q' * 2001]},
             {'query':'legacy single query'},

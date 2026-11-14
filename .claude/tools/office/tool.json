@@ -5,7 +5,7 @@
   "transport": "stdio",
   "lifecycle": "per_run",
   "scope": "namespace",
-  "description": "通过 OfficeCLI 编辑文档",
+  "description": "OfficeCLI 原生文档编辑。MCP 的 command 使用字符串数组；新稿先准备全文及格式 JSON，再 create → batch → close，最后通过 documents 渲染核验。完整最小用法见本轮注入的 TOOL.md。",
   "operations": [],
   "category": "document",
   "auth": {

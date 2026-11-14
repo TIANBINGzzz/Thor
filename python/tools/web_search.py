@@ -12,6 +12,9 @@ from runtime.runtime_settings import RUNTIME_SETTINGS
 from tools.declarations import operation
 
 
+MAX_SEARCH_QUERIES = 10
+
+
 async def search_web(query, *, base_url, api_key, model, thinking=False):
     """发送固定的服务端工具声明；失败不自动重试，不回显上游正文或凭据。"""
     if not isinstance(query, str) or not query.strip() or len(query) > 2000:
@@ -97,8 +100,8 @@ def create_web_server(*, base_url, api_key, model, run_state=None):
                     or set(arguments) - {'queries', 'thinking'}):
                 raise ValueError('搜索只接受 queries 检索词列表和可选 thinking 布尔值')
             queries = arguments['queries']
-            if not isinstance(queries, list) or not 1 <= len(queries) <= 6:
-                raise ValueError('queries 必须包含1至6个不同检索词')
+            if not isinstance(queries, list) or not 1 <= len(queries) <= MAX_SEARCH_QUERIES:
+                raise ValueError(f'queries 必须包含1至{MAX_SEARCH_QUERIES}个不同检索词')
             normalized, seen = [], set()
             for query in queries:
                 if not isinstance(query, str) or not query.strip() or len(query) > 2000:
@@ -113,7 +116,7 @@ def create_web_server(*, base_url, api_key, model, run_state=None):
             if type(thinking) is not bool:
                 raise ValueError('thinking 须为布尔值')
 
-            accepted = normalized[:max(0, 6 - budget['used'])]
+            accepted = normalized[:max(0, MAX_SEARCH_QUERIES - budget['used'])]
             budget['used'] += len(accepted)
 
             async def search_one(query):
@@ -130,7 +133,7 @@ def create_web_server(*, base_url, api_key, model, run_state=None):
             for query in normalized[len(accepted):]:
                 results[query] = {
                     'query': query,
-                    'error': '本次 Run 的6条联网搜索额度已用完。请根据已有来源继续，不要再次搜索。',
+                    'error': f'本次 Run 的{MAX_SEARCH_QUERIES}条联网搜索额度已用完。请根据已有来源继续，不要再次搜索。',
                 }
             return {'content': [{'type': 'text', 'text': json.dumps(
                 {'results': [results[query] for query in normalized]}, ensure_ascii=False)}]}
