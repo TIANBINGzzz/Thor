@@ -21,9 +21,7 @@
     "file-max-bytes": 268435456,
     "sdk-buffer-bytes": 16777216,
     "http-body-bytes": 2097152,
-    "prompt-bytes": 32768,
-    "web-search-max-tokens": 600,
-    "web-search-thinking-max-tokens": 4096
+    "prompt-bytes": 32768
   },
   "sse-heartbeat-ms": 15000,
   "models": {

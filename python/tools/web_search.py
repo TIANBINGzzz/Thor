@@ -17,11 +17,10 @@ async def search_web(query, *, base_url, api_key, model, thinking=False):
         raise ValueError('检索词须为1至2000字的非空文本')
     if type(thinking) is not bool:
         raise ValueError('thinking 须为布尔值')
-    limits = RUNTIME_SETTINGS.limits
     body = {
         'model': model,
-        # 当前百炼 DeepSeek 的思考与正文共享 max_tokens；额度来自本轮 MySQL 快照。
-        'max_tokens': limits.web_search_thinking_max_tokens if thinking else limits.web_search_max_tokens,
+        # 百炼要求 max_tokens；统一使用较大的协议上限，简短摘要由检索指引约束。
+        'max_tokens': 32768,
         'thinking': {'type': 'enabled' if thinking else 'disabled'},
         # SDK内置WebSearch发送sdk-py/sdk-cli，百炼仅在cli标识下执行服务端搜索。
         # 官方契约：https://help.aliyun.com/zh/model-studio/web-search

@@ -25,25 +25,6 @@ class ConfigurationAPITests(unittest.TestCase):
         headers={'Authorization':'Bearer '+encode_hs256_jwt(self.claims,'test-runtime-secret')}
         self.assertEqual(self.client.get('/internal/config/v1/capabilities',headers=headers).status_code,401)
 
-    def test_search_budgets_are_validated_and_reach_worker_snapshot(self):
-        from runtime.configuration import execution_entry
-        from runtime.deployment_config import configuration_scope, worker_configuration
-        from runtime.runtime_settings import RUNTIME_SETTINGS
-        path='/internal/config/v1/settings/system'
-        for value in (0, True, '4096', 500):
-            with self.subTest(value=value):
-                response=self.client.patch(path,headers=self.headers,json={'runtime_web_search_thinking_max_tokens':value})
-                self.assertEqual(response.status_code,400,response.text)
-        response=self.client.patch(path,headers=self.headers,json={
-            'runtime_web_search_max_tokens':750,'runtime_web_search_thinking_max_tokens':5000})
-        self.assertEqual(response.status_code,200,response.text)
-        entry=execution_entry('conversation')
-        with configuration_scope(entry['_configuration']):
-            snapshot=worker_configuration()
-        with configuration_scope(snapshot):
-            self.assertEqual(RUNTIME_SETTINGS.limits.web_search_max_tokens,750)
-            self.assertEqual(RUNTIME_SETTINGS.limits.web_search_thinking_max_tokens,5000)
-
     def test_save_prompt_changes_next_execution_and_hides_secrets(self):
         from runtime.configuration import execution_entry
         path='/internal/config/v1/capabilities/conversation'

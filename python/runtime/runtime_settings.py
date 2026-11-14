@@ -34,8 +34,6 @@ class LimitSettings:
     sdk_buffer_bytes: int
     http_body_bytes: int
     prompt_bytes: int
-    web_search_max_tokens: int
-    web_search_thinking_max_tokens: int
 
 
 @dataclass(frozen=True)
@@ -78,11 +76,9 @@ def load_runtime_settings(path=None, *, document=None):
                     raise ValueError()
         if heartbeat is None:
             raise ValueError()
-        if values['limits']['web_search_thinking_max_tokens'] <= values['limits']['web_search_max_tokens']:
-            raise ValueError()
         return RuntimeSettings(**{name: kind(**values[name]) for name, kind in sections.items()},
                                sse_heartbeat_ms=heartbeat)
-    except (OSError, KeyError, TypeError, ValueError, yaml.YAMLError):
+    except (OSError, TypeError, ValueError, yaml.YAMLError):
         raise ValueError('runtime.timeouts / limits / sse-heartbeat-ms 配置无效：须完整声明正整数预算') from None
 
 
