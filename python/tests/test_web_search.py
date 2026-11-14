@@ -85,6 +85,60 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload['results'][0]['summary'], '有来源')
         self.assertIn('error', payload['results'][1])
 
+    async def test_search_budget_is_shared_across_server_recreation_within_run(self):
+        run_state = {}
+        queries = [f'q{index}' for index in range(8)]
+
+        calls = []
+
+        async def record_search(query, **kwargs):
+            calls.append(query)
+            return {'summary': query, 'sources': [{'url': f'https://example.org/{query}'}],
+                    'searchRequests': 1}
+
+        with patch('tools.web_search.create_sdk_mcp_server') as create, \
+                patch('tools.web_search.search_web', side_effect=record_search):
+            create_web_server(base_url='https://provider.test', api_key='secret',
+                              model='qwen', run_state=run_state)
+            first_tool = create.call_args.kwargs['tools'][0]
+            first = await first_tool.handler({'queries': queries[:4]})
+            create_web_server(base_url='https://provider.test', api_key='secret',
+                              model='qwen', run_state=run_state)
+            second_tool = create.call_args.kwargs['tools'][0]
+            second = await second_tool.handler({'queries': queries[4:]})
+
+        first_payload = json.loads(first['content'][0]['text'])
+        second_payload = json.loads(second['content'][0]['text'])
+        self.assertEqual(len(calls), 6)
+        self.assertEqual([item['query'] for item in second_payload['results'][:2]], ['q4', 'q5'])
+        self.assertTrue(all('error' in item for item in second_payload['results'][2:]))
+        self.assertNotIn('error', first_payload['results'][0])
+
+    async def test_concurrent_batches_cannot_exceed_run_search_budget(self):
+        run_state = {}
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen',
+                              run_state=run_state)
+        tool = create.call_args.kwargs['tools'][0]
+        calls = []
+
+        async def search(query, **kwargs):
+            calls.append(query)
+            await asyncio.sleep(0)
+            return {'summary': query, 'sources': [{'url': f'https://example.org/{query}'}],
+                    'searchRequests': 1}
+
+        with patch('tools.web_search.search_web', side_effect=search):
+            batches = await asyncio.gather(
+                tool.handler({'queries':[f'a{i}' for i in range(4)]}),
+                tool.handler({'queries':[f'b{i}' for i in range(4)]}),
+            )
+
+        self.assertEqual(len(calls), 6)
+        capped = sum('error' in item for result in batches
+                     for item in json.loads(result['content'][0]['text'])['results'])
+        self.assertEqual(capped, 2)
+
     async def test_mcp_batch_rejects_duplicate_or_more_than_six_queries(self):
         with patch('tools.web_search.create_sdk_mcp_server') as create:
             create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')

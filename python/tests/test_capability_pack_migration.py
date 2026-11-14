@@ -54,11 +54,13 @@ class CapabilityPackMigrationTests(unittest.TestCase):
              patch('capability_packs.registry.create_pack_service', side_effect=[first, second]) as create, \
              patch('capability_packs.registry.update_pack_service') as update:
             services = ToolServices(assets('first-pack'), {'platformBearer': 'one'})
+            services.run_state['web_search'] = {'used': 6}
             services.configure(assets('second-pack'), {'platformBearer': 'two'})
 
         self.assertEqual([call.args[0] for call in create.call_args_list], ['first-pack', 'second-pack'])
         update.assert_not_called()
         self.assertIs(services.services['campus'], second)
+        self.assertEqual(services.run_state, {})
 
     def test_asset_revision_is_the_only_service_manifest_resolution(self):
         from runtime.capabilities import CAPABILITIES, capability_entry

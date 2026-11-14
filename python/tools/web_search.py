@@ -84,8 +84,10 @@ async def search_web(query, *, base_url, api_key, model, thinking=False):
     return {'summary': summary, 'sources': sources, 'searchRequests': len(calls)}
 
 
-def create_web_server(*, base_url, api_key, model):
+def create_web_server(*, base_url, api_key, model, run_state=None):
     """绑定本轮搜索模型与部署凭据，只开放公开检索词及思考开关。"""
+    run_state = {} if run_state is None else run_state
+    budget = run_state.setdefault('web_search', {'used': 0})
     spec = operation('web', 'search')
     @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def search(arguments):
@@ -111,6 +113,9 @@ def create_web_server(*, base_url, api_key, model):
             if type(thinking) is not bool:
                 raise ValueError('thinking 须为布尔值')
 
+            accepted = normalized[:max(0, 6 - budget['used'])]
+            budget['used'] += len(accepted)
+
             async def search_one(query):
                 try:
                     result = await search_web(query, base_url=base_url, api_key=api_key,
@@ -120,9 +125,15 @@ def create_web_server(*, base_url, api_key, model):
                 return {'query': query, 'summary': result['summary'],
                         'sources': result['sources'][:5]}
 
-            results = await asyncio.gather(*(search_one(query) for query in normalized))
+            completed = await asyncio.gather(*(search_one(query) for query in accepted))
+            results = {item['query']: item for item in completed}
+            for query in normalized[len(accepted):]:
+                results[query] = {
+                    'query': query,
+                    'error': '本次 Run 的6条联网搜索额度已用完。请根据已有来源继续，不要再次搜索。',
+                }
             return {'content': [{'type': 'text', 'text': json.dumps(
-                {'results': results}, ensure_ascii=False)}]}
+                {'results': [results[query] for query in normalized]}, ensure_ascii=False)}]}
         except (ValueError, RuntimeError) as error:
             return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
     return create_sdk_mcp_server('web', version='1.0.0', tools=[search])
@@ -147,4 +158,7 @@ def provide_tool(definition, context):
     search = _valid_search_config(context['model'])
     if not search:
         return None
-    return definition.ref, create_web_server(base_url=search[0], api_key=search[1], model=context['model'])
+    services = context.get('operation_services')
+    run_state = services.run_state if services is not None else None
+    return definition.ref, create_web_server(base_url=search[0], api_key=search[1],
+                                             model=context['model'], run_state=run_state)

@@ -164,7 +164,9 @@ class AgentWorkerTests(unittest.TestCase):
             options = build_options({'capability_ref': 'conversation', 'model': 'selected-model',
                                      'credentials': {'platformBearer': 'business-secret'}})
         self.assertEqual(create.call_args.kwargs, {
-            'base_url': values['ANTHROPIC_BASE_URL'], 'api_key': 'model-secret', 'model': load_execution_entry('conversation')['capability']['runtime']['model']})
+            'base_url': values['ANTHROPIC_BASE_URL'], 'api_key': 'model-secret',
+            'model': load_execution_entry('conversation')['capability']['runtime']['model'],
+            'run_state': {'web_search': {'used': 0}}})
         self.assertNotIn('headers', options.mcp_servers['web'])
         self.assertNotIn('business-secret', str(options.mcp_servers['web']))
 

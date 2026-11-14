@@ -72,11 +72,13 @@ class ToolServices:
         self._cache = {}
         self._servers = {}
         self.tool_refs = set()
+        self.run_state = {}
         self.configure(assets, credentials)
 
     def configure(self, assets, credentials):
         """完整修订校验冻结资产；仅 schema 变化重建适配器，内容按轮更新。"""
         self.clear()
+        self.run_state = {}
         loaded = load_tool_assets(assets['capability'], ConfigSnapshot(values=assets['config_values']),
                                   include_capability_services=True)
         self.services = {}

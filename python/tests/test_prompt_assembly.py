@@ -38,6 +38,7 @@ class PromptAssemblyTests(unittest.TestCase):
         self.assertIn('普通撰写不加载完整 Word Skill', compiled['text'])
         self.assertIn('普通撰写不编写 Python-docx 或 docx-js 临时文档生成器', compiled['text'])
         self.assertIn('可见的实质缺陷', compiled['text'])
+        self.assertIn('普通文章默认只用内置标题层级，不添加封面、目录、页眉页脚或页码', compiled['text'])
 
         without_office = assemble_prompt(payload['_capability_assets']['prompt_assets'],
                                          active_tools=[ref for ref in active if ref != 'office'], preview=True)
