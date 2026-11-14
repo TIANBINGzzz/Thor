@@ -25,5 +25,8 @@
     "env": {
       "OFFICECLI_SKIP_UPDATE": "1"
     }
-  }
+  },
+  "instructionRefs": [
+    "TOOL.md"
+  ]
 }

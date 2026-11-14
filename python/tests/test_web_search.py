@@ -1,3 +1,4 @@
+import asyncio
 import json
 import unittest
 from unittest.mock import patch
@@ -25,9 +26,11 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
                 with patch('tools.web_search.create_sdk_mcp_server') as create:
                     create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
                     tool = create.call_args.kwargs['tools'][0]
-                    self.assertEqual(tool.input_schema['properties']['thinking']['type'], 'boolean')
+                    schema = tool.input_schema
+                    self.assertEqual(schema['properties']['thinking']['type'], 'boolean')
                     self.assertNotIn('thinking', tool.input_schema['required'])
-                    arguments = {'query':'公开检索词'}
+                    self.assertEqual(schema['properties']['queries']['maxItems'], 6)
+                    arguments = {'queries':['公开检索词']}
                     if switch is not None:
                         arguments['thinking'] = switch
                     with patch('tools.web_search.httpx.AsyncClient', return_value=client):
@@ -35,16 +38,77 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(result.get('isError'), result)
                 self.assertEqual(requests[0]['thinking'], {'type':'enabled' if switch else 'disabled'})
                 content = json.loads(result['content'][0]['text'])
-                self.assertEqual(content['summary'], '简短摘要')
-                self.assertEqual(len(content['sources']), 1)
+                self.assertEqual(content['results'][0]['summary'], '简短摘要')
+                self.assertEqual(len(content['results'][0]['sources']), 1)
                 self.assertNotIn('private-reasoning', json.dumps(result))
+
+    async def test_mcp_batches_distinct_queries_concurrently_and_keeps_results_grouped(self):
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+        tool = create.call_args.kwargs['tools'][0]
+        started = []
+        both_started = asyncio.Event()
+
+        async def search(query, **kwargs):
+            started.append(query)
+            if len(started) == 2:
+                both_started.set()
+            await asyncio.wait_for(both_started.wait(), timeout=1)
+            return {'summary': f'摘要:{query}', 'sources': [{'url': f'https://example.org/{query}'}],
+                    'searchRequests': 1}
+
+        with patch('tools.web_search.search_web', side_effect=search):
+            result = await tool.handler({'queries':['政策年份', '行业趋势']})
+
+        self.assertFalse(result.get('isError'), result)
+        self.assertCountEqual(started, ['政策年份', '行业趋势'])
+        payload = json.loads(result['content'][0]['text'])
+        self.assertEqual([item['query'] for item in payload['results']], ['政策年份', '行业趋势'])
+        self.assertEqual(payload['results'][0]['summary'], '摘要:政策年份')
+        self.assertEqual(payload['results'][1]['sources'][0]['url'], 'https://example.org/行业趋势')
+
+    async def test_mcp_batch_preserves_success_when_one_query_fails(self):
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+        tool = create.call_args.kwargs['tools'][0]
+
+        async def search(query, **kwargs):
+            if query == '无结果':
+                raise RuntimeError('该查询没有可核验来源')
+            return {'summary': '有来源', 'sources': [{'url': 'https://example.org/ok'}], 'searchRequests': 1}
+
+        with patch('tools.web_search.search_web', side_effect=search):
+            result = await tool.handler({'queries':['有结果', '无结果']})
+
+        self.assertFalse(result.get('isError'), result)
+        payload = json.loads(result['content'][0]['text'])
+        self.assertEqual(payload['results'][0]['summary'], '有来源')
+        self.assertIn('error', payload['results'][1])
+
+    async def test_mcp_batch_rejects_duplicate_or_more_than_six_queries(self):
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+        tool = create.call_args.kwargs['tools'][0]
+        invalid = [
+            {'queries':[' same ', 'same']},
+            {'queries':['q'] * 7},
+            {'queries':['']},
+            {'queries':['q' * 2001]},
+            {'query':'legacy single query'},
+        ]
+        for arguments in invalid:
+            with self.subTest(arguments=arguments):
+                with patch('tools.web_search.search_web') as search:
+                    result = await tool.handler(arguments)
+                self.assertTrue(result.get('isError'))
+                search.assert_not_called()
 
     async def test_mcp_rejects_non_boolean_thinking_and_budget_overrides(self):
         with patch('tools.web_search.create_sdk_mcp_server') as create:
             create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
         tool = create.call_args.kwargs['tools'][0]
-        invalid = [{'query':'q','thinking':value} for value in ('false', 0, 1, None, {}, [])]
-        invalid += [{'query':'q','thinking':True,'max_tokens':999999}, {'thinking':True}]
+        invalid = [{'queries':['q'],'thinking':value} for value in ('false', 0, 1, None, {}, [])]
+        invalid += [{'queries':['q'],'thinking':True,'max_tokens':999999}, {'thinking':True}]
         for arguments in invalid:
             with self.subTest(arguments=arguments), patch('tools.web_search.httpx.AsyncClient') as client:
                 result = await tool.handler(arguments)
@@ -98,9 +162,10 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
                         {'type': 'text', 'text': '没有找到可靠来源。'},
                     ]})))
                 with patch('tools.web_search.httpx.AsyncClient', return_value=client):
-                    result = await tool.handler({'query': '公开政策原文'})
-                self.assertTrue(result.get('isError'))
-                self.assertIn('不能声称已经查证', result['content'][0]['text'])
+                    result = await tool.handler({'queries': ['公开政策原文']})
+                self.assertFalse(result.get('isError'))
+                payload = json.loads(result['content'][0]['text'])
+                self.assertIn('不能声称已经查证', payload['results'][0]['error'])
                 self.assertNotIn(url, result['content'][0]['text'])
 
     async def test_mixed_results_keep_real_sources_and_available_page_dates(self):
@@ -149,6 +214,6 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
             create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
         tool = create.call_args.kwargs['tools'][0]
         with patch('tools.web_search.httpx.AsyncClient') as client:
-            result = await tool.handler({'query': 'query', 'base_url': 'https://attacker.test'})
+            result = await tool.handler({'queries': ['query'], 'base_url': 'https://attacker.test'})
         self.assertTrue(result['isError'])
         client.assert_not_called()

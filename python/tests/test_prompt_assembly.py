@@ -25,6 +25,26 @@ class PromptAssemblyTests(unittest.TestCase):
         self.assertIn('极小项可能难以看清', text)
         self.assertIn('不能删除小项', text)
 
+    def test_office_batch_and_visual_review_guidance_loads_with_office(self):
+        payload = {'capability_ref': 'conversation'}
+        with patch.dict('os.environ', {}, clear=True):
+            options = build_options(payload)
+        active = list(options.mcp_servers)
+        compiled = assemble_prompt(payload['_capability_assets']['prompt_assets'],
+                                   active_tools=active, preview=True)
+        self.assertIn('一次性批量写入', compiled['text'])
+        self.assertIn('文档创建和修改必须通过 `mcp__office__officecli` MCP 完成', compiled['text'])
+        self.assertIn('不要通过 Bash 或 shell 直接调用 `officecli`', compiled['text'])
+        self.assertIn('普通撰写不加载完整 Word Skill', compiled['text'])
+        self.assertIn('普通撰写不编写 Python-docx 或 docx-js 临时文档生成器', compiled['text'])
+        self.assertIn('可见的实质缺陷', compiled['text'])
+
+        without_office = assemble_prompt(payload['_capability_assets']['prompt_assets'],
+                                         active_tools=[ref for ref in active if ref != 'office'], preview=True)
+        self.assertNotIn('一次性批量写入', without_office['text'])
+        self.assertTrue(any(item['source'] == 'tools/office/TOOL.md'
+                            for item in without_office['omitted']))
+
     def test_custom_mode_keeps_common_answer_rules(self):
         entry = capability_entry(CAPABILITIES['conversation'].directory)
         entry['runtime'] = {'prompt_mode': 'custom'}

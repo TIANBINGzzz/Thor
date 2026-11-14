@@ -1,5 +1,6 @@
 """复用本轮百炼模型配置执行内置搜索，只把可核验来源和摘要交给主Agent。"""
 
+import asyncio
 import json
 from runtime.deployment_config import deployment_section
 from urllib.parse import urlsplit
@@ -88,14 +89,40 @@ def create_web_server(*, base_url, api_key, model):
     spec = operation('web', 'search')
     @sdk_tool(spec.ref, spec.description, spec.input_schema)
     async def search(arguments):
-        """接受 query 与可选 thinking，返回来源摘要或受控错误；不返回思考块。"""
+        """并行检索一组不同问题，按检索词返回来源摘要；不返回思考块。"""
         try:
-            if (not isinstance(arguments, dict) or 'query' not in arguments
-                    or set(arguments) - {'query', 'thinking'}):
-                raise ValueError('搜索只接受 query 检索词和可选 thinking 布尔值')
-            result = await search_web(arguments['query'], base_url=base_url, api_key=api_key, model=model,
-                                      thinking=arguments.get('thinking', False))
-            return {'content': [{'type': 'text', 'text': json.dumps(result, ensure_ascii=False)}]}
+            if (not isinstance(arguments, dict) or 'queries' not in arguments
+                    or set(arguments) - {'queries', 'thinking'}):
+                raise ValueError('搜索只接受 queries 检索词列表和可选 thinking 布尔值')
+            queries = arguments['queries']
+            if not isinstance(queries, list) or not 1 <= len(queries) <= 6:
+                raise ValueError('queries 必须包含1至6个不同检索词')
+            normalized, seen = [], set()
+            for query in queries:
+                if not isinstance(query, str) or not query.strip() or len(query) > 2000:
+                    raise ValueError('每个检索词须为1至2000字的非空文本')
+                query = ' '.join(query.split())
+                key = query.casefold()
+                if key in seen:
+                    raise ValueError('queries 不能包含重复检索词')
+                seen.add(key)
+                normalized.append(query)
+            thinking = arguments.get('thinking', False)
+            if type(thinking) is not bool:
+                raise ValueError('thinking 须为布尔值')
+
+            async def search_one(query):
+                try:
+                    result = await search_web(query, base_url=base_url, api_key=api_key,
+                                              model=model, thinking=thinking)
+                except RuntimeError as error:
+                    return {'query': query, 'error': str(error)}
+                return {'query': query, 'summary': result['summary'],
+                        'sources': result['sources'][:5]}
+
+            results = await asyncio.gather(*(search_one(query) for query in normalized))
+            return {'content': [{'type': 'text', 'text': json.dumps(
+                {'results': results}, ensure_ascii=False)}]}
         except (ValueError, RuntimeError) as error:
             return {'isError': True, 'content': [{'type': 'text', 'text': str(error)}]}
     return create_sdk_mcp_server('web', version='1.0.0', tools=[search])
