@@ -6,7 +6,8 @@ SETTING_PATHS = {
         'file-upload-connect-ms', 'worker-start-ms', 'worker-send-ms', 'worker-close-ms',
         'worker-control-ms', 'document-render-ms', 'document-start-ms', 'image-ms', 'web-search-ms')},
     **{'runtime_' + key.replace('-', '_'): ('runtime', 'limits', key) for key in (
-        'file-max-bytes', 'sdk-buffer-bytes', 'http-body-bytes', 'prompt-bytes')},
+        'file-max-bytes', 'sdk-buffer-bytes', 'http-body-bytes', 'prompt-bytes',
+        'web-search-max-tokens', 'web-search-thinking-max-tokens')},
     'runtime_sse_heartbeat_ms': ('runtime', 'sse-heartbeat-ms'),
     **{'runtime_pool_' + key.replace('-', '_'): ('runtime', 'worker-pool', key) for key in (
         'max-idle', 'max-starting', 'max-live', 'min-available-memory-mib')},

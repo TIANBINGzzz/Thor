@@ -5,9 +5,57 @@ from unittest.mock import patch
 import httpx
 
 from tools.web_search import search_web, create_web_server
+from runtime.deployment_config import configuration_scope
+from tests.deployment_fixtures import deployment_document
 
 
 class WebSearchTests(unittest.IsolatedAsyncioTestCase):
+    async def test_mcp_thinking_switch_uses_bound_budgets_and_keeps_reasoning_private(self):
+        for switch in (None, False, True):
+            with self.subTest(thinking=switch):
+                document = deployment_document()
+                document['runtime']['limits'].update({'web-search-max-tokens':731, 'web-search-thinking-max-tokens':4097})
+                requests = []
+                def respond(request):
+                    requests.append(json.loads(request.content))
+                    return httpx.Response(200, json={'content': [
+                        {'type':'server_tool_use','id':'search-1','name':'web_search'},
+                        {'type':'web_search_tool_result','tool_use_id':'search-1','content':[
+                            {'type':'web_search_result','title':'公开来源','url':'https://example.org/source'}]},
+                        {'type':'thinking','thinking':'private-reasoning'},
+                        {'type':'text','text':'简短摘要'},
+                    ]})
+                client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+                with configuration_scope(document), patch('tools.web_search.create_sdk_mcp_server') as create:
+                    create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+                    tool = create.call_args.kwargs['tools'][0]
+                    self.assertEqual(tool.input_schema['properties']['thinking']['type'], 'boolean')
+                    self.assertNotIn('thinking', tool.input_schema['required'])
+                    arguments = {'query':'公开检索词'}
+                    if switch is not None:
+                        arguments['thinking'] = switch
+                    with patch('tools.web_search.httpx.AsyncClient', return_value=client):
+                        result = await tool.handler(arguments)
+                self.assertFalse(result.get('isError'), result)
+                self.assertEqual(requests[0]['thinking'], {'type':'enabled' if switch else 'disabled'})
+                self.assertEqual(requests[0]['max_tokens'], 4097 if switch else 731)
+                content = json.loads(result['content'][0]['text'])
+                self.assertEqual(content['summary'], '简短摘要')
+                self.assertEqual(len(content['sources']), 1)
+                self.assertNotIn('private-reasoning', json.dumps(result))
+
+    async def test_mcp_rejects_non_boolean_thinking_and_budget_overrides(self):
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+        tool = create.call_args.kwargs['tools'][0]
+        invalid = [{'query':'q','thinking':value} for value in ('false', 0, 1, None, {}, [])]
+        invalid += [{'query':'q','thinking':True,'max_tokens':999999}, {'thinking':True}]
+        for arguments in invalid:
+            with self.subTest(arguments=arguments), patch('tools.web_search.httpx.AsyncClient') as client:
+                result = await tool.handler(arguments)
+                self.assertTrue(result.get('isError'))
+                client.assert_not_called()
+
     async def test_native_search_uses_client_marker_and_only_returns_verified_sources(self):
         requests = []
         def respond(request):

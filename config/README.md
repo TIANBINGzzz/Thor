@@ -22,6 +22,8 @@ MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导�
 
 配置管理 API、表关系和预算语义见 [配置中心契约](../doc/specs/runtime-config-center.md)。表定义以 [config_store.py](../python/runtime/config_store.py) 为准；运行进程不自动建表。新环境由运维通过该 metadata 建表并写入完整配置，不存在默认业务配置回退。schema、模板、工具实现和数据库知识仍随可信代码交付；测试夹具仅用于离线测试，不参与部署配置读取。
 
+联网搜索两档输出上限由 settings/system.runtime_web_search_max_tokens 与 runtime_web_search_thinking_max_tokens 管理，分别用于 thinking=false/true，后者须大于前者；首次启用须在配置库建好两列并赋值，再部署 Runtime。当前 DeepSeek 的上限包含思考与正文，工具只返回摘要与来源，不返回思考块。
+
 数据库 `tenant_ids` 默认只允许 `self`，每轮从 Java 已认证后透传的业务 Token 解析；额外测试范围遵循 [REQ-001](../doc/specs/engineering-requirements.md#req-001业务-token-透传与按-mcp-注入)。发现连接不授予能力或数据权限，TLS 显式配置，不自动降级。业务数据库 CA/SQLite 相对路径以 config 目录为基准，配置库 CA 同样按 config 目录解析。
 
 模型连接当前只支持 SDK 所需的 Anthropic 协议；兼容该协议的服务可切换地址与密钥。能力通过 model_ref 选择模型目录，推理参数仍在能力表，不另设 model_profile。目录 thinking_modes/effort_options 为支持的选项数组，null 表示尚未声明（由供应商校验），空数组表示不接受显式选项；管理保存检查已声明的范围。图像模型属于 image_* 设置。

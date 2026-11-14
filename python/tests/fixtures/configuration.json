@@ -399,6 +399,8 @@
       "runtime_document_start_ms": null,
       "runtime_image_ms": null,
       "runtime_web_search_ms": null,
+      "runtime_web_search_max_tokens": null,
+      "runtime_web_search_thinking_max_tokens": null,
       "runtime_file_max_bytes": null,
       "runtime_sdk_buffer_bytes": null,
       "runtime_http_body_bytes": null,
