@@ -33,11 +33,51 @@ class WebSearchTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(body['model'], 'deepseek-v4.1-flash')
         self.assertEqual(body['system'][0]['text'], 'x-anthropic-billing-header: cc_entrypoint=cli;')
         self.assertEqual(body['tools'][0]['name'], 'web_search')
+        self.assertEqual(body['tools'][0]['max_uses'], 1)
+        self.assertEqual(body['thinking'], {'type': 'disabled'})
         self.assertEqual(result['searchRequests'], 1)
         self.assertEqual(len(result['sources']), 1)
         self.assertEqual(result['summary'], '服务支持联网搜索。')
         for private in ('omit-this', 'private-reasoning', 'model-secret'):
             self.assertNotIn(private, json.dumps(result))
+
+    async def test_placeholder_only_results_are_reported_as_unverified_to_agent(self):
+        with patch('tools.web_search.create_sdk_mcp_server') as create:
+            create_web_server(base_url='https://provider.test', api_key='secret', model='qwen')
+        tool = create.call_args.kwargs['tools'][0]
+        for url in ('https://dashscope.aliyuncs.com/', 'https://dashscope.aliyuncs.com'):
+            with self.subTest(url=url):
+                client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json={
+                    'content': [
+                        {'type': 'server_tool_use', 'id': 'search-1', 'name': 'web_search'},
+                        {'type': 'web_search_tool_result', 'tool_use_id': 'search-1', 'content': [
+                            {'type': 'web_search_result', 'title': 'Search result', 'url': url}]},
+                        {'type': 'text', 'text': '没有找到可靠来源。'},
+                    ]})))
+                with patch('tools.web_search.httpx.AsyncClient', return_value=client):
+                    result = await tool.handler({'query': '公开政策原文'})
+                self.assertTrue(result.get('isError'))
+                self.assertIn('不能声称已经查证', result['content'][0]['text'])
+                self.assertNotIn(url, result['content'][0]['text'])
+
+    async def test_mixed_results_keep_real_sources_and_available_page_dates(self):
+        client = httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json={
+            'content': [
+                {'type': 'server_tool_use', 'id': 'search-1', 'name': 'web_search'},
+                {'type': 'web_search_tool_result', 'tool_use_id': 'search-1', 'content': [
+                    {'type': 'web_search_result', 'title': 'Search result', 'url': 'https://dashscope.aliyuncs.com/'},
+                    {'type': 'web_search_result', 'title': '政策原文', 'url': 'https://example.gov.cn/policy',
+                     'page_age': '2025-09-22', 'encrypted_content': 'private-content'},
+                    {'type': 'web_search_result', 'title': 'Search result', 'url': 'https://example.org/article',
+                     'page_age': None},
+                ]},
+            ]})))
+        with patch('tools.web_search.httpx.AsyncClient', return_value=client):
+            result = await search_web('公开政策', base_url='https://provider.test', api_key='secret', model='qwen')
+        self.assertEqual(result['sources'], [
+            {'title': '政策原文', 'url': 'https://example.gov.cn/policy', 'page_age': '2025-09-22'},
+            {'title': 'Search result', 'url': 'https://example.org/article'},
+        ])
 
     async def test_plain_text_or_unmatched_sources_are_not_successful_searches(self):
         for content in ([{'type': 'text', 'text': '<tool_call>web_search</tool_call>'}],
