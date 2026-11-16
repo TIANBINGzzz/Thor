@@ -98,21 +98,12 @@ class RuntimeAuthorizationTests(unittest.TestCase):
                     server._authorize_internal(request, self.run,
                                                consume_jti=True)
 
-    def test_invalid_control_option_preserves_jti_for_interrupt(self):
-        headers = self.headers()
-        route = '/internal/v1/runs/auth-run/control'
-        self.assertEqual(self.client.post(route, headers=headers, json={'option': 'invalid'}).status_code, 400)
-        self.assertEqual(self.client.post(route, headers=headers, json={'option': 'interrupt'}).status_code, 200)
-        self.assertEqual(self.client.post(route, headers=headers, json={'option': 'interrupt'}).status_code, 401)
-
     def test_reads_and_cancellation_can_reuse_a_consumed_creation_grant(self):
         headers = self.headers()
         server._authorize_new_request(SimpleNamespace(headers=headers), self.request)
         for _ in range(2):
             self.assertEqual(self.client.get('/internal/v1/runs/auth-run', headers=headers).status_code, 200)
             self.assertEqual(self.client.post('/internal/v1/runs/auth-run/cancel', headers=headers).status_code, 200)
-        self.assertEqual(self.client.post('/internal/v1/runs/auth-run/control', headers=headers,
-                                          json={'option': 'interrupt'}).status_code, 401)
 
 
 if __name__ == '__main__':

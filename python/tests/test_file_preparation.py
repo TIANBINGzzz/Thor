@@ -278,7 +278,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                         await asyncio.wait_for(started.wait(), 1)
                         task = server.internal_tasks["run-1"]
                         self.assertFalse(task.done())
-                        response = await client.post("/internal/v1/runs/run-1/control", json={"option": "cancel"}, headers=run_headers)
+                        response = await client.post("/internal/v1/runs/run-1/cancel", headers=run_headers)
                         self.assertEqual(response.status_code, 200, response.text)
                         await asyncio.gather(task, return_exceptions=True)
                         self.assertEqual(store.get_run("run-1")["status"], "cancelled")

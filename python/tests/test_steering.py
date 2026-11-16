@@ -170,7 +170,7 @@ class SteeringActorTests(unittest.TestCase):
                 self.assertEqual((await steering)['status'], 'delivered')
                 await _until(lambda: len(events) == 2)
                 self.assertEqual([e[1]['status'] for e in events], ['delivered', 'applied'])
-                self.assertNotIn('client_interrupt', [e['type'] for e in worker.sent])
+                self.assertNotIn('client_cancel', [e['type'] for e in worker.sent])
                 await worker.events.put({'type': 'result', 'sessionId': 'sdk-history'})
                 await _until(lambda: not actor.can_steer('run-1'))
                 await worker.events.put({'type': 'client_run_completed', 'run_id': 'run-1'})

@@ -44,18 +44,6 @@ class FakeClientWorker:
                 "type": "client_run_cancelled",
                 "run_id": message.get("run_id"),
             })
-        elif kind == "client_interrupt":
-            await self.events.put({
-                "type": "text",
-                "run_id": message.get("run_id"),
-                "text": "interrupted",
-                "scope": "main",
-            })
-            await self.events.put({
-                "type": "client_run_completed",
-                "run_id": message.get("run_id"),
-                "session_id": "session-after-interrupt",
-            })
         elif kind == "client_close":
             await self.events.put({
                 "type": "client_run_cancelled",
@@ -573,7 +561,7 @@ class SessionActorTests(unittest.TestCase):
             asyncio.run(exercise())
 
     def test_preparation_can_be_cancelled_without_starting_sdk(self):
-        async def exercise(operation):
+        async def exercise():
             workers = []
             started = asyncio.Event()
             cleaned = []
@@ -593,16 +581,14 @@ class SessionActorTests(unittest.TestCase):
             actor = SessionActor("session", {}, worker_factory=factory)
             pending = asyncio.create_task(actor.submit("run-1", {}, prepare=prepare, cleanup=cleanup))
             await started.wait()
-            await getattr(actor, operation)("run-1")
+            await actor.cancel("run-1")
             self.assertEqual((await pending)["status"], "cancelled")
             self.assertEqual(cleaned, [True])
             self.assertEqual(workers, [])
             self.assertEqual((await actor.submit("run-2", {}))["status"], "succeeded")
             await actor.close()
 
-        for operation in ("cancel", "interrupt"):
-            with self.subTest(operation=operation):
-                asyncio.run(asyncio.wait_for(exercise(operation), timeout=2))
+        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
     def test_preparation_and_queue_have_separate_execution_budgets(self):
         async def exercise():

@@ -1311,36 +1311,29 @@ async def internal_artifact_content(run_id: str, artifact_id: str, request: Requ
     return FileResponse(path, filename=record['name'], headers={'x-content-type-options': 'nosniff', 'cache-control': 'no-store'})
 
 
-async def _apply_internal_control(run_id: str, request: Request, option: str):
-    """校验请求对 Run 的控制权限，执行 interrupt 或 cancel，返回最新公开状态或错误响应。"""
-    if option not in {"interrupt", "cancel"}:
-        return _plain("control.option 无效", 400)
+@app.post("/internal/v1/runs/{run_id}/cancel")
+async def internal_cancel_run(run_id: str, request: Request):
+    """校验 Run 归属并合并重复取消，等待收尾后返回公开状态。"""
     run = RUN_STORE.get_run(run_id)
     if run is None:
         return _plain("Run 不存在", 404)
     try:
-        _authorize_internal(
-            request,
-            run,
-            consume_jti=option != "cancel",
-        )
+        _authorize_internal(request, run, consume_jti=False)
     except _InternalAuthError as error:
         return _plain(str(error), 503 if str(error) == "Runtime JWT 未配置" else 401)
     if run.get("status") in TERMINAL_RUN_STATUSES:
         return {"run": _public_run(run)}
-    if option == "cancel":
-        # 单事件循环中检查和登记之间不 await，两个 HTTP 入口共享同一取消任务。
-        task = internal_cancellations.get(run_id)
-        if task is None:
-            task = asyncio.create_task(_execute_internal_control(run_id, option))
-            internal_cancellations[run_id] = task
-            task.add_done_callback(partial(_forget_cancellation, run_id))
-        try:
-            # 请求断开或控制预算耗尽不撤销已接受的取消。
-            return await asyncio.wait_for(asyncio.shield(task), timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
-        except asyncio.TimeoutError:
-            return _plain("取消仍在收敛，请查询 Run 状态", 504)
-    return await _execute_internal_control(run_id, option)
+    # 单事件循环中检查和登记之间不 await，重复请求共享同一取消任务。
+    task = internal_cancellations.get(run_id)
+    if task is None:
+        task = asyncio.create_task(_execute_internal_cancel(run_id))
+        internal_cancellations[run_id] = task
+        task.add_done_callback(partial(_forget_cancellation, run_id))
+    try:
+        # 请求断开或控制预算耗尽不撤销已接受的取消。
+        return await asyncio.wait_for(asyncio.shield(task), timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+    except asyncio.TimeoutError:
+        return _plain("取消仍在收敛，请查询 Run 状态", 504)
 
 
 def _forget_cancellation(run_id: str, task: asyncio.Task[Any]) -> None:
@@ -1351,8 +1344,8 @@ def _forget_cancellation(run_id: str, task: asyncio.Task[Any]) -> None:
         LOGGER.error("取消任务异常：run=%s，type=%s", run_id, type(task.exception()).__name__)
 
 
-async def _execute_internal_control(run_id: str, option: str):
-    """已授权控制的执行部分；终态由 Run 执行任务统一收尾。"""
+async def _execute_internal_cancel(run_id: str):
+    """执行已授权取消；终态由 Run 执行任务统一收尾。"""
     run = RUN_STORE.get_run(run_id)
     if run.get("status") in TERMINAL_RUN_STATUSES:
         return {"run": _public_run(run)}
@@ -1361,13 +1354,9 @@ async def _execute_internal_control(run_id: str, option: str):
     if actor is not None:
         was_queued = actor.active_run_id != run_id
         try:
-            command = manager.interrupt(run_id) if option == "interrupt" else manager.cancel(run_id)
-            if option == "cancel":
-                await command
-            else:
-                await asyncio.wait_for(command, timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+            await manager.cancel(run_id)
         except SessionActorError as error:
-            if option != "cancel" or error.code not in {"run_not_active", "no_active_run"}:
+            if error.code not in {"run_not_active", "no_active_run"}:
                 return _plain(error.code, 409)
             # Actor 已结束但 HTTP Run 可能仍在保存文件，等待执行侧落最终状态。
             task = internal_tasks.get(run_id)
@@ -1379,8 +1368,6 @@ async def _execute_internal_control(run_id: str, option: str):
             return {"run": _public_run(current)}
         except asyncio.TimeoutError:
             return _plain("Client 控制超时", 504)
-        if option == "interrupt":
-            return {"run": _public_run(RUN_STORE.get_run(run_id))}
         if was_queued:
             # Actor 已登记跳过此 Run，不必等待前一轮结束才确认取消排队项。
             await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
@@ -1395,34 +1382,12 @@ async def _execute_internal_control(run_id: str, option: str):
         task.cancel()
         # 已提交的上传继续收尾；控制请求只等控制预算，不阻塞到上传超时。
         try:
-            if option == "cancel":
-                await asyncio.shield(task)
-            else:
-                await asyncio.wait_for(asyncio.shield(task), timeout=RUNTIME_SETTINGS.timeouts.worker_control_ms / 1000)
+            await asyncio.shield(task)
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
     else:
-        if option == "cancel":
-            await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
+        await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
     return {"run": _public_run(RUN_STORE.get_run(run_id))}
-
-
-@app.post("/internal/v1/runs/{run_id}/control")
-async def internal_control_run(run_id: str, request: Request):
-    """读取并校验请求中的 option，控制指定 Run，返回控制处理结果。"""
-    try:
-        payload = await _small_json(request, 1024)
-        if set(payload) != {"option"} or not isinstance(payload.get("option"), str):
-            return _plain("control requires option: interrupt or cancel", 400)
-    except ValueError as error:
-        return _plain(str(error), 400)
-    return await _apply_internal_control(run_id, request, str(payload.get("option") or ""))
-
-
-@app.post("/internal/v1/runs/{run_id}/cancel")
-async def internal_cancel_run(run_id: str, request: Request):
-    """将 Run 标识和 HTTP 请求交给取消处理器，返回最新公开状态或错误响应。"""
-    return await _apply_internal_control(run_id, request, "cancel")
 
 
 # 独立观测出口仅提供 Python Runtime 执行侧数据。

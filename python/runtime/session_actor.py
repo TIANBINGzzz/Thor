@@ -262,14 +262,6 @@ class SessionActor:
         command = await self._enqueue('steer', run_id, {'message_id': message_id, 'text': text})
         return await command.future
 
-    async def interrupt(self, run_id: str) -> None:
-        """接收 Run 标识并提交中断命令，等待处理完成；准备阶段改为取消，无返回值。"""
-        if self._active_run_id == run_id and self._preparation_task is not None:
-            await self.cancel(run_id)
-            return
-        command = await self._enqueue("interrupt", run_id, None)
-        await command.future
-
     async def cancel(self, run_id: str) -> None:
         """接收 Run 标识，取消排队、附件准备或正在执行的命令，无返回值；非活动 Run 抛出异常。"""
         if run_id not in self._run_commands:
@@ -391,7 +383,7 @@ class SessionActor:
                         return
                 elif command.kind == 'steer':
                     self._resolve(command, {'status': 'rejected', 'code': 'run_not_active'})
-                elif command.kind in {"interrupt", "cancel"}:
+                elif command.kind == "cancel":
                     self._resolve_error(command, SessionActorError("当前没有活动 Run", code="no_active_run"))
         except asyncio.CancelledError:
             raise
@@ -690,7 +682,7 @@ class SessionActor:
                         if simultaneous_command is not None:
                             await handle_control(simultaneous_command)
                         continue
-                    if event_type in {"client_ready", "client_control_ack"}:
+                    if event_type == "client_ready":
                         if simultaneous_command is not None:
                             await handle_control(simultaneous_command)
                         continue
@@ -852,13 +844,6 @@ class SessionActor:
             message_id = command_value.payload['message_id']
             self._steering_commands[message_id] = command_value
             await worker.send({'type': 'client_steer', 'run_id': run_id, **command_value.payload})
-            return
-        if command_type == "interrupt":
-            if command_value.run_id == run_id:
-                await worker.send({"type": "client_interrupt", "run_id": run_id})
-                self._resolve(command_value, None)
-            else:
-                self._resolve_error(command_value, SessionActorError("Run 不属于当前活动 Client", code="run_not_active"))
             return
         if command_type == "cancel":
             if command_value.run_id == run_id:
@@ -1145,13 +1130,6 @@ class SessionManager:
         finally:
             async with self._lock:
                 self._run_actors.pop(run_id, None)
-
-    async def interrupt(self, run_id: str) -> None:
-        """根据 Run 标识找到所属 Actor 并请求中断，无返回值；Run 不活动时抛出异常。"""
-        actor = self._run_actors.get(run_id)
-        if actor is None:
-            raise SessionActorError("Run 不存在或已结束", code="run_not_active")
-        await actor.interrupt(run_id)
 
     async def cancel(self, run_id: str) -> None:
         """根据 Run 标识找到所属 Actor 并请求取消，无返回值；Run 不活动时抛出异常。"""

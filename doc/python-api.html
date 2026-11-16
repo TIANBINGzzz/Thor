@@ -774,20 +774,11 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 <p>只有 HTTP 2xx 且业务 state=200、success=true、data 中 ID 与文件大小等字段合法，才记录 ready。data.id 映射 fileId；data.url 只在内部保存，当前是存储路径，<strong>不能拼成已确认可下载的 URL</strong>。上传在 Runtime 父进程完成，不把服务配置主动注入模型，不转发 Run JWT 或业务 Token，不跟随重定向。domain-name、remote-url 不是鉴权凭据；文件服务未提供租户 ACL，Java 仍须做消息归属和下载授权。当前 Agent 具有进程文件权限，这不构成生产凭据沙箱。</p>
 <p>常用错误码：file_service_not_configured、file_service_config_invalid、artifact_snapshot_missing、artifact_too_large、file_service_unreachable、file_upload_server_error、file_upload_rejected（failed）；file_upload_response_invalid、file_upload_http_error、file_upload_uncertain（unknown）。file_upload_interrupted、file_upload_error 需结合 status 判断。unknown 需与文件服务核对结果。</p></section>
 
-<section id="control"><h2>控制 Run</h2>
-<div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/control</code></div>
-<p>控制与取消使用绑定该 Run 的 JWT。interrupt 消耗 JWT 的 <code>jti</code>；cancel 不消耗，创建 Run 时已使用过的执行 JWT 仍可用于停止；每次均校验签名、有效期及身份/Run 绑定。</p>
-<div class="code-wrap"><div class="code-label">Request body</div><button class="copy" type="button">复制</button><pre>{
-  "option": "interrupt"
-}</pre></div>
-<p><code>option</code> 是必填字符串，只允许以下两个值：</p>
-<table><thead><tr><th>option</th><th>执行效果与状态</th></tr></thead><tbody>
-<tr><td>interrupt</td><td>文件准备期间等同取消准备，进入 cancelled。模型执行期间请求中断当前响应，不代表可恢复暂停：持久 Client 调用 SDK interrupt，最终状态由随后 SDK 结果决定；独立执行停止任务并进入 cancelled。没有活动任务时不改变状态。</td></tr>
-<tr><td>cancel</td><td>取消本次 Run，包括排队中的执行；执行取消后产生 <code>run.cancelled</code> 事件并进入 <code>cancelled</code>。业务前端的“停止生成”使用此值。</td></tr>
-</tbody></table>
-<p>两种操作都不删除业务会话或已有输出，也不撤销工具已完成的操作。已结束的 Run 保持原状态。接口返回当前状态，执行可能仍在收尾，应以之后的 SSE 终态事件或查询结果为准；继续对话需要创建新的 Run。</p>
+<section id="control"><h2>取消 Run</h2>
 <div class="endpoint"><span class="method post">POST</span><code class="path">/internal/v1/runs/{runId}/cancel</code></div>
-<p>快捷取消接口，等价于 control 的 <code>{"option": "cancel"}</code>，使用绑定该 Run 的 JWT。两种入口按 runId 合并在途取消；重复取消返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
+<p>唯一停止入口，无需请求正文，使用绑定该 Run 的 JWT，不消耗 <code>jti</code>。创建 Run 时已使用过的执行 JWT 在有效期内仍可用于停止；每次均校验签名、有效期及身份/Run 绑定。</p>
+<p>取消本次 Run，包括排队、文件准备和模型执行；正常取消收尾后产生 <code>run.cancelled</code> 事件并进入 <code>cancelled</code>。按 runId 合并在途取消，重复请求返回当前状态，不改变已有终态。HTTP 断开或控制超时不撤销已接受的取消，504 后可查询或重试；活动执行仍在收尾时不提前标记 cancelled。</p>
+<p>取消不删除业务会话或已有输出，也不撤销工具已完成的操作。执行结果以之后的 SSE 终态事件或查询状态为准。不提供暂停/恢复，继续对话需要创建新的 Run。</p>
 <div class="code-wrap"><div class="code-label">Response 200</div><button class="copy" type="button">复制</button><pre>{
   "run": {
     "runId": "run_01",
@@ -826,7 +817,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <table><thead><tr><th>Claim</th><th>用途</th><th>校验规则</th></tr></thead><tbody>
 <tr><td>iss / aud</td><td>签发方和目标 Runtime</td><td>必须匹配部署配置。</td></tr>
 <tr><td>iat / exp</td><td>有效期</td><td>必须为数字，不能过期，<code>exp</code> 必须晚于 <code>iat</code>。</td></tr>
-<tr><td>jti</td><td>JWT 唯一标识</td><td>创建和 interrupt 请求防重放；幂等 cancel、查询、SSE 和 Artifact GET 不消费。</td></tr>
+<tr><td>jti</td><td>JWT 唯一标识</td><td>创建请求防重放；幂等 cancel、查询、SSE 和 Artifact GET 不消费。</td></tr>
 <tr><td>sub / tenant</td><td>用户和租户身份</td><td>身份仅来自已验证 JWT；创建时保存为内部归属，后续请求须与已保存 Run 一致。</td></tr>
 <tr><td>runId / capabilityRef</td><td>资源和能力绑定</td><td>必须与请求或路径中的 Run 一致。</td></tr>
 <tr><td>businessSessionId / messageId</td><td>业务会话和消息绑定</td><td>创建时 <code>messageId</code> 必须与请求一致；使用业务会话时绑定 <code>businessSessionId</code>。后续接口按已保存 Run 校验业务会话；引导正文使用新的 <code>messageId</code>，且不能复用触发消息 ID，普通 Run 查询与控制不绑定触发消息 ID。</td></tr>
@@ -837,7 +828,7 @@ CCSDK_RUNTIME_JWT_ISSUER=string-ai-center-service</pre></div>
 <tr><td>查询、SSE、Artifact GET</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
 <tr><td>创建消息引导</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
 <tr><td>查询消息引导回执</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
-<tr><td>控制、取消</td><td>绑定该 Run 的 JWT</td><td>interrupt 消费；cancel 不消费</td></tr>
+<tr><td>取消</td><td>绑定该 Run 的 JWT</td><td>不消费</td></tr>
 <tr><td>会话执行索引</td><td><code>session.read</code>，绑定 tenant、sub、businessSessionId</td><td>不消费</td></tr>
 </tbody></table>
 <div class="note"><code>credentials.platformBearer</code>是Java认证后透传的业务Token；数据库self每轮从业务JWT提取tenantId，来源access.tenantIds限定允许的数据范围，不自行验业务签名或替代Java业务授权。Runtime执行身份仍由Run JWT验证；业务Token不进入Prompt、事件、日志或持久化数据。</div></section>
@@ -868,13 +859,13 @@ Accept: application/octet-stream</pre></div>
 <p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用 upstream_service_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>
 <p>业务错误使用 <code>text/plain; charset=utf-8</code>；查询参数校验失败返回 <code>422 application/json</code>，包含 detail 数组。Java 应先按 HTTP 状态及 Content-Type 分支处理，不能假设所有错误都是 JSON 或纯文本。不存在的 Run 可先返回 404，不应把该响应当成鉴权成功。</p>
 <table class="error-table"><thead><tr><th>HTTP</th><th>含义</th><th>常见场景</th></tr></thead><tbody>
-<tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability、附件或 control 操作不合法。</td></tr>
+<tr><td>400</td><td>请求无效</td><td>JSON、字段、Capability 或附件不合法。</td></tr>
 <tr><td>401</td><td>Runtime 鉴权失败</td><td>JWT 缺失、签名无效、身份绑定不一致或 scope 不允许。</td></tr>
 <tr><td>403</td><td>请求来源被拒绝</td><td>内部 Runtime 请求带有浏览器 Origin，或不满足服务间调用边界。</td></tr>
 <tr><td>404</td><td>资源不存在</td><td>Run 或 Artifact 不存在。</td></tr>
 <tr><td>409</td><td>状态冲突</td><td>幂等请求归属/内容不一致，或 Run 状态不允许当前操作。</td></tr>
 <tr><td>422</td><td>查询参数校验失败</td><td>limit、cursor、afterSequence 的类型、范围或长度不合法，返回 JSON detail。</td></tr>
-<tr><td>504</td><td>控制超时</td><td>中断或取消命令在控制窗口内未完成。</td></tr>
+<tr><td>504</td><td>控制超时</td><td>取消命令在控制窗口内未完成。</td></tr>
 <tr><td>503</td><td>Runtime 配置不可用</td><td>Runtime JWT 配置缺失。文件服务器配置或文件访问错误通过 Run 事件报告；输出文件服务配置错误通过 artifact.failed 报告。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">Error response · text/plain</div><button class="copy" type="button">复制</button><pre>capability_not_found</pre></div></section>
@@ -885,7 +876,7 @@ Accept: application/octet-stream</pre></div>
 <tr><td>系统预制模板</td><td>document-writing + payload.templateKey；当前 szpt-midterm。</td><td>按模板加载指南及数据来源。Python 无模板 CRUD 或模板目录 API；业务模板库应维护可信 templateKey 映射，不能把任意上传文件视为已登记模板。</td></tr>
 <tr><td>老师上传模板、附件</td><td>attachmentRefs + input.text，按fileService配置下载后撰写。</td><td>保存原件、分配 fileId、校验 ACL；后续需要的附件再次提交。上传不自动生成指南或数据绑定，不改变数据权限。</td></tr>
 <tr><td>模板管理、学校可见范围、启停、重命名、删除</td><td>不属于执行 API。</td><td>由业务层维护模板记录、版本及学校授权；预制模板执行资产通过部署更新。修改数据库记录不等于 Python 模板已更新。</td></tr>
-<tr><td>停止生成</td><td>control option: cancel 或 /cancel。</td><td>断开 SSE 不停止执行；等待终态后更新消息。interrupt 不是暂停与恢复。</td></tr>
+<tr><td>停止生成</td><td>调用 /cancel，无需正文。</td><td>断开 SSE 不停止执行；等待终态后更新消息。不提供暂停与恢复。</td></tr>
 <tr><td>重试、重新回答、编辑后发送</td><td>传输重试复用 runId 和原请求、新 jti；重新执行使用新 runId。</td><td>保存消息与各次 Run 的关联。没有 SDK 历史回滚/分叉接口；新 Run 不会撤销旧工具副作用或自动删除历史上下文。</td></tr>
 <tr><td>恢复历史、断线重连</td><td>会话 Run 索引 + Run 状态 + SSE afterSequence。</td><td>Java 保存标题、消息、已消费序号并去重；同 tenant、sub、businessSessionId 串行共享 SDK 历史，跨能力也连续。模型、规则、MCP 与凭据按轮更新；仅工作区、SDK 环境或其他不可热更新的连接选项变化时重建 Client 并 resume。重启恢复须保留 RunStore 和 SDK transcript；无业务会话不保证连续上下文。</td></tr>
 <tr><td>文档卡片、预览、下载、引用回对话</td><td>artifact 状态事件、按 ID 查询及本地快照下载；Python 自动上传。</td><td>Java 需消费 artifact.ready 并绑定消息与 fileId，提供鉴权下载；前端需实现文件卡片。无专用预览端点，再次引用时Java授权并重新提交attachmentRefs。复杂排版与报告质量仍须成稿验收。</td></tr>

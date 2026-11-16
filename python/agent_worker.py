@@ -394,10 +394,6 @@ async def _receive_client_response(
                         if client.state == ClientState.RUNNING:
                             async with asyncio.timeout_at(response.stop_deadline):
                                 await client.interrupt()
-                elif command_type == 'client_interrupt' and current_run:
-                    if not response.cancelled and client.state == ClientState.RUNNING:
-                        await client.interrupt()
-                    emit({'type': 'client_control_ack', 'run_id': _client_command_run_id(command), 'op': 'interrupt'})
                 elif command_type == 'client_steer':
                     ack = {'type': 'client_steer_ack', 'run_id': _client_command_run_id(command_value),
                            'message_id': command_value.get('message_id')}
@@ -419,7 +415,7 @@ async def _receive_client_response(
                                 emit({**ack, 'status': 'unknown', 'code': 'sdk_steering_failed'})
                                 raise
                             emit({**ack, 'status': 'delivered'})
-                elif command_type in {'client_query', 'client_interrupt', 'client_cancel'}:
+                elif command_type in {'client_query', 'client_cancel'}:
                     emit({'type': 'client_error', 'run_id': _client_command_run_id(command_value), 'code': 'client_busy'})
             if next_task in done:
                 try:
