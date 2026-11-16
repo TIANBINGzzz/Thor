@@ -35,10 +35,13 @@ OfficeCLI 原生工具简介同时覆盖 Word、Excel、幻灯片；本轮 DOCX 
 
 - 不要先创建空文档再查看或调整。新稿必须一次性批量写入：准备好全文和完整 JSON 后，只创建一次，再用一次 `batch` 写入页面设置、全部段落和表格；不逐段、逐单元格调用 `set`。页码仅在用户或模板要求时写入。
 - `batch` 接收 JSON 数组，每项的 `command` 是单个动词，其他参数与 `command` 同级。常见项如下：
+- 新建空白文档时，在同一批次中先创建实际使用的 `Title`、`Heading1` 等段落样式，再添加正文；仅在段落填写 `style:"Heading1"` 不会可靠创建样式定义，LibreOffice 导出可能将其降为普通段落。一级标题样式须设置 `outlineLvl:0`，二级为 `1`，依次递增；已有模板复用其样式，不重复创建同名 ID。
 
 ```json
 [
   {"command":"set","path":"/","props":{"pageWidth":"21cm","pageHeight":"29.7cm","marginTop":"2.5cm","marginBottom":"2.5cm","marginLeft":"2.5cm","marginRight":"2.5cm"}},
+  {"command":"add","parent":"/styles","type":"style","props":{"id":"Title","name":"Title","type":"paragraph","basedOn":"Normal","font.ea":"黑体","size":"16pt","color":"000000","align":"center","spaceAfter":"12pt"}},
+  {"command":"add","parent":"/styles","type":"style","props":{"id":"Heading1","name":"heading 1","type":"paragraph","basedOn":"Normal","next":"Normal","outlineLvl":0,"keepNext":true,"font.ea":"黑体","size":"14pt","color":"000000","spaceBefore":"12pt","spaceAfter":"6pt"}},
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"标题","style":"Title","font.ea":"黑体","font.latin":"Times New Roman","size":"16pt","color":"000000","align":"center","spaceAfter":"12pt"}},
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"章节标题","style":"Heading1","font.ea":"黑体","font.latin":"Times New Roman","size":"14pt","color":"000000","align":"left","spaceBefore":"12pt","spaceAfter":"6pt"}},
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"完整正文段落","style":"Normal","font.ea":"宋体","font.latin":"Times New Roman","size":"12pt","color":"000000","align":"left","lineSpacing":"1.5x","firstLineIndent":"24pt","spaceBefore":"0pt","spaceAfter":"0pt"}},
@@ -55,4 +58,4 @@ OfficeCLI 原生工具简介同时覆盖 Word、Excel、幻灯片；本轮 DOCX 
 - 首次批量写入后，各调用一次 `view text` 和 `outline`，检查正文、标题层级及表格结构；不要对空文件查看结构，也不要逐段 `get`。
 - `close` 后渲染一次到新目录。对实际生成的 PDF 调用 `read_pdf`，设置 `limit=20`、`render=true`，再按工具返回的实际图片路径检查全部页面；互不依赖的图片读取可在同一轮发起。该检查已经覆盖分页，不再用 OfficeCLI 对同一版本逐页重复截图。渲染失败时报告具体障碍，不能以工具调用成功代替版式验收。
 - 只有发现事实/内容错误、缺文、结构错误或页面上可见的实质缺陷时才修订。将同类问题合并为一次 `batch`，然后再渲染并完整复核一次；不要删除并重建文档，也不要通过脚本修复 DOCX XML。没有可见的实质缺陷就直接交付，不做排版微调循环。
-- 内置样式首次自动补入的提示、中英文标点混排提示、字形完整且仍在页边距内的行尾标点悬挂，不构成内容或版式失败。不要为这些提示切换对齐方式、裁图放大或反复调整字距；`view issues` 的启发式建议不能代替实际页面判断。交付本次实际核验的渲染输出 `docxPath`，避免交付渲染前旧稿。
+- 中英文标点混排提示、字形完整且仍在页边距内的行尾标点悬挂，不构成内容或版式失败。不要为这些提示切换对齐方式、裁图放大或反复调整字距；`view issues` 的启发式建议不能代替实际页面判断。样式定义缺失及标题层级丢失属于结构错误，须补齐；对渲染后的 `docxPath` 再查看一次大纲，确认标题层级保留后交付，避免交付渲染前旧稿。
