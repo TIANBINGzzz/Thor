@@ -72,7 +72,7 @@ def _source_toc_count(path: Path) -> int:
 
 
 def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[str, Any]:
-    """在独立 Office 进程中刷新目录和字段，输出新 DOCX 与 PDF，失败不发布半成品。"""
+    """刷新目录和字段并生成 DOCX、PDF 及前 20 页预览，失败不发布半成品。"""
     roots = _roots(base_dir, additional_dirs)
     source = _resolve(path, roots)
     if source.suffix.lower() != ".docx":
@@ -80,6 +80,7 @@ def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[st
     directory = _resolve(output_dir, roots, exists=False)
     docx_path = _resolve(directory / f"{source.stem}.updated.docx", roots, exists=False)
     pdf_path = _resolve(directory / f"{source.stem}.pdf", roots, exists=False)
+    pages_dir = _resolve(directory / f"{source.stem}.pages", roots, exists=False)
     for output in (docx_path, pdf_path):
         _new_output(output, source)
     expected_tocs = _source_toc_count(source)
@@ -95,10 +96,22 @@ def render_document(path, output_dir, base_dir, additional_dirs=None) -> dict[st
             raise RuntimeError("Office 未确认完成字段及全部目录刷新，未发布输出文件")
         if not all(p.is_file() and p.stat().st_size > 0 for p in (staged_docx, staged_pdf)):
             raise RuntimeError("Office 未生成完整的 DOCX 与 PDF")
-        _publish_files([(staged_docx, docx_path), (staged_pdf, pdf_path)])
+        # 先完成 PDFium 读取和渲染，再统一发布；坏 PDF 或图片冲突不留下部分成果。
+        preview = read_pdf(staged_pdf, base_dir, additional_dirs, limit=20,
+                           render=True, output_dir=work / "pages")
+        outputs = [(staged_docx, docx_path), (staged_pdf, pdf_path)]
+        for page in preview["pages"]:
+            staged_image = Path(page["imagePath"])
+            target = _resolve(pages_dir / staged_image.name, roots, exists=False)
+            _new_output(target, source)
+            outputs.append((staged_image, target))
+            page["imagePath"] = str(target)
+        pages_dir.mkdir(parents=True, exist_ok=True)
+        _publish_files(outputs)
+        preview["path"] = str(pdf_path)
     return {**result, "docxPath": str(docx_path), "pdfPath": str(pdf_path),
             "sourcePath": str(source), "replacedFontSubsets": replaced_fonts,
-            "tocStatus": "updated" if result["tocCount"] else "not_present"}
+            "tocStatus": "updated" if result["tocCount"] else "not_present", "preview": preview}
 
 
 def _prepare_fonts(source: Path, work: Path) -> tuple[Path, list[str]]:
@@ -201,11 +214,12 @@ def _run_container(source: Path, docx_path: Path, pdf_path: Path, work: Path,
         raise RuntimeError("Windows文档渲染需要Docker及document-renderer镜像，构建方法见README")
     name = "scribe-render-" + uuid.uuid4().hex
     # Windows复用部署镜像的同一引擎；只挂载本次输入与临时输出，不挂载仓库或Docker socket。
+    # Office 用户配置留在容器 /tmp，避免宿主深层路径清理失败被误报为渲染失败。
     command = [docker, "run", "--rm", "--pull=never", "--name", name,
                "--network=none", "--cap-drop=ALL", "--security-opt=no-new-privileges",
                "--mount", f"type=bind,source={source},target=/input.docx,readonly",
                "--mount", f"type=bind,source={work},target=/output", image,
-               "/input.docx", "/output/" + docx_path.name, "/output/" + pdf_path.name, "/output",
+               "/input.docx", "/output/" + docx_path.name, "/output/" + pdf_path.name, "/tmp",
                str(timeout_ms), str(start_timeout_ms)]
     try:
         completed = subprocess.run(command, capture_output=True, encoding="utf-8", errors="replace", timeout=timeout_ms / 1000)

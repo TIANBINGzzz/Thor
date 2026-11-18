@@ -1,11 +1,11 @@
 {
   "ref": "office",
   "version": 1,
-  "implementation": "stdio-mcp",
+  "implementation": "office",
   "transport": "stdio",
   "lifecycle": "per_run",
   "scope": "namespace",
-  "description": "OfficeCLI 原生文档编辑。MCP 的 command 使用字符串数组；新稿先准备全文及格式 JSON，再 create → batch → close，最后通过 documents 渲染核验。完整最小用法见本轮注入的 TOOL.md。",
+  "description": "OfficeCLI 原生 Office 编辑，command 用参数数组。DOCX 的完整格式、批处理与验收规则已注入本轮 TOOL.md，直接复用；普通撰写无需 load_skill 或预先查 help。先准备全文，再 create → batch（含写入及 view text/outline/query 回读）→ close → documents.render；检查返回的 preview 页面图片和最终 DOCX 大纲。短稿 batch 可用 --commands 内联 JSON，长稿用 --input。仅缺具体语法时查一次对应 help；只对实际内容、结构或可见版式缺陷集中修订。Excel/PPTX 按需 load_skill。",
   "operations": [],
   "category": "document",
   "auth": {

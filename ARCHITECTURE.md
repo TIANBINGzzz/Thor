@@ -35,7 +35,7 @@
 - `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、实现契约和显示规则；远端 MCP 连接及凭据规则来自 MySQL。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 源码能力可用 `operationRefs` 选择同名代码包的业务动作；目录发现只读静态声明，Worker 经 `capability_packs/registry.py` 加载代码，`capability_operations.py` 校验输入输出并适配为 `capability_ops` MCP Tool。操作复用本轮数据、文档及成果 Service，使用数据不必向模型开放通用数据 Tool；不为业务场景新建 Provider。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
-- 文稿自主规划、取证、编辑及核验；OfficeCLI 编辑，LibreOffice 更新字段/导出 PDF，PDFium 提供分页核验。图表作为 Mermaid 正文交付。
+- 文稿自主规划、取证、编辑及核验；OfficeCLI 原生 MCP 编辑，`office_mcp.py` 仅统一模型可见工具说明并原样转发调用；LibreOffice 更新字段/导出 PDF，渲染结果复用 PDFium 返回分页文字及图片供核验。图表作为 Mermaid 正文交付。
 - `artifact_delivery.py` 自动上传发布快照并保存文件状态；`file_download.py` 仅从平台文件服务准备附件；`bootstrap.py` 在入口导入前通过 `application_config.py` 校验完整启动 YAML，再连接 MySQL；`deployment_config.py` 校验启动设置并按 Run 绑定配置、解析选定引用，文件/MCP 边界各自校验注入结果。Java 按 artifactId/fileId 关联业务消息和下载权限，不解析模型链接判断交付。
 - Capability、提示词、Tool/Service 及能力代码的归属规范见[工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)；固定流程是否可由 Agent 保证，按该要求区分模型决策和服务端执行。
 

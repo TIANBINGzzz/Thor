@@ -1,5 +1,6 @@
 import tempfile
 import subprocess
+import shutil
 import zipfile
 import sys
 import threading
@@ -91,6 +92,7 @@ class DocumentConversionTests(unittest.TestCase):
         command = process.call_args_list[0].args[0]
         self.assertEqual(process.call_args_list[0].kwargs['timeout'], 3.25)
         self.assertEqual(command[-2:], ['3250', '1400'])
+        self.assertEqual(command[-3], '/tmp')  # Office 配置留容器内，避免宿主长路径和清理失败。
         self.assertIn("--network=none", command)
         self.assertIn(f"type=bind,source={self.source},target=/input.docx,readonly", command)
         self.assertEqual(process.call_args_list[1].args[0],
@@ -239,6 +241,93 @@ assert 'yaml' not in sys.modules
         with patch("tools.document_conversion._run_office", side_effect=office), self.assertRaises(RuntimeError):
             render_document("source.docx", "rendered", self.root)
         self.assertEqual(list((self.root / "rendered").glob("*.pdf")), [])
+
+    def office_output(self, source, docx_path, pdf_path, work_dir):
+        docx_path.write_bytes(source.read_bytes())
+        make_pdf(pdf_path)
+        return {"engine": "test-office", "indexCount": 0, "tocCount": 0,
+                "indexesUpdated": 0, "fieldsUpdated": True}
+
+    def test_render_returns_real_pdf_text_and_published_page_images(self):
+        with patch("tools.document_conversion._run_office", side_effect=self.office_output):
+            result = render_document("source.docx", "rendered", self.root)
+        preview = result["preview"]
+        self.assertEqual(preview["path"], result["pdfPath"])
+        self.assertEqual(preview["engine"], "pdfium")
+        self.assertEqual(preview["pageCount"], 2)
+        self.assertEqual(preview["start"], 1)
+        self.assertIsNone(preview["nextStart"])
+        self.assertIn("First page", preview["pages"][0]["text"])
+        self.assertIn("Second page", preview["pages"][1]["text"])
+        for page in preview["pages"]:
+            image = Path(page["imagePath"])
+            self.assertEqual(image.parent, self.root / "rendered" / "source.pages")
+            self.assertTrue(image.read_bytes().startswith(b"\x89PNG"))
+            self.assertGreater(page["width"], 0)
+        self.assertFalse(any(path.name.startswith(".office-") for path in (self.root / "rendered").iterdir()))
+
+    def test_render_limits_preview_to_twenty_pages_and_supports_continuation(self):
+        import pypdfium2 as pdfium
+
+        def office(*args):
+            result = self.office_output(*args)
+            pdf_path, work = args[2], args[3]
+            with pdfium.PdfDocument(pdf_path) as original, pdfium.PdfDocument.new() as document:
+                document.import_pages(original, [0] * 20 + [1])
+                document.save(work / "long.pdf")
+            (work / "long.pdf").replace(pdf_path)
+            return result
+
+        with patch("tools.document_conversion._run_office", side_effect=office):
+            result = render_document("source.docx", "rendered", self.root)
+        preview = result["preview"]
+        self.assertEqual(preview["pageCount"], 21)
+        self.assertEqual(len(preview["pages"]), 20)
+        self.assertEqual(preview["nextStart"], 21)
+        self.assertEqual(len(list((self.root / "rendered" / "source.pages").glob("*.png"))), 20)
+        continuation = read_pdf(result["pdfPath"], self.root, start=21, render=True)
+        self.assertIsNone(continuation["nextStart"])
+        self.assertIn("Second page", continuation["pages"][0]["text"])
+        self.assertTrue(Path(continuation["pages"][0]["imagePath"]).is_file())
+
+    def test_render_rejects_bad_pdf_without_publishing_docx_or_preview(self):
+        def office(*args):
+            result = self.office_output(*args)
+            args[2].write_bytes(b"not a PDF")
+            return result
+
+        with patch("tools.document_conversion._run_office", side_effect=office), self.assertRaises(Exception):
+            render_document("source.docx", "rendered", self.root)
+        self.assertEqual(list((self.root / "rendered").rglob("*")), [])
+
+    def test_render_preserves_existing_preview_and_publishes_no_other_files(self):
+        image = self.root / "rendered" / "source.pages" / "page-0002.png"
+        image.parent.mkdir(parents=True)
+        image.write_bytes(b"existing preview")
+        with patch("tools.document_conversion._run_office", side_effect=self.office_output), self.assertRaises(FileExistsError):
+            render_document("source.docx", "rendered", self.root)
+        self.assertEqual(image.read_bytes(), b"existing preview")
+        self.assertEqual([p for p in image.parent.parent.rglob("*") if p.is_file()], [image])
+
+    def test_render_rejects_output_escape_without_touching_source(self):
+        original = self.source.read_bytes()
+        with self.assertRaises(ValueError):
+            render_document("source.docx", "../outside", self.root)
+        self.assertEqual(self.source.read_bytes(), original)
+
+    def test_render_rolls_back_all_outputs_when_publishing_a_page_fails(self):
+        copy = shutil.copyfileobj
+
+        def publish(content, output):
+            if Path(content.name).name == "page-0002.png":
+                raise OSError("simulated disk write failure")
+            return copy(content, output)
+
+        with patch("tools.document_conversion._run_office", side_effect=self.office_output), \
+                patch("tools.document_conversion.shutil.copyfileobj", side_effect=publish), \
+                self.assertRaisesRegex(OSError, "disk write failure"):
+            render_document("source.docx", "rendered", self.root)
+        self.assertEqual([p for p in (self.root / "rendered").rglob("*") if p.is_file()], [])
 
 
 if __name__ == "__main__":

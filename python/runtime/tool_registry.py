@@ -7,7 +7,7 @@ from typing import Callable
 
 from runtime.tool_catalog import TOOL_CATALOG, ToolCatalog, ToolDefinition, ToolOperation
 from runtime.mcp_providers import provide_mcp
-from tools import artifacts, attachments, data, documents, images, mermaid, web_search
+from tools import artifacts, attachments, data, documents, images, mermaid, office_mcp, web_search
 
 @dataclass
 class RegisteredTools:
@@ -33,6 +33,7 @@ PROVIDERS: dict[str, ToolProvider] = {
     'charts': ToolProvider(create=mermaid.provide_tool),
     'artifacts': ToolProvider(create=artifacts.provide_tool),
     'documents': ToolProvider(create=documents.provide_tool),
+    'office': ToolProvider(create=office_mcp.provide_tool),
     'stdio-mcp': ToolProvider(create=provide_mcp),
     'images': ToolProvider(create=images.provide_tool),
     'http-mcp': ToolProvider(create=provide_mcp),
@@ -54,7 +55,7 @@ def validate_tool_provider(definition):
     if (definition.lifecycle == 'per_client') != bool(provider.create_service):
         raise RuntimeError(f'工具生命周期与实现不符：{definition.ref}')
     if definition.transport != ('http' if definition.implementation == 'http-mcp' else
-                                 'stdio' if definition.implementation == 'stdio-mcp' else 'sdk'):
+                                 'stdio' if definition.implementation in {'stdio-mcp', 'office'} else 'sdk'):
         raise RuntimeError(f'工具传输与实现不符：{definition.ref}')
     return provider
 

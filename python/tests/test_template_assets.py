@@ -74,8 +74,8 @@ class TemplateDocumentTests(unittest.TestCase):
         for marker in ('ALPHA_GUIDE','BETA_GUIDE','REPORT_ADAPTER'):
             self.assertNotIn(marker,options.system_prompt['append'])
         self.assertNotIn('reports',options.mcp_servers)
-        self.assertEqual(options.mcp_servers['office']['command'],'officecli')
-        self.assertEqual(options.mcp_servers['office']['args'],['mcp'])
+        self.assertEqual(Path(options.mcp_servers['office']['args'][0]).name, 'office_mcp.py')
+        self.assertEqual(options.mcp_servers['office']['args'][-2:], ['officecli', 'mcp'])
         self.assertIn('documents',options.mcp_servers)
         self.assertNotIn('docx',options.mcp_servers)
 

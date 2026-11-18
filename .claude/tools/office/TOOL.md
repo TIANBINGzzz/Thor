@@ -2,9 +2,9 @@
 
 适用于创建或修改 DOCX。新稿应先完成全文和整批 JSON 操作，再开始编辑；已有文档只做本轮要求的修改，不重建原件。
 
-OfficeCLI 原生工具简介同时覆盖 Word、Excel、幻灯片；本轮 DOCX 采用本指引的专用流程。不要照搬其面向所有格式的 `load_skill → validate → issues → 反复 screenshot` 流程；本文的正文/大纲检查及 LibreOffice/PDFium 全页核验是 DOCX 的交付检查。
+本轮 DOCX 的完整操作规则在本文，已注入的必载 Skill 无需再搜索或读取。正文/大纲检查及 LibreOffice/PDFium 全页核验是 DOCX 的交付检查；Excel、幻灯片才按需加载对应原生 Skill。
 
-`mcp__office__officecli` 的 `command` 是参数数组，例如 `{"command":["create","/absolute/path/article.docx"]}`，不是 shell 命令字符串。最短新稿链路：准备全文与格式 JSON → `create` → `batch` → 正文/大纲检查 → `close`（保存并释放文件）→ `mcp__documents__render`。编辑、查询可以在内存中进行，不必每次操作后 `save`；外部渲染前必须先 `close`。
+`mcp__office__officecli` 的 `command` 是参数数组，例如 `{"command":["create","/absolute/path/article.docx"]}`。最短新稿链路：准备全文与格式 JSON → `create` → `batch`（写入及正文/大纲/表格回读）→ `close`（保存并释放文件）→ `mcp__documents__render` → 查看返回的页面图片及最终 DOCX 大纲。编辑、查询可以在内存中进行，不必每次操作后 `save`；外部渲染前必须先 `close`。有结果依赖的步骤依次执行，无需依赖新结果的多项操作集中在同一次调用。
 
 普通文章默认只用内置标题层级，不添加封面、目录、页眉页脚或页码；用户明确要求或所选模板包含时才添加。模板和超长报告遵循其结构要求。
 
@@ -29,7 +29,7 @@ OfficeCLI 原生工具简介同时覆盖 Word、Excel、幻灯片；本轮 DOCX 
 - 普通撰写不编写 Python-docx 或 docx-js 临时文档生成器，也不通过脚本修复 OfficeCLI 产物；遇到具体不支持的格式时说明缺口，不绕过工具边界。
 - 使用内置 `Title`、`Heading1`、`Heading2` 层级，不另建自定义样式。在首次批量写入中为对应段落设置 `font.ea`、`font.latin`、`size` 和黑色；这些直接格式覆盖内置样式的外观。
 - 简单表格在首次批量写入中一次给出全部行列、`light1` 样式和可见边框。普通首行写入表头文字即可，不设置重复表头属性，也不逐格回读和补格式。
-- MCP 调用以 `command` 数组传操作，DOCX 和 JSON 操作文件都用本轮工作目录的绝对路径，例如 `{"command":["batch","/absolute/path/file.docx","--input","/absolute/path/ops.json"]}`；不要因相对路径找不到文件而转用 shell。
+- MCP 调用以 `command` 数组传操作，DOCX 和 JSON 操作文件都用本轮工作目录的绝对路径。短稿直接 `{"command":["batch","/absolute/path/file.docx","--commands","[JSON操作数组]"]}`；长稿用 `--input` 读取已准备好的 JSON 文件。不要因相对路径找不到文件而转用 shell。
 
 ## 批量写入
 
@@ -45,17 +45,20 @@ OfficeCLI 原生工具简介同时覆盖 Word、Excel、幻灯片；本轮 DOCX 
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"标题","style":"Title","font.ea":"黑体","font.latin":"Times New Roman","size":"16pt","color":"000000","align":"center","spaceAfter":"12pt"}},
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"章节标题","style":"Heading1","font.ea":"黑体","font.latin":"Times New Roman","size":"14pt","color":"000000","align":"left","spaceBefore":"12pt","spaceAfter":"6pt"}},
   {"command":"add","parent":"/body","type":"paragraph","props":{"text":"完整正文段落","style":"Normal","font.ea":"宋体","font.latin":"Times New Roman","size":"12pt","color":"000000","align":"left","lineSpacing":"1.5x","firstLineIndent":"24pt","spaceBefore":"0pt","spaceAfter":"0pt"}},
-  {"command":"add","parent":"/body","type":"table","props":{"data":"环节,内容,时长;1,操作演示,40分钟;2,课件练习,50分钟","style":"light1","border.all":"single;1pt;000000"}}
+  {"command":"add","parent":"/body","type":"table","props":{"data":"环节,内容,时长;1,操作演示,40分钟;2,课件练习,50分钟","style":"light1","border.all":"single;1pt;000000"}},
+  {"command":"view","mode":"text"},
+  {"command":"view","mode":"outline"},
+  {"command":"query","selector":"cell"}
 ]
 ```
 
 - 页型、边距、字体和标题层级服从用户要求或所选模板；没有明确要求时采用简洁、可读的默认值。只有缺少具体命令用法时才查对应帮助，查到后复用，不逐项查完整帮助。
 - 上例的段前、段后和行距可直接用于普通文章，在首次 `add` 时一起给出；中文字体用 `font.ea`，字号用 `size`。首行缩进使用 `firstLineIndent` 的长度值（正文两字为字号的两倍），不要使用 `firstLineChars`：当前 LibreOffice 渲染会丢失该字符单位缩进。不要先写无格式正文，再遍历段落补齐这些已知属性；不靠空段落制造间距。具体属性不确定时用 `{"command":["help","docx","paragraph"]}` 查询一次。
-- `Write` 必须先返回成功，后续才能 `batch --input` 读取该 JSON；这两步有依赖，不能放在同一轮并行调用。首次全文的内容自检也应在创建前完成。
+- 首次全文的事实、结构和字数自检在创建前集中完成；需要计算时一次计算全部指标。使用内联 `--commands` 无需生成操作文件；使用文件时，`Write` 必须先成功，后续才能 `batch --input` 读取，不能并行执行这两步。
 
 ## 一次核验
 
-- 首次批量写入后，各调用一次 `view text` 和 `outline`，检查正文、标题层级及表格结构；不要对空文件查看结构，也不要逐段 `get`。
-- `close` 后渲染一次到新目录。对实际生成的 PDF 调用 `read_pdf`，设置 `limit=20`、`render=true`，再按工具返回的实际图片路径检查全部页面；互不依赖的图片读取可在同一轮发起。该检查已经覆盖分页，不再用 OfficeCLI 对同一版本逐页重复截图。渲染失败时报告具体障碍，不能以工具调用成功代替版式验收。
+- 将 `view text`、`view outline` 以及需要的表格回读接在首次 `batch` 末尾，利用同次返回检查正文、标题层级及表格结构；无需再分开调用相同查询，不对空文件查看结构，不逐段 `get`。
+- `close` 后渲染一次到新目录。`render` 返回的 `preview` 已含前20页文字、尺寸和实际页面图片路径，直接读取图片检查全部页面；若 `nextStart` 非空，再用 `read_pdf` 的 `start=nextStart`、`limit=20`、`render=true` 继续直到全页完成。互不依赖的图片读取可在同一轮发起。该检查已经覆盖分页，无需重复读取同一 PDF 或逐页 OfficeCLI 截图。渲染失败时报告具体障碍，不能以工具调用成功代替版式验收。
 - 只有发现事实/内容错误、缺文、结构错误或页面上可见的实质缺陷时才修订。将同类问题合并为一次 `batch`，然后再渲染并完整复核一次；不要删除并重建文档，也不要通过脚本修复 DOCX XML。没有可见的实质缺陷就直接交付，不做排版微调循环。
-- 中英文标点混排提示、字形完整且仍在页边距内的行尾标点悬挂，不构成内容或版式失败。不要为这些提示切换对齐方式、裁图放大或反复调整字距；`view issues` 的启发式建议不能代替实际页面判断。样式定义缺失及标题层级丢失属于结构错误，须补齐；对渲染后的 `docxPath` 再查看一次大纲，确认标题层级保留后交付，避免交付渲染前旧稿。
+- 中英文标点混排提示、字形完整且仍在页边距内的行尾标点悬挂，不构成内容或版式失败。不要为这些提示切换对齐方式、裁图放大或反复调整字距；`view issues` 的启发式建议不能代替实际页面判断。样式定义缺失及标题层级丢失属于结构错误，须补齐；对渲染后的 `docxPath` 用 `{"command":["view","/absolute/path/file.updated.docx","outline"]}` 查看一次大纲，确认标题层级保留后交付。`outline` 是位置参数，无需先 `open`，仅读取后无需 `save` 或 `close`；发布此更新版 DOCX 和对应 PDF，避免交付渲染前旧稿。

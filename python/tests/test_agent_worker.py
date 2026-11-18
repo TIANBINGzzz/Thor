@@ -326,7 +326,7 @@ class AgentWorkerTests(unittest.TestCase):
             with patch('runtime.config.PROJECT_ROOT', Path(directory)), \
                  patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH': str(binary), 'PATH': 'previous'}, clear=True):
                 options = build_options({})
-                self.assertEqual(options.mcp_servers['office']['command'], str(binary))
+                self.assertEqual(options.mcp_servers['office']['args'][-2:], [str(binary), 'mcp'])
                 self.assertTrue(options.env['PATH'].startswith(directory))
 
     def test_capability_documents_are_loaded_from_declared_paths(self):

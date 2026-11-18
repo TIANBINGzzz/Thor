@@ -126,8 +126,9 @@ class ToolCatalog:
         connection = value.get('connection', {})
         if not isinstance(connection, dict) or type(value.get('optional', False)) is not bool:
             raise RuntimeError(f'MCP连接配置无效：{ref}')
-        if (implementation in {'http-mcp', 'stdio-mcp'} and
-                (value['transport'] != implementation.split('-')[0] or value['lifecycle'] != 'per_run' or not connection)):
+        if (implementation in {'http-mcp', 'stdio-mcp', 'office'} and
+                (value['transport'] != ('http' if implementation == 'http-mcp' else 'stdio')
+                 or value['lifecycle'] != 'per_run' or not connection)):
             raise RuntimeError(f'MCP Provider配置无效：{ref}')
         if value['transport'] == 'sdk' and connection:
             raise RuntimeError(f'SDK工具不能声明MCP连接：{ref}')

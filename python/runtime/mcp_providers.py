@@ -27,7 +27,7 @@ def load_mcp_connections(entry, settings, *, catalog=None, environment=None):
     result = {}
     environment = os.environ if environment is None else environment
     for definition in (catalog or TOOL_CATALOG).resolve_many(entry.get('tools', [])):
-        if definition.implementation not in {'http-mcp', 'stdio-mcp'}:
+        if definition.implementation not in {'http-mcp', 'stdio-mcp', 'office'}:
             continue
         connection = settings.resolve(_environment_values(definition.connection, environment))
         required = 'url' if definition.transport == 'http' else 'command'

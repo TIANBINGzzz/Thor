@@ -9,7 +9,7 @@
   "operations": [
     {
       "ref": "render",
-      "description": "Office引擎更新DOCX已有目录字段，另存DOCX与PDF；不会从静态目录文字创建TOC。output_dir为新目录。OfficeCLI编辑后先close；需要目录时tocStatus=not_present表示未通过，须修复字段再渲染。版式通过PDF核验。",
+      "description": "Office引擎更新DOCX已有目录字段，另存DOCX与PDF，并在preview直接返回前20页文字、pageCount、imagePath及nextStart；用Read查看图片逐页核验，无需重复read_pdf；nextStart非空时继续read_pdf其余页。不会从静态目录文字创建TOC。output_dir为新目录。OfficeCLI编辑后先close；需要目录时tocStatus=not_present表示未通过，须修复字段再渲染。",
       "inputSchema": {
         "type": "object",
         "properties": {
