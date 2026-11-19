@@ -39,7 +39,7 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 ## 独立观测接入
 
-MySQL ccsdk_setting.runtime_observation_enabled（重启生效） 控制采集；开启后采集脱敏事件并写入有界待采库。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
+MySQL `settings/runtime` 的 `value.observability.enabled` 控制采集，重启生效。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
 
 带专用 observation.read JWT 核对 /internal/observability/v1/info、records、snapshot、metrics；关闭返回404，缺密钥返回503，无效授权返回401。紧急停采在 application.diagnostics.disable-observability 设置 true 并重启；正常采集以 MySQL 为准。
 

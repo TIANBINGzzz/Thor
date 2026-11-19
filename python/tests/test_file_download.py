@@ -1,7 +1,6 @@
 """下载器只使用本轮附件引用、Run 域名和隔离目录。"""
 
 import inspect
-from dataclasses import replace
 import json
 from pathlib import Path
 import tempfile
@@ -16,7 +15,6 @@ from runtime.file_download import (
 )
 from runtime.file_service import FileServiceError
 from runtime.protocol import AttachmentRef
-from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 class FileDownloadContractTests(unittest.TestCase):
@@ -35,8 +33,8 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.config = {
             'baseUrl': 'https://files.test',
-            'remoteUrl': 'https://public.test', 'downloadPath': '/file/{fileId}/download',
-            'maxFileBytes': 1024 * 1024, 'timeoutSeconds': 600,
+            'remoteUrl': 'https://public.test', 'path': '/file/{fileId}/download',
+            'maxBytes': 1024 * 1024, 'timeoutMs': 15000, 'prepareMs': 600000,
         }
         self.enterContext(patch('runtime.file_download.file_service_config', return_value=self.config))
         self.temp = tempfile.TemporaryDirectory()
@@ -92,7 +90,7 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(list((self.root / 'input').iterdir()), [])
 
     async def test_deployment_file_limit_is_always_enforced(self):
-        self.config['maxFileBytes'] = 3
+        self.config['maxBytes'] = 3
         with self.assertRaises(FileDownloadValidationError):
             await self.fetch(lambda _: httpx.Response(200, content=b'data', headers={
                 'content-disposition': 'attachment; filename=report.pdf'}), max_bytes=100)
@@ -121,14 +119,12 @@ class FileDownloadValidationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(list((self.root / 'input').iterdir()), [])
 
     async def test_http_client_uses_configured_download_timeout(self):
-        settings = replace(__import__('runtime.runtime_settings', fromlist=['_SETTINGS'])._SETTINGS, timeouts=replace(
-            RUNTIME_SETTINGS.timeouts, file_download_ms=1234))
+        self.config['timeoutMs'] = 1234
         def handler(request):
             self.assertEqual(set(request.extensions['timeout'].values()), {1.234})
             return httpx.Response(200, content=b'data', headers={
                 'content-disposition': 'attachment; filename=report.pdf'})
-        with patch('runtime.file_download.RUNTIME_SETTINGS', settings):
-            await self.fetch(handler)
+        await self.fetch(handler)
 
     async def test_broken_observer_does_not_fail_a_valid_download(self):
         def observer(*_):

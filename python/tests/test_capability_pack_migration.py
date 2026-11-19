@@ -4,17 +4,14 @@ from unittest.mock import MagicMock, patch
 from runtime.capabilities import CAPABILITIES, capability_entry
 from runtime.config import build_options
 from capability_packs.registry import _directory, _load_module
+from tests.deployment_fixtures import deployment_document
 
 _CAMPUS = _load_module(_directory('campus-brain-query'))
 
 
 class CapabilityPackMigrationTests(unittest.TestCase):
     def setUp(self):
-        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', {
-            'campusMcp': {
-                'url': 'https://campus.example.test/mcp',
-                'domainName': 'campus.example.test', 'headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'},
-            }}))
+        self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
 
     def test_campus_business_operations_are_the_agent_tools(self):
         entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)

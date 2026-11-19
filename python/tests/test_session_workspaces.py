@@ -1,4 +1,4 @@
-from tests.deployment_fixtures import patch_configuration
+from tests.deployment_fixtures import file_settings, patch_configuration
 """身份绑定、并发领取及跨能力的 Runtime/Actor 集成回归。"""
 
 import asyncio
@@ -120,9 +120,8 @@ class WorkspaceRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     transport=httpx.MockTransport(upload))
                 with patch.multiple(server, RUN_STORE=store, CLIENT_SESSION_ROOT=root / 'sessions',
                                     ARTIFACT_DELIVERY=delivery, RUN_TIMINGS={}), \
-                     patch_configuration({'fileService': {
-                         'baseUrl': 'https://files.example.test',
-                         'remoteUrl': 'https://public.example.test'}}):
+                     patch_configuration({'fileService': file_settings(
+                         'https://files.example.test', 'https://public.example.test')}):
                     try:
                         await server._handle_agent_event('artifact-run', {
                             'type': 'artifact.published', 'artifactId': artifact['artifactId']})

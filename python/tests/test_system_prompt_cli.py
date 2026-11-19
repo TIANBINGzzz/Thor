@@ -81,7 +81,7 @@ class SystemPromptCLITests(unittest.IsolatedAsyncioTestCase):
         from runtime.configuration import execution_entry
         self.read_tools = False
         rows = configuration_rows()
-        rows['capabilities']['conversation']['tool_refs'] = []
+        rows['capabilities']['conversation']['config']['toolRefs'] = []
         policy = ClientTurnPolicy()
         client = None
         sessions = []

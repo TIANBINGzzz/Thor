@@ -57,6 +57,8 @@ class CapabilityPack:
     create_service: Callable | None = None
     update_service: Callable | None = None
     specialize_operations: Callable | None = None
+    service_assets: dict[str, str] | None = None
+    parameter_schema: dict | None = None
 
 
 class CapabilityServices:
@@ -251,15 +253,17 @@ def _schema(value, label):
 
 def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
     """仅校验静态 pack.json；能力目录和提示词预览不得导入 Python 代码。"""
-    if (not isinstance(value, dict) or set(value) - {"ref", "operations", "services"}
+    if (not isinstance(value, dict) or set(value) - {"ref", "operations", "services", "parameters"}
             or not {'ref', 'operations'} <= set(value)
             or value.get("ref") != ref):
         raise RuntimeError("能力代码包声明无效")
-    services = value.get('services', [])
-    if (not isinstance(services, list) or
-            any(not isinstance(item, str) or not ENTRY_NAME.fullmatch(item) for item in services) or
-            len(set(services)) != len(services)):
+    services = value.get('services', {})
+    if (not isinstance(services, dict) or any(
+            not ENTRY_NAME.fullmatch(name) or not isinstance(path, str) for name, path in services.items())):
         raise RuntimeError('能力 Service 依赖声明无效')
+    parameters = value.get('parameters')
+    if parameters is not None:
+        _schema(parameters, '能力专属配置')
     definitions = value.get("operations")
     if not isinstance(definitions, list) or not definitions:
         raise RuntimeError("能力代码包操作数量无效")
@@ -290,7 +294,7 @@ def manifest_pack(value: dict[str, Any], ref: str) -> CapabilityPack:
             output_validator=Draft202012Validator(output_schema, registry=_SCHEMA_REGISTRY),
             display_key=item.get('displayKey')))
         seen.add(operation_ref)
-    return CapabilityPack(ref, tuple(operations), tuple(services))
+    return CapabilityPack(ref, tuple(operations), tuple(services), service_assets=services, parameter_schema=parameters)
 
 
 def validate_pack(pack, ref: str) -> CapabilityPack:

@@ -51,7 +51,7 @@ def _pack_manifest(directory: Path, ref: str):
 
 def _read_pack_manifest(directory: Path, ref: str):
     value = read_manifest(directory, "pack.json")
-    if set(value) - {'ref', 'operations', 'services'} or value.get("ref") != ref:
+    if value.get('ref') != ref:
         raise RuntimeError("能力代码包声明无效")
     from runtime.capability_operations import manifest_pack
 
@@ -153,13 +153,13 @@ def _bind_pack(directory: Path, ref: str):
     ), ref)
 
 
-def load_pack_service_assets(capability_ref, service_ref, settings, directory, config_path):
+def load_pack_service_assets(capability_ref, service_ref, settings, directory, params):
     """加载代码包声明的 Service 资产；只在实际执行装配时导入包代码。"""
     pack = load_pack(capability_ref)
     if service_ref not in pack.services or not callable(pack.load_service_assets):
         raise RuntimeError('能力 Service 资产未登记')
-    return pack.load_service_assets(service_ref, settings, directory, config_path,
-                                    pack.operations)
+    return pack.load_service_assets(service_ref, settings, directory, pack.service_assets[service_ref],
+                                    pack.operations, params)
 
 
 def create_pack_service(capability_ref, service_ref, assets, credentials):

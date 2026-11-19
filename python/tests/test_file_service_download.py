@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import httpx
+from tests.deployment_fixtures import file_settings
 from docx import Document
 
 from runtime.file_download import FileDownloader, FileDownloadError, FileDownloadConfigurationError
@@ -24,11 +25,8 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         (self.root / 'input').mkdir()
-        self.settings = {'fileService': {
-            'baseUrl': 'https://files.example.test',
-            'remoteUrl': 'https://public.example.test',
-            'downloadPath': '/fwk_manage_service/sys_attachment/{fileId}/ai/download/',
-        }}
+        self.settings = {'fileService': file_settings('https://files.example.test', 'https://public.example.test',
+            '/fwk_manage_service/sys_attachment/{fileId}/ai/download/')}
         self.enterContext(patch_configuration(self.settings))
         self.enterContext(patch.dict('os.environ', {}, clear=True))
 
@@ -220,19 +218,21 @@ class FileServiceDownloadTests(unittest.IsolatedAsyncioTestCase):
 
     def test_invalid_download_configuration_is_rejected(self):
         for field, value in (
-            ('downloadPath', 'https://other.test/{fileId}'),
-            ('downloadPath', '/file/{fileId}/{unknown}'),
-            ('downloadPath', '/file/{fileId}?extra=1'),
-            ('downloadPath', '/file/static'),
-            ('downloadPath', '/file/../{fileId}'),
+            ('path', 'https://other.test/{fileId}'),
+            ('path', '/file/{fileId}/{unknown}'),
+            ('path', '/file/{fileId}?extra=1'),
+            ('path', '/file/static'),
+            ('path', '/file/../{fileId}'),
             ('baseUrl', 'https://files.test:invalid'),
         ):
             with self.subTest(field=field, value=value):
-                original = self.settings['fileService'][field]
-                self.settings['fileService'][field] = value
+                group = self.settings['fileService']
+                group = group['download'] if field == 'path' else group
+                original = group[field]
+                group[field] = value
                 with self.assertRaises(FileDownloadConfigurationError):
                     FileDownloader(domain_name='routing.example.test')
-                self.settings['fileService'][field] = original
+                group[field] = original
         for domain_name in ('host\r\ninjected: true', 'bad host', 'https://school.example'):
             with self.subTest(domain_name=domain_name), self.assertRaises(FileDownloadConfigurationError):
                 FileDownloader(domain_name=domain_name)

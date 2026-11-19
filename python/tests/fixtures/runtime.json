@@ -3,9 +3,6 @@
     "execution-ms": 3600000,
     "client-queue-ms": 300000,
     "client-idle-ms": 300000,
-    "file-prepare-ms": 600000,
-    "file-download-ms": 15000,
-    "file-upload-connect-ms": 10000,
     "worker-start-ms": 60000,
     "worker-send-ms": 5000,
     "worker-close-ms": 20000,
@@ -18,7 +15,6 @@
   },
   "limits": {
     "max-turns": 200,
-    "file-max-bytes": 268435456,
     "sdk-buffer-bytes": 16777216,
     "http-body-bytes": 2097152,
     "prompt-bytes": 32768

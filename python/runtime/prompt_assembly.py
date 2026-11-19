@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 from data_access.context import fingerprint
-from runtime.asset_registry import ENTRY_NAME, load_declared_asset, read_manifest, validate_refs
+from runtime.asset_registry import ENTRY_NAME, load_declared_asset, validate_refs
 from runtime.prompt_documents import MAX_DOCUMENT_TOTAL_BYTES, read_documents
 from runtime.tool_catalog import TOOL_CATALOG
 
@@ -24,36 +24,14 @@ def _render(text, values):
     return VARIABLE.sub(lambda match: str(values[match[1]]), text)
 
 
-def prompt_variables(directory, manifest):
-    """仅从已登记工具 JSON 的顶层非秘密数值/布尔字段绑定变量；不展开连接引用。"""
-    bindings = manifest.get('promptVariables', {})
-    if not isinstance(bindings, dict):
-        raise RuntimeError('提示词变量声明无效')
-    values = {}
-    for name, binding in bindings.items():
-        if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', name)
-                or name in SLOTS or not isinstance(binding, dict)
-                or set(binding) not in ({'toolRef', 'field'}, {'serviceRef', 'field'})):
-            raise RuntimeError('提示词变量绑定无效')
-        ref, field = binding.get('toolRef', binding.get('serviceRef')), binding['field']
-        declared_refs = (manifest.get('toolRefs', manifest.get('tools', []))
-                         if 'toolRef' in binding else manifest.get('serviceRefs', []))
-        if (not isinstance(ref, str) or ref not in manifest.get('toolConfig', {})
-                or ref not in declared_refs
-                or not isinstance(field, str) or not ENTRY_NAME.fullmatch(field)
-                or re.search(r'token|secret|password|credential|connection|header|env|key|auth', field, re.I)):
-            raise RuntimeError('提示词变量来源未登记')
-        root = Path(directory).resolve()
-        path = (root / manifest['toolConfig'][ref]).resolve()
-        if (not path.is_relative_to(root) or path.suffix != '.json'
-                or 'not_for_model' in path.relative_to(root).as_posix().lower().replace('-', '_')
-                or not path.is_file() or path.stat().st_size > 128_000):
-            raise RuntimeError('提示词变量文件无效')
-        value = read_manifest(path.parent, path.name).get(field)
-        if type(value) not in (bool, int, float) or (type(value) is float and not math.isfinite(value)):
-            raise RuntimeError('提示词变量只允许非秘密数值或布尔字段')
-        values[name] = value
-    return values
+def prompt_variables(manifest):
+    """只把已由代码包校验的非秘密标量传给提示词。"""
+    params = manifest.get('params', {})
+    if not isinstance(params, dict):
+        raise RuntimeError('能力专属配置必须是对象')
+    return {key: value for key, value in params.items()
+            if ENTRY_NAME.fullmatch(key) and key not in SLOTS
+            and (type(value) in (bool, int) or type(value) is float and math.isfinite(value))}
 
 
 def _skill(skills_root, ref):
@@ -86,7 +64,7 @@ def validate_prompt_manifest(directory, manifest, skills_root, *, body=None, ski
         needed = validate_refs(skill.get('toolRefs', []), 'Skill.toolRefs')
         if not set(needed) <= set(tools):
             raise RuntimeError('Skill 所需工具未在能力中声明')
-    values = prompt_variables(directory, manifest)
+    values = prompt_variables(manifest)
     from runtime.asset_registry import read_asset_body
     for text in [body if body is not None else read_asset_body(Path(directory), 'CAPABILITY.md'), *(doc['text'] for doc in documents)]:
         _render(text, values)

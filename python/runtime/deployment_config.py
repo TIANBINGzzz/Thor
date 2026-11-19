@@ -107,22 +107,9 @@ def _validated(document, *, worker=False):
             _endpoint(document['images'], 'baseUrl')
             _text(document['images'], 'apiKey', secret=True)
             _text(document['images'], 'model')
-        if 'businessMcp' in document:
-            business = document['businessMcp']
-            if not isinstance(business, dict) or set(business) != {'url'} or not isinstance(business['url'], str):
-                raise ValueError()
-            if business['url']:
-                _endpoint(business, 'url', allow_http=True)
-        if not worker and document.get('fileService') is not None:
+        if not worker and 'fileService' in document:
             from runtime.file_service import validate_file_service_config
-            document['fileService'] = validate_file_service_config(document['fileService'], download=True)
-        if not worker and document.get('campusMcp') is not None:
-            campus = document['campusMcp']
-            _endpoint(campus, 'url', allow_http=True)
-            domain = _text(campus, 'domainName')
-            if '/' in domain or any(c.isspace() for c in domain):
-                raise ValueError()
-            domain.encode('ascii')
+            validate_file_service_config(document['fileService'])
         databases = document.get('databases', {})
         if not isinstance(databases, dict):
             raise ValueError()
@@ -172,7 +159,7 @@ def initialize_deployment(*, document=None):
     global _DEPLOYMENT, _WORKER
     if document is None:
         from runtime.configuration import read_configuration, deployment_document
-        document = deployment_document(read_configuration(), allow_disabled=True)
+        document = deployment_document(read_configuration('conversation', include_security=True), allow_disabled=True)
     document = _validated(document)
     settings = _runtime_configuration(document)
     _DEPLOYMENT, _WORKER = document, False

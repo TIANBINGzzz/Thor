@@ -74,11 +74,11 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Python 只下载本轮显式引用；后续再次使用仍须提交引用，不扫描文件库或从正文猜 ID。
 
-唯一通道使用可信 fileService 的 baseUrl/remoteUrl/downloadPath 和限额；学校 domainName 仅随 Java 创建 Run 的正文提交，RunStore 保存于 runs.metadata_json 供文件上传重试恢复。下载及上传只发送本 Run 的 domain-name 与部署 remote-url，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
+唯一通道使用 `settings/files` 的服务地址及 `download` 限额；学校 domainName 仅随 Java 创建 Run 的正文提交，RunStore 保存于 runs.metadata_json 供文件上传重试恢复。下载及上传只发送本 Run 的 domain-name 与部署 remote-url，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
 
 输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
 
-排队、全部文件准备、单次网络等待、SDK 执行分别计时；默认与限制见 [超时字段](../python-api.html#file-download)。平台下载还与 fileService.maxFileBytes/timeoutSeconds 取较小限额，单文件限制不是磁盘总配额。
+排队、全部文件准备、单次网络等待、SDK 执行分别计时；见 [超时字段](../python-api.html#file-download)。文件下载使用 `download.maxBytes/timeoutMs/prepareMs`，单文件限制不是磁盘总配额。
 
 ## 9. 错误响应
 

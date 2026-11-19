@@ -20,11 +20,9 @@ import httpx
 
 from runtime.file_service import FileServiceError, file_service_config, with_run_domain
 from runtime.protocol import SAFE_ID
-from runtime.runtime_settings import RUNTIME_SETTINGS
 
 
 LOGGER = logging.getLogger("ccsdk.file_download")
-DEFAULT_MAX_FILE_BYTES = RUNTIME_SETTINGS.limits.file_max_bytes
 DOWNLOAD_CHUNK_BYTES = 256 * 1024
 SAFE_MIME = re.compile(r"^[A-Za-z0-9!#$%&'*+.^_`|~-]+/[A-Za-z0-9!#$%&'*+.^_`|~-]+$")
 SAFE_FILENAME = re.compile(r'^[^\\/\x00\r\n<>:"|?*]+$')
@@ -160,15 +158,13 @@ class FileDownloader:
             if error.code != "file_service_not_configured":
                 raise FileDownloadConfigurationError() from None
             self.file_service = None
-        self.max_bytes = _positive_int(
-            max_bytes if max_bytes is not None else RUNTIME_SETTINGS.limits.file_max_bytes,
-            "max_bytes")
-        self.timeout_ms = _positive_int(
-            timeout_ms if timeout_ms is not None else RUNTIME_SETTINGS.timeouts.file_download_ms,
-            "timeout_ms")
+        self.max_bytes = _positive_int(max_bytes, 'max_bytes') if max_bytes is not None else None
+        self.timeout_ms = _positive_int(timeout_ms, 'timeout_ms') if timeout_ms is not None else None
         if self.file_service:
-            self.max_bytes = min(self.max_bytes, self.file_service["maxFileBytes"])
-            self.timeout_ms = min(self.timeout_ms, self.file_service["timeoutSeconds"] * 1000)
+            configured_bytes = self.file_service['maxBytes']
+            configured_ms = self.file_service['timeoutMs']
+            self.max_bytes = min(self.max_bytes or configured_bytes, configured_bytes)
+            self.timeout_ms = min(self.timeout_ms or configured_ms, configured_ms)
         self.transport, self.event_sink, self.progress_sink = transport, event_sink, progress_sink
 
     @property
@@ -191,8 +187,7 @@ class FileDownloader:
         root.mkdir(parents=True, exist_ok=True)
         results: list[FetchedFile] = []
         used_names: set[str] = set()
-        prepare_ms = min(RUNTIME_SETTINGS.timeouts.file_prepare_ms,
-                         self.file_service["timeoutSeconds"] * 1000)
+        prepare_ms = self.file_service["prepareMs"]
         deadline = time.monotonic() + prepare_ms / 1000
         active_reference, active_started = None, None
         try:
@@ -251,7 +246,7 @@ class FileDownloader:
         if not SAFE_ID.fullmatch(file_id):
             raise FileDownloadValidationError("文件标识无效")
         config = self.file_service
-        url = config["baseUrl"] + config["downloadPath"].replace("{fileId}", file_id)
+        url = config["baseUrl"] + config["path"].replace("{fileId}", file_id)
         headers = {"domain-name": config["domainName"], "remote-url": config["remoteUrl"],
                    "accept": "application/octet-stream", "accept-encoding": "identity"}
         # 同批次响应可能设置 Cookie；仅发送受控路由头，不复用隐式身份。
@@ -364,6 +359,6 @@ class FileDownloader:
                 LOGGER.warning("文件下载已完成输入清理失败: %s", type(error).__name__)
 
 
-__all__ = ["DEFAULT_MAX_FILE_BYTES", "FileDownloader", "FileDownloadError",
+__all__ = ["FileDownloader", "FileDownloadError",
            "FileDownloadUnavailableError", "FileDownloadConfigurationError",
            "FileDownloadTimeoutError", "FileDownloadValidationError", "FetchedFile"]

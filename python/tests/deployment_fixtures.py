@@ -14,8 +14,9 @@ def deployment_document(values=None):
         'images': {'baseUrl': values.get('CCSDK_IMAGE_BASE_URL', 'https://images.example.test/v1'),
                    'apiKey': values.get('CCSDK_IMAGE_API_KEY', 'private-image-key'),
                    'model': values.get('CCSDK_IMAGE_MODEL', 'qwen-image-3.0')},
-        'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test'},
-        'businessMcp': {'url': values.get('BUSINESS_MCP_URL', '')}}
+        'campusMcp': {'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test',
+                      'headers': {'app-key': 'test-app-key', 'domain-name': 'campus.example.test'}},
+        '_mcp_catalog': {'campus': campus_connection()}}
 
 
 def application_document():
@@ -29,22 +30,28 @@ def application_document():
 
 
 def configuration_rows():
-    import copy, json
+    import json
     rows = json.loads((Path(__file__).parent/'fixtures/configuration.json').read_text(encoding='utf-8'))
     document = deployment_document()
-    rows['settings'] = {'system': settings_row(document)}
+    rows['settings'] = settings_rows(document)
     # 数据目录验证仍需要来源声明；无真实业务查询会连接此地址。
     rows['database_connections']['schoolDoubleHigh']['enabled'] = True
     return rows
 
 
-def settings_row(document):
-    from runtime.config_fields import SETTING_PATHS
-    result = {'ref':'system'}
-    for field, path in SETTING_PATHS.items():
-        value = document
-        for key in path: value = value.get(key) if isinstance(value,dict) else None
-        result[field] = value
+def settings_rows(document):
+    from copy import deepcopy
+    from runtime.config_fields import SETTING_SECTIONS, SETTING_SECRET_KEYS
+    result = {}
+    for ref, section in SETTING_SECTIONS.items():
+        value = deepcopy(document.get(section, {}))
+        secrets = {key: value.pop(key) for key in SETTING_SECRET_KEYS.get(ref, ()) if key in value}
+        if ref == 'runtime':
+            value.pop('models')
+            value['limits'].pop('max-turns')
+            for name in ('execution-ms', 'mcp-http-ms'):
+                value['timeouts'].pop(name)
+        result[ref] = {'ref': ref, 'value': value, 'secrets': secrets or None}
     return result
 
 
@@ -63,10 +70,10 @@ def database_row(ref, value):
 def patch_configuration(document):
     """同一假配置同时供启动读取与逐 Run 数据库读取；生产没有此转换层。"""
     import copy
-    def read():
+    def read(*args, **kwargs):
         values = document() if callable(document) else document
         rows = configuration_rows()
-        rows['settings'] = {'system':settings_row({'runtime':deployment_document()['runtime'], **values})}
+        rows['settings'] = settings_rows({'runtime': deployment_document()['runtime'], **values})
         model = values.get('model')
         if model is not None:
             for row in rows['model_connections'].values():
@@ -75,7 +82,7 @@ def patch_configuration(document):
         for ref, row in rows['mcp_servers'].items():
             value = values.get(ref+'Mcp')
             if value is not None:
-                row.update(url=value.get('url',''), parameters={k:v for k,v in value.items() if k!='url'})
+                row.update(url=value['url'], headers={'app-key': 'test-app-key', 'domain-name': value['domainName']})
         if 'databases' in values:
             for ref, value in values['databases'].items():
                 rows['database_connections'][ref] = database_row(ref, value)
@@ -85,9 +92,31 @@ def patch_configuration(document):
     if 'campusMcp' in startup:
         campus = startup['campusMcp']
         campus.setdefault('headers', {'app-key':'test-app-key', 'domain-name':campus['domainName']})
+    startup['_mcp_catalog'] = {**startup.get('_mcp_catalog', {}), 'campus': campus_connection()}
     with patch('runtime.deployment_config._DEPLOYMENT', startup), \
             patch('runtime.configuration.read_configuration', side_effect=read):
         yield
+
+
+def campus_connection():
+    return {'auth': {'required': True, 'arguments': {'user_context_token': 'platformBearer'}}}
+
+
+def campus_assets(settings=None, *, directory=None, params=None, operations=None):
+    from runtime.capabilities import CAPABILITIES_ROOT
+    from runtime.deployment_config import ConfigSnapshot
+    from capability_packs.registry import load_pack
+    ref = 'campus-brain-query'
+    pack = load_pack(ref)
+    return pack.load_service_assets('campus', settings or ConfigSnapshot(), directory or CAPABILITIES_ROOT / ref,
+                                    pack.service_assets['campus'], operations or pack.operations,
+                                    params or {'max_calls': 10, 'minimum_schools': 12})
+
+
+def file_settings(base_url='https://files.test', remote_url='https://public.test', path='/file/{fileId}/download'):
+    return {'baseUrl': base_url, 'remoteUrl': remote_url,
+            'download': {'path': path, 'maxBytes': 268435456, 'timeoutMs': 15000, 'prepareMs': 600000},
+            'upload': {'maxBytes': 1073741824, 'timeoutSeconds': 600, 'connectMs': 10000}}
 
 
 def install_configuration_store():

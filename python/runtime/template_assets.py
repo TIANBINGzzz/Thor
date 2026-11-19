@@ -4,7 +4,6 @@ from pathlib import Path
 from hashlib import sha256
 from data_access.catalog import asset_path, key, read_json
 from data_access.context import DataError, fingerprint
-from runtime.capabilities import capability_entry, resolve_capability
 from runtime.prompt_documents import read_documents
 
 
@@ -13,22 +12,28 @@ def document_digest(path):
     """计算模板文件字节的 SHA-256 摘要，用于冻结和核验实际版本。"""
     return sha256(path.read_bytes()).hexdigest()
 
-def load_template(template_key, capability_ref, *, entry=None):
-    """只加载能力明确登记的模板；数据角色必须属于能力声明的来源。"""
+def template_definition(template_key, capability_ref, entry):
+    """登记和执行共用模板归属及来源范围检查。"""
     template_key = key(template_key)
-    entry = entry if entry is not None else capability_entry(resolve_capability(capability_ref).directory)
-    relative = entry.get('templates', {}).get(template_key)
-    if relative is None:
+    if template_key not in entry.get('templates', []):
         raise DataError('TEMPLATE_FORBIDDEN')
-    directory = asset_path(Path(entry['_directory']), relative).parent
-    template = read_json(directory / "template.json")
-    if (template.get("template_key") != template_key or template.get("enabled") is not True
-            or capability_ref not in template.get("capabilities", [])):
-        raise DataError("TEMPLATE_FORBIDDEN")
+    path = asset_path(Path(entry['_directory']), f'templates/{template_key}/template.json')
+    template = read_json(path)
+    if template.get('template_key') != template_key or capability_ref not in template.get('capabilities', []):
+        raise DataError('TEMPLATE_FORBIDDEN')
     roles = (template.get('data') or {}).get('source_roles')
     if (not isinstance(roles, dict) or not roles
             or not set(roles.values()) <= set(entry.get('data', {}).get('sourceRefs', []))):
         raise DataError('SOURCE_FORBIDDEN')
+    return path.parent, template
+
+
+def load_template(template_key, capability_ref, *, entry=None):
+    """只读取选中模板的指南和文件；数据范围在准备执行时仍会校验。"""
+    if entry is None:
+        from runtime.configuration import execution_entry
+        entry = execution_entry(capability_ref)['capability']
+    directory, template = template_definition(template_key, capability_ref, entry)
     assets = template.get("assets") or {}
     data = template.get("data") or {}
     report = template.get("report") or {}

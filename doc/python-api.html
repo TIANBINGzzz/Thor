@@ -762,17 +762,23 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 }</pre></div>
 <p>失败事件没有 fileId，也不提供下载地址；Java 按 runId 和 artifactId 关联结果。文件失败不改变模型执行结果：SDK 成功时仍可随后收到 run.completed；全部已提交文件处理完毕后才结束 Run 事件流。GET 列表/详情返回相同文件结果（不含事件专用 displayName），用于断线补查，不触发上传。</p>
 <h3>部署侧文件服务配置</h3>
-<p>在 MySQL <code>ccsdk_setting</code> 单行 <code>system</code> 的 <code>file_*</code> 列配置服务地址、下载路径及限额，每个新 Run 在线读取并固定；<code>domainName</code> 仅由 Java 在每次 Run 正文中传入，上传重试从 RunStore 恢复原值。连接与字段说明见 <a href="../config/README.md">配置参考</a>。文件服务配置更新后下一 Run 生效，无本地秘密回退。</p>
-<div class="code-wrap"><div class="code-label">配置片段 · fileService</div><button class="copy" type="button">复制</button><pre>{
-  "fileService": {
-    "baseUrl": "https://newtest.stringedu.com",
-    "remoteUrl": "https://newtest.stringedu.com",
-    "downloadPath": "/fwk_manage_service/sys_attachment/{fileId}/ai/download/",
+<p>MySQL <code>ccsdk_setting</code> 的 <code>files</code> 行用 <code>value</code> 保存服务地址及上传、下载限额，每个新 Run 读取并固定。<code>domainName</code> 由 Java 在 Run 正文中传入，上传重试从 RunStore 恢复原值。详见 <a href="../config/README.md">配置参考</a>。</p>
+<div class="code-wrap"><div class="code-label">配置示例 · settings/files 的 value</div><button class="copy" type="button">复制</button><pre>{
+  "baseUrl": "https://newtest.stringedu.com",
+  "remoteUrl": "https://newtest.stringedu.com",
+  "download": {
+    "path": "/fwk_manage_service/sys_attachment/{fileId}/ai/download/",
+    "timeoutMs": 60000,
+    "prepareMs": 180000,
+    "maxBytes": 52428800
+  },
+  "upload": {
     "timeoutSeconds": 600,
-    "maxFileBytes": 1073741824
+    "connectMs": 10000,
+    "maxBytes": 1073741824
   }
 }</pre></div>
-<p>Python 向 baseUrl 下固定路径 <code>/fwk_manage_service/sys_attachment/ai/upload/</code> 发 POST，multipart 字段名为 <code>file</code>，请求头 domain-name 取 Run 元数据，remote-url 取可信部署配置；HTTP 客户端自动生成 multipart boundary。baseUrl、remoteUrl 只接受 http(s) 来源地址，不带业务路径、查询或账号密码。timeoutSeconds 限制一个文件全部上传尝试及等待的总时间；maxFileBytes 为单文件上传上限，下载还受 Runtime 文件上限约束。downloadPath是含{fileId}的站内路径，仅下载必填。配置不代表总磁盘配额，字段范围见 <a href="../config/README.md">配置参考</a>。</p>
+<p>Python 向 baseUrl 下固定路径 <code>/fwk_manage_service/sys_attachment/ai/upload/</code> 发 POST，multipart 字段名为 <code>file</code>，请求头 domain-name 取 Run 元数据，remote-url 取可信部署配置。baseUrl、remoteUrl 为 HTTP(S) 来源地址。<code>upload.timeoutSeconds</code> 限制一个文件全部上传尝试及等待的总时间，<code>upload.connectMs</code> 限制连接与等待连接池的时间，<code>upload.maxBytes</code> 为单文件上传上限。配置不代表总磁盘配额。</p>
 <p>只有 HTTP 2xx 且业务 state=200、success=true、data 中 ID 与文件大小等字段合法，才记录 ready。data.id 映射 fileId；data.url 只在内部保存，当前是存储路径，<strong>不能拼成已确认可下载的 URL</strong>。上传在 Runtime 父进程完成，不把服务配置主动注入模型，不转发 Run JWT 或业务 Token，不跟随重定向。domain-name、remote-url 不是鉴权凭据；文件服务未提供租户 ACL，Java 仍须做消息归属和下载授权。当前 Agent 具有进程文件权限，这不构成生产凭据沙箱。</p>
 <p>常用错误码：file_service_not_configured、file_service_config_invalid、artifact_snapshot_missing、artifact_too_large、file_service_unreachable、file_upload_server_error、file_upload_rejected（failed）；file_upload_response_invalid、file_upload_http_error、file_upload_uncertain（unknown）。file_upload_interrupted、file_upload_error 需结合 status 判断。unknown 需与文件服务核对结果。</p></section>
 
@@ -792,11 +798,11 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":12,"event
 <section id="auth"><h2>鉴权</h2>
 <p>Java 签发短期 HS256 JWT，并放入 <code>Authorization: Bearer &lt;JWT&gt;</code>。能力目录无需鉴权，Run 接口统一使用本节 Run JWT，不区分读写 scope；scope 可省略，传入时忽略。Python 使用 <code>python/runtime/auth.py</code> 对 JWT 做 HMAC-SHA256 校验。</p>
 <h3>密钥和部署配置</h3>
-<p>启动只读取完整的 <code>config/application.yml</code>，其中保存配置库引导和宿主机参数；可编辑执行配置从 MySQL 读取，不加载 Nacos、env 或 .local 覆盖。下表列出 <code>ccsdk_setting</code> 的 <code>ref=system</code> 行字段；执行 JWT 密钥加密存储，修改后须排空任务并重启。完整字段及三版本约定见 <a href="../config/README.md">配置参考</a>。</p>
+<p>启动 YAML 保存配置库引导与宿主机参数；下表字段来自 MySQL <code>ccsdk_setting</code> 的 <code>security</code> 行。运行鉴权配置修改后须排空任务并重启。完整配置见 <a href="../config/README.md">配置参考</a>。</p>
 <p>Java 可信服务端使用与 Python 相同的密钥、签发方和受众签发 JWT。建议生成至少 32 字节的随机密钥；真实值只保存在服务端秘密配置中，不写入公开文档。</p>
 <table><thead><tr><th>配置</th><th>设计约束</th></tr></thead><tbody>
-<tr><td>auth_runtime_jwt_secret</td><td>非空随机密钥，Python 从配置库解密读取，不进入浏览器、代码库、日志或普通 Run 请求正文。</td></tr>
-<tr><td>auth_runtime_jwt_audience / auth_runtime_jwt_issuer</td><td>Java 签发的 aud / iss 必须分别等于 Python 当前配置；不匹配即拒绝。</td></tr>
+<tr><td><code>secrets.runtimeJwtSecret</code></td><td>非空随机密钥，Python 从配置库解密读取，不进入浏览器、代码库、日志或普通 Run 请求正文。</td></tr>
+<tr><td><code>value.runtimeJwtAudience</code> / <code>value.runtimeJwtIssuer</code></td><td>Java 签发的 aud / iss 必须分别等于 Python 当前配置；不匹配即拒绝。</td></tr>
 <tr><td>算法</td><td>固定 <code>HS256</code>，Header 为 <code>{"alg": "HS256", "typ": "JWT"}</code>。</td></tr>
 </tbody></table>
 <h3>JWT Claims</h3>
@@ -840,8 +846,8 @@ Python 按 fileService 配置 GET 下载 → 安全文件名和长度检查 → 
 Run 结束清理临时输入；续轮仍需文件时由 Java 重新提交授权引用</pre></div>
 <p>fileId 是存文件接口的 data.id，不是模板业务 ID 或会话附件 ID。自定义模板与普通资料共用本链路，Python 不需要登记本地模板；payload 中出现 fileId 不触发下载。现有 purpose 仍为 input/reference。</p>
 <h3>Python → 文件服务</h3>
-<p>下载与成果上传共用 MySQL <code>ccsdk_setting</code> 的 system 行配置：<code>file_base_url</code>、<code>file_remote_url</code>、<code>file_download_path</code>，运行时装配为 fileService 的 baseUrl、remoteUrl、downloadPath。每个 Run 的 domainName 来自 Java 已认证学校上下文，仅通过 Run 正文传入。下载目标仅由可信配置确定，不接收用户 URL。</p>
-<div class="code-wrap"><div class="code-label">请求 · GET</div><button class="copy" type="button">复制</button><pre>GET &lt;fileService.baseUrl&gt;&lt;downloadPath，替换 fileId&gt;
+<p>下载使用 <code>settings/files</code> 的 <code>value.baseUrl</code> 和 <code>value.download.path</code>。每个 Run 的 domainName 来自 Java 已认证学校上下文。下载目标由可信配置确定，不接收用户 URL。</p>
+<div class="code-wrap"><div class="code-label">请求 · GET</div><button class="copy" type="button">复制</button><pre>GET &lt;fileService.baseUrl&gt;&lt;fileService.download.path，替换 fileId&gt;
 domain-name: &lt;Run.domainName&gt;
 remote-url: &lt;fileService.remoteUrl&gt;
 Accept: application/octet-stream</pre></div>
@@ -850,8 +856,8 @@ Accept: application/octet-stream</pre></div>
 <p>Client 输入位于 .scribe-runs/client-sessions/&lt;workspaceId&gt;/.current-input/，workspaceId 由 Runtime 随机分配并绑定授权会话；Query 输入位于 .scribe-runs/work/&lt;runId&gt;/input/。文件全部准备完成后才查询 SDK；失败、取消及终态清理输入，不删除远端原件。工作稿另存 .work/，交付快照按发布生命周期保留。</p>
 <p>附件只通过平台文件服务器下载。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-文件下载模块">Runtime 文件规范</a>。</p>
 <h3>大小和独立超时</h3>
-<p>运行预算从 MySQL 完整配置读取：<code>ccsdk_capability.run_timeout_ms</code>、<code>tool_timeout_ms</code> 和 <code>max_turns</code> 定义单 Run 执行预算；<code>ccsdk_setting</code> 的 <code>runtime_*</code>、<code>file_*</code> 字段定义排队、文件处理等时限和大小上限。启动 YAML 和普通 Run 正文不能覆盖这些预算，缺失配置不回退本地默认值；单位及生效边界见 <a href="../config/README.md">配置参考</a>。</p>
-<p>文件准备超时通过 run.failed 返回 file_download_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 <code>POST /internal/v1/runs/{runId}/cancel</code>，无需正文，在准备期间同样有效。平台下载还受 fileService.maxFileBytes 和 timeoutSeconds 约束，分别与 Runtime 对应上限取较小值。下载不向文件服务器转发 Run JWT、业务 Token 或 Cookie。</p></section>
+<p>单 Run 执行预算见能力的 <code>config.runtime</code>，排队时限见 <code>settings/runtime</code>。<code>settings/files</code> 的 <code>value.download</code> 用 <code>maxBytes</code>、<code>timeoutMs</code> 约束单文件下载，用 <code>prepareMs</code> 约束当轮全部附件准备。预算单位及生效边界见 <a href="../config/README.md">配置参考</a>。</p>
+<p>文件准备超时通过 run.failed 返回 file_download_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 <code>POST /internal/v1/runs/{runId}/cancel</code>，无需正文，在准备期间同样有效。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
 <p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用 upstream_service_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>
@@ -882,8 +888,8 @@ Accept: application/octet-stream</pre></div>
 </tbody></table>
 <p>接口接收、SDK 成功、文件 ready 和业务质量分别验收。真实 Java Token 生命周期、文件 ACL、生产隔离，以及复杂报告事实、目录和逐页版式仍须独立验证；历史测试次数不作为当前部署状态。</p>
 </section>
-<section id="observation"><h2>独立观测采集</h2><p>由 MySQL <code>ccsdk_setting.runtime_observation_enabled</code>（重启生效）启用；启动 YAML diagnostics.disable-observability=true 可紧急停采。GET /internal/observability/v1/* 使用 MySQL <code>ccsdk_setting.auth_observation_jwt_secret</code> 独立密钥验证短时 HS256 Bearer JWT；签发方为 ccsdk-hawkeye、受众为 ccsdk-runtime-observability、唯一权限为 observation.read、主体为 hawkeye-collector，生命周期最多 300 秒。它与 Java 的 Run JWT 密钥分离，不能访问业务 Run 接口。未配置密钥返回 503，无效 Token 返回 401，关闭观测返回 404，携带浏览器 Origin 返回 403。Runtime 有界暂存待采事件，长期观测库由平台维护；读取不消费记录，各采集方独立维护游标，epoch 变化或游标过期返回缺口信息。</p><ul><li>GET /internal/observability/v1/info：instanceId、epoch、版本和覆盖边界。instanceId 自动生成并随观测库持久化，数据源登记时读取；重建观测库后须重新登记。</li><li>GET /internal/observability/v1/records：cursor、limit（1–500），返回 records、nextCursor、oldestCursor、latestCursor、gap、hasMore；空闲期也执行保留策略，记录全部过期时仍返回持久水位及 gap。</li><li>GET /internal/observability/v1/snapshot：Actor、预热池及进程内存快照。</li><li>GET /internal/observability/v1/metrics：Prometheus 数值指标，响应头 X-CCSDK-Instance-ID 必须与登记实例一致。</li></ul><p>本接口只采 Python Runtime、Actor、Worker 及其可观察的工具与成果阶段，不上报浏览器收字/渲染或 Java 链路。面向用户的首字仍是浏览器收到的首条非空正文；本接口的 runtime.first_text 表示 Python 首次收到非空 SDK 正文，二者不能混称。HTTP 202、SDK 首消息、thinking 和 sse_yield 也都不代表浏览器首字。跨进程只用墙钟定位；本地单调时钟计算耗时。预热独立 Trace，领取以 Link 关联。开启观测后收集所有会话及能力的脱敏详细事件，不使用 Capability 白名单，不补录历史。私有证据只进入本出口，包括 SDK 初始化、工具、真实 messageId 对应的 assistant_turn、结果和脱敏 diagnostic 异常；公共正文分片不复制为观测记录，未收到结果的工具以 tool.incomplete 标记。</p></section>
-<section id="configuration"><h2>配置管理</h2><p>管理端使用独立 HS256 Bearer JWT：密钥为 MySQL <code>ccsdk_setting</code> 的 system 行 <code>auth_configuration_jwt_secret</code>，且必须与执行、观测密钥不同；受众 ccsdk-config，权限 configuration.manage，签发方与 auth_runtime_jwt_issuer 一致，必须包含 sub、iat、exp，最长 300 秒。Run JWT 不能修改配置；浏览器 Origin 请求被拒绝。</p><ul><li>GET /internal/config/v1/options：模型、Tool、Skill、MCP、数据源下拉选项；模型及其连接均须启用，Skill、MCP、数据源只列启用记录；Tool 从静态目录选择非 HTTP 且非 capability-pack 的工具。</li><li>GET /internal/config/v1/{resource}：列出记录；有 enabled 字段的资源支持 enabled 过滤，connection_ref 仅对 models 生效。models 按 sort_order、ref 排序，其余按 ref 排序。</li><li>GET /internal/config/v1/{resource}/{ref}：读取完整记录和关联。</li><li>PUT /internal/config/v1/{resource}/{ref}：完整新增或替换记录；须提供全部可编辑字段，capabilities 还须提供全部关联数组。校验通过后保存，无发布步骤；生效边界见配置参考。</li><li>PATCH /internal/config/v1/{resource}/{ref}：局部更新已有记录，不存在返回 404；省略字段和关联保持原值，提交关联数组则替换该组。</li><li>DELETE /internal/config/v1/{resource}/{ref}：删除未被引用的记录；基础 settings 和 conversation 不可删除。</li></ul><p>resource 支持 capabilities、skills、models、model_connections、database_connections、mcp_servers、settings。PUT/PATCH 正文上限为 2 MiB，超出返回 413；字段错误返回 detail.resource/ref/field/code，整笔回滚。配置字段与生效边界见 <a href="../config/README.md">配置参考</a>和<a href="specs/runtime-config-center.md">配置管理契约</a>；密钥、密码和静态 Header 不通过读取接口返回；configured_secrets 表示是否已配置，PUT/PATCH 传 null 保留秘密。能力用 model_ref 选择模型目录；模型下拉仅用于管理端，普通 Run 不接受模型覆盖。</p></section>
+<section id="observation"><h2>独立观测采集</h2><p>由 MySQL <code>settings/runtime 的 value.observability.enabled</code>（重启生效）启用；启动 YAML diagnostics.disable-observability=true 可紧急停采。GET /internal/observability/v1/* 使用 MySQL <code>settings/security 的 secrets.observationJwtSecret</code> 独立密钥验证短时 HS256 Bearer JWT；签发方为 ccsdk-hawkeye、受众为 ccsdk-runtime-observability、唯一权限为 observation.read、主体为 hawkeye-collector，生命周期最多 300 秒。它与 Java 的 Run JWT 密钥分离，不能访问业务 Run 接口。未配置密钥返回 503，无效 Token 返回 401，关闭观测返回 404，携带浏览器 Origin 返回 403。Runtime 有界暂存待采事件，长期观测库由平台维护；读取不消费记录，各采集方独立维护游标，epoch 变化或游标过期返回缺口信息。</p><ul><li>GET /internal/observability/v1/info：instanceId、epoch、版本和覆盖边界。instanceId 自动生成并随观测库持久化，数据源登记时读取；重建观测库后须重新登记。</li><li>GET /internal/observability/v1/records：cursor、limit（1–500），返回 records、nextCursor、oldestCursor、latestCursor、gap、hasMore；空闲期也执行保留策略，记录全部过期时仍返回持久水位及 gap。</li><li>GET /internal/observability/v1/snapshot：Actor、预热池及进程内存快照。</li><li>GET /internal/observability/v1/metrics：Prometheus 数值指标，响应头 X-CCSDK-Instance-ID 必须与登记实例一致。</li></ul><p>本接口只采 Python Runtime、Actor、Worker 及其可观察的工具与成果阶段，不上报浏览器收字/渲染或 Java 链路。面向用户的首字仍是浏览器收到的首条非空正文；本接口的 runtime.first_text 表示 Python 首次收到非空 SDK 正文，二者不能混称。HTTP 202、SDK 首消息、thinking 和 sse_yield 也都不代表浏览器首字。跨进程只用墙钟定位；本地单调时钟计算耗时。预热独立 Trace，领取以 Link 关联。开启观测后收集所有会话及能力的脱敏详细事件，不使用 Capability 白名单，不补录历史。私有证据只进入本出口，包括 SDK 初始化、工具、真实 messageId 对应的 assistant_turn、结果和脱敏 diagnostic 异常；公共正文分片不复制为观测记录，未收到结果的工具以 tool.incomplete 标记。</p></section>
+<section id="configuration"><h2>配置管理</h2><p>管理端使用独立 HS256 Bearer JWT：密钥来自 <code>settings/security</code> 的 <code>secrets.configurationJwtSecret</code>，且必须与执行、观测密钥不同；受众 ccsdk-config，权限 configuration.manage，签发方与 <code>value.runtimeJwtIssuer</code> 一致，必须包含 sub、iat、exp，最长 300 秒。Run JWT 不能修改配置；浏览器 Origin 请求被拒绝。</p><ul><li>GET /internal/config/v1/options：模型、Tool、Skill、MCP、数据源下拉选项；模型及其连接均须启用，Skill、MCP、数据源只列启用记录；能力包内部 Service 不进入 Tool 或 MCP 选项。</li><li>GET /internal/config/v1/{resource}：列出记录；有 enabled 字段的资源支持 enabled 过滤，connection_ref 仅对 models 生效。models 按 sort_order、ref 排序，其余按 ref 排序。</li><li>GET /internal/config/v1/{resource}/{ref}：读取完整记录和关联。</li><li>PUT /internal/config/v1/{resource}/{ref}：完整新增或替换记录；须提供全部可编辑字段，capabilities 还须提供全部关联数组。校验通过后保存，无发布步骤；生效边界见配置参考。</li><li>PATCH /internal/config/v1/{resource}/{ref}：局部更新已有记录，不存在返回 404；省略字段保持原值。<code>config</code>、设置的 <code>value</code> 合并对象、替换数组，内部 null 删除可选键；提交关联数组时替换该组。</li><li>DELETE /internal/config/v1/{resource}/{ref}：删除未被引用的记录；基础 settings 和 conversation 不可删除。</li></ul><p>resource 支持 capabilities、skills、models、model_connections、database_connections、mcp_servers、settings。PUT/PATCH 正文上限为 2 MiB，超出返回 413；字段错误返回 detail.resource/ref/field/code，整笔回滚。配置字段与生效边界见 <a href="../config/README.md">配置参考</a>和<a href="specs/runtime-config-center.md">配置管理契约</a>；密钥、密码和静态 Header 不通过读取接口返回；configured_secrets 表示是否已配置，PUT/PATCH 传 null 保留秘密。能力用 model_ref 选择模型目录；模型下拉仅用于管理端，普通 Run 不接受模型覆盖。</p></section>
 <footer>本文维护 Python Runtime 接口字段及示例；变更同步协议测试。执行契约和业务职责按各自边界维护，测试与部署结果不混入接口定义。</footer>
 </main><aside><p class="toc-title">目录</p><nav class="toc"></nav></aside></div>
 <script>

@@ -8,11 +8,5 @@
   "serviceRef": "campus",
   "description": "访问校园大脑查询服务",
   "operations": [],
-  "category": "data",
-  "auth": {
-    "required": true,
-    "arguments": {
-      "user_context_token": "platformBearer"
-    }
-  }
+  "category": "data"
 }

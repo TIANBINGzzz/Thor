@@ -2,7 +2,6 @@
   "template_key": "doublehigh-annual",
   "name": "双高项目群年度建设与执行情况报告",
   "version": 1,
-  "enabled": true,
   "capabilities": [
     "document-writing"
   ],

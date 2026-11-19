@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from capability_packs.registry import _directory, _load_module
+from tests.deployment_fixtures import campus_assets, campus_connection
 
 campus = _load_module(_directory('campus-brain-query'))
 
@@ -11,10 +12,10 @@ campus = _load_module(_directory('campus-brain-query'))
 class CampusScopeTests(unittest.IsolatedAsyncioTestCase):
     def service(self, maximum=10):
         with patch('runtime.deployment_config._DEPLOYMENT', {'campusMcp': {
-                'url': 'https://campus.example.test/mcp', 'domainName': 'campus.example.test', 'headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'}}}):
-            assets = campus.load_campus_assets()
-        assets['config']['max_calls'] = maximum
-        return campus.CampusQuery(assets, {'platformBearer': 'first-secret'})
+                'url': 'https://campus.example.test/mcp', 'headers': {'app-key':'test-app-key', 'domain-name':'campus.example.test'}},
+                '_mcp_catalog': {'campus': campus_connection()}}):
+            assets = campus_assets(params={'max_calls': maximum, 'minimum_schools': 12})
+            return campus.CampusQuery(assets, {'platformBearer': 'first-secret'})
 
     async def query(self, service, scopes, year=2025):
         item = {'item_id': 'metric', 'indicator_code': 'hydss', 'scopes': scopes}

@@ -13,7 +13,7 @@ import httpx
 
 from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
 from runtime import deployment_config
-from tests.deployment_fixtures import deployment_document, application_document
+from tests.deployment_fixtures import deployment_document, application_document, file_settings
 
 
 def customer_config():
@@ -30,8 +30,8 @@ def customer_config():
                 'connection': {'driver': 'mysql+pymysql', 'host': 'db.example.test', 'database': 'customer',
                                'username': 'reader', 'password': 'private-database-key', 'tls': {'mode': 'disabled'}},
                 'query': {'timeout_seconds': 30, 'max_rows': 10000, 'dynamic_sql_enabled': True}}},
-            'fileService': {'baseUrl': 'https://files.example.test', 'remoteUrl': 'https://files.example.test',
-                            'downloadPath': '/files/{fileId}/download'}}
+            'fileService': file_settings('https://files.example.test', 'https://files.example.test',
+                                         '/files/{fileId}/download')}
 
 
 class CustomerDeploymentTests(unittest.TestCase):
@@ -137,35 +137,29 @@ class CustomerDeploymentTests(unittest.TestCase):
                     self.initialize(invalid)
                 self.assertIsNone(deployment_config._DEPLOYMENT)
 
-    def test_nacos_document_is_validated_without_reading_local_runtime_defaults(self):
+    def test_remote_document_is_validated_without_reading_local_runtime_defaults(self):
         with patch.object(deployment_config, 'application_document', side_effect=AssertionError('no local merge')):
             self.initialize()
         self.assertEqual(deployment_config.deployment_section('runtime'), self.document['runtime'])
 
     def test_invalid_customer_service_and_runtime_fields_fail_at_startup(self):
-        for section, field, value in [('fileService', 'downloadPath', '/files/no-placeholder'),
-                ('fileService', 'maxFileBytes', -1),
-                ('campusMcp', 'url', 'https://user:private@host'),
-                ('runtime', 'worker-pools', {}), ('runtime', 'observability', {'enabled': 'yes'})]:
+        for path, value in [(('fileService', 'download', 'path'), '/files/no-placeholder'),
+                (('fileService', 'upload', 'maxBytes'), -1),
+                (('fileService', 'baseUrl'), 'https://user:private@host'),
+                (('runtime', 'worker-pools'), {}), (('runtime', 'observability'), {'enabled': 'yes'})]:
             invalid = copy.deepcopy(self.document)
-            invalid.setdefault('campusMcp', {'url': 'https://campus.example.test/mcp',
-                                           'domainName': 'campus.example.test'})
-            invalid[section][field] = value
-            with self.subTest(section=section, field=field), self.assertRaises(ValueError):
+            target = invalid
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(path=path), self.assertRaises(ValueError):
                 self.initialize(invalid)
             self.assertIsNone(deployment_config._DEPLOYMENT)
 
     def test_file_service_domain_is_not_part_of_deployment_configuration(self):
-        from runtime.file_service import validate_file_service_config
-        legacy = {'baseUrl': 'https://files.example.test',
-            'remoteUrl': 'https://files.example.test', 'downloadPath': '/files/{fileId}/download',
-            'domainName': 'legacy.example.test'}
-        config = validate_file_service_config(legacy, download=True)
-        self.assertNotIn('domainName', config)
-        document = customer_config()
-        document['fileService'].update(legacy)
-        self.initialize(document)
-        self.assertNotIn('domainName', deployment_config.application_document()['fileService'])
+        self.document['fileService']['domainName'] = 'wrong.example.test'
+        with self.assertRaisesRegex(ValueError, 'deployment_config_invalid'):
+            self.initialize()
 
     def test_database_unavailable_does_not_publish_old_environment_secrets(self):
         with patch('runtime.configuration.read_configuration', side_effect=RuntimeError('config_database_unavailable')):

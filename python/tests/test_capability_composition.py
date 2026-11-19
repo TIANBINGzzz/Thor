@@ -1,4 +1,4 @@
-from tests.deployment_fixtures import patch_configuration
+from tests.deployment_fixtures import install_configuration_store
 """能力直接组合规则、模板和来源，业务请求不能选择内部执行资产。"""
 
 import json
@@ -9,7 +9,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from runtime import capabilities
-from tests.deployment_fixtures import deployment_document
 from runtime.config import build_options, prepare_capability_assets
 
 
@@ -28,8 +27,7 @@ class CapabilityCompositionTests(unittest.TestCase):
         entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
         entry['data'] = {'access': 'required', 'sourceRefs': ['schoolDoubleHigh']}
         entry['tools'] = ['data']
-        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
-                 patch_configuration({**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
+        with patch('runtime.config.load_execution_entry', return_value={'capability': entry}):
             self.assertEqual(data_source_keys({'capability_ref': 'new-business'}), ['schoolDoubleHigh'])
 
     def test_old_workflow_field_is_rejected(self):
@@ -43,18 +41,19 @@ class CapabilityCompositionTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 __import__('tests.deployment_fixtures',fromlist=['fixture_capability_entry']).fixture_capability_entry(directory)
 
-    def test_mcp_preparation_uses_yaml_process_settings_and_nacos_without_global_changes(self):
+    def test_mcp_preparation_uses_yaml_process_settings_and_db_without_global_changes(self):
+        self.enterContext(patch('runtime.config_store._STORE'))
+        store = install_configuration_store()
+        store.save('mcp_servers', 'business', {'name': '业务 MCP', 'enabled': True,
+            'url': 'https://business.test/mcp', 'headers': {}, 'config': {}})
+        store.save('capabilities', 'conversation', {'mcps': [{'ref': 'business', 'allowed_tools': ['*']}]}, partial=True)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             binary = root / 'bin' / 'officecli'
             binary.parent.mkdir()
             binary.touch()
-            entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
-            entry['tools'].append('business')
             with patch('runtime.config.PROJECT_ROOT', root), \
-                 patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH':binary.as_posix()}), \
-                 patch('runtime.config.load_execution_entry', return_value={'capability': entry}), \
-                 patch_configuration({**deployment_document(), 'businessMcp':{'url':'https://business.test/mcp'}}):
+                 patch.dict('os.environ', {'CCSDK_OFFICECLI_PATH':binary.as_posix()}):
                 before = dict(os.environ)
                 payload = {'capability_ref': 'conversation', 'credentials': {'platformBearer': 'run-token'}}
                 assets = prepare_capability_assets(payload)

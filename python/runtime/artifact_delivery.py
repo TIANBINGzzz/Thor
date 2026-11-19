@@ -16,7 +16,6 @@ import httpx
 
 from runtime.file_service import FileServiceError as DeliveryError, file_service_config, with_run_domain
 from runtime.event_display import with_display_name
-from runtime.runtime_settings import RUNTIME_SETTINGS
 
 ARTIFACT_ID = re.compile(r'artifact_[0-9a-f]{32}\Z')
 UPLOAD_PATH = '/fwk_manage_service/sys_attachment/ai/upload/'
@@ -163,11 +162,11 @@ class ArtifactDelivery:
         path = self.path(record['runId'], record['artifactId'])
         if path is None:
             raise DeliveryError('artifact_snapshot_missing')
-        if record['size'] > config['maxFileBytes']:
+        if record['size'] > config['maxBytes']:
             raise DeliveryError('artifact_too_large')
         # httpx multipart 按块读取文件，边界由库生成；不跟随重定向，不转发 Run JWT。
         headers = {'domain-name': config['domainName'], 'remote-url': config['remoteUrl']}
-        connect_seconds = RUNTIME_SETTINGS.timeouts.file_upload_connect_ms / 1000
+        connect_seconds = config['connectMs'] / 1000
         timeout = httpx.Timeout(config['timeoutSeconds'], connect=connect_seconds, pool=connect_seconds)
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, trust_env=False, transport=self.transport) as client:
             with path.open('rb') as stream:

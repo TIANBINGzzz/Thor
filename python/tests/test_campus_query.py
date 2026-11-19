@@ -1,4 +1,4 @@
-from tests.deployment_fixtures import patch_configuration, deployment_document
+from tests.deployment_fixtures import campus_assets as load_campus_assets, patch_configuration, deployment_document
 import asyncio
 import copy
 import json
@@ -15,8 +15,6 @@ from capability_packs.registry import _directory, _load_module, load_pack
 
 _CAMPUS = _load_module(_directory('campus-brain-query'))
 CampusQuery = _CAMPUS.CampusQuery
-load_campus_assets = _CAMPUS.load_campus_assets
-ASSET_ROOT = _CAMPUS.ASSET_ROOT
 
 
 class CampusTests(unittest.IsolatedAsyncioTestCase):
@@ -105,8 +103,7 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             if operation.ref == 'get_indicator_metrics':
                 schema['properties']['payload']['properties']['year']['enum'] = [2024]
             operations.append(replace(operation, input_schema=schema))
-        assets = _CAMPUS.load_service_assets(
-            'campus', ConfigSnapshot(), ASSET_ROOT, 'assets/campus.json', operations)
+        assets = load_campus_assets(operations=operations)
         service = CampusQuery(assets, {'platformBearer': 'test-secret'})
         service._request = AsyncMock(return_value={'success': True, 'data': None})
         with self.assertRaisesRegex(ValueError, '查询参数不符合已开通范围'):
@@ -523,26 +520,20 @@ class CampusTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn('test-secret', str(result))
 
     def test_school_minimum_config_controls_schema_and_prompt(self):
-        from runtime.capabilities import capability_entry, SKILLS_ROOT
         from runtime.prompt_assembly import assemble_prompt, load_prompt_assets
-        import tempfile
-        import shutil
-        with tempfile.TemporaryDirectory() as directory:
-            root = __import__('pathlib').Path(directory) / ASSET_ROOT.name
-            shutil.copytree(ASSET_ROOT, root, dirs_exist_ok=True)
-            path = root / 'assets/campus.json'
-            config = json.loads(path.read_text(encoding='utf-8'))
-            config['minimum_schools'] = 12
-            config['max_calls'] = 12
-            path.write_text(json.dumps(config), encoding='utf-8')
-            assets = load_campus_assets(directory=root)
-            with patch('runtime.capabilities.CAPABILITIES_ROOT', root.parent):
-                entry = capability_entry(root, skills_root=SKILLS_ROOT)
-            prompt = assemble_prompt(load_prompt_assets(entry), active_tools=entry['tools'], preview=True)['text']
-            self.assertIn('至少 12', prompt)
-            self.assertIn('最多 12', prompt)
-            self.assertNotIn('prompt', assets)
-            self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 12)
+        from runtime.configuration import execution_entry
+        from tests.deployment_fixtures import configuration_rows
+        ref = 'campus-brain-query'
+        rows = configuration_rows()
+        params = {'minimum_schools': 13, 'max_calls': 9}
+        rows['capabilities'][ref]['config']['params'] = params
+        entry = execution_entry(ref, rows=rows)['capability']
+        assets = load_campus_assets(params=params)
+        prompt = assemble_prompt(load_prompt_assets(entry), active_tools=entry['tools'], preview=True)['text']
+        self.assertIn('至少 13', prompt)
+        self.assertIn('最多 9', prompt)
+        self.assertNotIn('prompt', assets)
+        self.assertEqual(assets['config']['tools']['get_norm_metrics']['schema']['properties']['schools']['minItems'], 13)
 
     def test_default_school_minimum_is_twelve(self):
         self.assertEqual(load_campus_assets()['config']['minimum_schools'], 12)

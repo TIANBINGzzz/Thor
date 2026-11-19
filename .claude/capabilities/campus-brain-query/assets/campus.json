@@ -3,7 +3,6 @@
     "url": "${campusMcp.url}",
     "headers": "${campusMcp.headers}"
   },
-  "max_calls": 10,
   "catalogs": {
     "indicator_compare": "indicator_compare.csv",
     "norm_analysis": "norm_analysis.csv",
@@ -50,6 +49,5 @@
         "year"
       ]
     }
-  },
-  "minimum_schools": 12
+  }
 }

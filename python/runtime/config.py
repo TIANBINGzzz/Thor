@@ -319,7 +319,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     })
     mcp_servers = _merge_mcp_servers(
         registered.servers, tool_services.servers(on_error=mcp_error_sink))
-    # 只有静态 Tool Catalog 中登记的 MCP 才有凭据规则；能力 Operation
+    # 只有本轮登记的 MCP 才有凭据规则；能力 Operation
     # 使用独立 namespace，不能借用另一个 MCP 的 Token 接收配置。
     auth_refs = registered.auth_refs
     secured = inject_mcp_authentication(

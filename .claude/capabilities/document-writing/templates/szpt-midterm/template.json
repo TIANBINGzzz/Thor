@@ -2,7 +2,6 @@
   "template_key": "szpt-midterm",
   "name": "双高计划中期自评报告",
   "version": 3,
-  "enabled": true,
   "capabilities": [
     "document-writing"
   ],

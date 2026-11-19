@@ -18,11 +18,11 @@ class ModelSettingsTests(unittest.TestCase):
                 continue
             declared = entry['runtime']
             with self.subTest(capability=capability.ref):
-                self.assertTrue({'model', 'thinking', 'effort'} <= declared.keys())
+                self.assertIn('model', declared)
                 with patch.object(config, 'prepare_capability_assets', return_value={'runtime': declared}):
                     effective = config.inherit_client_runtime({'capability_ref': capability.ref}, previous)
-                self.assertEqual(effective['thinking'], declared['thinking'])
-                self.assertEqual(effective['effort'], declared['effort'])
+                self.assertEqual(effective.get('thinking'), declared.get('thinking'))
+                self.assertEqual(effective.get('effort'), declared.get('effort'))
                 self.assertNotIn('model', effective)
 
     def test_disabled_reasoning_is_explicit_in_provider_request_environment(self):

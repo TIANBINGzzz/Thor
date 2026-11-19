@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import httpx
+from tests.deployment_fixtures import file_settings
 
 from runtime.run_store import RunStore
 from tools.artifacts import publish_artifact
@@ -27,10 +28,7 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.store.close)
         self.store.create_run('run_01', tenant_id='tenant', user_id='user',
                               metadata={'domainName': 'sc1.ai.stringedu.com'})
-        self.config = {'fileService': {
-            'baseUrl': 'https://files.example.test',
-            'remoteUrl': 'https://public.example.test',
-        }}
+        self.config = {'fileService': file_settings('https://files.example.test', 'https://public.example.test')}
         self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', self.config))
         self.requests = []
         self.reply = lambda request: httpx.Response(200, json={'state': 200, 'success': True, 'data': {
@@ -243,14 +241,14 @@ class ArtifactDeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_size_check_happens_before_network(self):
         item = self.publish()
-        self.config['fileService']['maxFileBytes'] = 1
+        self.config['fileService']['upload']['maxBytes'] = 1
         await self.delivery.accept('run_01', self.spool, item['artifactId'])
         await self.delivery.wait('run_01')
         self.assertEqual(self.store.artifact(item['artifactId'])['error'], 'artifact_too_large')
         self.assertEqual(self.requests, [])
 
     async def test_total_deadline_includes_retry_waits(self):
-        self.config['fileService']['timeoutSeconds'] = 1
+        self.config['fileService']['upload']['timeoutSeconds'] = 1
         self.reply = lambda request: httpx.Response(500)
         with patch('runtime.artifact_delivery.RETRY_DELAYS', (5, 5), create=True):
             item = self.publish()

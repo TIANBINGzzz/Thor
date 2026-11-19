@@ -80,7 +80,6 @@ INTERNAL_BODY_BYTES = RUNTIME_SETTINGS.limits.http_body_bytes
 TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = RUNTIME_SETTINGS.sse_heartbeat_ms / 1000
 CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
-FILE_PREPARE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.file_prepare_ms
 RUN_EXECUTION_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
 CLIENT_QUEUE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.client_queue_ms
 

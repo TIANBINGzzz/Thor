@@ -11,9 +11,8 @@ class ConfigurationAPITests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch('runtime.config_store._STORE'))
         self.store=install_configuration_store()
-        item=self.store.get('settings','system')
-        item['auth_configuration_jwt_secret']='management-only-secret'
-        self.store.save('settings','system',item)
+        self.store.save('settings', 'security', {'secrets': {'configurationJwtSecret': 'management-only-secret'}},
+                        partial=True)
         app=FastAPI();app.include_router(router)
         self.client=TestClient(app)
         now=int(time.time())
@@ -48,8 +47,8 @@ class ConfigurationAPITests(unittest.TestCase):
     def test_unused_records_are_validated_before_save(self):
         for resource, ref, item in [
             ('settings', 'unknown', {'value':{}}),
-            ('model_connections', 'unused', {'name':'Unused','base_url':'https://model.test',
-                'adapter':'unknown','api_key':'secret','parameters':{},'enabled':True}),
+            ('model_connections', 'unused', {'name':'Unused','base_url':'invalid',
+                'api_key':'secret','parameters':{},'enabled':True}),
             ('skills', 'unsafe', {'name':'Unsafe','description':'test','content':'test',
                 'tool_refs':[], 'resources':{'../outside.md':'escape'}, 'enabled':True}),
         ]:

@@ -18,7 +18,7 @@ class RuntimeSettingsTests(unittest.TestCase):
         path.write_text(yaml.safe_dump(deployment_document()), encoding='utf-8')
         return path
 
-    def test_explicit_nacos_file_ignores_local_yaml_and_environment(self):
+    def test_explicit_settings_ignore_local_yaml_and_environment(self):
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
             path.with_name('application.local.yml').write_text(
@@ -28,7 +28,6 @@ class RuntimeSettingsTests(unittest.TestCase):
                                           'SCRIBE_MAX_TURNS': '1'}):
                 settings = runtime_settings.load_runtime_settings(path)
             self.assertEqual(settings.timeouts.execution_ms, 3600000)
-            self.assertEqual(settings.timeouts.file_prepare_ms, 600000)
             self.assertEqual(settings.limits.max_turns, 200)
             self.assertEqual(settings.sse_heartbeat_ms, 15000)
             with self.assertRaises(dataclasses.FrozenInstanceError):
@@ -61,18 +60,20 @@ class RuntimeSettingsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'runtime'):
                 runtime_settings.load_runtime_settings(path)
 
-    def test_yaml_limits_reach_sdk_and_file_download(self):
+    def test_configured_limits_reach_sdk_and_file_download(self):
         from runtime import config, file_download
+        from runtime.deployment_config import configuration_scope
+        from tests.deployment_fixtures import file_settings
         with tempfile.TemporaryDirectory() as folder:
             path = self.write_config(folder)
             document = yaml.safe_load(path.read_text(encoding='utf-8'))
-            document['runtime']['limits'].update({'max-turns': 47, 'sdk-buffer-bytes': 8388608,
-                                                   'file-max-bytes': 4096})
-            document['runtime']['timeouts']['file-download-ms'] = 2500
+            document['runtime']['limits'].update({'max-turns': 47, 'sdk-buffer-bytes': 8388608})
+            document['fileService'] = file_settings()
+            document['fileService']['download'].update(maxBytes=4096, timeoutMs=2500)
             path.write_text(yaml.safe_dump(document), encoding='utf-8')
             settings = runtime_settings.load_runtime_settings(path)
             with patch.object(config, 'RUNTIME_SETTINGS', settings), \
-                 patch.object(file_download, 'RUNTIME_SETTINGS', settings), \
+                 configuration_scope(document), \
                  patch.dict('os.environ', {'SCRIBE_MAX_TURNS': '1', 'CCSDK_FILE_MAX_BYTES': '1'}):
                 options = config.build_options({})
                 self.assertEqual(options.max_turns, config.load_execution_entry('conversation')['capability']['runtime']['max_turns'])

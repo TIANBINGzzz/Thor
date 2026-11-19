@@ -1,8 +1,17 @@
 {
   "ref": "campus-brain-query",
-  "services": [
-    "campus"
-  ],
+  "services": {
+    "campus": "assets/campus.json"
+  },
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "max_calls": {"type": "integer", "minimum": 1},
+      "minimum_schools": {"type": "integer", "minimum": 1}
+    },
+    "required": ["max_calls", "minimum_schools"],
+    "additionalProperties": false
+  },
   "operations": [
     {
       "ref": "execute_query_plan",
@@ -24,7 +33,6 @@
           "items": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 10,
             "items": {
               "type": "object",
               "properties": {
@@ -418,7 +426,7 @@
     {
       "ref": "get_norm_metrics",
       "displayKey": "data.query",
-      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先读取本轮身份，传指标 code 和学校 code；剔除本校并去重后至少 12 所。不得复用上轮身份授权。",
+      "description": "查询本校在自选学校组的常模统计。每轮（包括年份追问或更换学校）先读取本轮身份，传指标 code 和学校 code；剔除本校并去重后至少达到本轮要求的学校数量。不得复用上轮身份授权。",
       "inputSchema": {
         "type": "object",
         "properties": {

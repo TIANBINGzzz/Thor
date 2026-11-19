@@ -27,21 +27,20 @@ class TemplateDocumentTests(unittest.TestCase):
         self.directory.mkdir()
         self.capability = {'name':'document-writing', '_directory':str(self.directory),
                          '_body':'COMMON_RULES',
-                         'templates':{}, 'data':{'access':'optional','sourceRefs':['source-a']},
+                         'templates':['alpha', 'beta'], 'data':{'access':'optional','sourceRefs':['source-a']},
                          'tools':['office','documents','artifacts'], '_skill_root':str(self.root/'skills')}
         for name in ('alpha','beta'):
             directory = self.directory / 'templates' / name
             directory.mkdir(parents=True)
             path = directory / 'template.docx'
             Document().save(path)
-            self.save(directory/'template.json', {'template_key':name, 'enabled':True,
+            self.save(directory/'template.json', {'template_key':name,
                 'capabilities':['document-writing'], 'version':1,
                 'assets':{'docx':{'file':'template.docx','sha256':sha256(path.read_bytes()).hexdigest()},
                     'writing_guide':'writing-guide.md'},
                 'data':{'source_roles':{'hpm':'source-a'},'scope_roles':{}},
                 'report':{'file_name':'report.docx'}})
             (directory/'writing-guide.md').write_text('REPORT_ADAPTER\n'+name.upper()+'_GUIDE',encoding='utf-8')
-            self.capability['templates'][name] = f'templates/{name}/template.json'
         for name, value in [('runtime.config.PROJECT_ROOT', self.root),
                             ('runtime.config.load_execution_entry', None)]:
             patcher = patch(name, return_value={'capability': self.capability}) if value is None else patch(name,value)
@@ -98,12 +97,13 @@ class TemplateDocumentTests(unittest.TestCase):
             load_prompt_assets(self.capability, template=template)
 
     def test_human_only_template_owner_is_rejected_even_with_an_ordinary_guide_name(self):
-        import shutil
-        target = self.directory / 'templates/not_for_model/alpha'
-        shutil.copytree(self.directory / 'templates/alpha', target)
-        self.capability['templates']['alpha'] = 'templates/not_for_model/alpha/template.json'
+        target = self.directory / 'templates/not_for_model'
+        (self.directory / 'templates/alpha').rename(target)
+        config = json.loads((target/'template.json').read_text(encoding='utf-8'))
+        self.save(target/'template.json', {**config, 'template_key': 'not_for_model'})
+        self.capability['templates'] = ['not_for_model']
         with self.assertRaisesRegex(DataError, 'TEMPLATE_DOCUMENT_INVALID'):
-            self.load('alpha', 'document-writing')
+            self.load('not_for_model', 'document-writing')
 
     def test_guide_mutation_changes_next_run_revision_but_not_frozen_prompt(self):
         payload=self.payload('alpha')
@@ -161,8 +161,7 @@ class TemplateDocumentTests(unittest.TestCase):
     def test_disabled_or_wrong_capability_template_is_rejected(self):
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
             self.load('alpha','conversation')
-        path=self.directory/'templates/alpha/template.json'
-        config=json.loads(path.read_text()); config['enabled']=False; self.save(path,config)
+        self.capability['templates'].remove('alpha')
         with self.assertRaisesRegex(DataError,'TEMPLATE_FORBIDDEN'):
             prepare_capability_assets(self.payload('alpha'))
 

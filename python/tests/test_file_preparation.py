@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import replace
 import json
 import tempfile
 import time
@@ -12,7 +11,6 @@ import httpx
 
 import server
 from runtime.file_download import FileDownloader, FileDownloadTimeoutError, FileDownloadValidationError
-from runtime.runtime_settings import RUNTIME_SETTINGS
 from runtime.protocol import AgentRunRequest, AttachmentRef
 from runtime.run_store import RunStore
 from runtime.session_actor import SessionManager
@@ -42,11 +40,12 @@ def file_response(chunk, count, *, gate=None, started=None, complete=True):
 
 class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self.enterContext(patch('runtime.file_download.file_service_config', return_value={
+        self.file_config = {
             'baseUrl': 'https://files.test',
-            'remoteUrl': 'https://public.test', 'downloadPath': '/file/{fileId}/download',
-            'maxFileBytes': 1024 * 1024 * 1024, 'timeoutSeconds': 600,
-        }))
+            'remoteUrl': 'https://public.test', 'path': '/file/{fileId}/download',
+            'maxBytes': 1024 * 1024 * 1024, 'timeoutMs': 15000, 'prepareMs': 600000,
+        }
+        self.enterContext(patch('runtime.file_download.file_service_config', return_value=self.file_config))
 
     async def test_payload_file_id_does_not_authorize_fetch(self):
         """业务 payload 中的文件 ID 不能替代授权附件引用。"""
@@ -135,13 +134,11 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
         for outcome in ("cancel", "timeout", "truncated"):
             with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as folder:
                 gate, started = asyncio.Event(), asyncio.Event()
+                self.file_config['prepareMs'] = 30 if outcome == 'timeout' else 1000
                 downloader = FileDownloader(domain_name='school.example.test', transport=httpx.MockTransport(
                     lambda _: file_response(b"x" * 262144, 2, gate=gate,
                                             started=started if outcome != "truncated" else None,
                                             complete=outcome != "truncated")))
-                settings = replace(__import__('runtime.runtime_settings', fromlist=['_SETTINGS'])._SETTINGS, timeouts=replace(RUNTIME_SETTINGS.timeouts,
-                    file_prepare_ms=30 if outcome == "timeout" else 1000))
-                self.enterContext(patch('runtime.file_download.RUNTIME_SETTINGS', settings))
                 task = asyncio.create_task(downloader.fetch_all([AttachmentRef("file-1")], workspace=folder))
                 if outcome == "cancel":
                     await started.wait()
@@ -153,6 +150,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(list(Path(folder).iterdir()), [])
 
     async def test_run_waits_for_files_then_queries_with_fresh_budget_and_replays_progress(self):
+        self.file_config['prepareMs'] = 3000
         for mode in ("query", "client"):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
@@ -190,7 +188,7 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
 
                 with patch.multiple(server, RUN_STORE=store, PROJECT_ROOT=root, CLIENT_SESSION_ROOT=root / "sessions",
                                     DEFAULT_MODEL="test", SESSION_MANAGER=manager, RUN_EXECUTION_TIMEOUT_MS=500,
-                                    FILE_PREPARE_TIMEOUT_MS=3000, internal_tasks={}, internal_subscribers={}), \
+                                    internal_tasks={}, internal_subscribers={}), \
                      patch.object(server, "_runtime_mode_for_request", return_value=mode), \
                      patch.object(server, "FileDownloader", side_effect=downloader), patch.object(server, "stream_agent", query):
                     task = asyncio.create_task(server._execute_internal_run(request, {"tenant": "t", "sub": "u"}, execution_entry=entry))

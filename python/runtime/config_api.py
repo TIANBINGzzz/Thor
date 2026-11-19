@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from runtime.auth import JWTError, _verify_signed_claims
 from runtime.config_store import TABLES, config_store
-from runtime.configuration import validate_configuration
+from runtime.configuration import setting_value, validate_configuration
 from runtime.config_fields import ConfigurationError, ConfigurationNotFound
 
 router = APIRouter(prefix='/internal/config/v1')
@@ -13,18 +13,18 @@ router = APIRouter(prefix='/internal/config/v1')
 async def authorize(request):
     if request.headers.get('origin'): raise HTTPException(403, 'configuration_origin_forbidden')
     try:
-        row = await asyncio.to_thread(config_store().load)
-    except RuntimeError:
+        row = await asyncio.to_thread(config_store().get, 'settings', 'security', public=False)
+    except (RuntimeError, ConfigurationNotFound, SQLAlchemyError):
         raise HTTPException(503, 'configuration_unavailable') from None
-    security = row['settings']['system']
-    secret = security['auth_configuration_jwt_secret']
-    if not secret or secret in (security['auth_runtime_jwt_secret'], security['auth_observation_jwt_secret']):
+    security = setting_value(row)
+    secret = security.get('configurationJwtSecret')
+    if not secret or secret in (security.get('runtimeJwtSecret'), security.get('observationJwtSecret')):
         raise HTTPException(503, 'configuration_auth_not_configured')
     authorization = request.headers.get('authorization', '')
     try:
         if not authorization.startswith('Bearer '): raise JWTError('missing_token')
         claims = _verify_signed_claims(authorization[7:], secret, audience='ccsdk-config',
-            issuer=security['auth_runtime_jwt_issuer'] or 'string-ai-center-service',
+            issuer=security.get('runtimeJwtIssuer', 'string-ai-center-service'),
             expected_scope='configuration.manage', required_claims=('sub',))
         if claims['exp'] - claims['iat'] > 300: raise JWTError('token_too_long')
         return claims
@@ -38,15 +38,18 @@ def resource_table(resource):
 async def options(request: Request):
     await authorize(request)
     def read():
-        from runtime.tool_catalog import ToolCatalog
+        from runtime.tool_catalog import TOOL_CATALOG
+
         store = config_store()
         connections = {item['ref'] for item in store.list('model_connections', enabled=True)}
         result = {'models': [item for item in store.list('models', enabled=True) if item['connection_ref'] in connections]}
+        declarations = TOOL_CATALOG.resolve_many(sorted(TOOL_CATALOG.refs))
+        internal_services = {item.ref for item in declarations if item.implementation == 'capability-pack'}
         for resource in ('skills', 'mcp_servers', 'database_connections'):
-            result[resource] = [{'ref':item['ref'], 'name':item['name']} for item in store.list(resource, enabled=True)]
-        catalog = ToolCatalog()
+            result[resource] = [{'ref':item['ref'], 'name':item['name']} for item in store.list(resource, enabled=True)
+                                if resource != 'mcp_servers' or item['ref'] not in internal_services]
         result['tools'] = [{'ref':item.ref, 'name':item.ref, 'description':item.description}
-                           for item in catalog.resolve_many(sorted(catalog.refs))
+                           for item in declarations
                            if item.transport != 'http' and item.implementation != 'capability-pack']
         return result
     return await asyncio.to_thread(read)

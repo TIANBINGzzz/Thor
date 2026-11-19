@@ -32,6 +32,8 @@ class CapabilityCatalogTests(unittest.TestCase):
 
     def test_new_capability_reuses_existing_registered_tools(self):
         item=self.store.get('capabilities','conversation')
-        item.pop('ref');item.update(name='新增图表',tool_refs=['charts'])
+        item.pop('ref')
+        item['name'] = '新增图表'
+        item['config']['toolRefs'] = ['charts']
         self.store.save('capabilities','new-chart',item)
         self.assertEqual(execution_entry('new-chart')['capability']['tools'],['charts'])

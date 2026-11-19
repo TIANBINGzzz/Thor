@@ -2,6 +2,7 @@
 import unittest
 from cryptography.fernet import Fernet
 from sqlalchemy import create_engine, select
+from tests.deployment_fixtures import configuration_rows
 
 class ConfigStoreTests(unittest.TestCase):
     def setUp(self):
@@ -10,15 +11,15 @@ class ConfigStoreTests(unittest.TestCase):
         metadata.create_all(self.engine)
         self.store = ConfigStore(self.engine, Fernet.generate_key().decode())
         self.store.save('model_connections', 'primary', {
-            'name': '模型服务', 'base_url': 'https://model.test', 'adapter': 'anthropic',
+            'name': '模型服务', 'base_url': 'https://model.test',
             'api_key': 'private-model-key', 'parameters': {}, 'enabled': True})
-        from tests.deployment_fixtures import configuration_rows
         rows = configuration_rows()
         model = next(iter(rows['models'].values()))
         model['connection_ref'] = 'primary'
         self.store.save('models', model['ref'], model)
         capability = rows['capabilities']['conversation']
-        capability.update(prompt='旧规则', tool_refs=[])
+        capability['prompt'] = '旧规则'
+        capability['config']['toolRefs'] = []
         self.store.save('capabilities', 'conversation', capability)
 
     def test_new_read_sees_saved_prompt_and_previous_read_is_unchanged(self):
@@ -55,10 +56,9 @@ class ConfigStoreTests(unittest.TestCase):
 
     def test_internal_service_reference_prevents_mcp_deletion(self):
         self.store.save('mcp_servers','campus',{'name':'Campus','url':'https://campus.test',
-            'headers':{},'auth_required':False,'auth_injection':'none','auth_target':None,'auth_prefix':None,'parameters':{},'enabled':True})
-        item=self.store.get('capabilities','conversation')
-        item['service_refs']=['campus']
-        self.store.save('capabilities','conversation',item)
+            'headers':{},'config':{'auth': {'mode': 'argument', 'target': 'user_context_token'}},'enabled':True})
+        item = configuration_rows()['capabilities']['campus-brain-query']
+        self.store.save('capabilities','campus-brain-query',item)
         with self.assertRaisesRegex(ValueError,'config_in_use'):
             self.store.delete('mcp_servers','campus')
 
@@ -86,7 +86,7 @@ class ConfigurationBindingTests(unittest.TestCase):
         from runtime.configuration import execution_entry
         from tests.deployment_fixtures import configuration_rows
         rows=configuration_rows()
-        rows['settings']['system']['auth_configuration_jwt_secret']='management-secret-not-for-worker'
+        rows['settings']['security']['secrets']['configurationJwtSecret'] = 'management-secret-not-for-worker'
         entry=execution_entry(rows=rows)
         request=AgentRunRequest.from_dict({'protocol':'agent-run/v1','runId':'secret-boundary',
             'messageId':'m','domainName':'school.test','input':{'text':'hello'}})
@@ -103,7 +103,7 @@ class ConfigurationBindingTests(unittest.TestCase):
         rows=configuration_rows()
         first=execution_entry(rows=rows)
         rows['model_connections']['default']['api_key']='rotated-key'
-        rows['capabilities']['conversation']['run_timeout_ms']=12345
+        rows['capabilities']['conversation']['config']['runtime']['timeout_ms'] = 12345
         second=execution_entry(rows=rows)
         with configuration_scope(first['_configuration']):
             self.assertEqual(deployment_section('model')['apiKey'],'model-secret')
@@ -120,7 +120,7 @@ class ConfigurationBindingTests(unittest.TestCase):
         rows['model_connections']['default']['api_key']='new-secret'
         rows['model_connections']['default']['base_url']='https://other.test'
         rows['models'][rows['capabilities']['conversation']['model_ref']]['model_name']='new-model'
-        rows['capabilities']['conversation'].update(effort='high',thinking_mode='disabled')
+        rows['capabilities']['conversation']['config']['runtime'].update(effort='high', thinking={'type':'disabled'})
         entry=execution_entry(rows=rows)
         options=build_options({'capability_ref':'conversation','_execution_entry':entry})
         self.assertEqual(options.env['ANTHROPIC_AUTH_TOKEN'],'new-secret')

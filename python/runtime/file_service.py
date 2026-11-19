@@ -3,7 +3,7 @@
 import re
 from urllib.parse import urlsplit
 
-from runtime.deployment_config import ConfigSnapshot, ConfigReferenceError
+from runtime.deployment_config import deployment_section
 
 
 class FileServiceError(ValueError):
@@ -13,46 +13,49 @@ class FileServiceError(ValueError):
         super().__init__(code)
 
 
-def file_service_config(*, download=False, transport=None):
+def file_service_config(*, download=False):
     """通过公共配置快照取值；本模块只负责文件字段校验与文件错误码。"""
-    try:
-        config = ConfigSnapshot(transport=transport).get('fileService')
-    except ConfigReferenceError:
-        raise FileServiceError('file_service_not_configured') from None
+    config = deployment_section('fileService')
     if not config:
         raise FileServiceError('file_service_not_configured')
-    return validate_file_service_config(config, download=download)
+    validate_file_service_config(config)
+    common = {key: config[key].rstrip('/') for key in ('baseUrl', 'remoteUrl')}
+    return {**common, **config['download' if download else 'upload']}
 
 
-def validate_file_service_config(config, *, download=False):
-    """启动校验与逐轮装配共用字段约束；只校验值，不连接远端。"""
+def validate_file_service_config(config):
+    """启动与管理保存共用文件服务约束。"""
     try:
-        config = dict(config)
-        config.pop('domainName', None)
+        if set(config) != {'baseUrl', 'remoteUrl', 'download', 'upload'}:
+            raise ValueError()
         for key in ('baseUrl', 'remoteUrl'):
             url = config[key]
-            if not isinstance(url, str) or url != url.strip() or any(c.isspace() for c in url):
+            if not isinstance(url, str) or any(char.isspace() for char in url):
                 raise ValueError()
             parsed = urlsplit(url)
             if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username
                     or parsed.password or parsed.query or parsed.fragment or parsed.port == 0
                     or parsed.path not in ('', '/')):
                 raise ValueError()
-            config[key] = url.rstrip('/')
-        for key, default, maximum in (('timeoutSeconds', 600, 3600), ('maxFileBytes', 1073741824, 10737418240)):
-            config.setdefault(key, default)
-            if type(config[key]) is not int or not 1 <= config[key] <= maximum:
+        for section, limits in (
+            ('download', {'maxBytes': 10737418240, 'timeoutMs': None, 'prepareMs': None}),
+            ('upload', {'maxBytes': 10737418240, 'timeoutSeconds': 3600, 'connectMs': None}),
+        ):
+            values = config[section]
+            if set(values) != (limits.keys() | ({'path'} if section == 'download' else set())):
                 raise ValueError()
-        if download:
-            path = config['downloadPath']
-            if (not isinstance(path, str) or path.count('{fileId}') != 1
-                    or not re.fullmatch(r'/[A-Za-z0-9_/{\}-]+', path)
-                    or path.startswith('//') or '{' in path.replace('{fileId}', '')
-                    or '}' in path.replace('{fileId}', '')):
-                raise ValueError()
+            for key, maximum in limits.items():
+                number = values[key]
+                if type(number) is not int or number < 1 or (maximum and number > maximum):
+                    raise ValueError()
+        path = config['download']['path']
+        if (not isinstance(path, str) or path.count('{fileId}') != 1
+                or not re.fullmatch(r'/[A-Za-z0-9_/{\}-]+', path)
+                or path.startswith('//') or '{' in path.replace('{fileId}', '')
+                or '}' in path.replace('{fileId}', '')):
+            raise ValueError()
     except (ValueError, KeyError, TypeError, UnicodeError):
         raise FileServiceError('file_service_config_invalid') from None
-    return config
 
 
 def with_run_domain(config, domain_name):

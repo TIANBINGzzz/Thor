@@ -290,34 +290,29 @@ class AgentWorkerTests(unittest.TestCase):
         self.assertEqual(worker["CCSDK_RENDER_IMAGE"], "renderer:test")
 
     def test_business_mcp_requires_explicit_capability_allowlist(self):
-        values = {
-            "ANTHROPIC_MODEL": "qwen",
-            "BUSINESS_MCP_URL": "https://mcp.internal",
-            "credentials": "unused",
-        }
-        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)):
-            options = build_options({
-                "capability_ref": "conversation",
-                "credentials": {"platformBearer": "token"},
-            })
-        self.assertNotIn("business", options.mcp_servers)
+        from tests.deployment_fixtures import install_configuration_store
 
-        from runtime.capabilities import capability_entry, resolve_capability
-        configured = capability_entry(resolve_capability('conversation').directory)
-        configured['tools'].append('business')
-        with patch.dict("os.environ", values, clear=True), patch_configuration(deployment_document(values)), patch('runtime.config.load_execution_entry', return_value={'capability': configured}):
-            options = build_options({
-                "capability_ref": "conversation",
-                "credentials": {"platformBearer": "token"},
-            })
-        self.assertIn("business", options.mcp_servers)
-        self.assertEqual(
-            options.mcp_servers["business"]["headers"]["Authorization"],
-            "Bearer token",
-        )
-        for name in ("office", "documents"):
+        self.enterContext(patch('runtime.config_store._STORE'))
+        store = install_configuration_store()
+        self.enterContext(patch('runtime.configuration.read_configuration', store.load))
+        store.save('mcp_servers', 'business', {
+            'name': '业务 MCP', 'enabled': True, 'url': 'https://mcp.internal', 'headers': {},
+            'config': {'auth': {'mode': 'header', 'target': 'X-Run-Token', 'prefix': 'Test '}},
+        })
+        payload = {'capability_ref': 'conversation', 'credentials': {'platformBearer': 'token'}}
+        self.assertNotIn('business', build_options(dict(payload)).mcp_servers)
+        store.save('capabilities', 'conversation', {'mcps': [{'ref': 'business', 'allowed_tools': ['lookup']}]}, partial=True)
+        options = build_options(dict(payload))
+        self.assertEqual(options.mcp_servers['business']['headers'], {'X-Run-Token': 'Test token'})
+        self.assertIn('mcp__business__lookup', options.allowed_tools)
+        self.assertNotIn('mcp__business__*', options.allowed_tools)
+        for name in ('office', 'documents'):
             self.assertNotIn("headers", options.mcp_servers[name])
             self.assertNotIn("token", str(options.mcp_servers[name].get("env", {})))
+        store.save('capabilities', 'conversation', {'mcps': []}, partial=True)
+        store.delete('mcp_servers', 'business')
+        with patch.dict('os.environ', {'BUSINESS_MCP_URL': 'https://mcp.internal'}):
+            self.assertNotIn('business', build_options(dict(payload)).mcp_servers)
 
     def test_shell_and_mcp_resolve_same_office_version(self):
         with tempfile.TemporaryDirectory() as directory:

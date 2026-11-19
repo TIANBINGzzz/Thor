@@ -13,9 +13,6 @@ class TimeoutSettings:
     execution_ms: int
     client_queue_ms: int
     client_idle_ms: int
-    file_prepare_ms: int
-    file_download_ms: int
-    file_upload_connect_ms: int
     worker_start_ms: int
     worker_send_ms: int
     worker_close_ms: int
@@ -30,7 +27,6 @@ class TimeoutSettings:
 @dataclass(frozen=True)
 class LimitSettings:
     max_turns: int
-    file_max_bytes: int
     sdk_buffer_bytes: int
     http_body_bytes: int
     prompt_bytes: int

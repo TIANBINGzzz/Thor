@@ -47,12 +47,14 @@ class ExecutionEntryTests(unittest.TestCase):
     def test_opaque_tools_do_not_publish_placeholder_operations(self):
         from runtime.tool_registry import TOOL_CATALOG
 
-        for ref in ('business', 'data', 'office'):
+        for ref in ('data', 'office'):
             definition = TOOL_CATALOG.resolve(ref)
             with self.subTest(ref=ref):
                 self.assertEqual(definition.scope, 'namespace')
                 self.assertEqual(definition.operations, ())
 
+        with self.assertRaisesRegex(RuntimeError, '工具未登记'):
+            TOOL_CATALOG.resolve('business')
         campus = TOOL_CATALOG.resolve('campus')
         self.assertEqual(campus.implementation, 'capability-pack')
         self.assertEqual(campus.service_ref, 'campus')

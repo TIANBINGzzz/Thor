@@ -1,4 +1,4 @@
-from tests.deployment_fixtures import patch_configuration
+from tests.deployment_fixtures import file_settings, patch_configuration
 """图像能力入口、SDK工具装配及多图片交稿回归。"""
 import asyncio
 from io import BytesIO
@@ -101,9 +101,7 @@ class ImageCapabilityTests(unittest.TestCase):
                 with Image.open(root / 'output' / receipt['artifactId'] / 'content') as image:
                     self.assertEqual(image.format, 'PNG')
                     self.assertEqual(image.size, (32, 24))
-            self.enterContext(patch_configuration({
-                'fileService': {'baseUrl': 'https://files.test',
-                    'remoteUrl': 'https://public.test'}}))
+            self.enterContext(patch_configuration({'fileService': file_settings()}))
             store = RunStore(':memory:')
             store.create_run('images-run', tenant_id='tenant', user_id='user',
                              metadata={'domainName': 'school.example.test'})

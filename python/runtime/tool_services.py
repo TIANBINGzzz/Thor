@@ -9,7 +9,7 @@ from runtime.asset_registry import read_manifest
 from runtime.tool_registry import TOOL_CATALOG, PROVIDERS
 
 
-def service_asset_revision(directory, config_path, settings):
+def service_asset_revision(directory, config_path, settings, params):
     """计算服务资产与本轮部署值的内容摘要，不生成持久化快照。"""
     directory = Path(directory).resolve()
     config = (directory / config_path).resolve()
@@ -25,7 +25,7 @@ def service_asset_revision(directory, config_path, settings):
             for chunk in iter(lambda: stream.read(128 * 1024), b''):
                 digest.update(chunk)
     values = settings.resolve(read_manifest(config.parent, config.name))
-    digest.update(json.dumps(values, ensure_ascii=False, sort_keys=True,
+    digest.update(json.dumps([values, params], ensure_ascii=False, sort_keys=True,
                               separators=(',', ':')).encode('utf-8'))
     return digest.hexdigest()
 
@@ -39,22 +39,17 @@ def load_tool_assets(entry, settings, *, include_capability_services=False):
         if definition.lifecycle != 'per_client':
             continue
         if definition.implementation == 'capability-pack':
-            if not include_capability_services:
-                relative = entry.get('tool_config', {}).get(definition.ref)
-                if relative is not None:
-                    directory = Path(entry['_directory']).resolve()
-                    path = (directory / relative).resolve()
-                    if not path.is_relative_to(directory):
-                        raise RuntimeError('能力 Service 资产路径无效')
-                    result[definition.ref] = {
-                        'revision': service_asset_revision(directory, relative, settings),
-                        'schema_revision': None,
-                    }
-                continue
-            from capability_packs.registry import load_pack_service_assets
-            result[definition.ref] = load_pack_service_assets(
-                entry['ref'], definition.service_ref, settings, entry['_directory'],
-                entry.get('tool_config', {}).get(definition.ref))
+            from capability_packs.registry import load_pack_service_assets, read_pack_manifest
+
+            pack = read_pack_manifest(entry['ref'])
+            directory = entry['_directory']
+            params = entry.get('params', {})
+            if include_capability_services:
+                result[definition.ref] = load_pack_service_assets(
+                    entry['ref'], definition.service_ref, settings, directory, params)
+            else:
+                result[definition.ref] = {'revision': service_asset_revision(
+                    directory, pack.service_assets[definition.service_ref], settings, params)}
             continue
         provider = PROVIDERS[definition.implementation]
         if provider.load_assets is None:

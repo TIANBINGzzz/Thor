@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
-import os
-import threading
 
 from runtime.asset_registry import ENTRY_NAME, read_asset_body, read_manifest, validate_refs
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
@@ -77,8 +75,8 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
 def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, body=None, skills=None) -> dict:
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
-               'toolRefs', 'requiredToolRefs', 'toolConfig', 'runtime', 'execution', 'data', 'templates',
-               'instructionRefs', 'instructions', 'requiredSkillRefs', 'promptVariables', 'operationRefs', 'serviceRefs', 'auth'}
+               'toolRefs', 'requiredToolRefs', 'runtime', 'execution', 'data', 'templates',
+               'instructionRefs', 'instructions', 'requiredSkillRefs', 'params', 'operationRefs', 'auth'}
     if set(manifest) - allowed or manifest.get('ref') != directory.name:
         raise RuntimeError('能力 manifest 字段或名称无效')
     for field in ('ref', 'title', 'description'):
@@ -104,38 +102,35 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, bo
     if not set(required) <= set(tools):
         raise RuntimeError('能力工具声明无效')
     operation_refs = validate_refs(manifest.get('operationRefs', []), 'operationRefs')
-    service_refs = validate_refs(manifest.get('serviceRefs', []), 'serviceRefs')
-    if (set(service_refs) & set(tools)
-            or (service_refs and not operation_refs)):
-        raise RuntimeError('能力 Service 声明无效')
-    try:
-        service_definitions = TOOL_CATALOG.resolve_many(service_refs)
-        for definition in service_definitions:
-            validate_tool_provider(definition)
-            if definition.implementation != 'capability-pack' or definition.lifecycle != 'per_client':
-                raise RuntimeError('能力 Service 声明无效')
-        if set(service_refs) != {item.service_ref for item in service_definitions}:
-            raise RuntimeError('能力 Service 引用无效')
-    except RuntimeError as error:
-        raise RuntimeError('能力 Service 声明无效') from error
+    params = manifest.get('params', {})
+    service_refs = []
     if operation_refs:
-        # 业务 Python 必须随可信 Runtime 部署，不接受其他目录中的代码引用。
-        source_root = CAPABILITIES_ROOT.resolve()
-        if not directory.resolve().is_relative_to(source_root):
+        if not directory.resolve().is_relative_to(CAPABILITIES_ROOT.resolve()):
             raise RuntimeError('只有源码能力可以引用代码包')
         from capability_packs.registry import read_pack_manifest
+        from jsonschema import Draft202012Validator
+        from runtime.config_fields import ConfigurationError
+
         pack = read_pack_manifest(manifest['ref'])
         if not set(operation_refs) <= {operation.ref for operation in pack.operations}:
             raise RuntimeError('能力 Operation 未在代码包中登记')
-        if set(service_refs) != set(pack.services):
-            raise RuntimeError('能力 Service 依赖与代码包不一致')
-    configs = manifest.get('toolConfig', {})
-    if not isinstance(configs, dict) or not set(configs) <= (set(tools) | set(service_refs)):
-        raise RuntimeError('工具配置未登记')
-    for value in configs.values():
-        path = (directory / value).resolve() if isinstance(value, str) else directory / '__invalid__'
-        if not isinstance(value, str) or Path(value).is_absolute() or '..' in Path(value).parts or not path.is_relative_to(directory.resolve()) or not path.is_file():
-            raise RuntimeError('工具资产路径无效')
+        service_refs = list(pack.services)
+        if set(service_refs) & set(tools):
+            raise RuntimeError('能力 Service 不能作为 Agent Tool')
+        for definition in TOOL_CATALOG.resolve_many(service_refs):
+            if (definition.implementation != 'capability-pack' or definition.lifecycle != 'per_client'
+                    or definition.ref != definition.service_ref):
+                raise RuntimeError('能力 Service 引用无效')
+            validate_tool_provider(definition)
+        if pack.parameter_schema is not None:
+            error = next(Draft202012Validator(pack.parameter_schema).iter_errors(params), None)
+            if error is not None:
+                field = '.'.join(['config.params', *map(str, error.absolute_path)])
+                raise ConfigurationError('capabilities', manifest['ref'], field, 'capability_params_invalid')
+        elif params:
+            raise RuntimeError('能力专属配置未登记')
+    elif params:
+        raise RuntimeError('能力专属配置未登记')
     _validate_runtime(manifest.get('runtime', {}))
     execution = manifest.get('execution', {})
     if not isinstance(execution, dict) or set(execution) - {'mode'} or execution.get('mode', 'agent') not in ('agent', 'direct'):
@@ -155,23 +150,13 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, bo
     if topics is not None and (not isinstance(topics, list) or not topics
             or any(item not in ('schema', 'relationships', 'business', 'metrics') for item in topics)):
         raise RuntimeError('能力 data.contextTopics 配置无效')
-    templates = manifest.get('templates', {})
-    if not isinstance(templates, dict):
-        raise RuntimeError('能力 templates 配置无效')
-    for ref, relative in templates.items():
-        if not ENTRY_NAME.fullmatch(ref) or not isinstance(relative, str):
-            raise RuntimeError('能力模板登记无效')
-        target = (directory / relative).resolve()
-        if (Path(relative).is_absolute() or '..' in Path(relative).parts
-                or not target.is_relative_to(directory.resolve()) or not target.is_file()
-                or target.name != 'template.json'):
-            raise RuntimeError('能力模板路径无效')
+    validate_refs(manifest.get('templates', []), '模板名单')
     from runtime.prompt_assembly import validate_prompt_manifest
     variables = validate_prompt_manifest(directory, manifest, skills_root, body=body, skills=skills)
     return {**manifest, '_prompt_variables': variables,
             'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
             'skill_refs': list(skill_refs), 'tools': list(tools),
-            'required_tools': list(required), 'tool_config': configs,
+            'required_tools': list(required),
             'operation_refs': list(operation_refs),
             'service_refs': list(service_refs),
             '_body': body if body is not None else read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
@@ -184,13 +169,11 @@ def capability_entry(directory, *, skills_root=None):
     return execution_entry(Path(directory).name)['capability']
 
 
-def load_capabilities(root=None):
-    from runtime.configuration import read_configuration
-    rows = read_configuration()['capabilities']
-    return {ref:Capability(ref=ref, name=row['name'], description=row['description'],
-        supports_attachments=row['supports_attachments'], tools=tuple(row['tool_refs']),
-        directory=str(CAPABILITIES_ROOT/ref), skill_refs=tuple(item['ref'] for item in row['skills']))
-        for ref,row in rows.items() if row['enabled']}
+def load_capabilities():
+    from runtime.config_store import config_store
+    return {row['ref']: Capability(**row, directory=str(CAPABILITIES_ROOT / row['ref']))
+            for row in config_store().capability_summaries()}
+
 
 class CapabilityCatalog(Mapping):
     def __getitem__(self, ref): return load_capabilities()[ref]
