@@ -24,7 +24,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 ### 3.4 业务 payload
 
-- 业务要求放 input.text，文件放 input.attachmentRefs；当前仅 document-writing 选择预制模板时使用 payload.templateKey，登记值为 szpt-midterm。其他场景省略 payload 或传 {}，不自行新增字段。
+- 业务要求放 input.text，文件放 input.attachmentRefs；仅 document-writing 选择预制模板时使用 payload.templateKey，取值以部署的能力配置登记为准。其他场景省略 payload 或传 {}，不自行新增字段。
 - 所有现有能力支持附件普通问答，复用同一只读入口和本轮输入目录。支持UTF-8文字、DOCX、PDF及PNG/JPEG/WebP，读取上限20MiB；不支持的格式明确反馈。附件不改变业务工具权限，也不作为接口最新数据。
 - 通用 JSON 校验仍可能接受未约定字段，尚无逐能力字段白名单；未拒绝不表示接口支持。大小、深度及保留字段见 [payload 字段参考](../python-api.html#business-payload)，Java 仅传允许模型读取的数据。
 - templateKey 不是路径、数据库名或权限参数。省略/null 不选模板，其他非空值须通过登记、启用、能力及路径校验；校验在异步准备阶段，202 不代表模板通过。其他能力传非 null 模板值同样触发校验。

@@ -1,0 +1,24 @@
+{
+  "template_key": "doublehigh-annual",
+  "name": "双高项目群年度建设与执行情况报告",
+  "version": 1,
+  "enabled": true,
+  "capabilities": [
+    "document-writing"
+  ],
+  "assets": {
+    "docx": {
+      "file": "template.docx",
+      "sha256": "d63d2a6a583244ca8cf48279c6c07b9ac6f5f862ca438f404feb995c5524db1e"
+    },
+    "writing_guide": "writing-guide.md"
+  },
+  "data": {
+    "source_roles": {
+      "hpm": "schoolDoubleHigh"
+    }
+  },
+  "report": {
+    "file_name": "双高项目群年度建设与执行情况报告.docx"
+  }
+}

@@ -155,7 +155,7 @@ Content-Type: application/json</pre></div>
 }</pre></div>
 <h3>示例二：选择已登记的预制模板</h3>
 <table><thead><tr><th>字段</th><th>类型 / 条件</th><th>含义</th></tr></thead><tbody>
-<tr><td>payload.templateKey</td><td>string；使用预制模板时填写</td><td>当前登记值为 <code>szpt-midterm</code>，仅用于 document-writing。大小写敏感，不能自行编造模板标识；新增值须由 Python 完成模板登记、启用及能力绑定。</td></tr>
+<tr><td>payload.templateKey</td><td>string；使用预制模板时填写</td><td>仅用于 document-writing，取值以部署的能力配置为准。标识大小写敏感，须已登记、启用且绑定该能力。</td></tr>
 </tbody></table>
 <div class="code-wrap"><div class="code-label">完整请求：document-writing + 系统预制模板</div><button class="copy" type="button">复制</button><pre>{
   "protocol": "agent-run/v1",
@@ -871,7 +871,7 @@ Accept: application/octet-stream</pre></div>
 <p>以下区分 Python 执行接口与业务层责任，不声明外部 Java、前端或生产环境已通过验收。</p>
 <table><thead><tr><th>用户操作</th><th>Python 契约</th><th>业务层责任与限制</th></tr></thead><tbody>
 <tr><td>普通对话、切换能力</td><td>创建 Run；省略能力即 conversation。</td><td>业务层授权并使用实时目录中的能力，不能发送演示或未登记 ID；Dify 等后端另由可信配置路由。</td></tr>
-<tr><td>系统预制模板</td><td>document-writing + payload.templateKey；当前 szpt-midterm。</td><td>按模板加载指南及数据来源。Python 无模板 CRUD 或模板目录 API；业务模板库应维护可信 templateKey 映射，不能把任意上传文件视为已登记模板。</td></tr>
+<tr><td>系统预制模板</td><td>document-writing + payload.templateKey，取值由部署的能力配置登记。</td><td>按模板加载指南及数据来源。Python 无模板 CRUD 或模板目录 API；业务模板库应维护可信 templateKey 映射，不能把任意上传文件视为已登记模板。</td></tr>
 <tr><td>老师上传模板、附件</td><td>attachmentRefs + input.text，按fileService配置下载后撰写。</td><td>保存原件、分配 fileId、校验 ACL；后续需要的附件再次提交。上传不自动生成指南或数据绑定，不改变数据权限。</td></tr>
 <tr><td>模板管理、学校可见范围、启停、重命名、删除</td><td>不属于执行 API。</td><td>由业务层维护模板记录、版本及学校授权；预制模板执行资产通过部署更新。修改数据库记录不等于 Python 模板已更新。</td></tr>
 <tr><td>停止生成</td><td>调用 /cancel，无需正文。</td><td>断开 SSE 不停止执行；等待终态后更新消息。不提供暂停与恢复。</td></tr>
