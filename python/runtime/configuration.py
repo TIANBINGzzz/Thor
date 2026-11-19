@@ -102,7 +102,7 @@ def capability_manifest(row, model_name):
     return config
 
 def execution_entry(ref=None, *, rows=None):
-    from runtime.capabilities import CAPABILITIES_ROOT, SKILLS_ROOT, _validate_manifest
+    from runtime.capabilities import CAPABILITIES_ROOT, _validate_manifest
     from runtime.deployment_config import configuration_scope
     ref = ref or 'conversation'
     rows = rows if rows is not None else read_configuration(ref)
@@ -115,9 +115,8 @@ def execution_entry(ref=None, *, rows=None):
         skills[skill['ref']] = {'ref':skill['ref'], 'description':skill['description'],
             '_body':skill['content'], 'toolRefs':skill['tool_refs'], 'resources':skill['resources']}
     with configuration_scope(document):
-        entry = _validate_manifest(CAPABILITIES_ROOT/ref, capability_manifest(row, rows['models'][row['model_ref']]['model_name']), SKILLS_ROOT,
+        entry = _validate_manifest(CAPABILITIES_ROOT/ref, capability_manifest(row, rows['models'][row['model_ref']]['model_name']),
                                    body=row['prompt'], skills=skills)
-    entry['_skills'] = skills
     entry['_mcp_allowlists'] = {item['ref']:item['allowed_tools'] for item in row['mcps']}
     entry['_attachment_policy'] = copy.deepcopy(row['config'].get('attachments', {}))
     return {'capability':entry, '_configuration':document}

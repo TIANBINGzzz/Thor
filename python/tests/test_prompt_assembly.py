@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from runtime.config import build_options, prepare_capability_assets
+from runtime.config import build_options, prepare_capability_assets, stage_skill_files
 from runtime.capabilities import CAPABILITIES
 from tests.deployment_fixtures import campus_assets, fixture_capability_entry as capability_entry
 from runtime.prompt_assembly import _render, load_prompt_assets, assemble_prompt
@@ -128,8 +128,11 @@ class PromptAssetValidationTests(unittest.TestCase):
         self.assertNotIn('方法正文_deferred', result['text'])
         self.assertNotIn(str(self.root), result['text'])
         self.assertEqual(result['deferredSkills'], ['skills/deferred/SKILL.md'])
+        stage_skill_files(assets, self.root)
         runtime = assemble_prompt(assets, active_tools=['documents'])
-        self.assertIn(str(self.skills / 'deferred/SKILL.md'), runtime['text'])
+        skill_path = self.root / '.skills/deferred/SKILL.md'
+        self.assertIn(str(skill_path.resolve()), runtime['text'])
+        self.assertEqual(skill_path.read_text(encoding='utf-8'), '方法正文_deferred')
         with self.assertRaisesRegex(RuntimeError, '工具未挂载'):
             assemble_prompt(assets, active_tools=[], preview=True)
 
@@ -162,7 +165,9 @@ class PromptAssetValidationTests(unittest.TestCase):
         self.assertNotIn('适用时核验', result['text'])
         self.assertIn('缺少', result['omitted'][-1]['reason'])
         self.manifest['execution'] = {'mode': 'direct'}
-        result = assemble_prompt(load_prompt_assets(self.entry()), active_tools=['documents'])
+        assets = load_prompt_assets(self.entry())
+        stage_skill_files(assets, self.root)
+        result = assemble_prompt(assets, active_tools=['documents'])
         self.assertIn('适用时核验', result['text'])
         self.assertNotIn('方法正文_review', result['text'])
         self.manifest['requiredSkillRefs'] = ['review']

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 
 from data_access.context import fingerprint
-from runtime.asset_registry import ENTRY_NAME, load_declared_asset, validate_refs
+from runtime.asset_registry import ENTRY_NAME, validate_refs
 from runtime.prompt_documents import MAX_DOCUMENT_TOTAL_BYTES, read_documents
 from runtime.tool_catalog import TOOL_CATALOG
 
@@ -34,21 +34,12 @@ def prompt_variables(manifest):
             and (type(value) in (bool, int) or type(value) is float and math.isfinite(value))}
 
 
-def _skill(skills_root, ref):
-    root = Path(skills_root).resolve()
-    directory = (root / ref).resolve()
-    if not directory.is_relative_to(root):
-        raise RuntimeError('Skill 路径越界')
-    return load_declared_asset(directory, 'skill.json', 'SKILL.md', ref,
-                               required_fields=('description',), asset_root=root)
-
-
 def shared_system_prompt():
     """持久 SDK 历史仅保存共同底座，逐轮业务正文由 Hook 更新。"""
     return read_documents(PROMPTS_ROOT, ['system.md'])[0]['text'].strip()
 
 
-def validate_prompt_manifest(directory, manifest, skills_root, *, body=None, skills=None):
+def validate_prompt_manifest(directory, manifest, *, body, skills):
     """发布和运行共用引用、变量及 Skill 依赖校验；声明不授予工具权限。"""
     documents = manifest.get('instructions', []) + read_documents(directory, manifest.get('instructionRefs', []))
     if any((Path(directory) / doc['name']).resolve() == (Path(directory) / 'CAPABILITY.md').resolve()
@@ -60,13 +51,14 @@ def validate_prompt_manifest(directory, manifest, skills_root, *, body=None, ski
         raise RuntimeError('必载 Skill 必须属于 skillRefs')
     tools = manifest.get('toolRefs', manifest.get('tools', []))
     for ref in skill_refs:
-        skill = skills[ref] if skills is not None else _skill(skills_root, ref)
+        if 'not_for_model' in ref.lower().replace('-', '_'):
+            raise RuntimeError('Skill 属于人工核验材料')
+        skill = skills[ref]
         needed = validate_refs(skill.get('toolRefs', []), 'Skill.toolRefs')
         if not set(needed) <= set(tools):
             raise RuntimeError('Skill 所需工具未在能力中声明')
     values = prompt_variables(manifest)
-    from runtime.asset_registry import read_asset_body
-    for text in [body if body is not None else read_asset_body(Path(directory), 'CAPABILITY.md'), *(doc['text'] for doc in documents)]:
+    for text in [body, *(doc['text'] for doc in documents)]:
         _render(text, values)
     return values
 
@@ -79,12 +71,15 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
     required = set(entry.get('requiredSkillRefs', []))
 
     def add(kind, directory, prefix, document, reason, *, tool=None, load='always', needs=()):
-        root = Path(directory).resolve()
-        path = (root / document['name']).resolve()
-        if path in seen:
+        source = prefix + document['name']
+        identity = source
+        if directory is not None:
+            root = Path(directory).resolve()
+            identity = (root / document['name']).resolve()
+            source = prefix + identity.relative_to(root).as_posix()
+        if identity in seen:
             raise RuntimeError('提示词来源重复加载')
-        seen.add(path)
-        source = prefix + path.relative_to(root).as_posix()
+        seen.add(identity)
         text = document['text']
         _render(text, {**values, **{slot: '' for slot in SLOTS}})
         sections.append({'kind': kind, 'source': source, 'text': text.strip(),
@@ -105,19 +100,17 @@ def load_prompt_assets(entry, *, template=None, catalog=None):
         for doc in read_documents(PROMPTS_ROOT, ['template-reference.md']):
             add('runtime', PROMPTS_ROOT, 'prompts/', doc, '所选模板的运行时参考副本')
     for ref in entry.get('skill_refs', []):
-        directory = Path(entry['_skill_root']) / ref
-        skill = entry['_skills'][ref] if '_skills' in entry else _skill(entry['_skill_root'], ref)
+        skill = entry['_skills'][ref]
         needed = validate_refs(skill.get('toolRefs', []), 'Skill.toolRefs')
         is_required = ref in required
         text = ('- ' + ref + '：' + skill['description'] + '\n' + skill['_body'] if is_required else
                 '- ' + ref + '：' + skill['description'] + '；适用时先用Read读取 {{skill_path}}')
-        add('skill', entry['_skill_root'], 'skills/', {'name': ref + '/SKILL.md', 'text': text},
+        add('skill', None, 'skills/', {'name': ref + '/SKILL.md', 'text': text},
             '能力声明必载方法' if is_required else '能力声明按需方法，正文尚未注入',
             load='required' if is_required else 'on_demand', needs=needed)
         # 按需正文参与当前摘要，但不向模型或预览输出整篇正文。
         sections[-1]['bodyDigest'] = fingerprint(skill['_body'])
         if not is_required:
-            sections[-1]['path'] = str((directory / 'SKILL.md').resolve())
             sections[-1]['body'] = skill['_body']
             sections[-1]['resources'] = skill.get('resources', {})
     refs = list(entry.get('tools', []))

@@ -218,11 +218,9 @@ class ConfigReferenceError(ValueError):
 
 
 class ConfigSnapshot:
-    """按需解析本轮配置；values 模式只使用服务端传入的引用快照，禁止联网补值。"""
+    """按需解析本轮配置；Worker 只使用父进程传入的引用值。"""
 
-    def __init__(self, *, transport=None, values=None):
-        """隔离调用方环境与配置副本；传入引用快照时禁用远端补值。"""
-        self._transport = transport
+    def __init__(self, *, values=None):
         self._offline = values is not None
         self._values = copy.deepcopy(values) if values is not None else {}
         self._document = copy.deepcopy(_CURRENT.get() or _DEPLOYMENT)

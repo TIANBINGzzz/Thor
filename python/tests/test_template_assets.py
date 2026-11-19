@@ -28,7 +28,7 @@ class TemplateDocumentTests(unittest.TestCase):
         self.capability = {'name':'document-writing', '_directory':str(self.directory),
                          '_body':'COMMON_RULES',
                          'templates':['alpha', 'beta'], 'data':{'access':'optional','sourceRefs':['source-a']},
-                         'tools':['office','documents','artifacts'], '_skill_root':str(self.root/'skills')}
+                         'tools':['office','documents','artifacts']}
         for name in ('alpha','beta'):
             directory = self.directory / 'templates' / name
             directory.mkdir(parents=True)

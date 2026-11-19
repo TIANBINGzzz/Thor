@@ -1,4 +1,4 @@
-"""从 JSON manifest 注册业务 Capability，并加载其模型正文。"""
+"""公开能力目录和执行声明校验。"""
 
 from __future__ import annotations
 
@@ -6,11 +6,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from runtime.asset_registry import ENTRY_NAME, read_asset_body, read_manifest, validate_refs
+from runtime.asset_registry import ENTRY_NAME, validate_refs
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
 
 CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities'
-SKILLS_ROOT = Path(__file__).resolve().parents[2] / '.claude/skills'
 
 
 class CapabilityError(ValueError):
@@ -72,7 +71,7 @@ def _validate_runtime(value, label: str = 'runtime') -> dict:
     return value
 
 
-def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, body=None, skills=None) -> dict:
+def _validate_manifest(directory: Path, manifest: dict, *, body, skills) -> dict:
     """校验 Capability manifest，并补齐 Runtime 使用的统一字段。"""
     allowed = {'ref', 'title', 'description', 'supportsAttachments', 'skillRefs',
                'toolRefs', 'requiredToolRefs', 'runtime', 'execution', 'data', 'templates',
@@ -152,18 +151,17 @@ def _validate_manifest(directory: Path, manifest: dict, skills_root: Path, *, bo
         raise RuntimeError('能力 data.contextTopics 配置无效')
     validate_refs(manifest.get('templates', []), '模板名单')
     from runtime.prompt_assembly import validate_prompt_manifest
-    variables = validate_prompt_manifest(directory, manifest, skills_root, body=body, skills=skills)
+    variables = validate_prompt_manifest(directory, manifest, body=body, skills=skills)
     return {**manifest, '_prompt_variables': variables,
             'name': manifest['ref'], 'supports_attachments': manifest.get('supportsAttachments', False),
             'skill_refs': list(skill_refs), 'tools': list(tools),
             'required_tools': list(required),
             'operation_refs': list(operation_refs),
             'service_refs': list(service_refs),
-            '_body': body if body is not None else read_asset_body(directory, 'CAPABILITY.md'), '_directory': str(directory.resolve()),
-            '_skill_root': str(skills_root.resolve())}
+            '_body': body, '_directory': str(directory.resolve()), '_skills': skills}
 
 
-def capability_entry(directory, *, skills_root=None):
+def capability_entry(directory):
     """按稳定能力标识读取数据库；directory 只标识随代码交付的模板/业务资产。"""
     from runtime.configuration import execution_entry
     return execution_entry(Path(directory).name)['capability']

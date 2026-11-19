@@ -158,7 +158,7 @@ class ExecutionEntryTests(unittest.TestCase):
             self.assertEqual(set(item.to_public_dict()), {'capabilityRef', 'name', 'description', 'supportsAttachments'})
             from runtime.config import build_options
             with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
-                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}), patch.dict(os.environ, {}, clear=True):
+                 patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}), patch.dict(os.environ, {}, clear=True):
                 options = build_options({'capability_ref': 'example'})
             self.assertEqual(set(options.mcp_servers), {'charts'})
 
@@ -203,7 +203,7 @@ class ExecutionEntryTests(unittest.TestCase):
             capability_root = self._write_capability_tree(root, capability=manifest, skill=skill)
             item = fixture_capabilities(capability_root)['example']
             with patch.object(capabilities, 'CAPABILITIES_ROOT', capability_root), \
-                 patch.object(capabilities, 'SKILLS_ROOT', root / 'skills'), patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}):
+                 patch('runtime.config.load_execution_entry', return_value={'capability':fixture_capability_entry(capability_root/'example')}):
                 config = prepare_capability_assets({'capability_ref': 'example'})
             self.assertIn('review：按需核验', config['prompt'])
             self.assertIn('任务规则。', config['prompt'])
@@ -219,26 +219,22 @@ class ExecutionEntryTests(unittest.TestCase):
 
     def test_only_selected_skill_metadata_is_injected_and_content_changes_revision(self):
         from runtime.config import prepare_capability_assets
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            skill_dir = root / '.claude/skills/review'
-            skill_dir.mkdir(parents=True)
-            (skill_dir / 'skill.json').write_text('{"ref":"review","description":"按需核验"}', encoding='utf-8')
-            path = skill_dir / 'SKILL.md'
-            path.write_text('PRIVATE_SKILL_BODY', encoding='utf-8')
-            entry = capabilities.capability_entry(capabilities.CAPABILITIES['conversation'].directory)
-            entry['skill_refs'] = ['review']
-            entry['_skill_root'] = str(skill_dir.parent)
-            entry.pop('_skills', None)
-            entry['tools'] = []
-            with patch('runtime.config.load_execution_entry', return_value={'capability': entry}), patch('server.load_execution_entry', return_value={'capability': entry}):
-                payload = {'capability_ref': 'conversation'}
-                before = prepare_capability_assets(payload)
-                self.assertIn('按需核验', before['prompt'])
-                self.assertNotIn('PRIVATE_SKILL_BODY', before['prompt'])
-                path.write_text(path.read_text(encoding='utf-8') + '\nCHANGED', encoding='utf-8')
-                self.assertEqual(before, prepare_capability_assets(payload))
-                self.assertNotEqual(before['revision'], prepare_capability_assets({'capability_ref': 'conversation'})['revision'])
+        from tests.deployment_fixtures import configuration_rows
+        rows = configuration_rows()
+        skill = {'ref': 'review', 'description': '按需核验', 'content': 'PRIVATE_SKILL_BODY',
+                 'tool_refs': [], 'resources': {}, 'enabled': True}
+        rows['skills']['review'] = skill
+        rows['capabilities']['conversation']['skills'] = [{'ref': 'review', 'required': False, 'sort_order': 0}]
+        with patch('runtime.configuration.read_configuration', return_value=rows):
+            payload = {'capability_ref': 'conversation'}
+            before = prepare_capability_assets(payload)
+            self.assertIn('按需核验', before['prompt'])
+            self.assertNotIn('PRIVATE_SKILL_BODY', before['prompt'])
+            skill_section = next(item for item in before['prompt_assets']['sections'] if item['kind'] == 'skill')
+            self.assertNotIn('path', skill_section)
+            skill['content'] += '\nCHANGED'
+            self.assertEqual(prepare_capability_assets(payload)['revision'], before['revision'])
+            self.assertNotEqual(prepare_capability_assets({'capability_ref': 'conversation'})['revision'], before['revision'])
 
     def test_capability_skill_is_injected_once(self):
         from runtime.config import prepare_capability_assets

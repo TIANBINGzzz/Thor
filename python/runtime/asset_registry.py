@@ -1,4 +1,4 @@
-"""声明式 Capability 与 Skill 资产注册表。"""
+"""读取部署资产声明并校验资源引用。"""
 
 from __future__ import annotations
 
@@ -31,36 +31,6 @@ def read_manifest(directory: Path, filename: str) -> dict:
     if not isinstance(value, dict) or any(key.startswith("_") for key in value):
         raise RuntimeError(f"声明文件必须是对象：{path}")
     return value
-
-
-def read_asset_body(directory: Path, filename: str, *, asset_root=None) -> str:
-    """读取资产 Markdown 正文。"""
-    from runtime.prompt_documents import read_documents
-    return read_documents(directory, [filename], asset_root=asset_root)[0]['text'].strip()
-
-
-def load_declared_asset(
-    directory: Path,
-    manifest_filename: str,
-    body_filename: str,
-    expected_ref: str,
-    *,
-    required_fields: tuple[str, ...] = (),
-    asset_root=None,
-) -> dict:
-    """统一读取并校验带 JSON 声明和 Markdown 正文的执行资产。"""
-    directory = Path(directory).resolve()
-    manifest = read_manifest(directory, manifest_filename)
-    if manifest.get("ref") != expected_ref:
-        raise RuntimeError(f"资产引用不匹配：{directory / manifest_filename}")
-    for field in required_fields:
-        if not isinstance(manifest.get(field), str) or not manifest[field].strip():
-            raise RuntimeError(f"资产元数据无效：{directory / manifest_filename}")
-    return {
-        **manifest,
-        "_body": read_asset_body(directory, body_filename, asset_root=asset_root),
-        "_directory": str(directory),
-    }
 
 
 def validate_refs(values, label: str) -> tuple[str, ...]:

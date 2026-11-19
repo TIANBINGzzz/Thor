@@ -138,12 +138,21 @@ def install_configuration_store():
 
 def fixture_capability_entry(directory, *, skills_root=None):
     import json
+    from runtime.asset_registry import validate_refs
     from runtime.capabilities import _validate_manifest, capability_entry
+    from runtime.prompt_documents import read_documents
     directory=Path(directory)
     if not (directory/'capability.json').exists():
         return capability_entry(directory)
-    return _validate_manifest(directory,json.loads((directory/'capability.json').read_text(encoding='utf-8')),
-                              Path(skills_root) if skills_root else directory.parent.parent/'skills')
+    manifest = json.loads((directory/'capability.json').read_text(encoding='utf-8'))
+    skill_root = Path(skills_root) if skills_root else directory.parent.parent/'skills'
+    skills = {}
+    for ref in validate_refs(manifest.get('skillRefs', []), 'skillRefs'):
+        skill_dir = skill_root/ref
+        skills[ref] = {**json.loads((skill_dir/'skill.json').read_text(encoding='utf-8')),
+                       '_body': read_documents(skill_dir, ['SKILL.md'], asset_root=skill_root)[0]['text'].strip()}
+    body = read_documents(directory, ['CAPABILITY.md'])[0]['text'].strip()
+    return _validate_manifest(directory, manifest, body=body, skills=skills)
 
 
 def fixture_capabilities(root):
