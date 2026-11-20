@@ -1,9 +1,10 @@
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from runtime.capabilities import CAPABILITIES, capability_entry
 from runtime.config import build_options
-from capability_packs.registry import _directory, _load_module
+from capability_packs.registry import PACK_ROOT, _directory, _load_module
 from tests.deployment_fixtures import deployment_document
 
 _CAMPUS = _load_module(_directory('campus-brain-query'))
@@ -12,6 +13,14 @@ _CAMPUS = _load_module(_directory('campus-brain-query'))
 class CapabilityPackMigrationTests(unittest.TestCase):
     def setUp(self):
         self.enterContext(patch('runtime.deployment_config._DEPLOYMENT', deployment_document()))
+
+    def test_local_capability_assets_share_the_business_package_root(self):
+        for ref in ('campus-brain-query', 'document-writing'):
+            with self.subTest(ref=ref):
+                directory = Path(CAPABILITIES[ref].directory).resolve()
+                self.assertEqual(directory.parent, PACK_ROOT.resolve())
+        self.assertTrue((PACK_ROOT / 'campus-brain-query' / 'assets' / 'campus.json').is_file())
+        self.assertTrue((PACK_ROOT / 'document-writing' / 'templates' / 'szpt-midterm' / 'template.json').is_file())
 
     def test_campus_business_operations_are_the_agent_tools(self):
         entry = capability_entry(CAPABILITIES['campus-brain-query'].directory)

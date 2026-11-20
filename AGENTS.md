@@ -14,10 +14,10 @@
 ## 执行资产边界
 
 - 能力目录、提示词归属、Tool/Service 和业务代码职责以[工程要求 REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)为准；本文件只保留开发时必须遵守的简要边界。
-- Python 管理 Runtime、SDK 和通用工具；能力专属业务实现归 `python/capability_packs/<capabilityRef>/`，随 Runtime 部署，按静态 `pack.json` 登记 Operation；MySQL 管理可编辑执行配置，`.claude/` 保留部署知识与模板。能力专属表范围、口径及模板不得写进通用 Python；管理端不能上传代码或指定 Python 入口。
+- Python 管理 Runtime、SDK 和通用工具；能力专属实现及部署资产归 `python/capability_packs/<capabilityRef>/`，随 Runtime 部署，按静态 `pack.json` 登记 Operation。MySQL 是能力正文与 Skill 的运行时唯一可信源；显式导出的本地快照仅供审阅，不是 fallback。公开能力目录由 MySQL 控制，本地目录不自动授予或公开能力；管理端不能上传代码或指定 Python 入口。
 - Capability 是业务入口，内部资产和权限由可信服务端装配，遵循 [REQ-002](doc/specs/engineering-requirements.md#req-002前端触发-capability执行资产保持内部化)。只有执行步骤、审批、并行、重试或外部副作用确实不同才拆 Workflow。
 - Skill 须有可复用方法、适用条件和可验证产出；单工具包装、几条提醒和模板说明不单建 Skill。单流程规则留在其目录，共同规则只维护一份。
-- 产品规则通过 MySQL 能力正文、内联指令、`skillRefs`（`requiredSkillRefs` 为必载子集）、所选 `template.json.assets` 和数据库 `source.json.domains` 显式加载。公共规则归 `.claude/prompts/`，工具指引归其 `tool.json.instructionRefs`；统一装配见 `runtime/prompt_assembly.py`，不依赖开发指引自动发现，未登记及 `not_for_model` 材料不进入 Prompt。
+- 产品规则通过 MySQL 能力正文、内联指令、`skillRefs`（`requiredSkillRefs` 为必载子集）、所选能力包 `template.json.assets` 和数据库 `source.json.domains` 显式加载。公共规则归 `.claude/prompts/`，工具指引归其 `tool.json.instructionRefs`；统一装配见 `runtime/prompt_assembly.py`，不依赖开发指引自动发现，未登记及 `not_for_model` 材料不进入 Prompt。
 - 数据库知识按来源集中，指标含义与 SQL 不复制到模板。未知定义不得编造 SQL，`pending`、`blocked`、`needs_definition` 不因目录整理自动升级；详见 [数据契约](doc/specs/data-source-connections.md)。
 - 文稿由 Agent 依据共同规则、所选指南及授权资料自主规划、取证、撰写和核验；OfficeCLI 原生 MCP 编辑，LibreOffice/PDFium 渲染及阅读。不得新增位置地图、固定取数计划、报告状态机或自研编辑层。
 - 上传模板作结构和样式参考生成新稿；预制与上传两类均须核验证据、目录和成稿，不用默认值掩盖缺口。执行规则以 MySQL document-writing 能力正文为准。

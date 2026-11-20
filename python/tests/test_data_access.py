@@ -261,7 +261,7 @@ class DataAccessTests(unittest.TestCase):
         payload={'capability_ref':'qa'}
         from runtime.capabilities import capability_entry
         def entry_for_template():
-            return capability_entry(Path('.claude/capabilities/document-writing'))
+            return capability_entry(Path('python/capability_packs/document-writing'))
         with patch.dict('os.environ',self.env):
             self.assertEqual(data_source_keys(payload),['first','second'])
             del self.deployment['databases']['second']

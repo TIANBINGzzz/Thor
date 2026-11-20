@@ -8,7 +8,7 @@
 
 安装 requirements.txt，从 config/application.example.yml 准备完整 config/application.yml；在 MySQL 中维护客户配置、能力和 Skill。本机文件已保留真实值，不提交、不进镜像。只加载 YAML，不加载 env 或 .local 覆盖。python python/server.py 或 npm start 启动，监听地址/端口取 application.server。
 
-回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。真实 API/模型验证用 `deploy/smoke.py`，必须传本次获准的 `--tenant` 和 `--domain-name`；单元测试不能代替真实模型、Java 授权和成稿验收。
+回归使用 `npm test`；部署配置回归用 `python -m unittest discover -s deploy -p "test_*.py"`。需要审阅数据库正文的本地副本时，运行 `python python/export_capability_snapshot.py <capabilityRef>`；它只读当前配置库并写入能力包，Runtime 不读取该快照。真实 API/模型验证用 `deploy/smoke.py`，必须传本次获准的 `--tenant` 和 `--domain-name`；单元测试不能代替真实模型、Java 授权和成稿验收。
 
 文档编辑依赖 OfficeCLI，版本、来源和校验值见 [构建依赖](vendor/officecli/README.md)。Linux 镜像内置 LibreOffice/PDFium；Windows 开发先构建 `docker build --target document-renderer -t ccsdkscribe-renderer:local .`，可在 application.tools.render-image 指定镜像。渲染复测入口为 `scripts/benchmark-document.py`。
 
@@ -79,7 +79,7 @@ MySQL `settings/runtime` 的 `value.observability.enabled` 控制采集，重启
 
 ### 双高数据长文：DH-LONG-REPORT-01
 
-新会话选择 `document-writing` 和 `doublehigh-annual`（测试环境须先登记模板）。题目：请使用本轮授权双高数据写年度建设与执行情况报告，按指定年度及反馈窗口覆盖项目群、建设、资金、执行、反馈与待补材料。填写封面上的报告年度、项目范围和取数日期。内部数据缺项时，仅补充适用的官方公开资料并标明出处，无法核实则说明缺口。按[模板指南](../.claude/capabilities/document-writing/templates/doublehigh-annual/writing-guide.md)呈现，正文约 5,000–8,000 字，交付可下载的 DOCX 与 PDF。
+新会话选择 `document-writing` 和 `doublehigh-annual`（测试环境须先登记模板）。题目：请使用本轮授权双高数据写年度建设与执行情况报告，按指定年度及反馈窗口覆盖项目群、建设、资金、执行、反馈与待补材料。填写封面上的报告年度、项目范围和取数日期。内部数据缺项时，仅补充适用的官方公开资料并标明出处，无法核实则说明缺口。按[模板指南](../python/capability_packs/document-writing/templates/doublehigh-annual/writing-guide.md)呈现，正文约 5,000–8,000 字，交付可下载的 DOCX 与 PDF。
 
 - 独立能力对照可将[长文实验提示](longform-writing.prompt.md)作为候选能力正文，登记同一模板和授权数据源，挂载 `data`、`web`、`images`、`office`、`documents`、`artifacts`。该文件供本地评估与配置审阅，Runtime 不从此处读取部署配置。
 - 执行前冻结年度、反馈窗口、授权范围、模板和证据基准；样本至少两个双高项目群，每群有本年度阶段、3 个一级任务及 20 个三级任务，合计至少 50 个三级任务、8 条期内已审核反馈及两类资金来源。资金与任务须有可复算记录。样本不足记未覆盖，不换租户、不补造数据。

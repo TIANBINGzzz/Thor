@@ -9,7 +9,7 @@ from pathlib import Path
 from runtime.asset_registry import ENTRY_NAME, validate_refs
 from runtime.tool_registry import TOOL_CATALOG, validate_tool_provider
 
-CAPABILITIES_ROOT = Path(__file__).resolve().parents[2] / '.claude/capabilities'
+CAPABILITIES_ROOT = Path(__file__).resolve().parents[1] / 'capability_packs'
 
 
 class CapabilityError(ValueError):

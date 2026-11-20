@@ -57,8 +57,8 @@
 
 ### 能力资产与代码归属
 
-- 业务规则写在 MySQL `ccsdk_capability.prompt` 和 `config.instructions`；公共规则放 `.claude/prompts/`，可复用方法放 `ccsdk_skill`，工具指引放 `.claude/tools/<ref>/TOOL.md`，模板要求放能力的模板资产，数据库语义放 `.claude/databases/<sourceRef>/`。通过显式引用装配，唯一入口是 `python/runtime/prompt_assembly.py`；`not_for_model` 不进入提示词。
-- 能力专属代码放 `python/capability_packs/<ref>/`，由 `pack.json` 登记 Operation、内部 Service 及参数 Schema，并通过 `config.operationRefs` 选择操作。共享实现放 `python/runtime/`、`python/tools/` 或 `python/data_access/`，不把业务规则搬进通用 Provider。
+- 能力正文及 Skill 正文由 MySQL `ccsdk_capability.prompt`、`ccsdk_skill` 作为运行时唯一可信源；公共规则放 `.claude/prompts/`，工具指引放 `.claude/tools/<ref>/TOOL.md`，Capability 专属模板和部署资源放 `python/capability_packs/<ref>/`，数据库语义放 `.claude/databases/<sourceRef>/`。`python/export_capability_snapshot.py` 可将 DB 正文及 Skill 导出到能力包供审阅；Runtime 不加载该快照或回退到文件。提示词通过显式引用装配，唯一入口是 `python/runtime/prompt_assembly.py`；`not_for_model` 不进入提示词。
+- 能力专属代码放 `python/capability_packs/<ref>/`，由 `pack.json` 登记 Operation、内部 Service 及参数 Schema，并通过 `config.operationRefs` 选择操作。公开 Capability 目录只由 MySQL 决定，静态包发现不得自行公开能力。共享实现放 `python/runtime/`、`python/tools/` 或 `python/data_access/`，不把业务规则搬进通用 Provider。
 - Agent 可见的动作是 Tool；MCP operation 也按 Tool 使用，MCP Server 承载操作，Provider 负责通用装配。Service 仅在需复用实现、状态或上游调用时建立，不要求每个 Tool 配一个 Service。
 - Operation 使用本轮 `CapabilityContext`。能力代码是随 Runtime 部署、在 Worker 权限内执行的可信代码，不是上传式沙箱插件；资产不得指定任意 Python 入口。`direct` 和提示词不保证调用顺序或必定触发；固定执行顺序必须由服务端编排保证。
 
@@ -72,9 +72,9 @@
 
 - **Python 部分实现**：Capability 由可信配置映射内部资产，普通会话省略能力仍绑定 conversation；同身份同业务会话跨能力续接 SDK 历史，见[ADR-033](../ADR/033-business-session-continuity.md)。前端能力选择持久化和 Java 生产授权仍需单独接入。
 - **Runtime 边界核对，2026-11-13**：direct/agent 共用基础工具白名单，不因模式切换分组或重连；业务 MCP、规则及凭据逐轮装配。能力与 Skill 从 MySQL 读取，通过独立管理 JWT 配置，普通 Run 输入不能修改资产；每 Run 保存实际非秘密配置，代码包仍随部署交付。跨系统追溯、Java 授权及生产隔离差距仍保留；协议见 [Runtime 契约](ccsdk-runtime-interface.md#3-run-请求模块)。
-- 撰写与双高规则、模板和来源声明直接归入 Capability，无旧 Workflow 装配。未新增版本快照系统，第6项完整配置追溯及 Java 授权仍有差距。
+- 撰写与双高规则、模板和来源声明直接归入 Capability，无旧 Workflow 装配。DB 可导出本地审阅快照，但没有运行时版本发布系统，第6项完整配置追溯及 Java 授权仍有差距。
 - 提示词归属、显式必载/按需 Skill 和统一编译已接入，见[ADR-036](../ADR/036-explicit-prompt-assembly.md)。公开目录只返回能力摘要；内容摘要不是发布版本，第6项差距保留。
-- 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现不执行代码，普通请求不能指定代码入口；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码，第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。
+- 2026-10-27 源码能力可按 `operationRefs` 选择同名可信代码包，静态发现不执行代码，普通请求不能指定代码入口；校园问数已从旧 `python/tools/campus.py` 迁移到 `python/capability_packs/campus-brain-query/operations.py`，内部 `campus` Service 只供 Operation 使用，Agent 仅看到 `mcp__capability_ops__*`。代码随 Worker 加载，不新增源码快照或在线换码；2026-11-20 校园静态资源与撰写模板已归入能力包，数据库仍独占运行时能力与 Skill 正文，本地导出仅供 Git 审阅。第6项完整追溯差距保留；普通对话、撰写、图表、图像和双高问数没有独立业务代码，仍使用现有声明式 Capability 资产。
 - 本地测试前端及模拟 Java 服务已移除；Runtime 不提供本地会话/上传接口或测试身份文件直读。会话检索使用独立 session.read，仅返回公开 Run 摘要。
 - 模板参数与装配边界见[模板契约](ccsdk-runtime-interface.md#34-业务-payload)，查询口径维护在[数据库包](../../.claude/databases/schoolDoubleHigh/)。发布工具只校验文件边界，业务事实、目录和成稿须由 Agent 核验；复杂模板质量不因接口成功而获验收。
 - 校双高数据按来源范围及本轮业务Token解析，所有usercode共享本客户全量业务数据；固定/动态SQL均强制客户过滤，用户结果和会话仍隔离，用户权限由Java负责，具体边界见[数据库管理](data-source-connections.md#字段与配置)。来源由可信能力/模板选择，项目属于业务筛选条件，生产Java身份与撤销仍须验收。

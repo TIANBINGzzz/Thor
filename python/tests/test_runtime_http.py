@@ -606,7 +606,7 @@ class RuntimeHTTPTests(unittest.TestCase):
 
     def test_writing_budget_comes_from_trusted_capability_for_both_modes(self):
         # 验证预算来源而非固定部署值，允许可信Workflow调整长篇撰写时限。
-        capability_path = Path(__file__).resolve().parents[2] / '.claude/capabilities/document-writing'
+        capability_path = Path(__file__).resolve().parents[1] / 'capability_packs/document-writing'
         expected_timeout = server.load_execution_entry('document-writing')['capability']['runtime']['timeout_ms']
         self.assertIs(type(expected_timeout), int)
         self.assertGreater(expected_timeout, 0)

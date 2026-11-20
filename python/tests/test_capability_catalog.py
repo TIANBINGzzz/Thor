@@ -1,5 +1,7 @@
 """能力目录从数据库读取；修改在新 Run 生效。"""
 import unittest
+from pathlib import Path
+import tempfile
 from unittest.mock import patch
 from runtime import capabilities
 from runtime.configuration import execution_entry
@@ -21,6 +23,12 @@ class CapabilityCatalogTests(unittest.TestCase):
         self.assertNotIn('chart-generation',capabilities.CAPABILITIES)
         with self.assertRaisesRegex(ValueError,'capability_not_found'):
             execution_entry('chart-generation')
+
+    def test_unregistered_local_package_is_not_publicly_discovered(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            (Path(temporary) / 'filesystem-only').mkdir()
+            with patch.object(capabilities, 'CAPABILITIES_ROOT', Path(temporary)):
+                self.assertNotIn('filesystem-only', capabilities.CAPABILITIES)
 
     def test_skill_edit_is_seen_on_next_run_only(self):
         first=execution_entry('document-writing')

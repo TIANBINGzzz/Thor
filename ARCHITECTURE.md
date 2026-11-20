@@ -19,11 +19,11 @@
 | `python/server.py`、`agent_worker.py` | HTTP/SSE 入口、Run 调度及 SDK 子进程 |
 | `python/runtime/` | 协议、鉴权、装配、Actor、存储、文件传输与事件 |
 | `python/tools/` | 数据、搜索、图表、生图、文档阅读/渲染和发布工具 |
-| `python/capability_packs/<capabilityRef>/` | 随部署交付的能力业务代码；`pack.json` 登记 Schema，`operations.py` 提供动作，必要时设内部 Service |
+| `python/capability_packs/<capabilityRef>/` | 能力业务代码与部署资产；包含 Operation、模板及其专属静态资源，`skills/` 可存由 MySQL 导出的审阅快照 |
 | `python/data_access/` | 客户数据范围、连接、查询校验及结果 |
 | `python/runtime/template_assets.py` | 可信模板与指南加载、参考副本 |
 | `python/runtime/prompt_assembly.py` | 显式提示词资产的统一加载、过滤、渲染及来源说明 |
-| `.claude/` | 公共提示词、工具规则、模板及数据库知识；可编辑能力与 Skill 在 MySQL |
+| `.claude/` | 公共提示词、工具规则及共享数据库知识；能力正文与 Skill 正文以 MySQL 为运行时唯一可信源 |
 | `python/tests/`、`deploy/` | 回归、容器构建与部署 |
 | `config/`、`doc/` | 部署配置；契约、工程要求、决策及必要核验记录 |
 | `deploy/environments.local.md` | 本机私有环境连接与部署交接资料；不提交 Git、不打入镜像、不写入日志 |
@@ -31,7 +31,7 @@
 ## 4. Subsystem responsibilities
 
 - Java 管业务身份、租户、Capability/文件 ACL、业务会话和消息；Python 管已授权执行、SDK 上下文、运行记录及成果快照。
-- `config_store.py` 从 MySQL 一次一致性读取，`configuration.py` 装配当轮能力、Skill、模型、数据库、MCP 和预算；`config_api.py` 通过独立管理鉴权保存即生效。`capabilities.py` 提供最新公开目录，`prompt_assembly.py` 统一加载数据库正文与部署的公共规则、模板/工具知识。按需 Skill 写入本轮工作区，必载 Skill 注入全文。配置固定到 Run 结束，下一 Run 重新读取；不设置发布表、版本仓库或本地 fallback。
+- `config_store.py` 从 MySQL 一次一致性读取，`configuration.py` 装配当轮能力、Skill、模型、数据库、MCP 和预算；`config_api.py` 通过独立管理鉴权保存即生效。`capabilities.py` 只按 MySQL 返回启用的公开目录；本地包目录不产生公开能力。`prompt_assembly.py` 统一加载数据库正文与部署的公共规则、模板/工具知识。按需 Skill 写入本轮工作区，必载 Skill 注入全文。配置固定到 Run 结束，下一 Run 重新读取；不设置发布表、版本仓库或本地 fallback。`python/export_capability_snapshot.py` 只读 MySQL 并生成本地审阅快照，Runtime 不读取快照。
 - `.claude/tools/<名称>/tool.json` 集中声明分类、操作 Schema、实现契约和显示规则；远端 MCP 连接及凭据规则来自 MySQL。`tool_catalog.py` 校验元数据，`tool_registry.py` 登记可信 Provider；`mcp_providers.py` 通用装配 HTTP/stdio MCP，进程内工具留在 `python/tools/`。MCP operation 从 Agent 视角就是 Tool；Service 仅在需要复用状态或实现时设立，不要求一一对应。动态操作和外部 MCP 只声明 namespace，不伪造静态 schema。
 - 源码能力可用 `operationRefs` 选择同名代码包的业务动作；目录发现只读静态声明，Worker 经 `capability_packs/registry.py` 加载代码，`capability_operations.py` 校验输入输出并适配为 `capability_ops` MCP Tool。操作复用本轮数据、文档及成果 Service，使用数据不必向模型开放通用数据 Tool；不为业务场景新建 Provider。
 - 数据资产按库集中；`data_services.py` 为每 Run 绑定来源、规则和私有配置，查询及分页复用同 Run 结果。
@@ -41,11 +41,12 @@
 
 ## 5. Dependency directions
 
-入口 -> Runtime -> SDK Worker -> 模型 / MCP；能力业务代码 -> 本轮通用 Service，核心运行时不依赖具体能力实现或前端。业务规则留 Capability，共享数据库知识留数据库包；授权来自可信控制面，数据库范围按来源登记并逐轮解析业务身份，发现资产不授予权限。
+入口 -> Runtime -> SDK Worker -> 模型 / MCP；能力包代码 -> 本轮通用 Service，核心运行时不依赖具体能力实现或前端。能力正文和 Skill 以 MySQL 为运行时来源，能力包承载部署代码、模板及静态业务资源；共享数据库知识留数据库包。授权来自可信控制面，数据库范围按来源登记并逐轮解析业务身份，发现资产不授予权限。
 
 ## 6. Architectural invariants
 
 - 前端只触发 Capability；省略能力归一为 conversation，本轮授权与上轮界面选择分开。Workflow、Skill、模型、MCP 及连接均为内部组成。
+- MySQL 决定公开 Capability 目录和本轮执行内容；本地能力包及 DB 导出的 Skill 快照不能单独公开、授权或作为运行 fallback。
 - 业务 Token、Run JWT、模型密钥用途分离，凭据不进入模型输入、公共事件或持久化日志；按 MCP 注入规则见工程要求。
 - 业务会话、Run、SDK session、Client 和 SSE 连接生命周期分开；断开订阅不取消 Run，resume 不撤销工具副作用。
 - 集成约定：待发送列表及排序、暂停由前端本地管理，Java 授权并保存实际提交的消息；Python 保留已提交 Run 的串行执行调度。文本引导仅通过 steer 追加到活动 Run，默认不打断在途工具，回执随原 Run SSE 推送及补放；停止仍走 cancel。前端队列接入另行实现，边界见 [Runtime 契约](doc/specs/ccsdk-runtime-interface.md#4-run-查询与控制模块)。
@@ -60,7 +61,7 @@
 - Runtime/Worker 通过 JSONL 通信；独立执行使用 query，持久执行由 SessionActor 的单一任务管理 Client。全部附件准备完成才请求模型。
 - `runtime/worker_pool.py` 预连接空白 SDK Client，所有能力共用基础工具白名单，业务 MCP 与规则逐轮装配；direct/agent 切换本身不分组或重连，其他固定启动配置不同仍按指纹匹配并在必要时恢复历史。各组共享6个库存，首轮匹配后独占领取；活跃会话复用，历史恢复冷启动。容量不足时按完成且清理后的空闲时间回收最久未互动 Client，保护新输入和在途请求，进程退出才释放名额；保留历史，不跨会话归还。工具约束见 Runtime 契约，限制及内存保护见配置字段。
 - Python/MCP 的地址、工具范围和凭据映射由服务端确定；私有证据统一进入有界观测日志，不进入公共 SSE 或业务 RunStore；采集读取由专用短时 JWT 和单独环境密钥授权。
-- 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`.claude/capabilities/campus-brain-query/` 保留业务词表与工具输入输出约束；可编辑指令与 MCP 连接在 MySQL，`python/capability_packs/campus-brain-query/operations.py` 提供可信业务 Operation 与内部 Service，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，见 [ADR-035](doc/ADR/035-campus-query-adapter.md) 和 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
+- 校园大脑为独立 Capability，复用 Agent 执行，不新增 Workflow；`python/capability_packs/campus-brain-query/` 集中业务词表、静态输入和 Operation；可编辑指令与 MCP 连接在 MySQL，`runtime/mcp_auth.py` 管理通用凭据参数映射，`runtime/mcp_transport.py` 负责 HTTP 传输，见 [ADR-035](doc/ADR/035-campus-query-adapter.md) 和 [ADR-037](doc/ADR/037-capability-owned-operations.md)。
 
 ## 8. Cross-cutting concerns
 

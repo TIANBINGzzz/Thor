@@ -78,7 +78,7 @@ class AssetContractTests(unittest.TestCase):
     def test_template_guide_references_metrics_and_source_keeps_all_tables(self):
         from docx import Document
         from runtime.template_assets import load_template
-        root=ROOT/'.claude/capabilities/document-writing/templates/szpt-midterm'
+        root=ROOT/'python/capability_packs/document-writing/templates/szpt-midterm'
         guide=(root/'writing-guide.md').read_text(encoding='utf-8')
         referenced=set(re.findall(r'`([a-z][a-z0-9_]+)`',guide))
         self.assertTrue(referenced)
