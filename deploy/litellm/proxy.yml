@@ -1,0 +1,30 @@
+model_list:
+  - model_name: gpt-6.2-astra
+    litellm_params: &yyapi
+      model: openai/gpt-6.2-astra
+      api_base: https://www.yyapi.cloud/v1
+      api_key: os.environ/YYAPI_UPSTREAM_KEY
+      timeout: 120
+    model_info: &responses
+      mode: responses
+      supports_reasoning: true
+      supports_xhigh_reasoning_effort: true
+      supports_max_reasoning_effort: true
+      reasoning_effort_levels: [low, medium, high, xhigh, max]
+  - model_name: gpt-6.2-sol
+    litellm_params:
+      <<: *yyapi
+      model: openai/gpt-6.2-sol
+    model_info: *responses
+
+general_settings:
+  master_key: os.environ/YYAPI_GATEWAY_KEY
+  disable_spend_logs: true
+router_settings:
+  num_retries: 0
+litellm_settings:
+  drop_params: true
+  telemetry: false
+  turn_off_message_logging: true
+  redact_messages_in_exceptions: true
+  redact_user_api_key_info: true

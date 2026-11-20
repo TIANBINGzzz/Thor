@@ -1,0 +1,23 @@
+# 本机协议转接试用，不由 Runtime 的发布流程启动。
+name: ccsdk-yyapi-trial
+services:
+  gateway:
+    image: ccsdk-yyapi-litellm:1.110.2
+    pull_policy: never
+    init: true
+    ports:
+      - "127.0.0.1:${CCSDK_YYAPI_PORT:-14329}:4000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /run/yyapi:size=64k,uid=10001,gid=10001,mode=0700
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 1.0
+    mem_limit: 768m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+        max-file: "2"

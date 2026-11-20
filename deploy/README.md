@@ -37,6 +37,8 @@ Flow 模板的 Codeup 服务连接、代码源、分支及主机组 ID 由实际
 
 能力、Skill、连接与预算保存后下一 Run 生效；进程设置变更排空后重启。构建只校验源码资产，不连接客户数据库；部署 --check 连接配置库，probe 另查数据库，均不代表真实业务验收。
 
+本机 YYAPI 试用使用独立的 [LiteLLM Compose](litellm/compose.yaml)，将 Anthropic Messages 转发为 OpenAI Responses。容器启动时将证书、私钥和两把模型凭据通过标准输入写到容器临时内存目录，Runtime 使用可信的 HTTPS 地址；该服务不随 Runtime 发布。
+
 ## 独立观测接入
 
 MySQL `settings/runtime` 的 `value.observability.enabled` 控制采集，重启生效。采集平台与 Runtime 使用相同 observationJwtSecret，该密钥与执行及管理密钥分离。Hawkeye 接入源填写 Runtime 根地址，实例标识及游标由平台发现和维护；替换待采库后重新登记。
