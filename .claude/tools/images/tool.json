@@ -9,7 +9,7 @@
   "operations": [
     {
       "ref": "generate",
-      "description": "按需生成或编辑一张图片，保存PNG并返回路径。reference_paths可选1至3张本轮授权参考图。生成图不能作为真实成果照片或数据证据；完成后用Read查看。",
+      "description": "生成或编辑一张图片，保存 PNG 并返回 path。用 Read 查看结果。需要向用户单独展示或交付图片时，在本轮回复前逐张调用 mcp__artifacts__publish_file，将返回的 path 作为 source_path 提交。reference_paths 可选 1 至 3 张本轮授权参考图。生成图不能作为真实成果照片或数据证据。",
       "inputSchema": {
         "type": "object",
         "properties": {
