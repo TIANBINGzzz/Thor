@@ -17,6 +17,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 ## 3. Run 请求模块
 
 - 创建接口收到合法请求即返回 202，不等待文件或模型；同 runId 的同形请求返回 200，输入或归属冲突返回 409。传输重试保留原请求快照并使用新 JWT jti；重新执行使用新 runId。
+- 已鉴权的普通 Run 先进入实例内有界队列。同身份同会话按接收顺序执行；等待冷启动的会话不阻塞其他会话复用连接。全队列已满返回已失败的 Run 和 SSE 地址；排队预算见[配置说明](../../config/README.md#run-队列与-worker-准入)。
 - 省略或 null capabilityRef 归一为 conversation，JWT 仍须绑定该能力；空字符串拒绝。能力选择只作用于本轮，Python 不恢复前端选中值。
 - 能力目录无需鉴权，只说明已登记能力，不代表用户授权、模型/MCP 健康或模板可用；Java 按业务权限筛选。
 - 同 tenant、sub、businessSessionId 的 Run 串行续接 SDK 历史，跨能力也连续；模型、工具和凭据逐轮热装配，连接固定项变化或 Client 故障时重建并恢复历史。无业务会话不保证连续上下文，重启须保留 RunStore 和 SDK transcript。历史续接不回滚工具副作用。
@@ -37,7 +38,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 
 - Run 查询返回公开状态、最大事件序号及稳定错误码，不返回身份和 SDK 元数据；业务会话检索只返回公开执行摘要，不代替 Java 的会话/消息存储。
 - 会话检索按 JWT 的 tenant、sub、businessSessionId 过滤，独立使用 session.read。按 createdAt/runId 倒序分页，cursor 原样传回，不能作为权限依据；分页不是数据库快照。无记录不证明 Java 会话不存在。
-- **待发送列表由前端本地管理**：按身份和业务会话隔离保存内容、能力、文件引用、顺序及暂停状态，不保存凭据；排序、编辑、移除和暂停不调用 Runtime。当前 Run 成功结束后才经 Java 授权、保存消息并创建下一 Run；失败、取消或状态不明时暂停发送，SSE 断开不表示完成。关闭页面后不继续派发，重开先核对已提交 Run；防重复提交及多标签页协调由业务前端/Java 接入。本仓库不实现浏览器队列，不提供业务队列管理接口；Actor 邮箱仅串行处理已提交执行和控制命令。
+- **待发送列表由前端本地管理**：按身份和业务会话隔离保存内容、能力、文件引用、顺序及暂停状态，不保存凭据；排序、编辑、移除和暂停不调用 Runtime。当前 Run 成功结束后才经 Java 授权、保存消息并创建下一 Run；失败、取消或状态不明时暂停发送，SSE 断开不表示完成。关闭页面后不继续派发，重开先核对已提交 Run；防重复提交及多标签页协调由业务前端/Java 接入。本仓库不实现浏览器待发送列表或队列管理接口。steer 和 cancel 不进入普通 Run 队列。
 - 运行中补充要求使用 `POST /internal/v1/runs/{runId}/steer`，沿用当前 Run；仅在 SDK 已接收本轮输入且仍处于执行中时接受，默认不打断在途工具，SDK 在合适的消息边界处理。需要立即停止使用 cancel，之后的新消息另建 Run。
 - 引导复用绑定原 Run、tenant、sub、businessSessionId 和 capabilityRef 的 Run JWT；正文中的新 messageId 只标识补充消息，不改写原 Run JWT。仅允许文本，不接受附件、凭据或执行配置。`accepted` 表示已持久接收，`delivered` 表示已写入 SDK，`applied` 表示 SDK 以 UUID 回显确认已纳入会话，不保证模型遵从；`rejected` 表示未发送，`unknown` 表示不能确认，不自动重发。回执随原 Run SSE 推送，断线按事件游标补放，不提供独立回执查询接口。相同 runId/messageId/文本重试仅返回当前回执，不同文本冲突。Run 结束、等待执行、准备文件、保存文件和取消期间不接受新引导。
 - cancel 是唯一停止入口，按 runId 幂等取消排队或活动 Run；重复取消合并在途请求，不重复发送 SDK 命令，已结束 Run 不变。HTTP 断开或控制超时不撤销已接受的取消，504 后查询状态或重试；取消不抢先宣告活动执行终态。文件准备期取消准备，持久 Client 模型期通过 SDK 中断并收尾，独立执行期停止任务；不提供暂停/恢复。
@@ -51,7 +52,7 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - 初始思考提示由 phase.model_starting 提供；run.started 的显示名为空。思考增量只进入私有观测，不生成公共 phase。工具 started/progress/finished 按实际事件即时发送，不因同名合并、不节流，显示间隙由消费端处理；工具结束不额外发送思考状态。显示名称及终态处理见 [API 参考](../python-api.html#events)。
 - 公共事件仅提供公开 toolKey 和显示名，不包含内部工具名、参数、结果、思考正文、Prompt、路径、凭据或 SDK 原始消息；显示字典只在 Python 维护。
 - 引导状态以 `steering.accepted`、`steering.delivered`、`steering.applied`、`steering.rejected`、`steering.unknown` 事件公开，payload 仅含 messageId、状态、稳定错误码及可信显示名。引导正文不写入 RunStore 或公共事件；SDK 对话历史由 SDK 管理。事件协议仍为 `agent-events/v1`。
-- running 同时覆盖文件准备和模型执行。先顺序下载并核验全部附件，准备失败/取消时不启动模型，无附件跳过文件阶段；进度属于当前文件，不是整个 Run 的百分比，文件字节不经 SSE。
+- `queued` 覆盖同会话等待、附件准备和资源等待；分派后进入 `running`，发出 `run.started` 和 `phase.model_starting`。附件未准备完成不启动模型，无附件跳过文件阶段；进度属于当前文件，文件字节不经 SSE。
 - SDK 结束后可进入 saving_files，等待已登记上传收尾；SSE EOF 不代表成功。run.completed 表示 SDK 成功，不保证全部文件 ready，文件状态须分别消费。
 
 ## 6. Artifact 模块
@@ -76,14 +77,14 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 
 唯一通道使用 `settings/files` 的服务地址及 `download` 限额；学校 domainName 仅随 Java 创建 Run 的正文提交，RunStore 保存于 runs.metadata_json 供文件上传重试恢复。下载及上传只发送本 Run 的 domain-name 与部署 remote-url，不转发 Run JWT、业务 Token 或 Cookie，不跟随重定向。200 必须是原始文件流，文件名取 Content-Disposition；校验已声明长度并流式限额。平台未提供权威 SHA-256，本地摘要只记录实际输入，下载成功不证明业务授权。
 
-输入原子落盘后才交给 Agent；Client 在 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 在 `.scribe-runs/work/<runId>/input/`，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
+附件由 Runtime 父进程下载到 `.scribe-runs/work/<runId>/input/`；Client 分派时才移到 `.scribe-runs/client-sessions/<workspaceId>/.current-input/`，Query 使用原目录，工作稿另存 `.work/`。RunStore 按可信 Run JWT 的 tenant、sub 和 businessSessionId 原子绑定随机 workspaceId，跨能力保持绑定；无业务会话的 Client 按 Run 隔离，已有目录就地登记保留。身份不从业务 Token 或正文解析，workspaceId 不授予权限。失败、取消和终态清理临时输入，不删除平台原件、工作稿或发布快照。
 
 排队、全部文件准备、单次网络等待、SDK 执行分别计时；见 [超时字段](../python-api.html#file-download)。文件下载使用 `download.maxBytes/timeoutMs/prepareMs`，单文件限制不是磁盘总配额。
 
 ## 9. 错误响应
 
 - 校园 MCP 鉴权、连接、服务及返回结构失败仍发出工具错误，并将最终 Run 标为 failed，使用 upstream_service_error 区别于 SDK 执行异常；即使模型正常结束答复也不记成功。参数纠正、澄清和成功空结果不触发此映射，下一 Run 清空失败标记。公共 run.failed.message 由服务端固定中文文案生成，Java 不向用户展示内部 code 或异常正文。
-- Worker/Actor 包装必须保留具体错误码，Run.error、实时 SSE 和回放一致；内存不足为 worker_memory_pressure，并发容量已满为 worker_capacity_exceeded，进程启动超时为 worker_start_timeout，模型连接超时为 sdk_connection_timeout，意外退出为 worker_exited。排队、执行、附件和鉴权故障同样按各自错误码生成原因及处理建议；未知异常保留通用提示，禁止直接透传异常正文。文案唯一来源为 `runtime/event_display.py`。
+- Worker/Actor 包装必须保留具体错误码，Run.error、实时 SSE 和回放一致。内存不足时等待启动；队列已满为 `worker_capacity_exceeded`，排队超时为 `run_queue_timeout`（用户请求过多，排队超时）。进程启动超时为 `worker_start_timeout`，模型连接超时为 `sdk_connection_timeout`，意外退出为 `worker_exited`。未知异常保留通用提示，禁止直接透传异常正文。文案唯一来源为 `runtime/event_display.py`。
 
 同步业务错误通常为 text/plain，查询参数校验 422 返回 JSON detail；状态映射见 [错误参考](../python-api.html#errors)。创建后发生的附件/模板/模型错误通过 run.failed 和 Run.error 表达，上传错误通过文件事件表达，不能只按 HTTP 202 或 SDK 成功判断交付。
 
@@ -99,7 +100,7 @@ Java 先校验文件 ACL 并将业务附件 ID 解析为文件服务 fileId。Py
 | --- | --- | --- |
 | 浏览器 / 提交前 | 请求发出、首段 SSE 到达、正文渲染 | 本平台不采集；端到端首字指标保持缺失 |
 | Java / 请求入口 | 鉴权结束、Python 请求/202、SSE 首字接收/转发 | Java 计时；本仓库不实现 |
-| Python / Run 路由入口 | `runtime`：accepted、scheduled、assembled、enqueued、prepare_begin、prepared、first_message、first_thinking、first_text、text_stored、sse_yield、completed | 有界观测日志；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
+| Python / Run 路由入口 | `runtime`：accepted、scheduled、enqueued、prepare_begin、prepared、assembled、queue_exit、first_message、first_thinking、first_text、text_stored、sse_yield、completed | queue_exit 记录获得执行资源，待分派数量见 `ccsdk_run_queue_depth`；sse_yield 是生成器交出首段正文，非网络发送完成；迟到/回放订阅可能缺失 |
 | Actor / 命令入队 | `actor`：queue_exit、prepared、worker_ready、query_sent、first_text、completed；worker_created/reused、pool_hit、rebuilt | 同会话串行；冷启动的 worker_ready − prepared 包含领取、导入和连接；预热创建单独记录，预热完成时间不计入本轮；续轮复用不沿用上次启动值 |
 | Worker / 模块加载前、初始配置收到、本轮命令收到 | `worker_boot.imported`；`worker_start`：configured、connect_begin、connected；`worker_run`：bound、configured、query_begin、query_sent、first_message、first_thinking、first_text、completed | boot 不含解释器启动；命中池时导入已在请求前完成；connect 包含 CLI 版本检查/启动及 SDK 初始化，部分 MCP 握手可延至首个 query；query_sent 只是写入 SDK |
 | 模型 HTTP / 每次请求发出前 | 请求次数/状态、响应头、首字节、首个流事件、首段思考/正文、结束；请求字节数/工具数量/Token 用量 | 测试透传探针或可信模型网关；不由 SDK init 推断，不记录 Header/正文/凭据 |

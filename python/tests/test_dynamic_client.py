@@ -162,7 +162,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
             self.assertEqual(runtime['max_turns'], 200)
             self.assertEqual(build_client_options(payload, ClientTurnPolicy()).max_turns, 200)
 
-    def test_blank_client_matches_first_conversation_connection(self):
+    def test_blank_client_matches_first_conversation_connection_without_a_workspace(self):
         import tempfile
         from pathlib import Path
         from unittest.mock import patch
@@ -175,7 +175,9 @@ class ConnectionFingerprintTests(unittest.TestCase):
                 'messageId': 'm', 'businessSessionId': 's', 'domainName': 'school.example.test',
                 'input': {'text': 'hello'}})
             actual = server._internal_worker_payload(request, Path(root) / 'run',
-                runtime_mode='client', session_directory=Path(blank['session_directory']))
+                runtime_mode='client', session_directory=Path(root) / 'session')
+            self.assertNotIn('session_directory', blank)
+            self.assertNotIn('additional_directories', blank)
             self.assertEqual(blank['_client_connection_fingerprint'], client_connection_fingerprint(actual))
 
     def test_only_immutable_options_rebuild_client(self):
@@ -195,7 +197,7 @@ class ConnectionFingerprintTests(unittest.TestCase):
             assets['runtime'] = {'max_turns': 7}
             self.assertNotEqual(first, client_connection_fingerprint(base))
 
-class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
+class ClientPoolReuseTests(unittest.IsolatedAsyncioTestCase):
     async def test_yaml_host_tool_settings_match_prewarmed_client(self):
         import tempfile
         from pathlib import Path
@@ -236,9 +238,7 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
                 pool.start()
                 try:
                     await until(lambda: pool.snapshot()['ready'] == 1)
-                    directory = pool.reserve_workspace(profile)
-                    self.assertIsNotNone(directory)
-                    worker = await pool.acquire(initial_payload={**profile, 'session_directory': directory})
+                    worker = await pool.acquire(initial_payload={**profile, 'session_directory': str(root / 'work')})
                     self.assertEqual(pool.snapshot()['hits'], 1)
                     self.assertNotIn('credentials', worker.initial)
                     self.assertNotIn('context', worker.initial)
@@ -249,7 +249,6 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
     async def test_new_fixed_group_rebalances_shared_inventory(self):
         from runtime.worker_pool import WorkerPool
         from tests.test_worker_pool import until
-        from uuid import uuid4
         class Worker:
             alive = False
             awaiting_connection = False
@@ -259,9 +258,9 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             async def terminate(self):
                 self.alive = False
         base = {'_client_connection_fingerprint': 'base'}
-        pool = WorkerPool(max_idle=6, max_starting=2, max_live=24,
+        pool = WorkerPool(max_idle=6, max_starting=2,
             profile_payloads=[base],
-            payload_factory=lambda profile: {**profile, 'session_directory': uuid4().hex},
+            payload_factory=dict,
             worker_factory=lambda **kw: Worker())
         pool.start()
         try:
@@ -270,15 +269,15 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             pool.register_profile(special)
             await until(lambda: pool.snapshot()['groups'].get('special') == 3)
             self.assertEqual(pool.snapshot()['groups'], {'base': 3, 'special': 3})
-            self.assertIsNotNone(pool.reserve_workspace(special))
+            worker = await pool.acquire(special)
+            self.assertTrue(worker.alive)
             self.assertEqual(pool.snapshot()['live'], 6)
         finally:
             await pool.close()
 
-    async def test_reservation_matches_before_removing_and_groups_share_budget(self):
+    async def test_compatible_groups_share_inventory_and_incompatible_worker_is_left_for_others(self):
         from runtime.worker_pool import WorkerPool
         from tests.test_worker_pool import until
-        from uuid import uuid4
         class Worker:
             alive = False
             awaiting_connection = False
@@ -289,153 +288,23 @@ class ClientPoolWorkspaceTests(unittest.IsolatedAsyncioTestCase):
             async def terminate(self):
                 self.alive = False
         profiles = [{'_client_connection_fingerprint': name} for name in ('default', 'special')]
-        pool = WorkerPool(max_idle=6, max_starting=2, max_live=24,
+        pool = WorkerPool(max_idle=6, max_starting=2,
             profile_payloads=profiles,
-            payload_factory=lambda profile: {**profile, 'session_directory': uuid4().hex},
+            payload_factory=dict,
             worker_factory=lambda **kw: Worker())
         pool.start()
         try:
             await until(lambda: pool.snapshot()['ready'] == 6)
-            self.assertIsNone(pool.reserve_workspace({'_client_connection_fingerprint': 'missing'}))
+            cold = await pool.acquire({'_client_connection_fingerprint': 'missing'})
+            cold._ccsdk_release_start_slot()
+            self.assertFalse(cold.alive)
             self.assertEqual(pool.snapshot()['ready'], 6)
-            directories = [pool.reserve_workspace(profiles[index % 2]) for index in range(6)]
-            self.assertTrue(all(directories))
-            await asyncio.sleep(.02)
-            self.assertEqual(pool.snapshot()['ready'] + pool.snapshot()['starting'] + pool.snapshot()['reserved'], 6)
-            leases = [await pool.acquire(initial_payload={'session_directory': directory,
-                **profiles[index % 2]}) for index, directory in enumerate(directories)]
-            self.assertEqual(len(leases), 6)
+            leases = [await pool.acquire(profiles[index % 2]) for index in range(6)]
+            self.assertEqual(len(set(leases)), 6)
+            self.assertEqual([worker.initial for worker in leases], profiles * 3)
             self.assertEqual(pool.snapshot()['hits'], 6)
         finally:
             await pool.close()
-
-    async def test_parallel_cold_leases_respect_total_limit_until_terminated(self):
-        from runtime.worker_pool import WorkerPool
-        from runtime.process import ClientWorkerError
-        class Worker:
-            alive = False
-            awaiting_connection = True
-            process = None
-            async def terminate(self):
-                self.awaiting_connection = False
-        pool = WorkerPool(max_idle=0, max_starting=6, max_live=2,
-                          worker_factory=lambda **kwargs: Worker())
-        try:
-            results = await asyncio.gather(*(pool.acquire() for _ in range(6)), return_exceptions=True)
-            leased = [item for item in results if isinstance(item, Worker)]
-            self.assertEqual(len(leased), 2)
-            self.assertEqual(sum(isinstance(item, ClientWorkerError) for item in results), 4)
-            await leased[0].terminate()
-            self.assertIsInstance(await pool.acquire(), Worker)
-        finally:
-            await pool.close()
-
-    async def test_history_restore_cancels_starting_client_and_returns_capacity(self):
-        from runtime.worker_pool import WorkerPool
-        from tests.test_worker_pool import until
-        made = []
-        class Worker:
-            alive = False
-            awaiting_connection = True
-            process = None
-            terminated = False
-            async def preconnect(self, payload):
-                await asyncio.Event().wait()
-            async def terminate(self):
-                self.terminated = True
-                self.awaiting_connection = False
-        def factory(**kwargs):
-            worker = Worker()
-            made.append(worker)
-            return worker
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1,
-                          payload_factory=lambda: {'session_directory': 'blank'}, worker_factory=factory)
-        pool.start()
-        try:
-            await until(lambda: len(made) == 1)
-            restored = await pool.acquire(initial_payload={'resume': 'history'})
-            self.assertTrue(made[0].terminated)
-            self.assertIs(restored, made[1])
-            self.assertEqual(pool.snapshot()['starting'], 0)
-        finally:
-            await pool.close()
-
-    async def test_idle_clients_do_not_block_history_restore_at_total_limit(self):
-        from runtime.worker_pool import WorkerPool
-        from tests.test_worker_pool import FakeWorker, until
-        FakeWorker.created = []
-        FakeWorker.gate = asyncio.Event()
-        FakeWorker.gate.set()
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=FakeWorker)
-        pool.start()
-        try:
-            await until(lambda: pool.snapshot()['ready'] == 1)
-            # SDK 预连接模式不能把另一目录的空白连接拿来恢复历史。
-            pool._payload_factory = lambda: {}
-            restored = await pool.acquire(initial_payload={'session_directory': 'existing', 'resume': 'history'})
-            self.assertFalse(restored.alive)
-            self.assertTrue(FakeWorker.created[0].terminated)
-            await until(lambda: FakeWorker.created[0].terminated)
-        finally:
-            await pool.close()
-
-    async def test_server_reserves_only_for_new_identity_binding(self):
-        import json
-        import tempfile
-        from pathlib import Path
-        from unittest.mock import Mock, patch
-        import server
-        from runtime.run_store import RunStore
-        with tempfile.TemporaryDirectory() as root, RunStore(':memory:') as store:
-            directory = Path(root) / ('a' * 32)
-            pool = Mock()
-            pool.reserve_workspace.return_value = str(directory)
-            with patch.multiple(server, RUN_STORE=store, CLIENT_SESSION_ROOT=Path(root), WORKER_POOL=pool):
-                key = json.dumps(['t', 'u', 'session', 's'])
-                self.assertEqual(server._client_session_directory(key), directory)
-                self.assertEqual(server._client_session_directory(key), directory)
-                pool.reserve_workspace.assert_called_once()
-                self.assertEqual(store.find_workspace('t', 'u', 'session', 's'), 'a' * 32)
-
-    async def test_preconnected_client_is_bound_once_to_its_reserved_workspace(self):
-        import tempfile
-        from pathlib import Path
-        from runtime.worker_pool import WorkerPool
-        from tests.test_worker_pool import until
-        made = []
-        class Worker:
-            alive = False
-            awaiting_connection = False
-            process = None
-            async def preconnect(self, payload):
-                self.initial = payload
-                self.alive = True
-            async def terminate(self):
-                self.alive = False
-        with tempfile.TemporaryDirectory() as root:
-            def payload():
-                directory = str(Path(root) / str(len(made)))
-                made.append(directory)
-                return {'session_directory': directory, '_client_connection_fingerprint': 'fixed'}
-            pool = WorkerPool(max_idle=2, max_starting=1, max_live=3,
-                              payload_factory=payload, worker_factory=lambda **kw: Worker())
-            pool.start()
-            try:
-                await until(lambda: pool.snapshot()['ready'] == 2)
-                workspace = pool.reserve_workspace()
-                self.assertIn(workspace, made)
-                self.assertEqual(pool.snapshot()['reserved'], 1)
-                worker = await pool.acquire(initial_payload={'session_directory': workspace, '_client_connection_fingerprint': 'fixed'})
-                self.assertTrue(worker.alive)
-                self.assertEqual(worker.initial['session_directory'], workspace)
-                self.assertEqual(pool.snapshot()['reserved'], 0)
-                other = pool.reserve_workspace()
-                self.assertNotEqual(other, workspace)
-                pool.release_workspace(other)
-                await until(lambda: pool.snapshot()['ready'] == 2)
-                self.assertTrue(worker.alive)
-            finally:
-                await pool.close()
 
 class ConfigurationEnvironmentTests(unittest.TestCase):
     def test_connection_fingerprint_ignores_removed_environment_files(self):

@@ -179,7 +179,7 @@ class ClientWorkerProcess:
         self._prewarmed = False
         self._bound = False
         self._connected = False
-        self._preconnected_payload: dict[str, Any] | None = None
+        self._preconnected_fingerprint: str | None = None
         self.startup_traces: list[dict[str, Any]] = []
         self._on_observation = None
         self._observation_run_id: str | None = None
@@ -238,10 +238,8 @@ class ClientWorkerProcess:
         if self._bound or self._closed:
             raise ClientWorkerError("Client worker 已经绑定或关闭")
         if self._connected:
-            expected = self._preconnected_payload or {}
-            if (payload.get('resume') or any(payload.get(key) != expected.get(key)
-                    for key in ('session_directory', '_client_connection_fingerprint'))):
-                raise ClientWorkerError('预连接 Client 的工作区或固定配置不匹配')
+            if payload.get('resume') or payload.get('_client_connection_fingerprint') != self._preconnected_fingerprint:
+                raise ClientWorkerError('预连接 Client 的固定配置不匹配或需要恢复历史')
             self._bound = True
             # 预连接阶段的耗时不属于本轮请求。
             self.startup_traces.clear()
@@ -334,7 +332,7 @@ class ClientWorkerProcess:
         if payload.get('credentials') or payload.get('resume'):
             raise ClientWorkerError('预连接不得携带业务凭据或历史')
         await self.start(payload)
-        self._preconnected_payload = dict(payload)
+        self._preconnected_fingerprint = payload.get('_client_connection_fingerprint')
         self._bound = False
 
     async def send(self, message: dict[str, Any]) -> None:

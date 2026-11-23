@@ -28,6 +28,8 @@ class RuntimeSettingsTests(unittest.TestCase):
                                           'SCRIBE_MAX_TURNS': '1'}):
                 settings = runtime_settings.load_runtime_settings(path)
             self.assertEqual(settings.timeouts.execution_ms, 3600000)
+            self.assertEqual(settings.timeouts.client_queue_ms, 180000)
+            self.assertEqual(settings.limits.pending_runs, 32)
             self.assertEqual(settings.limits.max_turns, 200)
             self.assertEqual(settings.sse_heartbeat_ms, 15000)
             with self.assertRaises(dataclasses.FrozenInstanceError):

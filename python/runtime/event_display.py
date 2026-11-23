@@ -63,8 +63,8 @@ EVENT_DISPLAY_NAMES = {
 TOOL_EVENTS = {'tool.started', 'tool.progress', 'tool.finished'}
 FAILURE_MESSAGES = {
     'worker_memory_pressure': '服务器可用内存不足，暂时无法处理请求，请联系管理员释放内存后重试。',
-    'worker_capacity_exceeded': '服务已达到并发处理上限，请等待其他任务结束后重试。',
-    'run_queue_timeout': '请求排队等待超时，请稍后重试。',
+    'worker_capacity_exceeded': '当前等待处理的请求已满，请稍后重试。',
+    'run_queue_timeout': '用户请求过多，排队超时',
     'worker_start_timeout': '处理进程启动超时，请稍后重试；持续失败请联系管理员。',
     'sdk_connection_timeout': '模型服务连接超时，请稍后重试；持续失败请联系管理员检查连接。',
     'sdk_connection_error': '模型服务连接失败，请稍后重试；持续失败请联系管理员检查连接。',

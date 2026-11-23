@@ -200,19 +200,13 @@ class RunStore:
             ).fetchone()
         return row['workspace_id'] if row else None
 
-    def workspace_is_bound(self, workspace_id: str) -> bool:
-        with self._lock:
-            return self._connection.execute(
-                'SELECT 1 FROM session_workspaces WHERE workspace_id=?', (workspace_id,),
-            ).fetchone() is not None
-
     def get_or_create_workspace(
         self, tenant_id: str, user_id: str, session_kind: str, session_id: str, *,
         workspace_id: str | None = None,
     ) -> str:
         """按可信身份原子领取稳定工作区；已绑定会话不可换目录，能力不参与归属。
 
-        workspace_id 仅接受服务端分配的空白目录或已有目录登记，不接受业务输入。
+        workspace_id 仅接受服务端登记已有目录，不接受业务输入。
         唯一约束阻止同一工作区跨身份绑定；SDK 历史引用仍以 runs 表为准。
         """
         if any(not isinstance(value, str) or not value.strip() for value in (tenant_id, user_id, session_id)):

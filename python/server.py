@@ -8,11 +8,11 @@ import json
 import logging
 import os
 import shutil
-import uuid
 import time
 import platform
 import importlib.metadata
-from contextlib import asynccontextmanager
+from contextlib import aclosing, asynccontextmanager
+from dataclasses import replace
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -33,10 +33,11 @@ from runtime.mcp_auth import validate_capability_credentials
 from runtime.protocol import AgentRunRequest, ProtocolError, SteeringRequest
 from runtime.process import stream_agent, ClientWorkerProcess
 from runtime.run_store import RunStore
+from runtime.run_queue import QueuedRun, RunQueue, RunQueueError
 from runtime.artifact_delivery import ArtifactDelivery
 from runtime.event_display import ToolCallDisplays, with_display_name
 from runtime.session_actor import SessionActorError, SessionManager
-from runtime.worker_pool import WorkerPool, configure_worker_logging
+from runtime.worker_pool import LOCAL_WORKER_START, WorkerPool, configure_worker_logging
 from runtime.runtime_settings import RUNTIME_SETTINGS, load_worker_pool_settings
 from runtime.config import MODEL_SETTINGS
 from runtime import telemetry
@@ -81,28 +82,30 @@ TERMINAL_RUN_STATUSES = {"succeeded", "failed", "cancelled"}
 SSE_HEARTBEAT_SECONDS = RUNTIME_SETTINGS.sse_heartbeat_ms / 1000
 CLIENT_SESSION_ROOT = PROJECT_ROOT / ".scribe-runs" / "client-sessions"
 RUN_EXECUTION_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.execution_ms
-CLIENT_QUEUE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.client_queue_ms
+RUN_QUEUE_TIMEOUT_MS = RUNTIME_SETTINGS.timeouts.client_queue_ms
+RUN_QUEUE = RunQueue(max_pending=RUNTIME_SETTINGS.limits.pending_runs)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """管理 FastAPI 生命周期，启动时创建会话管理器，退出时关闭 Client 并取消后台 Run。"""
-    global SESSION_MANAGER, WORKER_POOL
+    global SESSION_MANAGER, WORKER_POOL, RUN_QUEUE
     settings = load_worker_pool_settings()
+    RUN_QUEUE = RunQueue(max_pending=RUNTIME_SETTINGS.limits.pending_runs)
     configure_worker_logging()
     profiles = _warm_client_profiles()
     WORKER_POOL = WorkerPool(max_idle=settings.max_idle if profiles else 0, max_starting=settings.max_starting,
                             min_available_memory_mib=settings.min_available_memory_mib,
-                            max_live=settings.max_live, payload_factory=_blank_client_payload,
+                            payload_factory=_blank_client_payload,
                             profile_payloads=profiles,
-                            cleanup_workspace=_remove_unbound_workspace, observer=OBSERVATION,
+                            observer=OBSERVATION,
+                            on_change=RUN_QUEUE.notify,
+                            business_waiting=partial(RUN_QUEUE.waiting_for, LOCAL_WORKER_START),
                             worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
     try:
         RUN_STORE.settle_steering(code='runtime_restarted')
         SESSION_MANAGER = _create_session_manager()
-        WORKER_POOL.reclaim_idle = SESSION_MANAGER.reclaim_oldest_idle
-        WORKER_POOL.idle_candidate_at = SESSION_MANAGER.oldest_idle_at
         await _artifact_delivery().recover()
         yield
     finally:
@@ -112,7 +115,8 @@ async def lifespan(_: FastAPI):
 
 async def _shutdown_runtime():
     """先停止预热，再按既有退出流程关闭会话；启动中异常也清理池。"""
-    global SESSION_MANAGER, WORKER_POOL
+    global SESSION_MANAGER, WORKER_POOL, RUN_QUEUE
+    RUN_QUEUE.close()
     if WORKER_POOL is not None:
         await WORKER_POOL.close()
         WORKER_POOL = None
@@ -143,6 +147,7 @@ async def _shutdown_runtime():
     if steering:
         await asyncio.gather(*steering, return_exceptions=True)
     SESSION_MANAGER = None
+    RUN_QUEUE = RunQueue(max_pending=RUNTIME_SETTINGS.limits.pending_runs)
 
 
 app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -393,8 +398,8 @@ async def _notify_stored_event(stored: dict[str, Any]) -> None:
                     OBSERVATION.count('ccsdk_runs_completed_total','{status="'+current['status']+'"}')
     except Exception as error:
         LOGGER.warning("观测转换失败：%s", type(error).__name__)
-    async with internal_runs_lock:
-        queues = list(internal_subscribers.get(stored['runId'], set()))
+    # 订阅登记和通知都在同一事件循环；订阅先登记再按序回放。
+    queues = tuple(internal_subscribers.get(run_id, ()))
     for queue in queues:
         queue.put_nowait(stored)
 
@@ -510,6 +515,7 @@ def _create_session_manager() -> SessionManager:
         on_state=_save_client_runtime,
         idle_ttl_ms=RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory=WORKER_POOL.acquire if WORKER_POOL is not None else None,
+        on_worker_exit=WORKER_POOL.notify if WORKER_POOL is not None else None,
     )
 
 
@@ -542,30 +548,20 @@ def _client_session_key(run_request: AgentRunRequest, claims: dict[str, Any]) ->
                       separators=(',', ':'))
 
 
-def _client_session_directory(session_key: str, profile=None, *, resume=None) -> Path:
-    """按已鉴权的会话键领取随机目录；已有工作区就地登记，保留工作稿与成果路径。"""
+def _client_session_directory(session_key: str) -> Path:
+    """按已鉴权的会话键绑定工作目录，与领取空白 Client 无关。"""
     tenant, user, kind, session_id = json.loads(session_key)
     digest = hashlib.sha256(session_key.encode("utf-8")).hexdigest()[:32]
     workspace_id = RUN_STORE.find_workspace(tenant, user, kind, session_id)
     if workspace_id is None:
-        reserved = None
-        if (CLIENT_SESSION_ROOT / digest).is_dir():
-            candidate = digest
-        else:
-            reserved = WORKER_POOL.reserve_workspace(profile) if WORKER_POOL and not resume else None
-            candidate = Path(reserved).name if reserved else None
-        try:
-            workspace_id = RUN_STORE.get_or_create_workspace(
-                tenant, user, kind, session_id, workspace_id=candidate)
-        finally:
-            if reserved and workspace_id != candidate:
-                WORKER_POOL.release_workspace(reserved)
+        candidate = digest if (CLIENT_SESSION_ROOT / digest).is_dir() else None
+        workspace_id = RUN_STORE.get_or_create_workspace(tenant, user, kind, session_id, workspace_id=candidate)
     directory = (CLIENT_SESSION_ROOT / workspace_id).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     return directory
 
 
-def _startup_profile(execution_entry, previous=None):
+def _startup_profile(execution_entry):
     entry = execution_entry['capability']
     runtime = entry.get('runtime', {})
     runtime = {name: runtime[name] for name in ('thinking', 'effort', 'max_turns', 'system_prompt_snapshot') if name in runtime}
@@ -583,33 +579,10 @@ def _warm_client_profiles():
 
 
 def _blank_client_payload(profile=None):
-    """按能力选择启动环境，空白连接不加载业务规则、工具、身份或凭据。"""
-    directory = (CLIENT_SESSION_ROOT / uuid.uuid4().hex).resolve()
-    directories = [directory / name for name in ('.current-input', '.work', '.deliverables')]
-    for path in directories:
-        path.mkdir(parents=True, exist_ok=True)
-    payload = {**(profile or {}), 'cwd': str(PROJECT_ROOT), 'session_directory': str(directory),
-               'additional_directories': [str(path) for path in directories],
-               'include_partial_messages': True, 'model': DEFAULT_MODEL}
+    """空白连接只初始化 SDK 固定选项；工作区、工具和凭据逐轮装配。"""
+    payload = {**(profile or {}), 'cwd': str(PROJECT_ROOT), 'include_partial_messages': True, 'model': DEFAULT_MODEL}
     payload['_client_connection_fingerprint'] = client_connection_fingerprint(payload)
     return payload
-
-
-def _remove_unbound_workspace(directory):
-    """仅回收本池未绑定且为空的目录；已绑定会话与任何业务文件均保留。"""
-    path = Path(directory)
-    if path.parent != CLIENT_SESSION_ROOT.resolve() or RUN_STORE.workspace_is_bound(path.name):
-        return
-    for child in path.iterdir() if path.exists() else ():
-        if child.name in {'.work', '.deliverables', '.current-input'} and not child.is_symlink():
-            try:
-                child.rmdir()
-            except OSError:
-                pass
-    try:
-        path.rmdir()
-    except OSError:
-        pass
 
 
 def _runtime_input_directory(
@@ -684,6 +657,7 @@ def _internal_worker_payload(
     execution_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """接收业务请求、执行目录和已准备附件，建立工作目录并返回供 Worker 使用的内部执行字典。"""
+    run_directory.mkdir(parents=True, exist_ok=True)
     if runtime_mode == "client":
         # 跨能力热更新 MCP 时保持会话目录稳定；Run 元数据仍按轮单独保存。
         session_directory = session_directory or run_directory
@@ -767,13 +741,14 @@ def _internal_worker_payload(
     return payload
 
 
-async def _execute_internal_run(run_request, claims, *, execution_entry=None):
+async def _execute_internal_run(run_request, claims, *, execution_entry=None, queued_run=None):
     execution_entry = execution_entry or await asyncio.to_thread(load_execution_entry, run_request.capability_ref)
     document = execution_entry.get('_configuration')
     RUN_CONFIGURATIONS[run_request.run_id] = document
     try:
         with configuration_scope(document):
-            return await _execute_internal_run_bound(run_request, claims, execution_entry=execution_entry)
+            return await _execute_internal_run_bound(run_request, claims, execution_entry=execution_entry,
+                                                     queued_run=queued_run)
     finally:
         RUN_CONFIGURATIONS.pop(run_request.run_id, None)
 
@@ -783,6 +758,7 @@ async def _execute_internal_run_bound(
     claims: dict[str, Any],
     *,
     execution_entry: dict[str, Any] | None = None,
+    queued_run: QueuedRun | None = None,
 ) -> None:
     """接收已鉴权 Run 请求，准备附件并分派 Query 或 Client 执行，更新状态、发布事件及清理输入；无返回值。"""
     run_id = run_request.run_id
@@ -796,89 +772,68 @@ async def _execute_internal_run_bound(
     timing.mark('accepted')
     timing.mark('scheduled')
     OBSERVATION_SECRETS[run_id] = tuple(v for v in (run_request.credentials.platform_bearer,) if v)
-    input_workspace: Path | None = None
+    staged_input: Path | None = None
     session_directory: Path | None = None
-    runtime_mode: str | None = None
-    session_key = None
-    pinned_manager = None
+    pool = WORKER_POOL
     try:
         execution_entry = execution_entry or load_execution_entry(run_request.capability_ref)
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
-        session_key = _client_session_key(run_request, claims) if runtime_mode == "client" else None
+        session_key = _client_session_key(run_request, claims)
+        if queued_run is None:
+            queued_run = RUN_QUEUE.enqueue(session_key, timeout_ms=RUN_QUEUE_TIMEOUT_MS)
+        timing.mark('enqueued')
+        RUN_STORE.update_status(run_id, "queued")
+        await _run_phase(run_id, {"name": "queued"})
+        await queued_run.wait_turn()
+
+        # 下载只使用本轮私有目录。即使后续等启动，也不用占用连接或重复下载。
+        run_base = PROJECT_ROOT / ".scribe-runs" / "work"
+        staged_input = _runtime_input_directory("query", run_base / run_id, None)
+        timing.mark('prepare_begin')
+        attachment_files = await _fetch_run_files(run_request, staged_input) if run_request.input.attachment_refs else ()
+        timing.mark('prepared')
+
         business = run_request.business_session_id or claims.get('businessSessionId')
-        resume = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business) if session_key and business else None
-        previous = RUN_STORE.latest_client_runtime(claims['tenant'], claims['sub'], business) if session_key and business else {}
-        if session_key:
-            if pinned_manager is None and SESSION_MANAGER:
-                pinned_manager = SESSION_MANAGER
-                pinned_manager.pin_session(session_key)
-            profile = _startup_profile(execution_entry, previous)
-            if WORKER_POOL:
-                WORKER_POOL.register_profile(profile)
-            session_directory = _client_session_directory(session_key, profile, resume=resume)
-        run_base = session_directory / "runs" if session_directory else PROJECT_ROOT / ".scribe-runs" / "work"
-        run_directory = (run_base / run_id).resolve()
-        run_directory.mkdir(parents=True, exist_ok=True)
-        input_workspace = _runtime_input_directory(runtime_mode, run_directory, session_directory)
-        RUN_STORE.update_status(run_id, "running")
-        await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
-        attachment_files: tuple[FetchedFile, ...] = ()
+        resume = None
+        input_workspace = staged_input
         if runtime_mode == "client":
-            # 附件准备与本轮配置更新都在 Actor 串行区，避免清理/目录切换影响下一轮。
-            worker_payload = await asyncio.to_thread(_internal_worker_payload,
-                run_request,
-                run_directory,
-                claims=claims,
-                execution_entry=execution_entry,
-                runtime_mode=runtime_mode,
-                session_directory=session_directory,
-            )
+            resume = RUN_STORE.latest_runtime_session(claims['tenant'], claims['sub'], business) if business else None
+            profile = _startup_profile(execution_entry)
+            if pool:
+                pool.register_profile(profile)
+            session_directory = _client_session_directory(session_key)
+            run_base = session_directory / "runs"
+            input_workspace = _runtime_input_directory(runtime_mode, run_base / run_id, session_directory)
+        run_directory = (run_base / run_id).resolve()
+        handed_off = False
+        worker_payload = await asyncio.to_thread(
+            _internal_worker_payload, run_request, run_directory,
+            claims=claims, execution_entry=execution_entry, runtime_mode=runtime_mode,
+            session_directory=session_directory,
+            attachment_files=tuple(replace(item, path=input_workspace / item.safe_name)
+                                   for item in attachment_files),
+        )
 
-            async def prepare_client_run() -> dict[str, Any]:
-                """在 Actor 串行区准备本轮附件，并沿用入队时冻结的执行资产。"""
-                with configuration_scope(execution_entry.get('_configuration')):
-                    if timing:
-                        timing.mark('prepare_begin')
-                    _clear_runtime_input(input_workspace)
-                    if not run_request.input.attachment_refs:
-                        prepared_files: tuple[FetchedFile, ...] = ()
-                    else:
-                        prepared_files = await _fetch_run_files(run_request, input_workspace)
-                    prepared_payload = await asyncio.to_thread(_internal_worker_payload,
-                        run_request,
-                        run_directory,
-                        claims=claims,
-                        runtime_mode=runtime_mode,
-                        session_directory=session_directory,
-                        attachment_files=prepared_files,
-                        capability_assets=worker_payload['_capability_assets'],
-                    )
-                    if timing:
-                        timing.mark('prepared')
-                    await _run_phase(run_id, {"name": "model_starting"})
-                    return prepared_payload
-
-            async def cleanup_client_run() -> None:
-                """在 Actor 串行区清理本轮输入，避免删除下一轮已准备的文件。"""
-                # Accepted Client commands are cleaned inside the Actor. This
-                # keeps cleanup serialized with the next Run's preparation.
+        async def admitted() -> None:
+            nonlocal handed_off
+            if session_directory is not None:
+                handed_off = True
                 _clear_runtime_input(input_workspace)
-        else:
-            if run_request.input.attachment_refs:
-                attachment_files = await _fetch_run_files(run_request, input_workspace)
-            worker_payload = await asyncio.to_thread(_internal_worker_payload,
-                run_request,
-                run_directory,
-                claims=claims,
-                execution_entry=execution_entry,
-                runtime_mode=runtime_mode,
-                session_directory=session_directory,
-                attachment_files=attachment_files,
-            )
+                for item in attachment_files:
+                    item.path.replace(input_workspace / item.safe_name)
+            queued_run.dispatch()
+            timing.mark('queue_exit')
+            RUN_STORE.update_status(run_id, "running")
+            await _publish_internal_event(run_id, {"runId": run_id, "type": "run.started", "payload": {"status": "running"}})
+            await _run_phase(run_id, {"name": "model_starting"})
+
+        async def cleanup_client_run() -> None:
+            if handed_off:
+                _clear_runtime_input(input_workspace)
+
         if runtime_mode == "client":
             worker_payload['_client_runtime'] = profile['_client_runtime']
             worker_payload["_client_connection_fingerprint"] = client_connection_fingerprint(worker_payload)
-            worker_payload['resume'] = resume
         if timing:
             timing.mark('assembled')
         if OBSERVATION.enabled:
@@ -886,53 +841,50 @@ async def _execute_internal_run_bound(
                 OBSERVATION.emit('configuration',run_id,{'model':worker_payload.get('model'),'runtimeMode':runtime_mode,'capabilityRef':run_request.capability_ref or 'conversation','configuredAssetsDigest':hashlib.sha256(json.dumps(telemetry.sanitize(worker_payload.get('_capability_assets',{})),sort_keys=True,default=str).encode()).hexdigest(),'assetLoadStatus':'configured_not_proof_of_model_loading'})
             except Exception as error:
                 LOGGER.warning("观测配置摘要失败：%s", type(error).__name__)
-        async def consume_agent() -> None:
+        async def consume_agent(release_start) -> None:
             """消费一次性 Worker 事件，保存 SDK 会话引用并交给统一分流入口。"""
             stream = (stream_agent(worker_payload, timing_enabled=True)
                       if OBSERVATION.enabled else stream_agent(worker_payload))
-            async for raw in stream:
-                provider_session = raw.get("sessionId")
-                if provider_session:
-                    try:
-                        RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
-                    except (KeyError, ValueError):
-                        LOGGER.warning("无法保存 Query session 引用：run=%s", run_id)
-                await _handle_agent_event(run_id, raw)
+            async with aclosing(stream):
+                async for raw in stream:
+                    if release_start is not None and raw.get('type') == 'init':
+                        release_start()
+                    provider_session = raw.get("sessionId")
+                    if provider_session:
+                        try:
+                            RUN_STORE.update_runtime_session_ref(run_id, str(provider_session))
+                        except (KeyError, ValueError):
+                            LOGGER.warning("无法保存 Query session 引用：run=%s", run_id)
+                    await _handle_agent_event(run_id, raw)
 
         if runtime_mode == "client":
             manager = SESSION_MANAGER
             if manager is None:
                 raise SessionActorError("Client SessionManager 未启动", code="session_manager_unavailable")
-            run_payload = {
-                "prompt": worker_payload["prompt"],
-                "run_id": run_id,
-                "business_session_id": run_request.business_session_id,
-                "message_id": run_request.message_id,
-                "capability_ref": run_request.capability_ref or "conversation",
-                "timeout_ms": worker_payload["timeout_ms"],
-                "queue_timeout_ms": CLIENT_QUEUE_TIMEOUT_MS,
-                "credentials": worker_payload.get("credentials"),
-            }
-            await _run_phase(run_id, {"name": "queued"})
-            if timing:
-                timing.mark('enqueued')
             outcome = await manager.submit(
-                session_key or run_id,
-                worker_payload,
+                session_key,
+                {**worker_payload, 'resume': resume},
                 run_id,
-                run_payload,
-                prepare=prepare_client_run,
+                worker_payload,
                 cleanup=cleanup_client_run,
+                queued_run=queued_run if pool is not None else None,
+                on_admitted=admitted,
             )
             if outcome.get("runtimeSessionRef"):
                 RUN_STORE.update_runtime_session_ref(run_id, str(outcome["runtimeSessionRef"]))
             if outcome.get("status") == "cancelled":
                 pending_terminals[run_id] = {"runId": run_id, "type": "run.cancelled", "payload": {}}
         else:
-            # Cancelling this wait propagates through stream_agent and terminates
-            # the child worker process tree.
-            await _run_phase(run_id, {"name": "model_starting"})
-            await asyncio.wait_for(consume_agent(), timeout=worker_payload["timeout_ms"] / 1000)
+            release = await queued_run.wait_for(pool.try_start, resource=LOCAL_WORKER_START) if pool is not None else None
+            try:
+                await admitted()
+                async with asyncio.timeout(worker_payload["timeout_ms"] / 1000):
+                    await consume_agent(release)
+            finally:
+                if release is not None:
+                    release()
+                if pool is not None:
+                    pool.notify()
         await _finish_run(run_id, pending_terminals.pop(run_id, {"runId": run_id, "type": "run.completed", "payload": {}}))
     except asyncio.TimeoutError as error:
         _record_exception(run_id, error)
@@ -953,11 +905,7 @@ async def _execute_internal_run_bound(
             code = getattr(error, "code", None) or "runtime_error"
             await _finish_run(run_id, {"runId": run_id, "type": "run.failed", "payload": {"code": code}})
     finally:
-        if pinned_manager and session_key:
-            pinned_manager.unpin_session(session_key)
         OBSERVATION.finish_run(run_id, (RUN_STORE.get_run(run_id) or {}).get('status', 'unknown'))
-        if session_directory is not None and WORKER_POOL is not None:
-            WORKER_POOL.release_workspace(str(session_directory))
         if timing:
             timing.mark('completed')
             _record_observation(run_id, timing.event())
@@ -968,12 +916,10 @@ async def _execute_internal_run_bound(
         pending_terminals.pop(run_id, None)
         OBSERVATION_SECRETS.pop(run_id, None)
         TOOL_DISPLAYS.clear(run_id)
-        # Query owns a private directory and can clean it here. Client's
-        # current-input directory is shared by the Session and is cleaned by
-        # the accepted Actor command; an outer task must never clear it while
-        # another queued/active Run may own it.
-        if input_workspace is not None and runtime_mode != "client":
-            _clear_runtime_input(input_workspace)
+        if queued_run is not None:
+            queued_run.release()
+        if staged_input is not None:
+            _clear_runtime_input(staged_input)
         async with internal_runs_lock:
             internal_tasks.pop(run_id, None)
 
@@ -1027,17 +973,25 @@ async def internal_create_run(request: Request):
                 if timing.active:
                     RUN_TIMINGS[run_request.run_id] = timing
                 manager = SESSION_MANAGER if runtime_mode == 'client' else None
-                if manager:
-                    manager.pin_session(_client_session_key(run_request, claims))
-                internal_tasks[run_request.run_id] = asyncio.create_task(
-                    _execute_internal_run(run_request, claims,
-                                          execution_entry=execution_entry),
-                    name=f"ccsdk-run:{run_request.run_id}",
-                )
-                if manager:
-                    key = _client_session_key(run_request, claims)
-                    internal_tasks[run_request.run_id].add_done_callback(
-                        lambda task, manager=manager, key=key: manager.unpin_session(key))
+                key = _client_session_key(run_request, claims)
+                try:
+                    queued_run = RUN_QUEUE.enqueue(key, timeout_ms=RUN_QUEUE_TIMEOUT_MS)
+                except RunQueueError as error:
+                    # 仍返回 Run 与 SSE 地址，过载和超时走已提交 Run 的统一终态。
+                    await _finish_run(run_request.run_id, {"runId": run_request.run_id, "type": "run.failed",
+                                    "payload": {"code": error.code}})
+                    run = RUN_STORE.get_run(run_request.run_id)
+                    RUN_TIMINGS.pop(run_request.run_id, None)
+                    queued_run = None
+                if queued_run is not None:
+                    if manager:
+                        manager.pin_session(key)
+                    task = asyncio.create_task(
+                        _execute_internal_run(run_request, claims, execution_entry=execution_entry, queued_run=queued_run),
+                        name=f"ccsdk-run:{run_request.run_id}",
+                    )
+                    internal_tasks[run_request.run_id] = task
+                    task.add_done_callback(partial(_release_scheduled_run, run_request.run_id, queued_run, manager, key))
     except (KeyError, PermissionError, ValueError) as error:
         return _plain(str(error), 409 if isinstance(error, PermissionError) else 400)
     except RuntimeError:
@@ -1058,6 +1012,16 @@ async def internal_create_run(request: Request):
         },
         status_code=202 if existing is None else 200,
     )
+
+
+def _release_scheduled_run(run_id, queued_run, manager, key, task):
+    """容许任务在首次调度前就取消；同一队列位置只释放一次。"""
+    queued_run.release()
+    if manager:
+        manager.unpin_session(key)
+    if internal_tasks.get(run_id) is task:
+        internal_tasks.pop(run_id, None)
+        RUN_TIMINGS.pop(run_id, None)
 
 
 async def _update_steering(run_id: str, message_id: str, status: str, code: str | None = None):
@@ -1384,6 +1348,8 @@ async def _execute_internal_cancel(run_id: str):
             await asyncio.shield(task)
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
+        if task.done() and RUN_STORE.get_run(run_id)['status'] not in TERMINAL_RUN_STATUSES:
+            await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
     else:
         await _finish_run(run_id, {"runId": run_id, "type": "run.cancelled", "payload": {}})
     return {"run": _public_run(RUN_STORE.get_run(run_id))}
@@ -1414,7 +1380,7 @@ async def observation_records(cursor:int=Query(0,ge=0),limit:int=Query(200,ge=1,
 @app.get('/internal/observability/v1/snapshot')
 async def observation_snapshot():
     return JSONResponse({'timestamp':time.time_ns()//1000000,'actors':SESSION_MANAGER.snapshots() if SESSION_MANAGER else [],
-        'pool':WORKER_POOL.snapshot() if WORKER_POOL else None,
+        'pool':WORKER_POOL.snapshot() if WORKER_POOL else None, 'pendingRuns': RUN_QUEUE.pending,
         'processes':await asyncio.to_thread(WORKER_POOL.memory_snapshot) if WORKER_POOL else [],
         'dropped':OBSERVATION.dropped},headers={'cache-control':'no-store'})
 
@@ -1427,6 +1393,7 @@ async def observation_metrics():
             if type(value) in (bool,int,float): extra+=f'ccsdk_pool_{key} {int(value) if isinstance(value,bool) else value}\n'
     actors = SESSION_MANAGER.snapshots() if SESSION_MANAGER else []
     extra+=f'ccsdk_actor_queue_depth {sum(x.get("pendingRuns",0) for x in actors)}\n'
+    extra+=f'ccsdk_run_queue_depth {RUN_QUEUE.pending}\n'
     return PlainTextResponse(OBSERVATION.metrics()+extra,media_type='text/plain; version=0.0.4',
                              headers={'x-ccsdk-instance-id':OBSERVATION.instance_id})
 

@@ -341,7 +341,7 @@ class SessionActorTests(unittest.TestCase):
             with self.subTest(restored=restored):
                 asyncio.run(asyncio.wait_for(exercise(restored), 2))
 
-    def test_capacity_reclaim_protects_input_and_waits_for_process_exit_then_resumes(self):
+    def test_idle_expiry_protects_input_and_waits_for_exit_before_resuming(self):
         async def exercise():
             workers = []
             exiting, exited = asyncio.Event(), asyncio.Event()
@@ -355,24 +355,20 @@ class SessionActorTests(unittest.TestCase):
                         worker.terminated = True
                     worker.terminate = terminate
                 return worker
-            manager = SessionManager(worker_factory=factory)
+            manager = SessionManager(worker_factory=factory, idle_ttl_ms=40)
             try:
                 await manager.submit('old', {}, 'one', {})
-                await manager.submit('new', {}, 'two', {})
                 manager.pin_session('old')
-                self.assertTrue(await manager.reclaim_oldest_idle())
-                self.assertTrue(workers[1].terminated)
+                await manager.submit('new', {}, 'two', {})
+                await _wait_until(lambda: workers[1].terminated)
                 self.assertFalse(workers[0].terminated)
                 manager.unpin_session('old')
-                reclaim = asyncio.create_task(manager.reclaim_oldest_idle())
                 await exiting.wait()
-                self.assertFalse(reclaim.done())
                 self.assertIs(manager._actors['old']._worker, workers[0])
                 pending = asyncio.create_task(manager.submit('old', {}, 'three', {}))
                 await asyncio.sleep(0)
                 self.assertEqual(len(workers), 2)
                 exited.set()
-                self.assertTrue(await reclaim)
                 self.assertEqual((await pending)['status'], 'succeeded')
                 self.assertEqual(workers[2].start_payload['resume'], 'history')
             finally:
@@ -403,7 +399,7 @@ class SessionActorTests(unittest.TestCase):
                 await manager.submit('session', {}, 'first', {})
                 actor = manager._actors['session']
                 worker = workers[0]
-                self.assertFalse(await manager.reclaim_oldest_idle())
+                await _wait_until(lambda: actor._reclaim_retry_pending)
                 self.assertIs(actor._worker, worker)
                 self.assertNotEqual(actor.state, ActorState.CLOSED)
                 await _wait_until(lambda: worker.terminated, timeout=1)
@@ -420,20 +416,19 @@ class SessionActorTests(unittest.TestCase):
         async def exercise():
             cleaning, release = asyncio.Event(), asyncio.Event()
             worker = FakeClientWorker([complete_script(), complete_script()], worker_id=0)
-            manager = SessionManager(worker_factory=lambda **kw: worker)
+            manager = SessionManager(worker_factory=lambda **kw: worker, idle_ttl_ms=20)
             async def cleanup():
                 cleaning.set()
                 await release.wait()
             try:
                 first = asyncio.create_task(manager.submit('s', {}, 'one', {}, cleanup=cleanup))
                 await cleaning.wait()
-                self.assertFalse(await manager.reclaim_oldest_idle())
                 second = asyncio.create_task(manager.submit('s', {}, 'two', {}))
-                await asyncio.sleep(0)
-                self.assertFalse(await manager.reclaim_oldest_idle())
+                await asyncio.sleep(.05)
+                self.assertFalse(worker.terminated)
                 release.set()
                 await asyncio.gather(first, second)
-                self.assertTrue(await manager.reclaim_oldest_idle())
+                await _wait_until(lambda: worker.terminated)
             finally:
                 release.set()
                 await manager.close_all()
@@ -590,37 +585,6 @@ class SessionActorTests(unittest.TestCase):
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 
-    def test_preparation_and_queue_have_separate_execution_budgets(self):
-        async def exercise():
-            prepared = []
-            started = asyncio.Event()
-            release = asyncio.Event()
-            actor = SessionActor("session", {}, worker_factory=lambda **kw: FakeClientWorker(
-                [complete_script(), complete_script()], worker_id=0))
-
-            async def prepare():
-                started.set()
-                await release.wait()
-                return {"timeout_ms": 50}
-
-            async def queued_prepare():
-                prepared.append(True)
-                return {}
-
-            active = asyncio.create_task(actor.submit("active", {"timeout_ms": 10}, prepare=prepare))
-            await started.wait()
-            with self.assertRaises(SessionActorError) as caught:
-                await actor.submit("queued", {"queue_timeout_ms": 20}, prepare=queued_prepare)
-            self.assertEqual(caught.exception.code, "run_queue_timeout")
-            self.assertFalse(active.done())
-            release.set()
-            self.assertEqual((await active)["status"], "succeeded")
-            self.assertEqual((await actor.submit("after", {}))["status"], "succeeded")
-            self.assertEqual(prepared, [])
-            await actor.close()
-
-        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
-
     def test_preparation_and_cleanup_are_serialized_with_queued_runs(self):
         async def exercise():
             workers = []
@@ -745,7 +709,7 @@ class SessionActorTests(unittest.TestCase):
 
             actor = SessionActor("session", {}, worker_factory=factory, idle_ttl_ms=10_000)
             pending = asyncio.create_task(actor.submit("run-cancel", {"prompt": "hang"}))
-            await _wait_until(lambda: actor.active_run_id == "run-cancel")
+            await _wait_until(lambda: actor.state == ActorState.RUNNING)
             await actor.cancel("run-cancel")
             cancelled = await asyncio.wait_for(pending, timeout=1)
             self.assertEqual(cancelled["status"], "cancelled")
@@ -1016,31 +980,6 @@ class SessionActorTests(unittest.TestCase):
             await manager.submit('s', {'resume': 'outdated'}, 'two', {'prompt': 'two'})
             self.assertEqual(workers[1].start_payload['resume'], 'session-1')
             await manager.close_all()
-
-        asyncio.run(asyncio.wait_for(exercise(), timeout=2))
-
-    def test_completed_query_order_is_the_idle_reclaim_order(self):
-        async def exercise():
-            workers = []
-
-            def factory(**_kwargs):
-                worker = FakeClientWorker([complete_script()], worker_id=len(workers))
-                workers.append(worker)
-                return worker
-
-            manager = SessionManager(idle_ttl_ms=10_000, worker_factory=factory)
-            try:
-                await manager.submit('old', {}, 'one', {})
-                await manager.submit('new', {}, 'two', {})
-                old = manager._actors['old']
-                new = manager._actors['new']
-                old._idle_since, new._idle_since = 20, 10
-                old._last_query_completed_at, new._last_query_completed_at = 10, 20
-                self.assertTrue(await manager.reclaim_oldest_idle())
-                self.assertTrue(workers[0].terminated)
-                self.assertFalse(workers[1].terminated)
-            finally:
-                await manager.close_all()
 
         asyncio.run(asyncio.wait_for(exercise(), timeout=2))
 

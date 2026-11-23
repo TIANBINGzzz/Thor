@@ -90,6 +90,22 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.worker.awaiting_connection)
         self.assertIsNotNone(self.process.returncode)
 
+    async def test_preconnected_worker_binds_once_without_starting_with_run_credentials(self):
+        profile = {'_client_connection_fingerprint': 'same'}
+        self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
+        await self.worker.preconnect(profile)
+        with self.assertRaises(ClientWorkerError):
+            await self.worker.start({**profile, 'resume': 'existing-history'})
+        with self.assertRaises(ClientWorkerError):
+            await self.worker.start({'_client_connection_fingerprint': 'different'})
+        await self.worker.start({**profile, 'session_directory': 'first-workspace',
+                                 'credentials': {'platformBearer': 'first-token'}})
+        self.assertEqual(self.process.writes[0], {**profile, 'mode': 'client', 'connect_timeout_ms': 1000})
+        self.assertEqual(len(self.process.writes), 1)
+        self.assertEqual(self.spawn_mock.await_count, 1)
+        with self.assertRaises(ClientWorkerError):
+            await self.worker.start({**profile, 'session_directory': 'another-workspace'})
+
     async def test_start_timeout_records_connection_phase_diagnostic(self):
         self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
         self.process.client_event = None
@@ -175,9 +191,9 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(all(not trace.get('live') for trace in self.worker.startup_traces))
         self.assertIsNone(self.worker._on_observation)
 
-    async def test_pool_capacity_includes_leased_worker_until_process_cleanup_finishes(self):
+    async def test_pool_observes_a_leased_worker_until_process_cleanup_finishes(self):
         from runtime.worker_pool import WorkerPool
-        pool = WorkerPool(max_idle=0, max_starting=1, max_live=1)
+        pool = WorkerPool(max_idle=0, max_starting=1)
         worker = await pool.acquire()
         self.process.stdout.feed_data(b'{"type":"worker_ready"}\n')
         await worker.start({})
@@ -195,8 +211,7 @@ class ProcessPrewarmTests(unittest.IsolatedAsyncioTestCase):
                 await termination_started.wait()
                 self.assertFalse(worker.alive)
                 self.assertIsNone(self.process.returncode)
-                with self.assertRaises(ClientWorkerError):
-                    await pool.acquire()
+                self.assertEqual(pool.snapshot()['live'], 1)
             finally:
                 allow_termination.set()
                 await termination

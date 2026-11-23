@@ -167,7 +167,15 @@ class FilePreparationTests(unittest.IsolatedAsyncioTestCase):
 
                 def assert_ready(payload):
                     self.assertIn("template.docx", payload["prompt"])
-                    self.assertTrue(list(root.rglob("template.docx")))
+                    input_file = Path(payload['input_directory']) / 'template.docx'
+                    self.assertEqual(input_file.read_bytes(), b'x' * 524288)
+                    self.assertIn(str(input_file), payload['prompt'])
+                    self.assertIn(str(input_file.parent), payload['additional_directories'])
+                    self.assertEqual(payload['_data_identity'], {'tenant_id': 't', 'user_id': 'u'})
+                    data_dir = Path(payload['_data_run_directory'])
+                    self.assertEqual(data_dir.name, request.run_id)
+                    self.assertTrue(data_dir.is_dir())
+                    self.assertTrue(Path(payload['work_directory']).is_dir())
                     self.assertEqual(payload["timeout_ms"], 500)
                     sdk_calls.append(payload)
 

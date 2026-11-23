@@ -14,7 +14,7 @@ MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导�
 | `ccsdk_database_connection` | 类型、地址、端口、库名、账号、密码、TLS、访问范围、查询限额 | 下一 Run |
 | `ccsdk_mcp_server` | HTTP 地址、静态 Header、业务 Token 注入规则、连接参数 | 下一 Run |
 | 三张 `ccsdk_capability_*` 关联表 | Skill 顺序/必载、数据源必需性、MCP 及工具白名单 | 下一 Run |
-| `ccsdk_setting` 的 `runtime` 行 | 公共超时、限额、SSE 心跳、Worker 池及观测 | 图像、联网搜索等执行阶段超时下一 Run；进程默认参数、Worker 池、观测、SSE 心跳及 HTTP 请求上限重启 |
+| `ccsdk_setting` 的 `runtime` 行 | 公共超时、限额、SSE 心跳、Run 队列、Worker 池及观测 | 图像、联网搜索等执行阶段超时下一 Run；进程默认参数、队列、Worker 池、观测、SSE 心跳及 HTTP 请求上限重启 |
 | `ccsdk_setting` 的 `files`、`images` 行 | 文件服务上传与下载分别限额；生图服务启停、地址、模型和密钥 | 下一 Run |
 | `ccsdk_setting` 的 `security` 行 | JWT 签发方、受众及各独立密钥 | 管理鉴权下一管理请求；执行、会话读取与观测鉴权重启 |
 
@@ -29,3 +29,9 @@ MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导�
 模型连接使用 SDK 所需的 Anthropic 协议；兼容服务可切换地址与密钥。能力用 `model_ref` 选择目录，用 `config.runtime` 设置推理参数。目录的 `thinking_modes`、`effort_options` 为支持的选项数组，null 表示尚未声明，空数组表示不接受显式选项；管理保存检查已声明范围。图像模型单独配在 `images` 行。
 
 Worker 仅接收当轮模型、预算、所需数据库和 MCP 配置，不接收配置库密码、根密钥及控制面 JWT 密钥；SDK 环境不接收数据库秘密。Run JWT、管理 JWT、观测 JWT 和业务 Token 各自独立。可信 Worker 不构成生产 OS 沙箱。
+
+## Run 队列与 Worker 准入
+
+`settings/runtime` 的 `value.timeouts.client-queue-ms` 设置为 `180000`，适用于 Client 和 Query；`value.limits.pending-runs` 设置为 `32`，限制单实例同时待分派的 Run（含准备附件）。同会话等待与资源等待使用同一累计预算，附件准备另计。
+
+`value.worker-pool` 保留 `max-idle`（空白 Client 库存）及 `max-starting`（Client、Query 和预热同时启动的进程数）。`min-available-memory-mib` 至少为 `1024`，启动前按宿主机可用内存与容器内存余量的较小值判断。上线时先排空旧实例，与新版 Runtime 一起更新 `settings/runtime`：补齐上述队列字段和预算，删除 `worker-pool.max-live`。回滚也须恢复原配置结构；新旧版本的严格校验不接受对方的字段。

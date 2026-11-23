@@ -16,6 +16,7 @@ from runtime.process import ClientWorkerError, ClientWorkerProcess
 from runtime.telemetry import Timing
 from runtime.runtime_settings import RUNTIME_SETTINGS
 from runtime.config import inherit_client_runtime
+from runtime.run_queue import QueuedRun, RunQueueError
 
 
 LOGGER = logging.getLogger("ccsdk.session_actor")
@@ -72,8 +73,9 @@ class _Command:
     prepare: RunPreparation | None = None
     cleanup: RunCleanup | None = None
     initial_payload: dict[str, Any] | None = None
-    started: asyncio.Event = field(default_factory=asyncio.Event)
     timing: Timing = field(default_factory=lambda: Timing('actor'))
+    queued_run: QueuedRun | None = None
+    on_admitted: Callable[[], Awaitable[None]] | None = None
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,7 @@ class SessionActor:
         worker_close_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_close_ms,
         control_timeout_ms: int = RUNTIME_SETTINGS.timeouts.worker_control_ms,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
+        on_worker_exit: Callable[[], None] | None = None,
     ) -> None:
         """初始化单会话命令队列、回调与生命周期状态，此时不启动 Worker。"""
         if not isinstance(session_key, str) or not session_key.strip():
@@ -118,6 +121,7 @@ class SessionActor:
             raise ValueError("control_timeout_ms must be a positive integer")
         self._control_timeout_ms = control_timeout_ms
         self._worker_factory = worker_factory or ClientWorkerProcess
+        self._on_worker_exit = on_worker_exit
         self._commands: asyncio.Queue[_Command] = asyncio.Queue()
         self._pending_runs: deque[_Command] = deque()
         self._run_commands: dict[str, _Command] = {}
@@ -217,23 +221,16 @@ class SessionActor:
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
         initial_payload: Mapping[str, Any] | None = None,
+        queued_run: QueuedRun | None = None,
+        on_admitted: Callable[[], Awaitable[None]] | None = None,
     ) -> dict[str, Any]:
         """接收 Run 标识、执行参数及准备/清理回调，排队并等待串行执行，返回 Run 结果字典。"""
         self._cancel_idle_timer()
         self._cancel_reclaim_retry()
         command = await self._enqueue("run", run_id, dict(payload), prepare=prepare, cleanup=cleanup,
-                                      initial_payload=initial_payload)
+                                      initial_payload=initial_payload, queued_run=queued_run, on_admitted=on_admitted)
         try:
-            queue_timeout_ms = payload.get("queue_timeout_ms")
-            if isinstance(queue_timeout_ms, int) and queue_timeout_ms > 0:
-                try:
-                    await asyncio.wait_for(command.started.wait(), queue_timeout_ms / 1000)
-                except asyncio.TimeoutError as error:
-                    if not command.future.done():
-                        await self.cancel(run_id)
-                    raise SessionActorError("Run 排队超时", code="run_queue_timeout") from error
-            result = await asyncio.shield(command.future)
-            return result
+            return await asyncio.shield(command.future)
         except asyncio.CancelledError:
             # A cancelled HTTP/task waiter must not leave its command running
             # invisibly in the actor mailbox.
@@ -307,13 +304,16 @@ class SessionActor:
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
         initial_payload: Mapping[str, Any] | None = None,
+        queued_run: QueuedRun | None = None,
+        on_admitted: Callable[[], Awaitable[None]] | None = None,
     ) -> _Command:
         """登记命令及结果 Future 后入队，拒绝重复 Run 和关闭后的执行请求。"""
         if (self._close_requested or self._state in {ActorState.CLOSING, ActorState.CLOSED}) and kind != "close":
             raise SessionActorError("SessionActor 已关闭", code="session_actor_closed")
         loop = asyncio.get_running_loop()
         command = _Command(kind, run_id, payload, loop.create_future(), prepare, cleanup,
-                           dict(initial_payload) if initial_payload is not None else None)
+                           dict(initial_payload) if initial_payload is not None else None,
+                           queued_run=queued_run, on_admitted=on_admitted)
         if self._on_observation is not None:
             command.timing = Timing('actor', active=True)
             command.timing.on_mark = lambda stage, elapsed: self._emit_live_performance(command)
@@ -336,7 +336,6 @@ class SessionActor:
             while self._state != ActorState.CLOSED:
                 command = self._pending_runs.popleft() if self._pending_runs else await self._commands.get()
                 if command.kind == "run":
-                    command.started.set()
                     if command.run_id in self._cancel_requested:
                         self._cancel_requested.discard(command.run_id or "")
                         self._resolve_run(command, {
@@ -345,6 +344,9 @@ class SessionActor:
                         })
                         continue
                     await self._execute_run(command)
+                    # 排队超时或启动失败无需留下空邮箱消费任务；下次提交会重建任务。
+                    if self._worker is None and not self._pending_runs and self._commands.empty():
+                        return
                 elif command.kind == "close":
                     try:
                         await self._close_worker()
@@ -427,23 +429,21 @@ class SessionActor:
                 if command.run_id in self._cancel_requested:
                     raise asyncio.CancelledError
             command.timing.mark('prepared')
+            starts = self._worker_starts
+            # 此时 Actor 尚未处理控制邮箱；取消须能直接撤销准入或启动。
+            self._preparation_task = asyncio.create_task(
+                self._prepare_worker(command, prepared, payload),
+                name=f"ccsdk-admit:{command.run_id}",
+            )
+            try:
+                await self._preparation_task
+            finally:
+                self._preparation_task = None
+            if command.run_id in self._cancel_requested:
+                raise asyncio.CancelledError
             execution_ms = payload.get("timeout_ms")
             try:
                 async with asyncio.timeout(execution_ms / 1000 if isinstance(execution_ms, int) and execution_ms > 0 else None):
-                    initial = dict(self._initial_payload)
-                    if command.initial_payload is not None:
-                        # 每轮热装配工具、规则及凭据；只有连接固定项变化才重建。
-                        initial = {**command.initial_payload, **prepared}
-                        if '_capability_assets' in initial:
-                            inherit_client_runtime(initial, self._applied_runtime)
-                            for key in ('_capability_assets', '_client_runtime', '_client_connection_fingerprint'):
-                                payload[key] = initial[key]
-                        fingerprint = initial.get('_client_connection_fingerprint')
-                        if self.client_connection_fingerprint != (str(fingerprint) if fingerprint is not None else None):
-                            await self._discard_worker('config_changed')
-                        self._initial_payload = _without_credentials(initial)
-                    starts = self._worker_starts
-                    await self._ensure_worker(start_payload=initial)
                     acquisition = getattr(self._worker, 'observation_acquisition', {}) if starts != self._worker_starts else {'source':'session_reuse','elapsedMs':0}
                     if self._on_observation:
                         try:
@@ -486,7 +486,7 @@ class SessionActor:
             self._resolve_run_error(command, SessionActorError("SessionActor 被取消", code="cancelled"))
             raise
         except Exception as error:
-            known = isinstance(error, (SessionActorError, ClientWorkerError))
+            known = isinstance(error, (SessionActorError, ClientWorkerError, RunQueueError))
             self._last_error_code = getattr(error, "code", None) or ("worker_error" if known else "session_actor_error")
             try:
                 await self._discard_worker()
@@ -556,38 +556,57 @@ class SessionActor:
             self._last_error_code = self._last_error_code or "run_cleanup_error"
             LOGGER.warning("SessionActor Run cleanup failed: %s", type(error).__name__)
 
-    async def _ensure_worker(self, *, start_payload: Mapping[str, Any] | None = None) -> None:
+    async def _prepare_worker(self, command: _Command, prepared: Mapping[str, Any], payload: dict[str, Any]) -> None:
+        initial = dict(self._initial_payload)
+        if command.initial_payload is not None:
+            initial = {**command.initial_payload, **prepared}
+            if '_capability_assets' in initial:
+                inherit_client_runtime(initial, self._applied_runtime)
+                for key in ('_capability_assets', '_client_runtime', '_client_connection_fingerprint'):
+                    payload[key] = initial[key]
+            fingerprint = initial.get('_client_connection_fingerprint')
+            if self.client_connection_fingerprint != (str(fingerprint) if fingerprint is not None else None):
+                await self._discard_worker('config_changed')
+            self._initial_payload = _without_credentials(initial)
+        await self._ensure_worker(start_payload=initial, queued_run=command.queued_run, on_admitted=command.on_admitted)
+
+    async def _ensure_worker(self, *, start_payload: Mapping[str, Any] | None = None,
+                             queued_run: QueuedRun | None = None,
+                             on_admitted: Callable[[], Awaitable[None]] | None = None) -> None:
         """复用就绪 Worker 或按最新配置重建，并续接已知 SDK 历史。"""
         if self._reclaim_retry_pending:
             self._next_start_reason = 'worker_unavailable'
             await self._discard_worker('reclaim_retry')
         if self._worker is not None and self._worker.alive and self._state == ActorState.READY:
             self._worker_reuses += 1
+            if on_admitted is not None:
+                await on_admitted()
             return
         if self._worker is not None:
-            self._next_start_reason = 'worker_unavailable'
-            await self._worker.terminate()
-            self._worker = None
+            await self._discard_worker('worker_unavailable')
         payload = dict(start_payload or self._initial_payload)
         if self._last_session_id:
             payload["resume"] = self._last_session_id
-        self._state = ActorState.STARTING
-        await self._notify_state()
         worker = self._worker_factory(
             initial_payload=payload,
             start_timeout_ms=self._worker_start_timeout_ms,
             send_timeout_ms=self._worker_send_timeout_ms,
             close_timeout_ms=self._worker_close_timeout_ms,
+            **({'queued_run': queued_run} if queued_run is not None else {}),
         )
         # 领取失败不能把 coroutine 留作 Worker，否则清理失败会让本轮及后续请求挂起。
         self._worker = await worker if inspect.isawaitable(worker) else worker
-        if self._on_observation is not None and hasattr(self._worker, 'set_observation_callback'):
-            self._worker.set_observation_callback(self._on_observation, run_id=self._active_run_id)
+        self._state = ActorState.STARTING
         self._last_pool_hit = bool(getattr(self._worker, 'prewarmed', False))
         self._last_start_reason = self._next_start_reason
         self._worker_starts += 1
         started = time.monotonic()
+        release = getattr(self._worker, '_ccsdk_release_start_slot', None)
         try:
+            if self._on_observation is not None and hasattr(self._worker, 'set_observation_callback'):
+                self._worker.set_observation_callback(self._on_observation, run_id=self._active_run_id)
+            if on_admitted is not None:
+                await on_admitted()
             await self._worker.start(payload)
             if self._active_run_id:
                 for trace in getattr(self._worker, 'startup_traces', []):
@@ -600,8 +619,14 @@ class SessionActor:
             await self._notify_state()
             raise self._as_actor_error(error, code="sdk_connection_timeout" if isinstance(error, asyncio.TimeoutError)
                                        else "sdk_connection_error") from error
+        except asyncio.CancelledError:
+            try:
+                await self._discard_worker('startup_cancelled')
+            except Exception as error:
+                LOGGER.warning('取消启动后 Worker 仍待回收：%s', type(error).__name__)
+            self._state = ActorState.FAILED
+            raise
         finally:
-            release = getattr(self._worker, '_ccsdk_release_start_slot', None)
             if callable(release):
                 release()
             self._last_worker_start_ms = round((time.monotonic() - started) * 1000)
@@ -786,6 +811,8 @@ class SessionActor:
                 self._last_error_code = self._last_error_code or "worker_cleanup_error"
             if not worker.alive and worker.process is None:
                 self._worker = None
+                if self._on_worker_exit is not None:
+                    self._on_worker_exit()
         if self._worker is not None:
             self._state = ActorState.FAILED
             self._streaming_state = 'failed'
@@ -814,13 +841,16 @@ class SessionActor:
         try:
             await worker.terminate()
         except asyncio.CancelledError:
+            self._reclaim_retry_pending = True
             raise
         except Exception:
             self._last_error_code = self._last_error_code or "worker_cleanup_error"
             self._reclaim_retry_pending = True
             raise
-        # 必须等进程真正退出后才清引用；WorkerPool 的总容量包含关闭中的 Worker。
+        # 进程退出后才清引用并通知准入重新测量。
         self._worker = None
+        if self._on_worker_exit is not None:
+            self._on_worker_exit()
         self._reclaim_retry_pending = False
         self._cancel_reclaim_retry()
 
@@ -874,9 +904,9 @@ class SessionActor:
         self._idle_handle = loop.call_later(self._idle_ttl_ms / 1000, self._idle_close_callback)
 
     def _idle_close_callback(self) -> None:
-        """与容量回收共用原子资格检查，旧定时器不能关闭新输入的 Client。"""
+        """旧定时器不能关闭已登记新输入的 Client。"""
         self._idle_handle = None
-        self.claim_idle_reclaim('idle_expired')
+        self._claim_idle_expiry()
 
     def _schedule_reclaim_retry(self) -> None:
         """回收失败后通过 Actor 邮箱重试，保留 Worker 的强引用和容量。"""
@@ -920,7 +950,7 @@ class SessionActor:
                 and not self._run_commands and not self._pending_runs and self._commands.empty()
                 and self._preparation_task is None)
 
-    def claim_idle_reclaim(self, reason='capacity_reclaimed') -> asyncio.Future | None:
+    def _claim_idle_expiry(self) -> None:
         """检查与入队之间不 await；新输入一旦登记便不再是回收候选。"""
         if self._idle_since is None or not self._can_idle():
             return None
@@ -932,10 +962,9 @@ class SessionActor:
         future.add_done_callback(lambda f: LOGGER.warning('Client 回收失败：%s', type(f.exception()).__name__)
                                  if not f.cancelled() and f.exception() else None)
         self._commands.put_nowait(_Command(
-            'reclaim', None, {'reason': reason, '_idle_since': idle_since}, future
+            'reclaim', None, {'reason': 'idle_expired', '_idle_since': idle_since}, future
         ))
         self._ensure_task()
-        return future
 
     def _cancel_idle_timer(self) -> None:
         """取消已登记的空闲关闭回调并清空截止时间。"""
@@ -982,14 +1011,12 @@ class SessionActor:
     @staticmethod
     def _resolve(command: _Command, value: Any) -> None:
         """唤醒命令等待方，仅对尚未完成的 Future 写入结果。"""
-        command.started.set()
         if not command.future.done():
             command.future.set_result(value)
 
     @staticmethod
     def _resolve_error(command: _Command, error: BaseException) -> None:
         """唤醒命令等待方，仅对尚未完成的 Future 写入异常。"""
-        command.started.set()
         if not command.future.done():
             command.future.set_exception(error)
 
@@ -1030,6 +1057,7 @@ class SessionManager:
         on_observation: Callable | None = None,
         idle_ttl_ms: int = RUNTIME_SETTINGS.timeouts.client_idle_ms,
         worker_factory: Callable[..., ClientWorkerProcess] | None = None,
+        on_worker_exit: Callable[[], None] | None = None,
     ) -> None:
         """初始化会话及 Run 路由表，并保存创建 Actor 所需的公共配置。"""
         self._on_public_event = on_public_event
@@ -1037,6 +1065,7 @@ class SessionManager:
         self._on_observation = on_observation
         self._idle_ttl_ms = idle_ttl_ms
         self._worker_factory = worker_factory
+        self._on_worker_exit = on_worker_exit
         self._actors: dict[str, SessionActor] = {}
         self._run_actors: dict[str, SessionActor] = {}
         self._lock = asyncio.Lock()
@@ -1063,28 +1092,6 @@ class SessionManager:
             elif actor._idle_since is None:
                 actor._schedule_idle_close()
 
-    async def reclaim_oldest_idle(self) -> bool:
-        """按完成并清理后的空闲时间回收；不持 Manager 锁等待进程退出。"""
-        candidates = sorted((actor for actor in self._actors.values() if actor._idle_since is not None),
-                            key=lambda actor: actor._last_query_completed_at or actor._idle_since)
-        for actor in candidates:
-            future = actor.claim_idle_reclaim()
-            if future is not None:
-                try:
-                    if await asyncio.shield(future):
-                        return True
-                except Exception as error:
-                    # Actor 保留 failed Worker 并安排重试；继续尝试其他空闲会话。
-                    LOGGER.warning("Client 容量回收失败：%s", type(error).__name__)
-        return False
-
-    def oldest_idle_at(self) -> float | None:
-        """返回当前可回收会话最后一次问答完成时间，供总 Client LRU 仲裁。"""
-        values = [actor._last_query_completed_at or actor._idle_since
-                  for actor in self._actors.values()
-                  if actor._idle_since is not None and actor._can_idle()]
-        return min(values) if values else None
-
     async def submit(
         self,
         session_key: str,
@@ -1094,15 +1101,18 @@ class SessionManager:
         *,
         prepare: RunPreparation | None = None,
         cleanup: RunCleanup | None = None,
+        queued_run: QueuedRun | None = None,
+        on_admitted: Callable[[], Awaitable[None]] | None = None,
     ) -> dict[str, Any]:
         """根据会话键和初始配置选择或创建 Actor，提交 Run 及其回调并返回执行结果字典。"""
         self.pin_session(session_key)
         try:
-            return await self._submit(session_key, initial_payload, run_id, payload, prepare=prepare, cleanup=cleanup)
+            return await self._submit(session_key, initial_payload, run_id, payload, prepare=prepare, cleanup=cleanup,
+                                      queued_run=queued_run, on_admitted=on_admitted)
         finally:
             self.unpin_session(session_key)
 
-    async def _submit(self, session_key, initial_payload, run_id, payload, *, prepare, cleanup):
+    async def _submit(self, session_key, initial_payload, run_id, payload, *, prepare, cleanup, queued_run, on_admitted):
         async with self._lock:
             actor = self._actors.get(session_key)
             if actor is not None and (actor.state == ActorState.CLOSING or
@@ -1120,13 +1130,14 @@ class SessionManager:
                     on_observation=self._on_observation,
                     idle_ttl_ms=self._idle_ttl_ms,
                     worker_factory=self._worker_factory,
+                    on_worker_exit=self._on_worker_exit,
                 )
                 self._actors[session_key] = actor
                 actor._input_pins = self._input_pins.get(session_key, 0)
             self._run_actors[run_id] = actor
         try:
             return await actor.submit(run_id, payload, prepare=prepare, cleanup=cleanup,
-                                      initial_payload=initial_payload)
+                                      initial_payload=initial_payload, queued_run=queued_run, on_admitted=on_admitted)
         finally:
             async with self._lock:
                 self._run_actors.pop(run_id, None)

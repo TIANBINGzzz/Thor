@@ -607,7 +607,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <h3>文件准备进度</h3>
 <p>Run 的 running 包含输入文件准备、SDK 执行及输出文件保存；run.started 不代表模型已经启动。无附件时跳过输入准备，附件未就绪不查询模型。输出文件的状态与输入准备进度独立。</p>
 <table><thead><tr><th>phase.name</th><th>额外字段</th><th>建议展示</th></tr></thead><tbody>
-<tr><td>queued</td><td>无</td><td>等待当前会话可执行（Client 模式）。</td></tr>
+<tr><td>queued</td><td>无</td><td>普通 Run 已进入队列，等待同会话上一轮结束或执行资源可用；Client 和 Query 均适用。</td></tr>
 <tr><td>preparing_files</td><td>fileCount</td><td>正在准备模板或附件。</td></tr>
 <tr><td>preparing_file</td><td>fileId</td><td>正在获取当前文件授权，显示不定进度。</td></tr>
 <tr><td>downloading_file</td><td>fileId、receivedBytes、totalBytes</td><td>正在准备文件，可展示当前文件的字节进度。</td></tr>
@@ -857,7 +857,7 @@ Accept: application/octet-stream</pre></div>
 <p>附件只通过平台文件服务器下载。完整契约见 <a href="specs/ccsdk-runtime-interface.md#8-文件下载模块">Runtime 文件规范</a>。</p>
 <h3>大小和独立超时</h3>
 <p>单 Run 执行预算见能力的 <code>config.runtime</code>，排队时限见 <code>settings/runtime</code>。<code>settings/files</code> 的 <code>value.download</code> 用 <code>maxBytes</code>、<code>timeoutMs</code> 约束单文件下载，用 <code>prepareMs</code> 约束当轮全部附件准备。预算单位及生效边界见 <a href="../config/README.md">配置参考</a>。</p>
-<p>文件准备超时通过 run.failed 返回 file_download_timeout，排队超时为 run_queue_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。文件错误也保存为 Run.error。取消使用 <code>POST /internal/v1/runs/{runId}/cancel</code>，无需正文，在准备期间同样有效。</p></section>
+<p>普通 Run 先进入队列，分派后才发出 run.started。排队最多 3 分钟，超时通过 run.failed 返回 run_queue_timeout，文案「用户请求过多，排队超时」；队列已满返回 worker_capacity_exceeded。附件由 Runtime 下载，准备超时为 file_download_timeout；模型执行超时 Query 为 timeout，Client 为 sdk_timeout。错误码也保存为 Run.error。取消使用 <code>POST /internal/v1/runs/{runId}/cancel</code>，在排队和准备期间同样有效。</p></section>
 
 <section id="errors"><h2>错误响应</h2>
 <p>校园 MCP 上游鉴权、连接、调用或响应结构失败：工具事件 isError=true，最终 run.failed 与 Run.error 使用 upstream_service_error，不返回上游原始正文。参数校验可纠正、成功空结果不因此标记 Run 失败。</p>

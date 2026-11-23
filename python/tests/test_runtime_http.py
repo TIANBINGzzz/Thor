@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 import server
 from runtime.auth import encode_hs256_jwt
 from runtime.protocol import AgentRunRequest
+from runtime.run_queue import RunQueue
 from runtime.run_store import RunStore
 from runtime.artifact_delivery import ArtifactDelivery
 from tools.artifacts import publish_artifact
@@ -23,36 +24,123 @@ from runtime.telemetry import Timing
 
 
 class RuntimeHTTPTests(unittest.TestCase):
-    def test_memory_admission_failure_reaches_run_and_sse_replay(self):
+    def test_full_queue_returns_failed_run_and_sse_without_starting_work(self):
+        async def exercise():
+            queue = RunQueue(max_pending=1)
+            waiting = queue.enqueue('another-session', timeout_ms=1000)
+            with patch.object(server, 'RUN_QUEUE', queue), \
+                 patch.object(server, '_execute_internal_run', new_callable=AsyncMock) as execute:
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app),
+                                             base_url='http://runtime') as client:
+                    response = await asyncio.wait_for(client.post('/internal/v1/runs', json=self.body,
+                        headers=self.headers('run.execute')), 1)
+                    self.assertEqual(response.status_code, 202, response.text)
+                    self.assertEqual(response.json()['run']['error'], 'worker_capacity_exceeded')
+                    replay = await client.get(response.json()['eventsUrl'], headers=self.headers())
+                    events = [json.loads(line[6:]) for line in replay.text.splitlines() if line.startswith('data: ')]
+                self.assertEqual([event['type'] for event in events], ['run.failed'])
+                execute.assert_not_called()
+            waiting.release()
+
+        asyncio.run(exercise())
+
+    def test_memory_queue_timeout_reaches_run_and_sse_replay_for_both_modes(self):
         from runtime.session_actor import SessionManager
         from runtime.worker_pool import WorkerPool
-        self.seed()
-
-        async def exercise():
+        async def exercise(mode, run_id):
+            request = AgentRunRequest.from_dict({**self.body, 'runId': run_id})
+            self.store.create_run(run_id, request=request, tenant_id='tenant-test', user_id='user-test')
             pool = WorkerPool(max_idle=0, max_starting=1, min_available_memory_mib=1024)
             manager = SessionManager(worker_factory=pool.acquire)
             try:
-                with patch.object(server, 'SESSION_MANAGER', manager), \
-                     patch.object(server, '_runtime_mode_for_request', return_value='client'), \
-                     patch.object(server, 'DEFAULT_MODEL', 'test-model'), \
+                with patch.object(server, 'SESSION_MANAGER', manager), patch.object(server, 'WORKER_POOL', pool), \
+                     patch.object(server, '_runtime_mode_for_request', return_value=mode), \
+                     patch.object(server, 'RUN_QUEUE_TIMEOUT_MS', 80), \
                      patch('runtime.worker_pool.available_memory_mib', return_value=684):
-                    await server._execute_internal_run(AgentRunRequest.from_dict(self.body),
-                        {'tenant': 'tenant-test', 'sub': 'user-test'})
+                    await server._execute_internal_run(request, {'tenant': 'tenant-test', 'sub': 'user-test'})
                 self.assertEqual(pool.snapshot()['live'], 0)
+                if mode == 'client':
+                    self.assertTrue(all(actor._task.done() for actor in manager._actors.values()))
+            finally:
+                await manager.close_all()
+                await pool.close()
+            events = self.store.events_after(run_id)
+            self.assertTrue(any(event['payload'].get('name') == 'queued' for event in events))
+            self.assertFalse(any(event['payload'].get('name') == 'model_starting' for event in events))
+            self.assertEqual(self.store.get_run(run_id)['error'], 'run_queue_timeout')
+            self.assertEqual(events[-1]['payload']['message'], '用户请求过多，排队超时')
+
+        asyncio.run(exercise('client', 'run-test'))
+        asyncio.run(exercise('query', 'query-timeout'))
+        run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
+        self.assertEqual(run['error'], 'run_queue_timeout')
+        events = self.store.events_after('run-test')
+        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
+        replay = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+        self.assertEqual(replay, events)
+        self.assertNotIn('business-token', response.text)
+
+    def test_http_cancel_removes_cold_run_while_same_session_reuses_its_client(self):
+        from runtime.session_actor import SessionManager
+        from runtime.worker_pool import LOCAL_WORKER_START, WorkerPool
+        from tests.test_session_actor import FakeClientWorker, complete_script
+        from tests.test_worker_pool import until
+
+        async def exercise():
+            queue, workers = RunQueue(max_pending=4), []
+
+            class Worker(FakeClientWorker):
+                @property
+                def awaiting_connection(self):
+                    return not self.started and not self.closed
+
+            def factory(**kwargs):
+                worker = Worker([complete_script(), complete_script()], worker_id=len(workers))
+                workers.append(worker)
+                return worker
+
+            pool = WorkerPool(max_idle=0, max_starting=1, min_available_memory_mib=1024,
+                              worker_factory=factory, on_change=queue.notify)
+            manager = SessionManager(worker_factory=pool.acquire, on_worker_exit=pool.notify)
+            root = Path(self.temp.name)
+            try:
+                with patch.multiple(server, RUN_QUEUE=queue, SESSION_MANAGER=manager, WORKER_POOL=pool,
+                                    CLIENT_SESSION_ROOT=root / 'sessions'), \
+                     patch('runtime.worker_pool.available_memory_mib', return_value=1024) as memory:
+                    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=server.app),
+                                                 base_url='http://runtime') as client:
+                        async def submit(run_id, session):
+                            binding = {'runId': run_id, 'businessSessionId': session, 'messageId': f'msg-{run_id}'}
+                            headers = self.headers('run.execute', **binding)
+                            response = await client.post('/internal/v1/runs', json={**self.body, **binding}, headers=headers)
+                            self.assertEqual(response.status_code, 202, response.text)
+                            return headers
+
+                        await submit('first', 'existing')
+                        await until(lambda: self.store.get_run('first')['status'] == 'succeeded')
+                        memory.return_value = 1023
+                        cold_headers = await submit('cold', 'new')
+                        await until(lambda: queue.waiting_for(LOCAL_WORKER_START))
+                        self.assertEqual(self.store.get_run('cold')['status'], 'queued')
+                        await submit('hot', 'existing')
+                        await until(lambda: self.store.get_run('hot')['status'] == 'succeeded')
+                        self.assertEqual(len(workers), 1)
+                        cancelled = await client.post('/internal/v1/runs/cold/cancel', headers=cold_headers)
+                        self.assertEqual(cancelled.json()['run']['status'], 'cancelled')
+                        self.assertEqual(queue.pending, 0)
+                        self.assertFalse(queue.waiting_for(LOCAL_WORKER_START))
+                        memory.return_value = 1024
+                        pool.notify()
+                        await submit('later', 'new')
+                        await until(lambda: self.store.get_run('later')['status'] == 'succeeded')
+                        self.assertEqual([event['payload'].get('name') for event in self.store.events_after('cold')],
+                                         ['queued', None])
+                        self.assertEqual(len(workers), 2)
             finally:
                 await manager.close_all()
                 await pool.close()
 
         asyncio.run(exercise())
-        run = self.assert_public_run(self.client.get('/internal/v1/runs/run-test', headers=self.headers()))
-        self.assertEqual(run['error'], 'worker_memory_pressure')
-        events = self.store.events_after('run-test')
-        failure = next(event for event in events if event['type'] == 'run.failed')
-        self.assertIn('服务器可用内存不足', failure['payload']['message'])
-        response = self.client.get('/internal/v1/runs/run-test/events', headers=self.headers())
-        replay = [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
-        self.assertEqual(replay, events)
-        self.assertNotIn('business-token', response.text)
 
     def test_thinking_chunks_stay_private_through_run_completion(self):
         self.seed()

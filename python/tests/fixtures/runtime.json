@@ -1,7 +1,7 @@
 {
   "timeouts": {
     "execution-ms": 3600000,
-    "client-queue-ms": 300000,
+    "client-queue-ms": 180000,
     "client-idle-ms": 300000,
     "worker-start-ms": 60000,
     "worker-send-ms": 5000,
@@ -17,7 +17,8 @@
     "max-turns": 200,
     "sdk-buffer-bytes": 16777216,
     "http-body-bytes": 2097152,
-    "prompt-bytes": 32768
+    "prompt-bytes": 32768,
+    "pending-runs": 32
   },
   "sse-heartbeat-ms": 15000,
   "models": {
@@ -37,7 +38,6 @@
   "worker-pool": {
     "max-idle": 6,
     "max-starting": 2,
-    "max-live": 24,
     "min-available-memory-mib": 1024
   },
   "observability": {

@@ -70,8 +70,7 @@ class SnapshotConfigTests(unittest.TestCase):
     def test_startup_profiles_and_run_store_preserve_snapshot(self):
         import server
         from runtime.run_store import RunStore
-        profile = server._startup_profile(server.load_execution_entry('conversation'),
-                                          {'system_prompt_snapshot': False})
+        profile = server._startup_profile(server.load_execution_entry('conversation'))
         self.assertIs(profile['_client_runtime'].get('system_prompt_snapshot', True), True)
         with TemporaryDirectory() as directory:
             path = Path(directory) / 'runs.sqlite3'

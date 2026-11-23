@@ -10,7 +10,7 @@ from pathlib import Path
 EVIDENCE_TYPES = {'init', 'thinking', 'tool_use', 'tool_result', 'tool_progress', 'result', 'error', 'diagnostic', 'assistant_turn'}
 SENSITIVE = re.compile(r'authorization|credential|password|secret|api.?key|token|cookie|signature', re.I)
 TIMING_STAGES = {
-    'runtime': {'accepted', 'scheduled', 'assembled', 'enqueued', 'prepare_begin', 'prepared',
+    'runtime': {'accepted', 'scheduled', 'assembled', 'enqueued', 'prepare_begin', 'prepared', 'queue_exit',
                 'first_message', 'first_thinking', 'first_text', 'text_stored', 'sse_yield', 'completed'},
     'actor': {'queue_exit', 'prepared', 'worker_ready', 'query_sent', 'first_text', 'completed'},
     'worker_boot': {'imported'},

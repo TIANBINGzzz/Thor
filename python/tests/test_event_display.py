@@ -84,8 +84,8 @@ class EventDisplayTests(unittest.TestCase):
 
     def test_known_failures_explain_the_stage_without_echoing_private_details(self):
         cases = {
-            'worker_memory_pressure': '内存不足', 'worker_capacity_exceeded': '并发处理上限',
-            'run_queue_timeout': '排队等待超时', 'worker_start_timeout': '处理进程启动超时',
+            'worker_memory_pressure': '内存不足', 'worker_capacity_exceeded': '等待处理的请求已满',
+            'run_queue_timeout': '用户请求过多，排队超时', 'worker_start_timeout': '处理进程启动超时',
             'sdk_connection_timeout': '模型服务连接超时', 'sdk_connection_error': '模型服务连接失败',
             'worker_exited': '处理进程意外退出', 'worker_send_timeout': '处理进程通信超时',
             'sdk_configuration_error': '模型服务配置', 'sdk_execution_error': '模型执行失败',

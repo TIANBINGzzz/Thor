@@ -7,9 +7,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from runtime.worker_pool import WorkerPool
+from runtime.worker_pool import LOCAL_WORKER_START, WorkerPool
 from runtime.observability import Observer
 from runtime.process import ClientWorkerProcess, ClientWorkerError
+from runtime.run_queue import RunQueue
 from runtime.runtime_settings import load_worker_pool_settings
 
 
@@ -42,6 +43,9 @@ class FakeWorker:
         self.alive = False
         self.terminated = True
 
+    async def start(self, payload):
+        self.alive = True
+
 
 async def until(predicate):
     async with asyncio.timeout(2):
@@ -50,13 +54,14 @@ async def until(predicate):
 
 
 class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
-    async def test_capacity_rejection_has_its_own_error_code(self):
-        self.pool.max_live = 1
-        leased = await self.pool.acquire()
-        leased.alive = True
-        with self.assertRaises(ClientWorkerError) as caught:
-            await self.pool.acquire()
-        self.assertEqual(getattr(caught.exception, 'code', None), 'worker_capacity_exceeded')
+    async def test_healthy_memory_allows_more_than_24_bound_workers(self):
+        pool = WorkerPool(max_idle=0, max_starting=1, min_available_memory_mib=1024, worker_factory=FakeWorker)
+        self.addAsyncCleanup(pool.close)
+        with patch('runtime.worker_pool.available_memory_mib', return_value=1024):
+            for _ in range(25):
+                worker = await pool.acquire()
+                await worker.start({})
+            self.assertEqual(pool.snapshot()['leased_alive'], 25)
 
     async def asyncSetUp(self):
         FakeWorker.running = FakeWorker.peak = 0
@@ -79,6 +84,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(leased[6].alive)
         self.assertEqual(self.pool.snapshot()['hits'], 6)
         self.assertEqual(self.pool.snapshot()['misses'], 1)
+        await leased[6].start({})
         await until(lambda: self.pool.snapshot()['ready'] == 6)
         await self.pool.close()
         self.assertTrue(all(not w.terminated for w in leased))
@@ -96,12 +102,13 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
                 self.alive = False
                 self.terminated = True
 
-        pool = WorkerPool(max_idle=0, max_starting=1, max_live=2,
-                          worker_factory=ConnectingWorker)
+        queue = RunQueue(max_pending=3)
+        pool = WorkerPool(max_idle=0, max_starting=1, worker_factory=ConnectingWorker, on_change=queue.notify)
         self.addAsyncCleanup(pool.close)
 
         first = await pool.acquire()
-        second_task = asyncio.create_task(pool.acquire())
+        ticket = queue.enqueue('second', timeout_ms=1000)
+        second_task = asyncio.create_task(pool.acquire(queued_run=ticket))
         await asyncio.sleep(0)
         self.assertFalse(second_task.done())
         self.assertEqual(pool.snapshot()['businessStarting'], 1)
@@ -111,6 +118,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNot(first, second)
         self.assertEqual(pool.snapshot()['businessStarting'], 1)
         second._ccsdk_release_start_slot()
+        ticket.release()
         self.assertEqual(pool.snapshot()['businessStarting'], 0)
 
     async def test_memory_reclaim_orders_ready_workers_by_oldest_idle_time(self):
@@ -124,24 +132,12 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         pool._idle_at[workers[1]] = 10
         pool._idle_at[workers[2]] = 20
 
-        self.assertTrue(await pool.reclaim_oldest_ready())
-        await until(lambda: workers[1].terminated)
-        self.assertFalse(workers[0].terminated)
-        self.assertFalse(workers[2].terminated)
-
-    async def test_full_live_capacity_keeps_ready_worker_stable(self):
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=FakeWorker)
-        self.addAsyncCleanup(pool.close)
-        pool.start()
-        FakeWorker.gate.set()
-        await until(lambda: pool.snapshot()['ready'] == 1)
-        worker = FakeWorker.created[0]
-
-        await asyncio.sleep(1.1)
-
-        self.assertEqual(pool.snapshot()['ready'], 1)
-        self.assertEqual(FakeWorker.created, [worker])
-        self.assertFalse(worker.terminated)
+        pool.min_available_memory_mib = 1024
+        with patch('runtime.worker_pool.available_memory_mib', side_effect=lambda: 1300 if workers[1].terminated else 700):
+            pool.notify()
+            await until(lambda: workers[1].terminated)
+            self.assertFalse(workers[0].terminated)
+            self.assertFalse(workers[2].terminated)
 
     async def test_dead_idle_worker_is_never_leased(self):
         self.pool.start()
@@ -169,6 +165,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(.6)
         self.assertEqual(len(FakeWorker.created), 7)
         leases[-1].awaiting_connection = False
+        await leases[-1].start({})
         await until(lambda: self.pool.snapshot()['ready'] == 6)
 
     async def test_shutdown_cancels_import_and_prevents_new_leases(self):
@@ -324,7 +321,7 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.pool.snapshot()['starting'], 0)
         self.assertTrue(all(w.terminated for w in FakeWorker.created))
 
-    async def test_cancelled_acquire_keeps_evicted_client_owned_until_terminated(self):
+    async def test_cancelled_memory_wait_does_not_spawn_after_retirement(self):
         termination_started = asyncio.Event()
         allow_termination = asyncio.Event()
 
@@ -337,35 +334,42 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
                 await allow_termination.wait()
                 await super().terminate()
 
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1,
-                          payload_factory=lambda: {'session_directory': 'blank'},
-                          worker_factory=Worker)
+        queue = RunQueue(max_pending=2)
+        pool = WorkerPool(max_idle=1, max_starting=1, min_available_memory_mib=1024,
+                          payload_factory=dict, worker_factory=Worker, on_change=queue.notify)
         self.addAsyncCleanup(pool.close)
-        pool.start()
-        FakeWorker.gate.set()
+        memory = self.enterContext(patch('runtime.worker_pool.available_memory_mib', return_value=2048))
         try:
+            pool.start()
+            FakeWorker.gate.set()
             await until(lambda: pool.snapshot()['ready'] == 1)
             worker = FakeWorker.created[0]
-            acquisition = asyncio.create_task(pool.acquire({'resume': 'existing-session'}))
+            memory.return_value = 1023
+            ticket = queue.enqueue('existing-session', timeout_ms=1000)
+            acquisition = asyncio.create_task(pool.acquire({'resume': 'existing-session'}, queued_run=ticket))
             await until(termination_started.is_set)
+            self.assertFalse(acquisition.done())
             acquisition.cancel()
             with self.assertRaises(asyncio.CancelledError):
                 await acquisition
-            self.assertEqual(pool._live_count(), 1)
-            next_acquisition = asyncio.create_task(pool.acquire({'resume': 'another-session'}))
-            await asyncio.sleep(0)
-            next_acquisition.cancel()
-            with self.assertRaises(asyncio.CancelledError):
-                await next_acquisition
-            self.assertEqual(pool._live_count(), 1)
+            ticket.release()
+            self.assertEqual(pool.snapshot()['retiring'], 1)
+            memory.side_effect = lambda: 1024 if worker.terminated else 1023
+            next_ticket = queue.enqueue('another-session', timeout_ms=1000)
+            next_acquisition = asyncio.create_task(pool.acquire({'resume': 'history'}, queued_run=next_ticket))
+            await until(lambda: queue.waiting_for(LOCAL_WORKER_START))
+            self.assertFalse(next_acquisition.done())
             allow_termination.set()
-            await pool.close()
+            leased = await asyncio.wait_for(next_acquisition, 1)
             self.assertTrue(worker.terminated)
-            self.assertFalse(worker.alive)
+            self.assertEqual(FakeWorker.created, [worker, leased])
+            await leased.start({})
+            await leased.terminate()
+            next_ticket.release()
         finally:
             allow_termination.set()
 
-    async def test_failed_termination_keeps_capacity_and_retries_before_next_acquire(self):
+    async def test_failed_termination_is_retried_while_business_waits(self):
         class Worker(FakeWorker):
             fail_close = True
 
@@ -377,102 +381,89 @@ class WorkerPoolTests(unittest.IsolatedAsyncioTestCase):
                     raise OSError('local termination failed')
                 await super().terminate()
 
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1,
-                          payload_factory=lambda: {'session_directory': 'blank'}, worker_factory=Worker)
+        queue = RunQueue(max_pending=1)
+        pool = WorkerPool(max_idle=1, max_starting=1, min_available_memory_mib=1024,
+                          payload_factory=dict, worker_factory=Worker, on_change=queue.notify)
         self.addAsyncCleanup(pool.close)
+        memory = self.enterContext(patch('runtime.worker_pool.available_memory_mib', return_value=2048))
         pool.start()
         FakeWorker.gate.set()
         await until(lambda: pool.snapshot()['ready'] == 1)
         worker = FakeWorker.created[0]
         try:
-            with self.assertRaises(ClientWorkerError):
-                await pool.acquire({'resume': 'history'})
+            memory.side_effect = lambda: 1024 if worker.terminated else 700
+            ticket = queue.enqueue('session', timeout_ms=2500)
+            acquisition = asyncio.create_task(pool.acquire({'resume': 'history'}, queued_run=ticket))
+            await until(lambda: pool.snapshot()['retiring'] == 1 and not pool._retiring)
+            self.assertFalse(acquisition.done())
             self.assertEqual(pool.snapshot()['live'], 1)
-            self.assertIn(worker, pool._retiring_workers)
             worker.fail_close = False
-            leased = await pool.acquire({'resume': 'history'})
+            leased = await asyncio.wait_for(acquisition, 2)
             self.assertTrue(worker.terminated)
             self.assertIsNot(leased, worker)
+            await leased.start({})
+            leased.fail_close = False
+            await leased.terminate()
+            ticket.release()
         finally:
             worker.fail_close = False
 
-    async def test_reclaim_callback_failure_does_not_stop_pool_maintenance(self):
-        class Worker(FakeWorker):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                self.awaiting_connection = False
-
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=Worker)
-        worker = await pool.acquire()
-        worker.alive = True
-        attempts = 0
-
-        async def fail_reclaim():
-            nonlocal attempts
-            attempts += 1
-            raise OSError('temporary reclaim failure')
-
-        pool.reclaim_idle = fail_reclaim
-        pool.start()
-        try:
-            await until(lambda: attempts >= 1)
-            self.assertIsNotNone(pool._task)
-            self.assertFalse(pool._task.done())
-            self.assertEqual(pool._live_count(), 1)
-        finally:
-            worker.alive = False
-            await pool.close()
-            await worker.terminate()
-
-    async def test_cancelled_acquire_does_not_interrupt_cancelled_prewarm_cleanup(self):
-        termination_started = asyncio.Event()
-        allow_termination = asyncio.Event()
+    async def test_compatible_prewarm_can_dispatch_while_history_waits_for_a_start(self):
+        profile = {'_client_connection_fingerprint': 'default'}
+        queue = RunQueue(max_pending=3)
 
         class Worker(FakeWorker):
-            async def terminate(self):
-                termination_started.set()
-                await allow_termination.wait()
-                await super().terminate()
+            async def preconnect(self, payload):
+                await self.prewarm()
 
-        pool = WorkerPool(max_idle=1, max_starting=1, max_live=1, worker_factory=Worker)
+        pool = WorkerPool(max_idle=1, max_starting=1, payload_factory=dict, profile_payloads=[profile],
+                          worker_factory=Worker, on_change=queue.notify,
+                          business_waiting=lambda: queue.waiting_for(LOCAL_WORKER_START))
         self.addAsyncCleanup(pool.close)
+        self.addCleanup(queue.close)
         pool.start()
-        try:
-            await until(lambda: Worker.running == 1)
-            worker = FakeWorker.created[0]
-            acquisition = asyncio.create_task(pool.acquire())
-            await until(termination_started.is_set)
-            acquisition.cancel()
-            with self.assertRaises(asyncio.CancelledError):
-                await acquisition
-            self.assertEqual(pool._live_count(), 1)
-            allow_termination.set()
-            await pool.close()
-            self.assertTrue(worker.terminated)
-        finally:
-            allow_termination.set()
+        await until(lambda: Worker.running == 1)
+        history = queue.enqueue('old', timeout_ms=1500)
+        fresh = queue.enqueue('new', timeout_ms=1500)
+        cold_task = asyncio.create_task(pool.acquire({**profile, 'resume': 'history'}, queued_run=history))
+        warm_task = asyncio.create_task(pool.acquire({**profile, 'session_directory': 'new-workspace'}, queued_run=fresh))
+        await until(lambda: len(queue._waiting.get(LOCAL_WORKER_START, ())) == 2)
+        self.assertEqual(len(Worker.created), 1)
+        self.assertFalse(warm_task.done())
+        Worker.gate.set()
+        warm = await asyncio.wait_for(warm_task, 1)
+        cold = await asyncio.wait_for(cold_task, 1)
+        self.assertIs(warm, Worker.created[0])
+        self.assertIs(cold, Worker.created[1])
+        self.assertEqual(pool.snapshot()['hits'], 1)
+        self.assertEqual(pool.snapshot()['starting'], 0)
+        await cold.start({})
+        await until(lambda: pool.snapshot()['ready'] == 1)
+        history.release()
+        fresh.release()
 
 
 class WorkerPoolConfigTests(unittest.TestCase):
-    def test_explicit_nacos_pool_ignores_local_override(self):
+    def test_explicit_pool_settings_ignore_local_override(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'application.yml'
-            path.write_text('runtime:\n  worker-pool:\n    max-idle: 6\n    max-starting: 2\n    max-live: 24\n    min-available-memory-mib: 1024\n', encoding='utf-8')
+            path.write_text('runtime:\n  worker-pool:\n    max-idle: 6\n    max-starting: 2\n    min-available-memory-mib: 1024\n', encoding='utf-8')
             local = path.with_name('application.local.yml')
             local.write_text('runtime:\n  worker-pool:\n    max-idle: 0\n', encoding='utf-8')
             config = load_worker_pool_settings(path)
             self.assertEqual((config.max_idle, config.max_starting), (6, 2))
 
-    def test_missing_section_disables_pool_and_invalid_values_fail(self):
+    def test_missing_section_and_invalid_values_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'application.yml'
             path.write_text('nacos: {}', encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_worker_pool_settings(path)
-            for body in ('max-idle: true', 'max-idle: -1', 'max-starting: 0',
-                         'max-starting: "2"', 'unknown: 5'):
-                path.write_text('runtime:\n  worker-pool:\n    '+body+'\n', encoding='utf-8')
-                with self.subTest(body=body), self.assertRaises(ValueError):
+            for field, value in (('max-idle', True), ('max-idle', -1), ('max-starting', 0),
+                                 ('max-starting', '2'), ('max-live', 24), ('min-available-memory-mib', 1023)):
+                body = {'max-idle': 6, 'max-starting': 2, 'min-available-memory-mib': 1024, field: value}
+                path.write_text(json.dumps({'runtime': {'worker-pool': body}}), encoding='utf-8')
+                with self.subTest(field=field, value=value), self.assertRaises(ValueError):
                     load_worker_pool_settings(path)
 
 

@@ -30,6 +30,7 @@ class LimitSettings:
     sdk_buffer_bytes: int
     http_body_bytes: int
     prompt_bytes: int
+    pending_runs: int
 
 
 @dataclass(frozen=True)
@@ -144,14 +145,13 @@ class WorkerPoolSettings:
     max_idle: int
     max_starting: int
     min_available_memory_mib: int
-    max_live: int
 
 
 def load_worker_pool_settings(path=None, *, document=None):
     """校验 MySQL 配置库 声明的完整池配置；不使用本地覆盖或隐藏默认值。"""
     values = {}
     fields = {'max-idle': 'max_idle', 'max-starting': 'max_starting',
-              'min-available-memory-mib': 'min_available_memory_mib', 'max-live': 'max_live'}
+              'min-available-memory-mib': 'min_available_memory_mib'}
     try:
         for document in _documents(path, document):
             if not isinstance(document, dict):
@@ -162,14 +162,12 @@ def load_worker_pool_settings(path=None, *, document=None):
             pool = runtime.get('worker-pool', {})
             if not isinstance(pool, dict) or set(pool) - fields.keys():
                 raise ValueError()
+            minimums = {'max-starting': 1, 'min-available-memory-mib': 1024}
             for key, value in pool.items():
-                minimum = 1 if key == 'max-starting' else 0
+                minimum = minimums.get(key, 0)
                 if type(value) is not int or value < minimum:
                     raise ValueError()
                 values[fields[key]] = value
-        settings = WorkerPoolSettings(**values)
-        if settings.max_live and settings.max_idle > settings.max_live:
-            raise ValueError()
-        return settings
+        return WorkerPoolSettings(**values)
     except (OSError, TypeError, ValueError, yaml.YAMLError):
         raise ValueError('runtime.worker-pool 配置无效') from None
