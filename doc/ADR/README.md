@@ -29,6 +29,7 @@
 | [037](037-capability-owned-operations.md) | 能力拥有业务 Operation，Tool 仅适配 | 已采纳 | 可信代码加载、逐轮授权及收尾已接入；未迁移既有业务或开放代码上传 |
 | [038](038-customer-nacos-configuration.md) | 单客户配置归入 Nacos | 已替代 | 由039改为 MySQL 单源配置；身份与数据范围约束继续有效 |
 | [039](039-mysql-runtime-configuration.md) | MySQL 单源配置、逐 Run 更新 | 已采纳 | Python 管理与装配已接入；真实生产授权仍独立验收 |
+| [040](040-knowledge-base-integration.md) | 知识库按用途接入、供应商差异收进适配器 | 提议 | 未实现；表结构见[知识库接入契约](../specs/knowledge-base-connections.md)，多校共用 Runtime 待决策 |
 
 ## 已移除的正文
 
