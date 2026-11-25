@@ -55,6 +55,22 @@ class BusinessTokenLoginTests(unittest.TestCase):
         self.assertEqual(settings.origin, 'https://appai.example')
         self.assertEqual(settings.domain_name, 'school.example')
 
+    def test_uses_only_injected_login_credentials_when_requested(self):
+        with patch.dict(
+            MODULE.os.environ,
+            {'CCSDK_LOGIN_ACCOUNT': 'runtime-user', 'CCSDK_LOGIN_PASSWORD': 'runtime-password'},
+            clear=False,
+        ):
+            settings = MODULE.load_environment(self.config, '59', credentials_from_env=True)
+
+        self.assertEqual(settings.account, 'runtime-user')
+        self.assertEqual(settings.password, 'runtime-password')
+
+    def test_rejects_missing_injected_login_credentials_without_falling_back(self):
+        with patch.dict(MODULE.os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, '运行时凭据'):
+                MODULE.load_environment(self.config, '59', credentials_from_env=True)
+
     def test_appai_missing_domain_is_rejected_before_login(self):
         text = self.config.read_text(encoding='utf-8')
         self.config.write_text(text.replace('| 登录域名 | `school.example` |\n', ''), encoding='utf-8')

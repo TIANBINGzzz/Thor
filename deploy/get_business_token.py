@@ -48,7 +48,12 @@ def _field(section: str, label: str, *, required: bool = True) -> str | None:
     return None
 
 
-def load_environment(config_path: Path, environment: str) -> EnvironmentSettings:
+def load_environment(
+    config_path: Path,
+    environment: str,
+    *,
+    credentials_from_env: bool = False,
+) -> EnvironmentSettings:
     """读取指定环境的登录信息，不打印任何凭据。"""
     text = config_path.read_text(encoding="utf-8")
     if environment not in ("59", "appai", "ai"):
@@ -62,11 +67,19 @@ def load_environment(config_path: Path, environment: str) -> EnvironmentSettings
     if not webpage:
         raise ValueError("环境交接文件缺少业务网页")
     origin = urllib.parse.urlsplit(webpage.group(1))._replace(path="", query="", fragment="").geturl().rstrip("/")
+    if credentials_from_env:
+        account = os.environ.get("CCSDK_LOGIN_ACCOUNT", "").strip()
+        password = os.environ.get("CCSDK_LOGIN_PASSWORD", "")
+        if not account or not password:
+            raise ValueError("运行时凭据不完整")
+    else:
+        account = _field(section, "登录账号") or ""
+        password = _field(section, "登录密码") or ""
     return EnvironmentSettings(
         environment=environment,
         origin=origin,
-        account=_field(section, "登录账号") or "",
-        password=_field(section, "登录密码") or "",
+        account=account,
+        password=password,
         school=_field(section, "登录学校", required=False),
         domain_name=_field(section, "登录域名", required=environment in ("appai", "ai")),
     )
@@ -185,10 +198,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="获取 59/appai/ai 指定学校的业务 Token")
     parser.add_argument("environment", choices=("59", "appai", "ai"))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--credentials-from-env", action="store_true")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--captcha", help="appai/ai 验证码；省略时自动打开图片并交互询问")
     args = parser.parse_args(argv)
-    settings = load_environment(args.config, args.environment)
+    settings = load_environment(
+        args.config,
+        args.environment,
+        credentials_from_env=args.credentials_from_env,
+    )
     captcha_id = captcha_code = None
     if settings.environment in ("appai", "ai"):
         captcha_id, image_path = fetch_captcha(settings)
