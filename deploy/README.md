@@ -2,7 +2,7 @@
 
 所有命令从仓库根目录执行，另有说明除外。启动 YAML 和 MySQL 配置边界见[配置字段](../config/README.md)。
 
-跨会话查找 newtest（57，单租户测试）、cloud（59，单租户正式）、appai（多租户测试）、ai（多租户正式）的连接、凭据、部署位置及云效信息，先读本机私有 [环境交接](environments.local.md)；该文件不提交、不进入镜像，新克隆需单独提供。
+跨会话查找 newtest（57，单租户测试）、cloud（59，单租户正式）、appai（多租户测试）、ai（多租户正式）的连接、凭据和云效信息，统一从本机 `D:\Projects\AgentResources\README.md` 进入，按任务读取对应资料并通过 `AgentResources/scripts/` 调用。自动化凭据由任务入口从共享目录的私有 `.env` 注入；不要直接读取整份凭据文件。此仓库原 `deploy/environments.local.md` 保留不删，新克隆需单独配置共享资料目录。
 
 ## 本地开发
 
