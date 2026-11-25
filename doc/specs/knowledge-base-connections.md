@@ -72,14 +72,27 @@
 4. 有 `required=true` 的用途没有可用库时，Run 在调用模型前失败。
 5. 按连接分组，每个连接调用一次适配器，该连接下的 `external_id` 一次传入。各连接分别取前 N 条，按来源分组返回给模型综合，不跨连接按分数统一排序：不同空间的重排模型、阈值和检索配置可能不同，分数不可比。确需全局排序时另行设计统一重排。
 
-解析结果在 Run 内固定，与[配置中心](runtime-config-center.md)的逐 Run 读取规则一致。Run 记录保存解析出的库 `ref`、`external_id`，以及每次检索命中的分块 ID 和文档标题；用户、学校和能力由 Run 本身关联，不记录凭据。WeKnora 只看到机器 Key，不知道 `userCode`，首期不按用户隔离。
+解析结果在 Run 内固定，与[配置中心](runtime-config-center.md)的逐 Run 读取规则一致。Run 记录保存解析出的库 `ref`、`external_id`，以及每条检索结果的[引用快照](#引用与出处)；用户、学校和能力由 Run 本身关联，不记录凭据。WeKnora 只看到机器 Key，不知道 `userCode`，首期不按用户隔离。
 
 ## 模型可见工具
 
 - `knowledge_search(query, purpose?, limit?)`：`purpose` 只能取本 Run 已解析的用途，省略时检索全部已解析库。
 - `knowledge_read(ref)`：读取一条检索结果对应的单个分块全文。
 
-返回字段与供应商无关：`ref`、库名、文档标题、片段、分数。`ref` 是 Run 内有效的不透明引用，内部映射到分块 ID，规则与 data 工具的 `result_ref` 相同；模型看不到分块 ID、连接和 Key。最终回答的出处写库名和文档标题，不写 `ref`。`ref` 在 Run 结束后失效，不能存进消息当作可点击链接；前端需要可点击来源时，基于 Run 的检索记录另行设计。
+返回字段与供应商无关：`ref`、库名、文档标题、位置、片段、分数。`ref` 是 Run 内短编号（`k1`、`k2`…），同一分块在本 Run 重复命中时复用同一编号，内部映射到分块 ID；模型看不到分块 ID、连接和 Key。位置是适配器生成的可读描述，如“第 3 页”“第 12 段”，无定位信息时为空。
+
+## 引用与出处
+
+目标：对话回答中的每条知识依据都能追溯到“文档名 + 文档内位置 + 引用原文”，历史消息不依赖 WeKnora 中的文档当前状态。
+
+1. **模型标注**：对话正文在依据句后写 `[^k1]`，可连写多个。撰写的文稿按所选指南的引用格式写文档名和位置，不使用该标记。
+2. **快照**：每次检索时 Runtime 为每个新 `ref` 生成引用快照并写入 Run 记录。服务端字段：`ref`、库 `ref`、供应商文档 ID 和分块 ID、文档标题、分块序号、归一化位置、可读位置、引用原文。引用原文优先取定位信息中的 `quote`，否则截取分块正文，最多 300 字。
+3. **推送与持久化**：快照通过 SSE 事件 `knowledge.sources` 推送（落地时登记到 [Runtime 接口 SSE 模块](ccsdk-runtime-interface.md#5-sse-事件模块)），对外只含 `ref`、库名、文档标题、可读位置和引用原文，不含供应商 ID。Java 按 messageId 把正文实际引用到的条目与消息一起保存；历史消息只读这份保存结果，不回查 WeKnora。文档之后被修改或删除，旧回答仍显示引用时的原文。
+4. **前端展示**：把 `[^kN]` 渲染为可展开的出处，显示“文档名 · 位置”和引用原文。找不到对应快照的标记不渲染。
+
+位置精度取决于文件类型和 WeKnora 解析结果（`source_locators`，v0.9.1 源码核对）：Word 为正文第几个段落或表格，PPT 为第几页幻灯片及标题，Excel/CSV 为工作表及起止行，md/txt 为字符起止位置，PDF 为页码及页面区域。PDF 页码只有 MinerU、PaddleOCR 等版面解析器生成，默认解析器未核实。
+
+定位信息为空或标记 `partial` 时只显示文档名和引用原文，不编造位置。点开原文并定位到段落不在首期：需由服务端按 runId 加 `ref` 校验学校后代理 WeKnora `GET /api/v1/knowledge/:id/preview`，该接口未实测。
 
 ## 适配器
 
@@ -88,7 +101,7 @@
 | 方法 | 用途 |
 | --- | --- |
 | `validate(connection_config, library_config)` | 管理端保存时校验 `credentials`、`config` 结构，失败按现有规则返回 400 并整笔回滚 |
-| `search(connection, libraries, query, limit)` | WeKnora 对应 `POST /api/v1/knowledge-search` |
+| `search(connection, libraries, query, limit)` | WeKnora 对应 `POST /api/v1/knowledge-search`；把结果的 `source_locators` 归一化为通用位置和可读位置 |
 | `read(connection, chunk_id)` | WeKnora 对应 `GET /api/v1/chunks/by-id/:id`；`GET /api/v1/chunks/:knowledge_id` 会列出整份文档的分块，不用于单块读取 |
 
 两个 WeKnora 接口都只需要 `retrieve` 权限。换供应商时，同样是 Key 加库 ID 模式的只需新增适配器并改取值，不改表；需要额外检索参数的放进连接或库的 `config`；需要逐用户 OAuth 凭据的必须按 REQ-001 逐 Run 注入，需另行设计。
