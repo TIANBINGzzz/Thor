@@ -7,6 +7,7 @@ from typing import Callable
 
 from runtime.tool_catalog import TOOL_CATALOG, ToolCatalog, ToolDefinition, ToolOperation
 from runtime.mcp_providers import provide_mcp
+from runtime import knowledge
 from tools import artifacts, attachments, data, documents, images, mermaid, office_mcp, web_search
 
 @dataclass
@@ -38,6 +39,7 @@ PROVIDERS: dict[str, ToolProvider] = {
     'images': ToolProvider(create=images.provide_tool),
     'http-mcp': ToolProvider(create=provide_mcp),
     'attachments': ToolProvider(create=attachments.provide_tool),
+    'knowledge': ToolProvider(create=knowledge.provide_tool),
     'capability-pack': ToolProvider(),
 }
 

@@ -25,6 +25,7 @@ from runtime.event_display import with_display_name
 
 RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
 STATUSES = {"queued", "running", "waiting", "succeeded", "failed", "cancelled"}
+TERMINAL_STATUSES = ("succeeded", "failed", "cancelled")
 SECRET_KEYS = {
     "authorization",
     "apikey",
@@ -113,6 +114,25 @@ class RunStore:
                 );
                 CREATE INDEX IF NOT EXISTS idx_run_events_after
                     ON run_events(run_id, sequence);
+                CREATE INDEX IF NOT EXISTS idx_runs_retention
+                    ON runs(status, updated_at);
+                CREATE TABLE IF NOT EXISTS run_knowledge_sources (
+                    run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+                    ref TEXT NOT NULL,
+                    connection_ref TEXT NOT NULL,
+                    library_ref TEXT NOT NULL,
+                    external_library_id TEXT NOT NULL,
+                    knowledge_id TEXT NOT NULL,
+                    chunk_id TEXT NOT NULL,
+                    chunk_index INTEGER,
+                    snapshot_json TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    PRIMARY KEY (run_id, ref),
+                    UNIQUE (run_id, connection_ref, external_library_id, chunk_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_run_knowledge_sources_chunk
+                    ON run_knowledge_sources(run_id, connection_ref, external_library_id, chunk_id);
                 CREATE TABLE IF NOT EXISTS artifacts (
                     artifact_id TEXT PRIMARY KEY,
                     run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
@@ -446,6 +466,54 @@ class RunStore:
             self._connection.commit()
             row = self._connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return self._run_row(row)
+
+    def save_knowledge_sources(self, run_id: str, records: list[Mapping[str, Any]]) -> None:
+        """保存当前 Run 的公共出处快照与仅供 Runtime 使用的供应商分块映射。"""
+        run_id = _validate_run_id(run_id)
+        updated = _now_ms()
+        with self._lock:
+            for record in records:
+                self._connection.execute(
+                    """INSERT INTO run_knowledge_sources
+                    (run_id,ref,connection_ref,library_ref,external_library_id,knowledge_id,chunk_id,
+                     chunk_index,snapshot_json,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(run_id,ref) DO UPDATE SET
+                        connection_ref=excluded.connection_ref,
+                        library_ref=excluded.library_ref,
+                        external_library_id=excluded.external_library_id,
+                        knowledge_id=excluded.knowledge_id,
+                        chunk_id=excluded.chunk_id,
+                        chunk_index=excluded.chunk_index,
+                        snapshot_json=excluded.snapshot_json,
+                        updated_at=excluded.updated_at""",
+                    (run_id, record['ref'], record['connection_ref'], record['library_ref'],
+                     record['external_library_id'], record['knowledge_id'], record['chunk_id'],
+                     record['chunk_index'], _json(record['snapshot']), updated, updated),
+                )
+            self._connection.commit()
+
+    def cleanup_expired(self, *, now_ms: int | None = None) -> int:
+        """删除终态超过 24 小时的 Run 事件及临时知识库出处，保留 Run 状态行。"""
+        cutoff = (_now_ms() if now_ms is None else now_ms) - 24 * 60 * 60 * 1000
+        with self._lock:
+            expired = self._connection.execute(
+                "SELECT run_id FROM runs WHERE status IN (?,?,?) AND updated_at <= ?",
+                (*TERMINAL_STATUSES, cutoff),
+            ).fetchall()
+            run_ids = [row['run_id'] for row in expired]
+            self._connection.execute(
+                "DELETE FROM run_events WHERE run_id IN "
+                "(SELECT run_id FROM runs WHERE status IN (?,?,?) AND updated_at <= ?)",
+                (*TERMINAL_STATUSES, cutoff),
+            )
+            self._connection.execute(
+                "DELETE FROM run_knowledge_sources WHERE run_id IN "
+                "(SELECT run_id FROM runs WHERE status IN (?,?,?) AND updated_at <= ?)",
+                (*TERMINAL_STATUSES, cutoff),
+            )
+            self._connection.commit()
+        return len(run_ids)
 
     def get_steering(self, run_id: str, message_id: str) -> dict[str, Any] | None:
         """读取文本不落盘的引导回执，只返回状态和稳定错误码。"""

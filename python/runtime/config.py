@@ -161,9 +161,9 @@ def runtime_mode_for(capability_ref: str | None, *, capability_config=None) -> s
     return 'query'
 
 
-def load_execution_entry(capability_ref):
+def load_execution_entry(capability_ref, *, tenant_id=None, include_knowledge=None):
     from runtime.configuration import execution_entry
-    return execution_entry(capability_ref)
+    return execution_entry(capability_ref, tenant_id=tenant_id, include_knowledge=include_knowledge)
 
 def prepare_capability_assets(payload):
     assets = payload.get('_capability_assets')
@@ -270,7 +270,8 @@ def resolve_model(runtime: dict, default: str | None = None) -> str:
 
 
 @with_payload_configuration
-def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
+def build_options(payload: dict[str, Any], data_services=None, artifact_sink=None, chart_sink=None,
+                  knowledge_sink=None, tool_services=None, mcp_error_sink=None, turn_policy=None):
     """接收内部执行 payload，装配模型、目录、提示词、Skill 和 MCP，返回 ClaudeAgentOptions。
 
     按流程策略限制工具，并仅向指定 MCP 的配置副本注入本次请求凭据。
@@ -306,6 +307,7 @@ def build_options(payload: dict[str, Any], data_services=None, artifact_sink=Non
     registered = build_registered_tools(entry, {
         'model': model, 'restricted': restricted_tools, 'data_services': data_services,
         'chart_sink': chart_sink, 'artifact_sink': artifact_sink,
+        'knowledge_sink': knowledge_sink, 'knowledge': deployment_section('knowledge', {}),
         'artifact_enabled': artifact_enabled, 'session_directory': session_directory,
         'work_directory': work_directory, 'deliverables_directory': deliverables_directory,
         'run_id': payload.get('run_id'),

@@ -32,6 +32,11 @@ def application_document():
 def configuration_rows():
     import json
     rows = json.loads((Path(__file__).parent/'fixtures/configuration.json').read_text(encoding='utf-8'))
+    rows['knowledge_connections'] = {}
+    rows['knowledge_purposes'] = {}
+    rows['knowledge_libraries'] = {}
+    for capability in rows['capabilities'].values():
+        capability['knowledge'] = []
     document = deployment_document()
     rows['settings'] = settings_rows(document)
     # 数据目录验证仍需要来源声明；无真实业务查询会连接此地址。

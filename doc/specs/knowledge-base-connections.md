@@ -1,6 +1,6 @@
 # 知识库接入契约
 
-决策与 WeKnora 权限调研见 [ADR-040](../ADR/040-knowledge-base-integration.md)。本文是配置表、Run 内引用暂存和知识检索适配器的唯一来源；**当前未实现**，落地时以 `python/runtime/config_store.py` 与 `python/runtime/run_store.py` 的实际定义为准并同步本文。
+决策与 WeKnora 权限调研见 [ADR-040](../ADR/040-knowledge-base-integration.md)。本文是配置表、Run 内引用暂存和知识检索适配器的唯一来源。Python Runtime 已实现配置解析、WeKnora 检索/分块读取、出处事件和 24 小时暂存清理；Java 消息长期保存、前端渲染和预览代理不在本轮范围内。字段以 `python/runtime/config_store.py` 与 `python/runtime/run_store.py` 的实际定义为准。
 
 ## 设计原则
 
@@ -14,7 +14,7 @@
 
 列风格沿用现有配置表：`ref` 主键 `String(96)`，显示名 `String(160)`，秘密字段加密后存 `Text`，扩展参数存 `JSON` 对象。
 
-### `ccsdk_knowledge_connection`：连接（隔离边界）
+### `runtime_knowledge_connection`：连接（隔离边界）
 
 | 列 | 类型 | 说明与原因 |
 | --- | --- | --- |
@@ -29,7 +29,7 @@
 | `max_results` | Integer | 单次检索条数上限，模型传入的 `limit` 不能超过它 |
 | `enabled` | Boolean | 停用后该连接下所有库不参与解析 |
 
-### `ccsdk_knowledge_purpose`：用途词表
+### `runtime_knowledge_purpose`：用途词表
 
 | 列 | 类型 | 说明与原因 |
 | --- | --- | --- |
@@ -37,7 +37,7 @@
 | `name` | String(160) | 显示名，供管理端下拉 |
 | `description` | Text | 适用内容，供管理员挂库时判断。单独建表是为了用外键拦住拼错的用途，否则只会静默检索不到结果 |
 
-### `ccsdk_knowledge_library`：库（可检索单元）
+### `runtime_knowledge_library`：库（可检索单元）
 
 | 列 | 类型 | 说明与原因 |
 | --- | --- | --- |
@@ -53,16 +53,16 @@
 
 ### 关系约束与索引
 
-- `ccsdk_knowledge_library.connection_ref`、`purpose_ref` 和 `ccsdk_capability_knowledge` 两端外键均使用 `ON DELETE RESTRICT`；先停用再清理引用，避免删除配置时静默丢失授权关系。
+- `runtime_knowledge_library.connection_ref`、`purpose_ref` 和 `runtime_capability_knowledge` 两端外键均使用 `ON DELETE RESTRICT`；先停用再清理引用，避免删除配置时静默丢失授权关系。
 - 索引：连接表 `(tenant_id, enabled)`；库表 `(connection_ref, purpose_ref, enabled)`；能力关联表按 `purpose_ref` 反向索引。四表不保留秘密明文，管理端仍通过现有配置管理鉴权读写。
 - `enabled=false` 表示停用，停用连接会使其下库都不可解析；停用库或能力关联只影响对应范围。Runtime 配置库不承载 WeKnora 开通任务；Java 平台复用现有任务与对账机制，若当前没有则增加 Java 侧任务记录。管理端不新增配置版本或独立审计表。
 
-### `ccsdk_capability_knowledge`：能力与用途的关联
+### `runtime_capability_knowledge`：能力与用途的关联
 
 | 列 | 类型 | 说明与原因 |
 | --- | --- | --- |
 | `capability_ref` | FK → capability，PK | 所属能力 |
-| `ref` | FK → purpose，PK | 用途引用，命名与其他 `ccsdk_capability_*` 关联表一致 |
+| `ref` | FK → purpose，PK | 用途引用，命名与其他 `runtime_capability_*` 关联表一致 |
 | `required` | Boolean | `true` 时本校没有该用途的可用库则 Run 直接失败；`false` 时缺库只是少一类来源 |
 
 ### 不进这四张表的内容

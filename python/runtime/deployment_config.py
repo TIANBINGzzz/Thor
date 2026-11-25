@@ -107,6 +107,58 @@ def _validated(document, *, worker=False):
             _endpoint(document['images'], 'baseUrl')
             _text(document['images'], 'apiKey', secret=True)
             _text(document['images'], 'model')
+        knowledge = document.get('knowledge')
+        if knowledge is not None:
+            from knowledge.providers import PROVIDERS
+
+            if not isinstance(knowledge, dict) or set(knowledge) != {'purposes', 'connections', 'libraries'}:
+                raise ValueError()
+            purposes = knowledge['purposes']
+            connections = knowledge['connections']
+            libraries = knowledge['libraries']
+            if not isinstance(purposes, list) or not isinstance(connections, dict) or not isinstance(libraries, list):
+                raise ValueError()
+            purpose_refs = set()
+            for purpose in purposes:
+                if not isinstance(purpose, dict) or set(purpose) != {'ref', 'name', 'description'}:
+                    raise ValueError()
+                ref = purpose['ref']
+                if not isinstance(ref, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,95}', ref) or ref in purpose_refs:
+                    raise ValueError()
+                purpose_refs.add(ref)
+                _text(purpose, 'name')
+                _text(purpose, 'description')
+            for ref, connection in connections.items():
+                if (not isinstance(ref, str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,95}', ref)
+                        or not isinstance(connection, dict)
+                        or set(connection) != {'provider', 'baseUrl', 'credentials', 'config', 'timeoutSeconds', 'maxResults'}
+                        or connection['provider'] not in PROVIDERS):
+                    raise ValueError()
+                _endpoint(connection, 'baseUrl', allow_http=True)
+                PROVIDERS[connection['provider']].validate(connection, None)
+                for field, maximum in (('timeoutSeconds', 120), ('maxResults', 100)):
+                    if type(connection[field]) is not int or not 1 <= connection[field] <= maximum:
+                        raise ValueError()
+            library_refs = set()
+            for library in libraries:
+                if (not isinstance(library, dict)
+                        or set(library) != {'ref', 'purposeRef', 'name', 'connectionRef', 'externalId', 'config'}
+                        or library['purposeRef'] not in purpose_refs
+                        or library['connectionRef'] not in connections
+                        or not isinstance(library['externalId'], str) or not library['externalId']
+                        or not isinstance(library['config'], dict) or set(library['config']) - {'tag_ids'}):
+                    raise ValueError()
+                if (not isinstance(library['ref'], str)
+                        or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_-]{0,95}', library['ref'])
+                        or library['ref'] in library_refs):
+                    raise ValueError()
+                if 'tag_ids' in library['config'] and (not isinstance(library['config']['tag_ids'], list)
+                        or any(not isinstance(tag, str) or not tag for tag in library['config']['tag_ids'])):
+                    raise ValueError()
+                _text(library, 'name')
+                connection = connections[library['connectionRef']]
+                PROVIDERS[connection['provider']].validate(connection, library)
+                library_refs.add(library['ref'])
         if not worker and 'fileService' in document:
             from runtime.file_service import validate_file_service_config
             validate_file_service_config(document['fileService'])
@@ -194,13 +246,13 @@ def worker_configuration():
     if document is None:
         return None
     return {key:copy.deepcopy(document[key]) for key in
-            ('runtime','model','images','databases','_mcp_catalog') if key in document}
+            ('runtime','model','images','databases','_mcp_catalog','knowledge') if key in document}
 
 
 def install_worker_configuration(document):
     """Worker 导入 SDK 前安装父进程快照，后续由每轮命令刷新，不连接配置库。"""
     global _DEPLOYMENT, _WORKER
-    if not isinstance(document, dict) or set(document) - {'runtime', 'model', 'images', 'databases', '_mcp_catalog'}:
+    if not isinstance(document, dict) or set(document) - {'runtime', 'model', 'images', 'databases', '_mcp_catalog', 'knowledge'}:
         raise ValueError('worker_config_invalid')
     document = _validated(document, worker=True)
     settings = _runtime_configuration(document)

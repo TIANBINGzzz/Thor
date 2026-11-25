@@ -45,7 +45,8 @@ async def options(request: Request):
         result = {'models': [item for item in store.list('models', enabled=True) if item['connection_ref'] in connections]}
         declarations = TOOL_CATALOG.resolve_many(sorted(TOOL_CATALOG.refs))
         internal_services = {item.ref for item in declarations if item.implementation == 'capability-pack'}
-        for resource in ('skills', 'mcp_servers', 'database_connections'):
+        for resource in ('skills', 'mcp_servers', 'database_connections', 'knowledge_connections',
+                         'knowledge_purposes', 'knowledge_libraries'):
             result[resource] = [{'ref':item['ref'], 'name':item['name']} for item in store.list(resource, enabled=True)
                                 if resource != 'mcp_servers' or item['ref'] not in internal_services]
         result['tools'] = [{'ref':item.ref, 'name':item.ref, 'description':item.description}

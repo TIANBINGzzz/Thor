@@ -2,21 +2,23 @@
 
 MySQL 是可编辑配置的唯一来源。启动 YAML 只保存配置库引导与宿主机参数；不再读取 Nacos、env、.local 或本地客户配置副本。
 
-`config-database` 是 `application.yml` 中的 MySQL 连接配置节，不是独立服务或表名。程序启动时用它连接配置库，再从 `ccsdk_*` 表读取能力、模型、连接和预算。配置库自身的连接参数必须先从 YAML 取得。
+`config-database` 是 `application.yml` 中的 MySQL 连接配置节，不是独立服务或表名。程序启动时用它连接配置库，再从 `runtime_*` 表读取能力、模型、连接和预算。配置库自身的连接参数必须先从 YAML 取得。
 
 | 位置 | 内容 | 更新生效时点 |
 | --- | --- | --- |
 | `application.yml` | `config-database` 地址、账号、密码、Fernet 根密钥、TLS CA、超时；server/tools/network/diagnostics | 重启 |
-| `ccsdk_capability` | 基本信息、提示词、`model_ref` 和 `config`。后者保存推理设置、单 Run 预算、Tool 选择、附件规则及能力专属参数和模板名单 | 下一 Run，包括已有会话续聊 |
-| `ccsdk_skill` | 可复用说明、正文、文本资源及依赖 Tool | 下一 Run |
-| `ccsdk_model` | 模型目录：连接引用、模型名、显示名、启停、排序及支持的推理选项 | 下一 Run |
-| `ccsdk_model_connection` | 服务地址、Anthropic 协议、API Key、协议扩展参数 | 下一 Run |
-| `ccsdk_database_connection` | 类型、地址、端口、库名、账号、密码、TLS、访问范围、查询限额 | 下一 Run |
-| `ccsdk_mcp_server` | HTTP 地址、静态 Header、业务 Token 注入规则、连接参数 | 下一 Run |
-| 三张 `ccsdk_capability_*` 关联表 | Skill 顺序/必载、数据源必需性、MCP 及工具白名单 | 下一 Run |
-| `ccsdk_setting` 的 `runtime` 行 | 公共超时、限额、SSE 心跳、Run 队列、Worker 池及观测 | 图像、联网搜索等执行阶段超时下一 Run；进程默认参数、队列、Worker 池、观测、SSE 心跳及 HTTP 请求上限重启 |
-| `ccsdk_setting` 的 `files`、`images` 行 | 文件服务上传与下载分别限额；生图服务启停、地址、模型和密钥 | 下一 Run |
-| `ccsdk_setting` 的 `security` 行 | JWT 签发方、受众及各独立密钥 | 管理鉴权下一管理请求；执行、会话读取与观测鉴权重启 |
+| `runtime_capability` | 基本信息、提示词、`model_ref` 和 `config`。后者保存推理设置、单 Run 预算、Tool 选择、附件规则及能力专属参数和模板名单 | 下一 Run，包括已有会话续聊 |
+| `runtime_skill` | 可复用说明、正文、文本资源及依赖 Tool | 下一 Run |
+| `runtime_model` | 模型目录：连接引用、模型名、显示名、启停、排序及支持的推理选项 | 下一 Run |
+| `runtime_model_connection` | 服务地址、Anthropic 协议、API Key、协议扩展参数 | 下一 Run |
+| `runtime_database_connection` | 类型、地址、端口、库名、账号、密码、TLS、访问范围、查询限额 | 下一 Run |
+| `runtime_mcp_server` | HTTP 地址、静态 Header、业务 Token 注入规则、连接参数 | 下一 Run |
+| 三张 `runtime_capability_*` 关联表 | Skill 顺序/必载、数据源必需性、MCP 及工具白名单 | 下一 Run |
+| `runtime_knowledge_connection` | WeKnora 等供应商连接、租户范围和加密只读凭据 | 下一 Run |
+| `runtime_knowledge_purpose`、`runtime_knowledge_library`、`runtime_capability_knowledge` | 用途、供应商库目录及能力到用途的绑定 | 下一 Run |
+| `runtime_setting` 的 `runtime` 行 | 公共超时、限额、SSE 心跳、Run 队列、Worker 池及观测 | 图像、联网搜索等执行阶段超时下一 Run；进程默认参数、队列、Worker 池、观测、SSE 心跳及 HTTP 请求上限重启 |
+| `runtime_setting` 的 `files`、`images` 行 | 文件服务上传与下载分别限额；生图服务启停、地址、模型和密钥 | 下一 Run |
+| `runtime_setting` 的 `security` 行 | JWT 签发方、受众及各独立密钥 | 管理鉴权下一管理请求；执行、会话读取与观测鉴权重启 |
 
 启动从 config/application.yml 连接配置库，校验后加载进程设置。每个新 Run 在同一读事务中只读取选定能力及所需资源，执行中保持不变；不轮询、不广播、不维护发布表。数据库不可达时新请求失败，已经取得配置的 Run 继续执行。普通业务请求不能覆盖配置。
 

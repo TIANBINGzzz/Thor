@@ -4,7 +4,7 @@ import json
 import re
 
 from cryptography.fernet import Fernet
-from sqlalchemy import (Boolean, Column, ForeignKey, Integer, JSON, MetaData,
+from sqlalchemy import (Boolean, Column, ForeignKey, Index, Integer, JSON, MetaData,
                         String, Table, Text, UniqueConstraint, URL, create_engine, select, literal, func, union_all)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from runtime.config_fields import SETTING_SECTIONS, SETTING_SECRET_KEYS, ConfigurationError, ConfigurationNotFound
@@ -12,7 +12,7 @@ from runtime.config_fields import SETTING_SECTIONS, SETTING_SECRET_KEYS, Configu
 metadata = MetaData()
 
 def table(name, *columns, comment):
-    return Table('ccsdk_' + name, metadata,
+    return Table('runtime_' + name, metadata,
                  Column('ref', String(96), primary_key=True, comment='稳定引用标识'),
                  *columns,
                  comment=comment)
@@ -28,7 +28,7 @@ TABLES = {
         comment='SDK 模型服务连接'),
     'models': table('model',
         Column('name', String(160), nullable=False, comment='模型显示名称'),
-        Column('connection_ref', String(96), ForeignKey('ccsdk_model_connection.ref'), nullable=False,
+        Column('connection_ref', String(96), ForeignKey('runtime_model_connection.ref'), nullable=False,
                comment='模型服务连接引用'),
         Column('model_name', String(160), nullable=False, comment='供应商模型标识；同连接内唯一'),
         Column('enabled', Boolean, nullable=False, comment='是否启用模型'),
@@ -68,6 +68,32 @@ TABLES = {
         Column('config', JSON, nullable=False, comment='扩展参数和业务 Token 注入规则'),
         Column('enabled', Boolean, nullable=False, comment='是否启用 MCP 服务'),
         comment='SDK MCP 服务连接与业务凭据注入规则'),
+    'knowledge_connections': table('knowledge_connection',
+        Column('name', String(160), nullable=False, comment='知识库连接显示名称'),
+        Column('provider', String(48), nullable=False, comment='知识库供应商适配器标识'),
+        Column('base_url', String(1024), nullable=False, comment='知识库服务地址'),
+        Column('tenant_id', String(96), nullable=False, comment='可使用该连接的业务租户；* 表示共享'),
+        Column('credentials', Text, nullable=False, comment='供应商只读凭据的加密 JSON'),
+        Column('config', JSON, nullable=False, comment='供应商连接参数 JSON'),
+        Column('timeout_seconds', Integer, nullable=False, comment='单次请求超时秒数'),
+        Column('max_results', Integer, nullable=False, comment='单库检索结果上限'),
+        Column('enabled', Boolean, nullable=False, comment='是否启用知识库连接'),
+        comment='Runtime 知识库供应商连接及租户边界'),
+    'knowledge_purposes': table('knowledge_purpose',
+        Column('name', String(160), nullable=False, comment='知识用途显示名称'),
+        Column('description', Text, nullable=False, comment='知识用途说明'),
+        comment='知识库用途词表'),
+    'knowledge_libraries': table('knowledge_library',
+        Column('name', String(160), nullable=False, comment='知识库显示名称'),
+        Column('connection_ref', String(96), ForeignKey('runtime_knowledge_connection.ref', ondelete='RESTRICT'),
+               nullable=False, comment='所属隔离连接'),
+        Column('purpose_ref', String(96), ForeignKey('runtime_knowledge_purpose.ref', ondelete='RESTRICT'),
+               nullable=False, comment='知识库用途'),
+        Column('external_id', String(255), nullable=False, comment='供应商侧知识库标识'),
+        Column('config', JSON, nullable=False, comment='库级供应商参数 JSON'),
+        Column('enabled', Boolean, nullable=False, comment='是否启用知识库'),
+        UniqueConstraint('connection_ref', 'external_id'),
+        comment='供应商知识库目录及用途映射'),
     'settings': table('setting',
         Column('value', JSON, nullable=False, comment='按 runtime、files、images、security 分组的配置'),
         Column('secrets', Text, comment='本组秘密的加密密文'),
@@ -78,16 +104,21 @@ TABLES = {
         Column('enabled', Boolean, nullable=False, comment='是否启用业务能力'),
         Column('prompt', Text, nullable=False, comment='能力主提示词正文'),
         Column('supports_attachments', Boolean, nullable=False, comment='是否支持输入附件'),
-        Column('model_ref', String(96), ForeignKey('ccsdk_model.ref'), nullable=False, comment='执行模型目录引用'),
+        Column('model_ref', String(96), ForeignKey('runtime_model.ref'), nullable=False, comment='执行模型目录引用'),
         Column('config', JSON, nullable=False, comment='能力执行策略、模板名单和专属参数'),
         comment='SDK 业务能力、提示词、模型及单 Run 执行预算'),
 }
+Index('idx_runtime_knowledge_connection_tenant_enabled', TABLES['knowledge_connections'].c.tenant_id,
+      TABLES['knowledge_connections'].c.enabled)
+Index('idx_runtime_knowledge_library_connection_purpose_enabled',
+      TABLES['knowledge_libraries'].c.connection_ref, TABLES['knowledge_libraries'].c.purpose_ref,
+      TABLES['knowledge_libraries'].c.enabled)
 RELATIONS = {}
 for kind, resource in [('skills', 'skills'), ('databases', 'database_connections'), ('mcps', 'mcp_servers')]:
     label = {'skills': 'Skill', 'databases': '数据源连接', 'mcps': 'MCP 服务'}[kind]
-    columns = [Column('capability_ref', String(96), ForeignKey('ccsdk_capability.ref'), primary_key=True,
+    columns = [Column('capability_ref', String(96), ForeignKey('runtime_capability.ref', ondelete='RESTRICT'), primary_key=True,
                       comment='所属业务能力引用'),
-               Column('ref', String(96), ForeignKey(TABLES[resource].name + '.ref'), primary_key=True,
+               Column('ref', String(96), ForeignKey(TABLES[resource].name + '.ref', ondelete='RESTRICT'), primary_key=True,
                       comment=label + '引用')]
     columns += ([Column('allowed_tools', JSON, nullable=False, comment='允许的 MCP 操作名列表；空数组不授权，* 表示全部')]
                 if kind == 'mcps' else
@@ -95,12 +126,23 @@ for kind, resource in [('skills', 'skills'), ('databases', 'database_connections
                         comment='是否必载 Skill 正文' if kind == 'skills' else '是否必需数据源；停用时拒绝执行')])
     if kind == 'skills':
         columns.append(Column('sort_order', Integer, nullable=False, comment='Skill 加载顺序；数值越小越靠前'))
-    RELATIONS[kind] = Table('ccsdk_capability_' + {'skills':'skill','databases':'database','mcps':'mcp'}[kind],
+    RELATIONS[kind] = Table('runtime_capability_' + {'skills':'skill','databases':'database','mcps':'mcp'}[kind],
                             metadata, *columns, comment='SDK 业务能力与' + label + '的关联')
+knowledge_relation = Table('runtime_capability_knowledge', metadata,
+    Column('capability_ref', String(96), ForeignKey('runtime_capability.ref', ondelete='RESTRICT'), primary_key=True,
+           comment='所属业务能力引用'),
+    Column('ref', String(96), ForeignKey('runtime_knowledge_purpose.ref', ondelete='RESTRICT'), primary_key=True,
+           comment='知识用途引用'),
+    Column('required', Boolean, nullable=False, comment='是否必须提供该用途知识库'))
+RELATIONS['knowledge'] = knowledge_relation
+Index('idx_runtime_capability_knowledge_purpose', knowledge_relation.c.ref)
 
 SECRET_FIELDS = {'model_connections': ('api_key',), 'database_connections': ('password',),
+                 'knowledge_connections': ('credentials',),
                  'mcp_servers': ('headers',), 'settings': ('secrets',)}
-DOCUMENT_FIELDS = {'capabilities': 'config', 'mcp_servers': 'config', 'settings': 'value'}
+DOCUMENT_FIELDS = {'capabilities': 'config', 'mcp_servers': 'config', 'knowledge_connections': 'config',
+                   'knowledge_libraries': 'config', 'settings': 'value'}
+OBJECT_FIELDS = {'headers', 'secrets', 'credentials', 'config', 'value'}
 
 
 def merge_document(old, patch):
@@ -171,11 +213,23 @@ class ConfigStore:
                 result[field] = None if public else value
         return result
 
-    def _statement_for(self, ref, service_refs, include_security):
+    def _statement_for(self, ref, service_refs, include_security, tenant_id, include_knowledge):
         owners = {kind: relation.c.capability_ref == ref for kind, relation in RELATIONS.items()}
         related = {kind: select(relation.c.ref).where(owners[kind]) for kind, relation in RELATIONS.items()}
         capability = TABLES['capabilities']
         model = TABLES['models']
+        knowledge_connection = TABLES['knowledge_connections']
+        knowledge_library = TABLES['knowledge_libraries']
+        knowledge_purpose_refs = related['knowledge']
+        tenant_scope = knowledge_connection.c.tenant_id.in_((tenant_id, '*')) if include_knowledge else literal(False)
+        knowledge_connection_refs = select(knowledge_connection.c.ref).where(
+            knowledge_connection.c.enabled, tenant_scope)
+        knowledge_library_refs = select(knowledge_library.c.ref).where(
+            knowledge_library.c.enabled,
+            knowledge_library.c.purpose_ref.in_(knowledge_purpose_refs),
+            knowledge_library.c.connection_ref.in_(knowledge_connection_refs))
+        selected_knowledge_connections = select(knowledge_library.c.connection_ref).where(
+            knowledge_library.c.ref.in_(knowledge_library_refs))
         model_ref = select(capability.c.model_ref).where(capability.c.ref == ref)
         connection_ref = select(model.c.connection_ref).where(model.c.ref.in_(model_ref))
         groups = tuple(SETTING_SECTIONS) if include_security else ('runtime', 'files', 'images')
@@ -185,12 +239,18 @@ class ConfigStore:
             'settings': TABLES['settings'].c.ref.in_(groups),
             'skills': TABLES['skills'].c.ref.in_(related['skills']),
             'database_connections': TABLES['database_connections'].c.ref.in_(related['databases']),
+            'knowledge_purposes': (TABLES['knowledge_purposes'].c.ref.in_(knowledge_purpose_refs)
+                                   if include_knowledge else literal(False)),
+            'knowledge_connections': knowledge_connection.c.ref.in_(selected_knowledge_connections),
+            'knowledge_libraries': knowledge_library.c.ref.in_(knowledge_library_refs),
             'mcp_servers': TABLES['mcp_servers'].c.ref.in_(related['mcps']) | TABLES['mcp_servers'].c.ref.in_(service_refs),
             **{'relation_'+kind: owner for kind, owner in owners.items()},
         }
         return union_all(*(self.queries[name].where(condition) for name, condition in filters.items()))
 
-    def _load(self, connection, ref=None, *, include_security=False):
+    def _load(self, connection, ref=None, *, include_security=False, tenant_id=None, include_knowledge=False):
+        if include_knowledge and tenant_id is None:
+            raise ValueError('knowledge_tenant_required')
         result = {name: {} for name in TABLES}
         statement = self.read_statement
         if ref is not None:
@@ -201,7 +261,8 @@ class ConfigStore:
             if row is None:
                 return result
             result['capabilities'][row['ref']] = dict(row)
-            statement = self._statement_for(ref, service_refs_for(row), include_security)
+            statement = self._statement_for(ref, service_refs_for(row), include_security, tenant_id,
+                                            include_knowledge)
         bindings = []
         for resource, record in connection.execute(statement):
             row = json.loads(record) if isinstance(record, str) else record
@@ -224,10 +285,15 @@ class ConfigStore:
             capability['skills'].sort(key=lambda item: item['sort_order'])
         return result
 
-    def load(self, capability_ref=None, *, include_security=False):
+    def load(self, capability_ref=None, *, include_security=False, tenant_id=None, include_knowledge=None):
+        if include_knowledge is None:
+            include_knowledge = tenant_id is not None
+        if include_knowledge and tenant_id is None:
+            raise ValueError('knowledge_tenant_required')
         try:
             with self.engine.begin() as connection:
-                return self._load(connection, capability_ref, include_security=include_security)
+                return self._load(connection, capability_ref, include_security=include_security,
+                                  tenant_id=tenant_id, include_knowledge=include_knowledge)
         except SQLAlchemyError:
             raise RuntimeError('config_database_unavailable') from None
 
@@ -241,7 +307,8 @@ class ConfigStore:
         source = TABLES[resource]
         query = select(source)
         if enabled is not None and 'enabled' in source.c: query = query.where(source.c.enabled == enabled)
-        if connection_ref is not None and resource == 'models': query = query.where(source.c.connection_ref == connection_ref)
+        if connection_ref is not None and resource in {'models', 'knowledge_libraries'}:
+            query = query.where(source.c.connection_ref == connection_ref)
         query = query.order_by(source.c.sort_order, source.c.ref) if resource == 'models' else query.order_by(source.c.ref)
         with self.engine.connect() as connection:
             return [self._decode(resource, row, public=True) for row in
@@ -284,7 +351,7 @@ class ConfigStore:
                 if not column.nullable and field not in SECRET_FIELDS.get(resource, ()): invalid(field, 'field_required')
                 continue
             expected = bool if isinstance(column.type, Boolean) else int if isinstance(column.type, Integer) else str if isinstance(column.type, (String, Text)) else None
-            if field in ('headers', 'secrets', DOCUMENT_FIELDS.get(resource)):
+            if field in OBJECT_FIELDS:
                 expected = dict
             if expected is not None and type(item) is not expected:
                 invalid(field, 'type_invalid')
@@ -329,7 +396,8 @@ class ConfigStore:
                     for kind, items in relations.items():
                         if not isinstance(items, list): invalid(kind, 'array_required')
                         relation = RELATIONS[kind]
-                        other = TABLES[{'skills':'skills','databases':'database_connections','mcps':'mcp_servers'}[kind]]
+                        other = TABLES[{'skills':'skills','databases':'database_connections','mcps':'mcp_servers',
+                                        'knowledge':'knowledge_purposes'}[kind]]
                         connection.execute(relation.delete().where(relation.c.capability_ref == ref))
                         for item in items:
                             if not isinstance(item, dict) or set(item) != set(relation.c.keys()) - {'capability_ref'}:
@@ -355,10 +423,19 @@ class ConfigStore:
                 source, field = (TABLES['models'], 'connection_ref') if resource == 'model_connections' else (TABLES['capabilities'], 'model_ref')
                 referenced = connection.execute(select(source.c.ref).where(source.c[field] == ref)).first()
                 if referenced: raise ValueError('config_in_use')
-            for kind, name in [('skills','skills'),('databases','database_connections'),('mcps','mcp_servers')]:
+            for kind, name in [('skills','skills'),('databases','database_connections'),('mcps','mcp_servers'),
+                               ('knowledge','knowledge_purposes')]:
                 relation = RELATIONS[kind]
                 if resource == name and connection.execute(select(relation.c.ref).where(relation.c.ref == ref)).first():
                     raise ValueError('config_in_use')
                 if resource == 'capabilities':
                     connection.execute(relation.delete().where(relation.c.capability_ref == ref))
+            if resource == 'knowledge_connections' and connection.execute(
+                    select(TABLES['knowledge_libraries'].c.ref).where(
+                        TABLES['knowledge_libraries'].c.connection_ref == ref)).first():
+                raise ValueError('config_in_use')
+            if resource == 'knowledge_purposes' and connection.execute(
+                    select(TABLES['knowledge_libraries'].c.ref).where(
+                        TABLES['knowledge_libraries'].c.purpose_ref == ref)).first():
+                raise ValueError('config_in_use')
             connection.execute(table.delete().where(table.c.ref == ref))

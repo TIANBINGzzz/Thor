@@ -6,23 +6,25 @@ MySQL 为唯一可编辑配置来源；2026-11-13 用户要求替代 Nacos，见
 
 ```mermaid
 flowchart LR
-  capability[ccsdk_capability] --> model[ccsdk_model] --> connection[ccsdk_model_connection]
-  capability --> cs[ccsdk_capability_skill] --> skill[ccsdk_skill]
-  capability --> cd[ccsdk_capability_database] --> db[ccsdk_database_connection]
-  capability --> cm[ccsdk_capability_mcp] --> mcp[ccsdk_mcp_server]
-  setting[ccsdk_setting] --> run[逐 Run 配置装配]
+  capability[runtime_capability] --> model[runtime_model] --> connection[runtime_model_connection]
+  capability --> cs[runtime_capability_skill] --> skill[runtime_skill]
+  capability --> cd[runtime_capability_database] --> db[runtime_database_connection]
+  capability --> cm[runtime_capability_mcp] --> mcp[runtime_mcp_server]
+  capability --> ck[runtime_capability_knowledge] --> purpose[runtime_knowledge_purpose]
+  purpose --> library[runtime_knowledge_library] --> kbconnection[runtime_knowledge_connection]
+  setting[runtime_setting] --> run[逐 Run 配置装配]
   capability --> run
 ```
 
-共十张表，以稳定 ref 引用。能力保留 `ref/name/description/enabled/supports_attachments/prompt/model_ref/config` 八列，和关联在同一事务保存。MCP `allowed_tools` 明确列出允许的操作，空列表不授权操作，`*` 表示该 MCP 的全部操作。
+共十四张表，以稳定 ref 引用。能力保留 `ref/name/description/enabled/supports_attachments/prompt/model_ref/config` 八列，和关联在同一事务保存。能力关联知识用途，不直接绑定供应商库；运行时按租户解析私有库与共享库。MCP `allowed_tools` 明确列出允许的操作，空列表不授权操作，`*` 表示该 MCP 的全部操作。
 
 ## 管理入口
 
-`/internal/config/v1/{resource}` 支持 GET 列表；`/{resource}/{ref}` 支持 GET、PUT 完整保存、PATCH 局部保存、DELETE。资源为 capabilities、skills、models、model_connections、database_connections、mcp_servers、settings。GET 单条能力包含 skills/databases/mcps。PATCH 省略字段保留原值；`config` 和 setting 的 `value` 递归合并对象、替换数组，`[]` 清空列表，文档内部的 `null` 删除可选键。显式传入关联数组也替换该组。ref 不可修改，PATCH 不创建记录。引用中的连接、基础设置和 conversation 不可删除。新 Skill 只接受文本资源。
+`/internal/config/v1/{resource}` 支持 GET 列表；`/{resource}/{ref}` 支持 GET、PUT 完整保存、PATCH 局部保存、DELETE。资源为 capabilities、skills、models、model_connections、database_connections、mcp_servers、knowledge_connections、knowledge_purposes、knowledge_libraries、settings。GET 单条能力包含 skills/databases/mcps/knowledge。PATCH 省略字段保留原值；`config` 和 setting 的 `value` 递归合并对象、替换数组，`[]` 清空列表，文档内部的 `null` 删除可选键。显式传入关联数组也替换该组。ref 不可修改，PATCH 不创建记录。引用中的连接、基础设置和 conversation 不可删除。新 Skill 只接受文本资源。
 
 管理 JWT 使用 `settings/security` 的 `secrets.configurationJwtSecret`，HS256，aud=ccsdk-config，scope=configuration.manage，iss 与 `value.runtimeJwtIssuer` 一致，包含 sub/iat/exp，最长 300 秒。拒绝浏览器 Origin，第三方可信后端负责签发和授权。管理读取脱敏，`configured_secrets` 表示是否配置；PUT/PATCH 的秘密字段传 null 保留原值。
 
-GET /internal/config/v1/models 支持 connection_ref、enabled 过滤，按 sort_order、ref 排序；同连接的 model_name 唯一。GET /internal/config/v1/options 返回 models、tools、skills、mcp_servers、database_connections 选项；只列启用资源，模型还要求连接启用。内部 Service 可通过 MCP 资源接口管理连接，但不能作为通用 Tool 或 MCP 关联选择。模型下拉属于管理端，普通 Run 仍只能提交 Capability。
+GET /internal/config/v1/models 支持 connection_ref、enabled 过滤，按 sort_order、ref 排序；同连接的 model_name 唯一。GET /internal/config/v1/options 返回 models、tools、skills、mcp_servers、database_connections、knowledge_connections、knowledge_purposes、knowledge_libraries 选项；只列启用资源，模型还要求连接启用。内部 Service 可通过 MCP 资源接口管理连接，但不能作为通用 Tool 或 MCP 关联选择。模型下拉属于管理端，普通 Run 仍只能提交 Capability。
 
 基础设置按 `runtime/files/images/security` 四组各存一行，每行用 `value` 保存 JSON、`secrets` 保存加密内容。能力的 `config.runtime` 存推理与预算，`config.attachments` 存输入限制。能力专属参数归 `config.params`，由同名代码包声明允许的键，校园查询的 `max_calls` 和 `minimum_schools` 同时用于提示词、工具 Schema 和执行校验。撰写用 `config.templates` 保存模板 key 数组；例如 `["szpt-midterm"]`。模板路径、文档与数据来源由服务端登记和校验。
 

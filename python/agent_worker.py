@@ -582,6 +582,7 @@ async def run_client(initial: dict[str, Any]) -> None:
                         options = build_options(command, data_services=data_services,
                             artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                             chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
+                            knowledge_sink=lambda event: emit(event) if tool_scope.active else None,
                             mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services)
                     policy.bind(options)
                     policy.budget = RunBudget(assets.get('runtime', {}))
@@ -698,6 +699,7 @@ async def run(payload: dict[str, Any]) -> None:
             options = build_options(payload, data_services=data_services,
                                     artifact_sink=lambda event: emit(event) if tool_scope.active else None,
                                     chart_sink=lambda value: chart_delivery.record(value) if tool_scope.active else None,
+                                    knowledge_sink=lambda event: emit(event) if tool_scope.active else None,
                                     mcp_error_sink=lambda detail=None: mcp_errors.append(detail or {'stage': 'mcp_tool'}), tool_services=tool_services,
                                     turn_policy=policy)
         policy.budget = RunBudget(prepare_capability_assets(payload).get('runtime', {}))

@@ -43,9 +43,10 @@ def mcp_document(item):
             'parameters': copy.deepcopy(config.get('parameters', {})), 'auth': auth}
 
 
-def read_configuration(capability_ref=None, *, include_security=False):
+def read_configuration(capability_ref=None, *, include_security=False, tenant_id=None, include_knowledge=None):
     from runtime.config_store import config_store
-    return config_store().load(capability_ref, include_security=include_security)
+    return config_store().load(capability_ref, include_security=include_security, tenant_id=tenant_id,
+                               include_knowledge=include_knowledge)
 
 
 def deployment_document(rows, capability_ref='conversation', *, allow_disabled=False):
@@ -90,24 +91,71 @@ def capability_manifest(row, model_name):
     config.pop('attachments', None)
     runtime = config['runtime']
     runtime['model'] = model_name
+    tools = [*config.get('toolRefs', []), *(item['ref'] for item in row['mcps'])]
+    required_tools = list(config.get('requiredToolRefs', []))
+    if row['knowledge']:
+        tools.append('knowledge')
+        if any(item['required'] for item in row['knowledge']):
+            required_tools.append('knowledge')
     config.update(ref=row['ref'], title=row['name'], description=row['description'],
         supportsAttachments=row['supports_attachments'],
         skillRefs=[item['ref'] for item in row['skills']],
         requiredSkillRefs=[item['ref'] for item in row['skills'] if item['required']],
-        toolRefs=[*config.get('toolRefs', []), *(item['ref'] for item in row['mcps'])])
+        toolRefs=list(dict.fromkeys(tools)),
+        requiredToolRefs=list(dict.fromkeys(required_tools)))
     if row['databases']:
         config.setdefault('data', {}).update(
             access='required' if any(item['required'] for item in row['databases']) else 'optional',
             sourceRefs=[item['ref'] for item in row['databases']])
     return config
 
-def execution_entry(ref=None, *, rows=None):
+def _knowledge_document(rows, capability, tenant_id):
+    purpose_refs = {item['ref'] for item in capability['knowledge']}
+    connections = {ref: item for ref, item in rows['knowledge_connections'].items()
+                   if item['tenant_id'] in {tenant_id, '*'} and item['enabled']}
+    libraries = [item for item in rows['knowledge_libraries'].values()
+                 if item['enabled'] and item['purpose_ref'] in purpose_refs
+                 and item['connection_ref'] in connections]
+    libraries_by_purpose = {ref: [item for item in libraries if item['purpose_ref'] == ref]
+                            for ref in purpose_refs}
+    for binding in capability['knowledge']:
+        if binding['required'] and not libraries_by_purpose[binding['ref']]:
+            raise ValueError('knowledge_purpose_unavailable')
+    used_connections = {item['connection_ref'] for item in libraries}
+    return {
+        'purposes': [{'ref': ref, 'name': rows['knowledge_purposes'][ref]['name'],
+                      'description': rows['knowledge_purposes'][ref]['description']}
+                     for ref in purpose_refs],
+        'connections': {ref: {
+            'provider': connections[ref]['provider'],
+            'baseUrl': connections[ref]['base_url'],
+            'credentials': copy.deepcopy(connections[ref]['credentials']),
+            'config': copy.deepcopy(connections[ref]['config']),
+            'timeoutSeconds': connections[ref]['timeout_seconds'],
+            'maxResults': connections[ref]['max_results'],
+        } for ref in used_connections},
+        'libraries': [{
+            'ref': item['ref'], 'purposeRef': item['purpose_ref'], 'name': item['name'],
+            'connectionRef': item['connection_ref'], 'externalId': item['external_id'],
+            'config': copy.deepcopy(item['config']),
+        } for item in libraries],
+    }
+
+
+def execution_entry(ref=None, *, rows=None, tenant_id=None, include_knowledge=None):
     from runtime.capabilities import CAPABILITIES_ROOT, _validate_manifest
     from runtime.deployment_config import configuration_scope
     ref = ref or 'conversation'
-    rows = rows if rows is not None else read_configuration(ref)
+    if include_knowledge is None:
+        include_knowledge = tenant_id is not None
+    if include_knowledge and tenant_id is None:
+        raise ValueError('knowledge_tenant_required')
+    rows = rows if rows is not None else read_configuration(
+        ref, tenant_id=tenant_id, include_knowledge=include_knowledge)
     document = deployment_document(rows, ref)
     row = rows['capabilities'][ref]
+    if include_knowledge:
+        document['knowledge'] = _knowledge_document(rows, row, tenant_id)
     skills = {}
     for binding in row['skills']:
         skill = rows['skills'][binding['ref']]
@@ -197,6 +245,7 @@ def validate_configuration(rows):
                 raise ValueError('skill_resource_invalid')
     from runtime.tool_catalog import TOOL_CATALOG
     from runtime.mcp_transport import validate_http_connection
+    from knowledge.providers import PROVIDERS
 
     for ref, item in rows['mcp_servers'].items():
         def invalid(field, code='mcp_auth_invalid'):
@@ -227,6 +276,39 @@ def validate_configuration(rows):
             invalid('config.auth.target')
         if not internal and (not isinstance(rule.get('prefix'), str) or any(c in rule['prefix'] for c in '\r\n')):
             invalid('config.auth.prefix')
+    for ref, item in rows['knowledge_connections'].items():
+        def invalid(field, code='knowledge_connection_invalid'):
+            raise ConfigurationError('knowledge_connections', ref, field, code)
+
+        if item['provider'] not in PROVIDERS: invalid('provider', 'knowledge_provider_unsupported')
+        if not item['tenant_id'] or item['tenant_id'] != '*' and not isinstance(item['tenant_id'], str):
+            invalid('tenant_id')
+        try:
+            _endpoint(item, 'base_url', allow_http=True)
+        except ValueError:
+            invalid('base_url', 'endpoint_invalid')
+        credentials = item['credentials']
+        if not isinstance(credentials, dict):
+            invalid('credentials', 'object_required')
+        config = item['config']
+        if not isinstance(config, dict):
+            invalid('config', 'object_required')
+        for field, maximum in (('timeout_seconds', 120), ('max_results', 100)):
+            if type(item[field]) is not int or not 1 <= item[field] <= maximum:
+                invalid(field, 'value_out_of_range')
+        PROVIDERS[item['provider']].validate(item, None)
+    for ref, item in rows['knowledge_libraries'].items():
+        def invalid(field, code='knowledge_library_invalid'):
+            raise ConfigurationError('knowledge_libraries', ref, field, code)
+
+        if item['connection_ref'] not in rows['knowledge_connections']:
+            invalid('connection_ref', 'config_reference_missing')
+        if item['purpose_ref'] not in rows['knowledge_purposes']:
+            invalid('purpose_ref', 'config_reference_missing')
+        if not item['external_id']:
+            invalid('external_id', 'field_required')
+        connection = rows['knowledge_connections'][item['connection_ref']]
+        PROVIDERS[connection['provider']].validate(connection, item)
     for row in rows['capabilities'].values():
         def invalid(field, code): raise ConfigurationError('capabilities', row['ref'], field, code)
         for binding in row['mcps']:
@@ -235,6 +317,9 @@ def validate_configuration(rows):
                     not isinstance(name, str) or (name != '*' and not re.fullmatch(r'[A-Za-z0-9_.-]+', name))
                     for name in allowed_tools):
                 invalid('mcps', 'mcp_allowlist_invalid')
+        for binding in row['knowledge']:
+            if binding['ref'] not in rows['knowledge_purposes']:
+                invalid('knowledge', 'config_reference_missing')
         model = rows['models'].get(row['model_ref'])
         if model is None: invalid('model_ref', 'config_reference_missing')
         config = row['config']

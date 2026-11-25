@@ -1,0 +1,44 @@
+{
+  "ref": "knowledge",
+  "version": 1,
+  "implementation": "knowledge",
+  "transport": "sdk",
+  "lifecycle": "per_run",
+  "scope": "operations",
+  "description": "检索本轮授权的知识库并读取已检索分块",
+  "operations": [
+    {
+      "ref": "knowledge_search",
+      "description": "按知识用途检索授权库，返回分块原文和引用标记",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "purpose": {"type": "string"},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "ref": "knowledge_read",
+      "description": "读取本 Run 检索结果对应分块的完整原文",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ref": {"type": "string", "pattern": "^k[1-9][0-9]*$"}
+        },
+        "required": ["ref"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "category": "integration",
+  "auth": {"required": false},
+  "displayKeys": {
+    "knowledge_search": "knowledge.search",
+    "knowledge_read": "knowledge.read"
+  },
+  "instructionRefs": ["TOOL.md"]
+}

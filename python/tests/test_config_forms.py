@@ -114,7 +114,8 @@ class ConfigurationFormTests(unittest.TestCase):
         response = self.client.get('/internal/config/v1/options', headers=self.headers)
         self.assertEqual(response.status_code, 200, response.text)
         values = response.json()
-        self.assertEqual(set(values), {'models', 'tools', 'skills', 'mcp_servers', 'database_connections'})
+        self.assertEqual(set(values), {'models', 'tools', 'skills', 'mcp_servers', 'database_connections',
+                                       'knowledge_connections', 'knowledge_purposes', 'knowledge_libraries'})
         self.assertTrue(all('ref' in item and 'name' in item for items in values.values() for item in items))
         self.assertNotIn('campus', {item['ref'] for item in values['mcp_servers']})
         self.assertEqual(self.client.get('/internal/config/v1/mcp_servers/campus', headers=self.headers).status_code, 200)

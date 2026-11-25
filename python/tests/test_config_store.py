@@ -22,6 +22,15 @@ class ConfigStoreTests(unittest.TestCase):
         capability['config']['toolRefs'] = []
         self.store.save('capabilities', 'conversation', capability)
 
+    def test_configuration_tables_use_runtime_prefix(self):
+        from runtime.config_store import TABLES, RELATIONS
+        names = [table.name for table in (*TABLES.values(), *RELATIONS.values())]
+        self.assertTrue(all(name.startswith('runtime_') for name in names), names)
+        self.assertIn('runtime_knowledge_connection', names)
+        self.assertIn('runtime_knowledge_purpose', names)
+        self.assertIn('runtime_knowledge_library', names)
+        self.assertIn('runtime_capability_knowledge', names)
+
     def test_new_read_sees_saved_prompt_and_previous_read_is_unchanged(self):
         before = self.store.load()
         item = self.store.get('capabilities', 'conversation')
@@ -61,6 +70,44 @@ class ConfigStoreTests(unittest.TestCase):
         self.store.save('capabilities','campus-brain-query',item)
         with self.assertRaisesRegex(ValueError,'config_in_use'):
             self.store.delete('mcp_servers','campus')
+
+    def test_knowledge_connection_credentials_are_encrypted_and_tenant_load_is_scoped(self):
+        from sqlalchemy import select
+        from runtime.config_store import TABLES
+        connections = {
+            'school-a': {'name':'A 校','provider':'weknora','base_url':'https://weknora-a.test',
+                'tenant_id':'school-a','credentials':{'api_key':'private-a'},'config':{'workspace_id':101},
+                'timeout_seconds':10,'max_results':5,'enabled':True},
+            'school-b': {'name':'B 校','provider':'weknora','base_url':'https://weknora-b.test',
+                'tenant_id':'school-b','credentials':{'api_key':'private-b'},'config':{'workspace_id':102},
+                'timeout_seconds':10,'max_results':5,'enabled':True},
+            'shared': {'name':'公共政策','provider':'weknora','base_url':'https://weknora.test',
+                'tenant_id':'*','credentials':{'api_key':'private-shared'},'config':{'workspace_id':103},
+                'timeout_seconds':10,'max_results':5,'enabled':True},
+        }
+        for ref, value in connections.items():
+            self.store.save('knowledge_connections', ref, value)
+        self.store.save('knowledge_purposes', 'policy', {
+            'name':'政策','description':'政策与制度文件'})
+        for ref, connection_ref, external_id in (
+                ('lib-a','school-a','kb-a'), ('lib-b','school-b','kb-b'), ('lib-shared','shared','kb-shared')):
+            self.store.save('knowledge_libraries', ref, {'name':ref,'connection_ref':connection_ref,
+                'purpose_ref':'policy','external_id':external_id,'config':{},'enabled':True})
+        capability = self.store.get('capabilities','conversation')
+        capability['knowledge'] = [{'ref':'policy','required':True}]
+        self.store.save('capabilities','conversation',capability)
+
+        loaded = self.store.load('conversation', tenant_id='school-a')
+        self.assertEqual(set(loaded['knowledge_connections']), {'school-a','shared'})
+        self.assertEqual(set(loaded['knowledge_libraries']), {'lib-a','lib-shared'})
+        self.assertEqual(loaded['knowledge_connections']['school-a']['credentials']['api_key'], 'private-a')
+        unscoped = self.store.load('conversation')
+        self.assertEqual(unscoped['knowledge_connections'], {})
+        self.assertEqual(unscoped['knowledge_libraries'], {})
+        with self.engine.connect() as connection:
+            stored = connection.execute(select(TABLES['knowledge_connections'])).mappings().all()
+        self.assertNotIn('private-a', str([dict(row) for row in stored]))
+        self.assertIsNone(self.store.get('knowledge_connections','school-a')['credentials'])
 
 class ConfigurationBindingTests(unittest.TestCase):
     def test_next_turn_removes_deleted_skill_resources_and_unselected_skills(self):

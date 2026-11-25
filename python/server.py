@@ -103,14 +103,23 @@ async def lifespan(_: FastAPI):
                             business_waiting=partial(RUN_QUEUE.waiting_for, LOCAL_WORKER_START),
                             worker_factory=partial(ClientWorkerProcess, timing_enabled=OBSERVATION.enabled))
     WORKER_POOL.start()
+    cleanup_task = asyncio.create_task(_cleanup_run_store(), name='run-store-retention')
     try:
         RUN_STORE.settle_steering(code='runtime_restarted')
         SESSION_MANAGER = _create_session_manager()
         await _artifact_delivery().recover()
         yield
     finally:
+        cleanup_task.cancel()
+        await asyncio.gather(cleanup_task, return_exceptions=True)
         await _shutdown_runtime()
         await asyncio.to_thread(OBSERVATION.close)
+
+
+async def _cleanup_run_store():
+    while True:
+        await asyncio.to_thread(RUN_STORE.cleanup_expired)
+        await asyncio.sleep(3600)
 
 
 async def _shutdown_runtime():
@@ -314,6 +323,9 @@ def _public_internal_event(run_id: str, raw: dict[str, Any]) -> dict[str, Any] |
     raw_type = str(raw.get("type") or "activity")
     if raw_type == "thinking":
         return None
+    if raw_type == "knowledge.sources":
+        return {"runId": run_id, "type": raw_type,
+                "payload": {"items": raw["payload"]["items"]}}
     if raw_type == "text":
         text = raw.get("text")
         if isinstance(text, str) and text:
@@ -465,6 +477,10 @@ async def _handle_agent_event(run_id: str, raw: dict[str, Any]) -> None:
         return
     if raw.get('type') in {'performance', 'diagnostic', 'assistant_turn'}:
         _record_observation(run_id, raw)
+        return
+    if raw.get('type') == 'knowledge.sources':
+        RUN_STORE.save_knowledge_sources(run_id, raw['_source_records'])
+        await _publish_internal_event(run_id, _public_internal_event(run_id, raw))
         return
     timing = RUN_TIMINGS.get(run_id)
     if timing:
@@ -776,7 +792,8 @@ async def _execute_internal_run_bound(
     session_directory: Path | None = None
     pool = WORKER_POOL
     try:
-        execution_entry = execution_entry or load_execution_entry(run_request.capability_ref)
+        execution_entry = execution_entry or load_execution_entry(
+            run_request.capability_ref, tenant_id=claims['tenant'])
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         session_key = _client_session_key(run_request, claims)
         if queued_run is None:
@@ -940,7 +957,7 @@ async def internal_create_run(request: Request):
 
     capability = run_request.capability_ref or "conversation"
     try:
-        execution_entry = await asyncio.to_thread(load_execution_entry, capability)
+        execution_entry = await asyncio.to_thread(load_execution_entry, capability, tenant_id=claims['tenant'])
         validate_capability_credentials(execution_entry['capability'], run_request.credentials)
         runtime_mode = _runtime_mode_for_request(run_request, execution_entry)
         if run_request.input.attachment_refs and not execution_entry['capability'].get('supports_attachments', False):
