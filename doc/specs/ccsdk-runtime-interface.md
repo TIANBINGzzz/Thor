@@ -50,7 +50,10 @@ Base URL 来自部署配置，JSON 使用 UTF-8，事件使用 SSE。runId 标�
 - 每 Run 的 sequence 从 1 递增。afterSequence 优先于 Last-Event-ID，只补发更大的序号；消费端保存已处理游标，不能用服务端 lastSequence 跳过尚未消费事件。回放不重新执行模型。
 - message.delta 只追加新增正文；按 Run/sequence 去重。所有 payload 含 displayName，空值只隐藏状态提示，正文、文件及终态仍须处理。工具按 Run、scope、toolCallId 关联，失败不自动等于 Run 失败。
 - 初始思考提示由 phase.model_starting 提供；run.started 的显示名为空。思考增量只进入私有观测，不生成公共 phase。工具 started/progress/finished 按实际事件即时发送，不因同名合并、不节流，显示间隙由消费端处理；工具结束不额外发送思考状态。显示名称及终态处理见 [API 参考](../python-api.html#events)。
-- 公共事件仅提供公开 toolKey 和显示名，不包含内部工具名、参数、结果、思考正文、Prompt、路径、凭据或 SDK 原始消息；显示字典只在 Python 维护。
+- 除知识出处外，公共事件仅提供公开 toolKey 和显示名，不包含内部工具名、参数、工具结果、思考正文、Prompt、路径、凭据或 SDK 原始消息；显示字典只在 Python 维护。`knowledge.sources` 是唯一携带出处摘要的公共事件，字段、数量限制和消息保存见[知识库契约](knowledge-base-connections.md#引用与出处)。它只含 Runtime 归一化的可展示快照，不含供应商文档 ID、分块 ID、`source_id`、`source_hash` 或凭据。
+- `knowledge.sources.payload.items` 仅列本次新登记或被 `knowledge_read` 更新的引用，每个事件最多 20 个 `ref`；超出拆成多个事件。相同快照不重复发送；同一 Run/ref 后续更新时作为 upsert，消费端用较新的 sequence 覆盖。位置条数和引用文本长度另有限制，避免单事件过大。事件必须在对应 `run.completed` 前持久化并按 sequence 发出；`python/server.py` 必须显式转换该内部事件，不能落入未知事件的普通工作状态兜底。
+- Java 由创建 Run 时已保存的 Run/messageId 关联缓存出处；正常收到 `run.completed` 后，从最终 Markdown 正文解析普通正文中实际引用的 `[^kN]`，不把代码块或行内代码里的同形文本当引用，只将命中的公开快照与助手消息一起持久化。未知标记不渲染为引用。断线重放仍按 Run/sequence 去重，重复来源 upsert 不产生重复卡片。失败或取消的部分正文不作为成功助手消息的长期出处快照。
+- RunStore 的通用事件保留期为终态后的 24 小时；终态事件落库时刷新现有 `runs.updated_at`，清理器按 `(status, updated_at)` 索引扫描，并在同一事务中删除该 Run 的全部 `run_events` 及临时 `run_knowledge_sources`。终态事件之后不再修改 Run 记录；清理器保留 `runs` 的会话状态索引。超过期限不保证 SSE 补放，历史正文和出处以 Java 消息为准；SDK transcript、工作区和 Artifact 沿用各自生命周期。此期限适用于所有 Run 事件，不只知识来源。
 - 引导状态以 `steering.accepted`、`steering.delivered`、`steering.applied`、`steering.rejected`、`steering.unknown` 事件公开，payload 仅含 messageId、状态、稳定错误码及可信显示名。引导正文不写入 RunStore 或公共事件；SDK 对话历史由 SDK 管理。事件协议仍为 `agent-events/v1`。
 - `queued` 覆盖同会话等待、附件准备和资源等待；分派后进入 `running`，发出 `run.started` 和 `phase.model_starting`。附件未准备完成不启动模型，无附件跳过文件阶段；进度属于当前文件，文件字节不经 SSE。
 - SDK 结束后可进入 saving_files，等待已登记上传收尾；SSE EOF 不代表成功。run.completed 表示 SDK 成功，不保证全部文件 ready，文件状态须分别消费。

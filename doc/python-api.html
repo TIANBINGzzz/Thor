@@ -527,6 +527,39 @@ event: message.delta
 data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventId":"evt_04","occurredAt":1725400001500,"type":"message.delta","payload":{"textDelta":"回复片段","displayName":""}}
 
 </pre></div></details>
+<div class="note"><strong>出处事件方案，当前未实现。</strong>新增的 <code>knowledge.sources</code> 是唯一可携带出处摘要的公共事件；内容由 Runtime 归一化，不做原文脱敏，且不含 WeKnora 文档 ID、分块 ID、<code>source_id</code>、<code>source_hash</code> 或凭据。该事件仍受原 Run 的租户和用户授权保护。每个事件最多 20 个 ref；单个 ref 最多 5 个位置，每段 quote 和无定位时的 excerpt 最多 300 个 Unicode 码点。事件须先于对应 <code>run.completed</code> 持久化并按 sequence 发送。</div>
+<div class="code-wrap"><div class="code-label">事件 JSON · knowledge.sources（方案）</div><button class="copy" type="button">复制</button><pre>{
+  "protocolVersion": "agent-events/v1",
+  "runId": "run_01",
+  "sequence": 7,
+  "eventId": "evt_07",
+  "occurredAt": 1725400001800,
+  "type": "knowledge.sources",
+  "payload": {
+    "displayName": "",
+    "items": [
+      {
+        "ref": "k1",
+        "libraryName": "校本制度",
+        "documentTitle": "学生管理办法.pdf",
+        "excerpt": "学生应当遵守学校管理规定……",
+        "excerptTruncated": false,
+        "sources": [
+          {
+            "type": "pdf",
+            "label": "第 3 页",
+            "partial": false,
+            "quote": "学生应当遵守学校管理规定。",
+            "quoteTruncated": false,
+            "page": 3
+          }
+        ],
+        "moreLocations": 0
+      }
+    ]
+  }
+}</pre></div>
+<p><code>knowledge.sources</code> 只推送本次新登记或被 <code>knowledge_read</code> 更新的 ref；相同快照不重复发送，后续更新按 Run/ref upsert。Java 按 Run 缓存事件；收到 <code>run.completed</code> 后，只保存最终普通 Markdown 正文实际引用的 <code>[^kN]</code> 对应快照，并与助手消息一起写入 <code>retrieverResources</code>。代码块、行内代码中的同形文本不作为引用；正文标记找不到快照时不渲染。失败或取消的部分正文不持久化为成功回答出处。Runtime 事件和临时来源映射在终态后 24 小时清理，超期不保证 SSE 补放；Java 消息中的快照长期保留。出处文字和标题是不可信文档内容，前端必须安全转义后按文本显示。</p>
 <p><code>type</code> 告诉接入方“发生了什么”；<code>payload</code> 是这件事的具体数据；<code>runId</code> 表示属于哪一次请求。下表的前端处理是接入建议，需由 Java 转发和前端实现。</p>
 <h3>显示名称由 Python 提供</h3>
 <p>所有事件的 payload 都带字符串 <code>displayName</code>。前端直接使用这个名称，无需自己维护工具名称或状态名称字典。<strong>displayName 为 "" 时，只是不显示这条事件的状态提示，不能丢弃整个事件。</strong>正文仍需追加、文件记录仍需更新、Run 结束仍需停止加载；已有聊天组件处理正文时，不要再追加一次。</p>
@@ -575,6 +608,7 @@ data: {"protocolVersion":"agent-events/v1","runId":"run_01","sequence":4,"eventI
 <tr><td><code>run.started</code><br>Python 开始处理本次请求</td><td><code>status: "running"</code>：本次请求正在处理中，此时可能还在准备附件。</td><td>displayName 为空；开始处理不代表模型已经启动。初始“正在思考”由 model_starting 阶段发送，思考增量不生成公共状态事件。</td></tr>
 <tr><td><code>phase</code><br>当前处理步骤有变化</td><td><code>name</code> 是步骤名称，取值见下表。不包含模型思考内容。</td><td>displayName 非空时更新步骤提示；不要把步骤名加进回答正文。</td></tr>
 <tr><td><code>message.delta</code><br>收到一小段新回答</td><td><code>textDelta</code> 是这次新生成的文字，不是完整回答。例如本次是“你好”，下次可能是“，有什么可以帮你？”。</td><td>把这段文字加在已有回答的末尾，效果像逐字显示。按 sequence 的顺序处理，同一条事件只加一次，详见下面示例。</td></tr>
+<tr><td><code>knowledge.sources</code><br>本次 Run 新增或更新了知识出处（方案，未实现）</td><td><code>items</code> 是 Runtime 归一化后的出处摘要列表；每项以本 Run 的 <code>ref</code> 标识，字段见上方示例。</td><td>Java 按 Run/ref 缓存并按 sequence 去重；终态成功后仅将正文实际引用的 ref 随消息保存。前端只渲染已匹配的引用标记，不回查 WeKnora。</td></tr>
 <tr><td><code>tool.started</code><br>开始调用一个工具</td><td><code>toolCallId</code> 是调用 ID（上游提供时返回）；<code>toolKey</code> 是公开分类；<code>displayName</code> 是显示名称；<code>status: "started"</code> 表示开始。</td><td>displayName 非空时显示该工具正在处理；空字符串时不新增工具提示。工具状态与正文分开显示。</td></tr>
 <tr><td><code>tool.progress</code><br>工具报告自己仍在执行</td><td>调用 ID、分类和名称同上；<code>status: "running"</code> 表示未结束。不包含完成百分比，Python 会按调用 ID 补齐已知名称。</td><td>更新该工具的处理中状态。并非每次调用都会收到此事件，没有收到不等于卡住。</td></tr>
 <tr><td><code>tool.finished</code><br>这一次工具调用结束</td><td><code>status: "finished"</code> 表示结束；<code>isError: true</code> 表示这次工具调用报错，false 表示未报告错误；调用 ID、分类和名称同上。</td><td>结束该工具的加载状态，非空名称才展示提示。一次工具失败不代表整次请求失败，模型可能继续处理。</td></tr>
